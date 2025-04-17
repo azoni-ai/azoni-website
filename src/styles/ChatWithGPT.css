@@ -99,11 +99,9 @@
 .chat-button:hover {
   opacity: 0.9;
 }
-.chat-controls {
-  margin-bottom: 1rem;
-}
+
 .tone-toggle {
-  text-align: center;
+  text-align: left;
 }
 .tone-toggle span {
   margin-right: 0.5rem;
@@ -153,7 +151,7 @@
   display: flex;
   gap: 12px;
   margin-bottom: 1rem;
-  justify-content: center;
+  text-align: left;
 }
 
 .chat-mode-toggle button {

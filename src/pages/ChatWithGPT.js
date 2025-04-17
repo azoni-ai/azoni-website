@@ -140,31 +140,16 @@ const ChatWithGPT = () => {
             </button>
           ))}
         </div>
-      <div className="chat-mode-toggle">
-          <button
-            className={chatMode === "azoni" ? "active" : ""}
-            onClick={() => setChatMode("azoni")}
-          >
-            Azoni-GPT
-          </button>
-          <button
-            className={chatMode === "pdf" ? "active" : ""}
-            onClick={() => setChatMode("pdf")}
-          >
-            PDF-GPT
-          </button>
-          <button
-            className={chatMode === "fab" ? "active" : ""}
-            onClick={() => setChatMode("fab")}
-          >
-            FAB-GPT
-          </button>
-          <button
-            className={chatMode === "bench" ? "active" : ""}
-            onClick={() => setChatMode("bench")}
-          >
-            BENCH-GPT
-          </button>
+        <div className="chat-mode-toggle">
+          {Object.keys(GPT_MODES).map((mode) => (
+            <button
+              key={mode}
+              className={`gpt-tab ${chatMode === mode ? "active" : ""}`}
+              onClick={() => setChatMode(mode)}
+            >
+              {GPT_MODES[mode].name.replace("-GPT", "")}
+            </button>
+          ))}
         </div>
         <div className="chat-controls">
         
