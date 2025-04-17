@@ -189,28 +189,64 @@ const charltonBio = {
   projects: [
     {
       name: "Azoni AI",
-      description: `Charlton’s flagship creative lab. Azoni AI includes a multiplayer game world with custom avatars, live chat, AI NPCs, skill trees (like woodcutting), and item trading — all built with React, WebSockets, and OpenAI. Originally started as a Discord bot, it expanded to web and Twitter integrations to help showcase his capabilities during job search.`,
+      description: `A flagship creative sandbox that blends AI tooling with multiplayer interactivity. Built a real-time web game using React and WebSockets where users can move, chat, train skills (like woodcutting), and interact with AI-powered NPCs. Includes agents like FAB-GPT and PDF-GPT with persistent memory and context awareness.`,
+      highlights: [
+        "Built real-time multiplayer engine using React, WebSockets, and Python",
+        "Integrated OpenAI Assistants API for AI NPCs with memory and game-like dialog",
+        "Designed and implemented skill systems (XP, inventory, trading) inspired by RuneScape",
+        "Built Discord + Twitter integrations for outreach and experimentation"
+      ],
+      tech: ["React", "WebSockets", "Python", "Flask", "OpenAI API", "SQLite"]
     },
+  
     {
       name: "DustBunny",
-      description: `A powerful OpenSea bidding bot built entirely solo. Features include Redis-backed queues for trait-based bidding strategies, real-time upbid detection with max cap logic, and automated bids on listings or transfers. It included an easy-to-use UI and modular design for testing various pricing algorithms.`,
+      description: `A solo-built NFT bidding bot for OpenSea. Focused on trait-based arbitrage with configurable strategy profiles and rate-limited bid queues.`,
+      highlights: [
+        "Implemented Redis-backed queues for high-throughput bidding with real-time caps",
+        "Built a modular engine to support different NFT trait strategies",
+        "Created a CLI and UI for managing bids, filters, and pricing rules",
+        "Handled OpenSea listing events and ERC721 transfer events directly"
+      ],
+      tech: ["Node.js", "Redis", "OpenSea API", "JavaScript", "CLI tools"]
     },
+  
     {
       name: "Oli Fitness",
-      description: `A startup prototype created at a hackathon to help powerlifters prevent injury. It used a Microsoft Kinect to map joint movement during compound lifts and offered real-time feedback based on mathematical models of human motion.`,
+      description: `A hackathon-started prototype for injury prevention in powerlifting. Used a Microsoft Kinect with the C# SDK to track joint motion and detect risky lift patterns.`,
+      highlights: [
+        "Used Kinect’s depth sensors and joint mapping to track squat/deadlift form in real time",
+        "Applied vector-based math and rule-based analysis to assess movement quality",
+        "Created proof-of-concept feedback alerts for injury-prone knee or back mechanics"
+      ],
+      tech: ["C#", "Microsoft Kinect SDK", "3D math", "biomechanics"]
     },
+  
     {
       name: "HashMaps",
-      description: `A T-Mobile hackathon-winning project that gamified network configuration visualization using real-world location data. Built with React Native and used to showcase data overlays and coverage optimization.`,
+      description: `A T-Mobile hackathon-winning project that gamified network configuration. Visualized cell site data on interactive maps and let engineers simulate configuration changes.`,
+      highlights: [
+        "Used React Native to build a mobile map interface with real-world location overlays",
+        "Pulled from mock LTE/5G site data to support site performance toggling",
+        "Gamified system configuration to engage users with network optimization choices"
+      ],
+      tech: ["android studio", "java", "Map APIs"]
     },
+  
     {
       name: "Neverwinter Nights Balance Rework",
-      description: `Built quality-of-life improvements for a persistent NWN server, including persistent storage, DPS meters, leaderboards, and major gear rebalance across all weapon tiers. Also implemented custom mechanics for boss fights and gear drops.`,
-    },
+      description: `Modernized a legacy persistent NWN server by rebuilding game systems. Rebalanced gear, added DPS tracking, and implemented custom scripting for new boss mechanics.`,
+      highlights: [
+        "Wrote custom scripts for new gear drop logic and combat mechanics",
+        "Implemented persistent XP, DPS meters, and gear tiers",
+        "Collaborated with the modding community to preserve game balance while modernizing it"
+      ],
+      tech: ["NWN Script", "Object-oriented design", "Legacy game engines"]
+    }
   ],
-
   skills: [
     "React",
+    "Java",
     "Node.js",
     "Python",
     "Flask",
