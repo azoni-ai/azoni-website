@@ -140,7 +140,7 @@
 .tone-toggle button:hover {
   background-color: #475569;
 }
-koiok
+
 .tone-toggle button.active-tone {
   background-color: #0ea5e9;
   color: white;
@@ -189,11 +189,4 @@ koiok
 
 .scroll-to-bottom:hover {
   background-color: #333;
-}
-.chat-disclaimer {
-  text-align: center;
-  font-size: 0.75rem;
-  color: #aaa;
-  margin-top: 6px;
-  font-style: italic;
 }

@@ -19,14 +19,14 @@ const sections = [
     description: "Learn more about my background, what I'm working on, and what drives me as an engineer.",
   },
   {
-    title: 'Projects',
-    path: '/projects',
-    description: "Explore a collection of creative builds, games, tools, and experiments from my dev lab.",
-  },
-  {
     title: 'Chat',
     path: '/chat',
     description: "Chat with an AI assistant powered by the same tools I use to build my bots and systems.",
+  },
+  {
+    title: 'Projects',
+    path: '/projects',
+    description: "Explore a collection of creative builds, games, tools, and experiments from my dev lab.",
   },
   {
     title: 'Twitter',

@@ -10,6 +10,7 @@ const ChatWithGPT = () => {
   // const [messages, setMessages] = useState([getSystemPrompt(tone), { role: "assistant", content: getWelcomeMessage(tone) }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const isFirstRender = useRef(true); // 👈 tracks if it's the first render
 
   const chatEndRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -35,8 +36,12 @@ const ChatWithGPT = () => {
   // const [pdfName] = useState(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [loading]);
+    if (isFirstRender.current) {
+      isFirstRender.current = false; // 👈 skip the first update
+      return;
+    }
+    scrollToBottom();
+  }, [messages]);
   useEffect(() => {
     const handleWindowScroll = () => {
       const bottomThreshold = 150; // px from bottom
@@ -79,9 +84,10 @@ const ChatWithGPT = () => {
     const userMessage = { role: "user", content: message };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
+    setQuestions(getRandomSubset(gptConfig.presetQuestions));
     setInput("");
     setLoading(true);
-    setTimeout(() => setLoading(false), 2000); // 2-second cooldown
+    // etTimeout(() => setLoading(false), 2000); // 2-second cooldown
     console.log(JSON.stringify(updatedMessages, null, 2));
     
     // const endpoint =
