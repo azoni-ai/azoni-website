@@ -25,6 +25,7 @@ const getSystemPrompt = (tone = "friendly") => {
     professional: "Use a concise, confident, and factual tone. Avoid fluff. Assume you're speaking to a recruiter or hiring manager.",
     friendly: "Be conversational and clear, like you're guiding someone through Charlton’s background with enthusiasm.",
     casual: "Be witty, relaxed, and informal — like you're bragging about your friend over lunch.",
+    funny: "Be funny, clever, and informal — like you're annoying friend that makes everything into a joke.",
   };
 
   return {

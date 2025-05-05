@@ -10,15 +10,173 @@ export const GPT_MODES = {
     Recruiters: Paste a job description, and Azoni-GPT will explain why Charlton is a strong fit.
     Hiring Managers: Ask about Charlton’s experience with specific technologies or projects.
     Curious Visitors: Try questions like “What is Azoni AI?” or “What are some fun facts about Charlton?”
-    You can also switch between tones (Professional, Friendly, Casual) to see different communication styles.`
+    You can also switch between tones (Professional, Friendly, Casual) to see different communication styles.
+    
+    Future plans: Reccommended questions based on current context.
+    `
   },
-    presetQuestions: [
-      "What’s Charlton’s background?",
-      "What is Azoni AI?",
-      "What projects has Charlton built?",
-      "What makes Charlton a strong hire?",
-      "What are some fun facts about Charlton?"
-    ],
+  presetQuestions: [
+    {
+      question: "Can you tell me about Charlton’s background?",
+      followUps: [
+        "What industries has Charlton worked in?",
+        "How did his experience at Capital One shape his approach?",
+        "What technical skills has he focused on most recently?"
+      ]
+    },
+    {
+      question: "What is Azoni AI and what problem does it solve?",
+      followUps: [
+        "What technologies power Azoni AI?",
+        "How is it different from other AI assistants?",
+        "Is it already live and being used?"
+      ]
+    },
+    {
+      question: "What are some notable projects Charlton has built?",
+      followUps: [
+        "Which project is he most proud of?",
+        "Did he work solo or lead a team?",
+        "What was the hardest technical challenge he solved?"
+      ]
+    },
+    {
+      question: "Why would Charlton be a great addition to our engineering team?",
+      followUps: [
+        "How does he approach problem-solving?",
+        "What’s his leadership style?",
+        "What kind of projects does he thrive on?"
+      ]
+    },
+    {
+      question: "What are some fun or surprising facts about Charlton?",
+      followUps: [
+        "What does he enjoy outside of work?",
+        "Has he built anything just for fun?",
+        "Does he bring any unique perspectives to a team?"
+      ]
+    },
+    {
+      question: "What kind of roles is Charlton looking for right now?",
+      followUps: [
+        "Is he open to contract or freelance work?",
+        "What industries is he most interested in?",
+        "Does he prefer remote or hybrid setups?"
+      ]
+    },
+    {
+      question: "What’s Charlton’s experience with AI and machine learning?",
+      followUps: [
+        "Has he used OpenAI tools in production?",
+        "What AI frameworks or libraries does he prefer?",
+        "How does he handle prompt engineering and model tuning?"
+      ]
+    },
+    {
+      question: "How has Charlton demonstrated leadership in past roles?",
+      followUps: [
+        "Has he mentored junior engineers?",
+        "Has he led project delivery under tight timelines?",
+        "What’s his communication style like?"
+      ]
+    },
+    {
+      question: "What does Charlton’s software development process look like?",
+      followUps: [
+        "Does he follow Agile or Scrum practices?",
+        "How does he approach debugging and testing?",
+        "What tools does he use for version control and CI/CD?"
+      ]
+    },
+    {
+      question: "What front-end technologies is Charlton comfortable with?",
+      followUps: [
+        "Has he built React or Next.js apps?",
+        "Does he work with Tailwind or traditional CSS?",
+        "Can he build responsive, mobile-first UIs?"
+      ]
+    },
+    {
+      question: "How does Charlton handle backend development?",
+      followUps: [
+        "Has he worked with FastAPI or Node.js?",
+        "How does he design RESTful or GraphQL APIs?",
+        "What databases does he typically use?"
+      ]
+    },
+    {
+      question: "Can Charlton work across the full stack?",
+      followUps: [
+        "Has he deployed full-stack apps to production?",
+        "How does he manage cloud hosting and scaling?",
+        "What monitoring or logging tools has he used?"
+      ]
+    },
+    {
+      question: "What side projects has Charlton pursued recently?",
+      followUps: [
+        "What inspired Azoni AI?",
+        "Has he experimented with game development?",
+        "What are some tech stacks he likes to try in his free time?"
+      ]
+    },
+    {
+      question: "What’s Charlton’s approach to working with cross-functional teams?",
+      followUps: [
+        "Has he worked closely with product or design?",
+        "How does he communicate technical trade-offs?",
+        "Is he comfortable leading sprint planning or standups?"
+      ]
+    },
+    {
+      question: "How does Charlton keep up with new technology?",
+      followUps: [
+        "Does he follow certain tech blogs or communities?",
+        "How often does he try new frameworks or tools?",
+        "Has he contributed to open-source or hackathons?"
+      ]
+    },
+    {
+      question: "What makes Charlton different from other engineers?",
+      followUps: [
+        "What strengths does he bring beyond code?",
+        "How has his personal journey shaped his work ethic?",
+        "How do others describe working with him?"
+      ]
+    },
+    {
+      question: "How does Charlton approach product thinking?",
+      followUps: [
+        "Does he focus on user experience?",
+        "Has he validated product-market fit before?",
+        "How does he balance MVP speed vs. scalability?"
+      ]
+    },
+    {
+      question: "What’s Charlton’s experience with dev ops and deployments?",
+      followUps: [
+        "Has he used Docker or Render?",
+        "How does he manage CI/CD pipelines?",
+        "What’s his go-to stack for deploying small projects?"
+      ]
+    },
+    {
+      question: "What’s Charlton’s biggest technical strength?",
+      followUps: [
+        "Does he prefer backend or frontend?",
+        "What kind of problems is he best at solving?",
+        "What’s something he’s mastered that others struggle with?"
+      ]
+    },
+    {
+      question: "What is Charlton most excited about building next?",
+      followUps: [
+        "Is he currently working on any new ideas?",
+        "Does he want to scale Azoni into something bigger?",
+        "What would be his dream project?"
+      ]
+    }
+  ],
     endpoint: "https://openrouter.ai/api/v1/chat/completions",
     model: "openai/gpt-3.5-turbo",
   },
