@@ -11,7 +11,7 @@ const sections = [
   {
     title: 'Old Ways Today',
     path: 'https://www.oldwaystoday.com',
-    description: "Learn more about my background, what I'm working on, and what drives me as an engineer.",
+    description: "Check this out!.",
   },
   {
     title: 'About Me',

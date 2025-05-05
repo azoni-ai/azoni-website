@@ -3,22 +3,20 @@ const charltonBio = {
 
   experience: {
     capitalOne:
-      "Led onboarding and mentorship for new engineers and interns, while helping design and implement a testing pipeline using AWS Lambda. Delivered scalable solutions that improved internal tooling with clean, testable JSON-driven workflows.",
-    tmobile:
-      "Built internal web tools during a T-Mobile hackathon that helped automate network configuration — one of which helped land Charlton a role there. Projects included automating provisioning tasks and building dashboards to visualize rollout impact.",
-    leadership:
-      "Served as president of the UW Tacoma coding club and attended over 30 hackathons, frequently placing in the top 3. Hackathons became a launchpad for many of his project ideas, including Oli Fitness and HashMaps.",
+       "Led onboarding and mentorship for new engineers and interns, while helping design and implement a testing pipeline using AWS Lambda. Delivered scalable solutions that improved internal tooling with clean, testable JSON-driven workflows.",
+     tmobile:
+       "Built internal web tools during a T-Mobile hackathon that helped automate network configuration — one of which helped land Charlton a role there. Projects included automating provisioning tasks and building dashboards to visualize rollout impact.",
+     leadership:
+       "Served as president of the UW Tacoma coding club and attended over 30 hackathons, frequently placing in the top 3. Hackathons became a launchpad for many of his project ideas, including Oli Fitness and HashMaps.",
   },
 
   projects: [
     {
       name: "Azoni AI",
-      description: `Charlton’s flagship creative lab. Azoni AI includes a multiplayer game world with custom avatars, live chat, AI NPCs, skill trees (like woodcutting), and item trading — all built with React, WebSockets, and OpenAI. Originally started as a Discord bot, it expanded to web and Twitter integrations to help showcase his capabilities during job search.`,
-    },
+      description: `Charlton’s flagship creative lab. Azoni AI includes a multiplayer game world with custom avatars, live chat, AI NPCs, skill trees (like woodcutting), and item trading — all built with React, WebSockets, and OpenAI. Originally started as a Discord bot, it expanded to web and Twitter integrations to help showcase his capabilities during job search.`,    },
     {
       name: "DustBunny",
-      description: `A powerful OpenSea bidding bot built entirely solo. Features include Redis-backed queues for trait-based bidding strategies, real-time upbid detection with max cap logic, and automated bids on listings or transfers. It included an easy-to-use UI and modular design for testing various pricing algorithms.`,
-    },
+      description: `A powerful OpenSea bidding bot built entirely solo. Features include Redis-backed queues for trait-based bidding strategies, real-time upbid detection with max cap logic, and automated bids on listings or transfers. It included an easy-to-use UI and modular design for testing various pricing algorithms.`,    },
     {
       name: "Oli Fitness",
       description: `A startup prototype created at a hackathon to help powerlifters prevent injury. It used a Microsoft Kinect to map joint movement during compound lifts and offered real-time feedback based on mathematical models of human motion.`,
