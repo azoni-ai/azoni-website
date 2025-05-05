@@ -10,7 +10,7 @@ const ChatWithGPT = () => {
   // const [messages, setMessages] = useState([getSystemPrompt(tone), { role: "assistant", content: getWelcomeMessage(tone) }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const isFirstRender = useRef(true); // 👈 tracks if it's the first render
+  // const isFirstRender = useRef(true); // 👈 tracks if it's the first render
   const inputRef = useRef(null);
 
   const chatEndRef = useRef(null);
@@ -36,13 +36,13 @@ const ChatWithGPT = () => {
 
   // const [pdfName] = useState(null);
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false; // 👈 skip the first update
-      return;
-    }
-    scrollToBottom();
-  }, [messages]);
+  // useEffect(() => {
+  //   if (isFirstRender.current) {
+  //     isFirstRender.current = false; // 👈 skip the first update
+  //     return;
+  //   }
+  //   scrollToBottom();
+  // }, [messages]);
   useEffect(() => {
     const handleWindowScroll = () => {
       const bottomThreshold = 150; // px from bottom
@@ -176,7 +176,7 @@ const ChatWithGPT = () => {
       };
       setMessages([...updatedMessages, fallbackReply]);
     }
-  
+    scrollToBottom();
     setLoading(false);
   };
   useEffect(() => {
