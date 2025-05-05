@@ -17,7 +17,7 @@ const ChatWithGPT = () => {
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   // const [chatMode, setChatMode] = useState("azoni"); // "azoni" or "pdf"
-  const [chatMode, ] = useState("azoni"); // "azoni" or "pdf"
+  const [chatMode,] = useState("azoni"); // "azoni" or "pdf"
   const [isFollowUp, setIsFollowUp] = useState(false);
   const gptConfig = GPT_MODES[chatMode];
   const getRandomSubset = (list, count = 5) => {
@@ -50,7 +50,7 @@ const ChatWithGPT = () => {
         window.innerHeight + window.scrollY >= document.body.scrollHeight - bottomThreshold;
       setIsAtBottom(isNearBottom);
     };
-  
+
     window.addEventListener("scroll", handleWindowScroll);
     return () => window.removeEventListener("scroll", handleWindowScroll);
   }, []);
@@ -58,11 +58,12 @@ const ChatWithGPT = () => {
     const handleKeyDown = (e) => {
       const active = document.activeElement;
       const isInputFocused = inputRef.current && inputRef.current === active;
-  
+
       if (e.key === "Enter") {
         if (!isInputFocused) {
           e.preventDefault();
           inputRef.current?.focus();
+          // scrollToBottom()
         } else {
           // If input is focused and empty, blur it
           if (input.trim() === "") {
@@ -72,17 +73,17 @@ const ChatWithGPT = () => {
           // Otherwise let form submit naturally
         }
       }
-  
+
       if (e.key === "Escape" && isInputFocused) {
         inputRef.current?.blur();
         setInput("");
       }
     };
-  
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [input]);
-  
+
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -109,7 +110,7 @@ const ChatWithGPT = () => {
 
     const message = customInput || input;
     if (!message.trim()) return;
-  
+
     const userMessage = { role: "user", content: message };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
@@ -118,7 +119,7 @@ const ChatWithGPT = () => {
     setLoading(true);
     // etTimeout(() => setLoading(false), 2000); // 2-second cooldown
     console.log(JSON.stringify(updatedMessages, null, 2));
-    
+
     // const endpoint =
     //   chatMode === "pdf"
     //     ? "https://your-backend/pdf-chat" // ← this will be your Flask PDF endpoint
@@ -151,7 +152,7 @@ const ChatWithGPT = () => {
       });
       // console.log("API response data:", response.data);
       // console.log(response)
-      
+
       // console.log("Full API response:", response);
       // console.log("System prompt:", gptConfig.systemPrompt(tone))
 
@@ -161,12 +162,12 @@ const ChatWithGPT = () => {
       }
       const assistantReply = choices[0].message;
       setMessages([...updatedMessages, assistantReply]);
-        
+
       await axios.post("https://tweet-logger.onrender.com/log", {
         user_message: userMessage.content,
         assistant_reply: assistantReply.content
       });
-  
+
     } catch (error) {
       console.error("Error during chat or logging:", error);
 
@@ -183,11 +184,11 @@ const ChatWithGPT = () => {
     const config = GPT_MODES[chatMode];
     const systemMessage = config.systemPrompt?.(tone);
     const welcomeMessage = config.welcomeMessage?.(tone);
-  
+
     const newMessages = [];
     if (systemMessage) newMessages.push(systemMessage);
     if (welcomeMessage) newMessages.push({ role: "assistant", content: welcomeMessage });
-  
+
     setMessages(newMessages);
     setInput("");
   }, [chatMode, tone]);
@@ -196,10 +197,10 @@ const ChatWithGPT = () => {
     <div className="container">
       <Header />
       <div className="chat-container">
-        
-      <h1 className="chat-heading">{gptConfig.name}</h1>
 
-      <div className="tone-toggle">
+        <h1 className="chat-heading">{gptConfig.name}</h1>
+
+        <div className="tone-toggle">
           <span>🧠 Tone:</span>
           {["professional", "friendly", "casual", "funny"].map((t) => (
             <button
@@ -211,7 +212,7 @@ const ChatWithGPT = () => {
             </button>
           ))}
         </div>
-      {/* <div className="chat-mode-toggle">
+        {/* <div className="chat-mode-toggle">
           <button
             className={chatMode === "azoni" ? "active" : ""}
             onClick={() => setChatMode("azoni")}
@@ -237,7 +238,7 @@ const ChatWithGPT = () => {
             BENCH-GPT
           </button>
         </div> */}
-        
+
         {/* {chatMode === "pdf" && (
           <div className="pdf-upload">
             <label>
@@ -274,33 +275,17 @@ const ChatWithGPT = () => {
               <em>Azoni is typing...</em>
             </div>
           )}
-{!isAtBottom && (
-  <button className="scroll-to-bottom" onClick={scrollToBottom}>
-    ⬇️
-  </button>
-)}
+          {!isAtBottom && (
+            <button className="scroll-to-bottom" onClick={scrollToBottom}>
+              ⬇️
+            </button>
+          )}
 
           <div ref={chatEndRef} />
-          
+
         </div>
-        <br></br>
-        <div className="chat-controls">
-        
-        <div className="preset-questions">
-        {questions.slice(0, 5).map((qObj, i) => (
-          <button
-            key={i}
-            onClick={() =>
-              isFollowUp
-                ? handleFollowUpClick(qObj.question)
-                : handlePrimaryClick(qObj)
-            }
-          >
-            {qObj.question}
-          </button>
-        ))}
-        </div>
-        </div>
+
+
         <form onSubmit={handleSubmit} className="chat-form">
           <input
             ref={inputRef}
@@ -313,8 +298,26 @@ const ChatWithGPT = () => {
           <button type="submit" className="chat-button">
             Send
           </button>
-          
+
         </form>
+        <br></br>
+        <div className="chat-controls">
+
+          <div className="preset-questions">
+            {questions.slice(0, 5).map((qObj, i) => (
+              <button
+                key={i}
+                onClick={() =>
+                  isFollowUp
+                    ? handleFollowUpClick(qObj.question)
+                    : handlePrimaryClick(qObj)
+                }
+              >
+                {qObj.question}
+              </button>
+            ))}
+          </div>
+        </div>
         <p className="chat-disclaimer">
           Responses may contain inaccuracies or AI hallucinations.
         </p>
