@@ -10,7 +10,10 @@ const ChatWithGPT = () => {
   // const [messages, setMessages] = useState([getSystemPrompt(tone), { role: "assistant", content: getWelcomeMessage(tone) }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+
   const chatEndRef = useRef(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
   // const [chatMode, setChatMode] = useState("azoni"); // "azoni" or "pdf"
   const [chatMode, ] = useState("azoni"); // "azoni" or "pdf"
   const [isFollowUp, setIsFollowUp] = useState(false);
@@ -34,7 +37,21 @@ const ChatWithGPT = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [loading]);
-
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      const bottomThreshold = 150; // px from bottom
+      const isNearBottom =
+        window.innerHeight + window.scrollY >= document.body.scrollHeight - bottomThreshold;
+      setIsAtBottom(isNearBottom);
+    };
+  
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, []);
+  
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
   const handleToneChange = (newTone) => {
     setTone(newTone);
   };
@@ -222,7 +239,14 @@ const ChatWithGPT = () => {
               <em>Azoni is typing...</em>
             </div>
           )}
+{!isAtBottom && (
+  <button className="scroll-to-bottom" onClick={scrollToBottom}>
+    ⬇️
+  </button>
+)}
+
           <div ref={chatEndRef} />
+          
         </div>
         <br></br>
         <div className="chat-controls">
