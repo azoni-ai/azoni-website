@@ -45,7 +45,7 @@ const ChatWithGPT = () => {
   // }, [messages]);
   useEffect(() => {
     const handleWindowScroll = () => {
-      const bottomThreshold = 150; // px from bottom
+      const bottomThreshold = 250; // px from bottom
       const isNearBottom =
         window.innerHeight + window.scrollY >= document.body.scrollHeight - bottomThreshold;
       setIsAtBottom(isNearBottom);
@@ -201,7 +201,6 @@ const ChatWithGPT = () => {
         <h1 className="chat-heading">{gptConfig.name}</h1>
 
         <div className="tone-toggle">
-          <span>🧠 Tone:</span>
           {["professional", "friendly", "casual", "funny"].map((t) => (
             <button
               key={t}
@@ -285,7 +284,23 @@ const ChatWithGPT = () => {
 
         </div>
 
+        <div className="chat-controls">
 
+          <div className="preset-questions">
+            {questions.slice(0, 3).map((qObj, i) => (
+              <button
+                key={i}
+                onClick={() =>
+                  isFollowUp
+                    ? handleFollowUpClick(qObj.question)
+                    : handlePrimaryClick(qObj)
+                }
+              >
+                {qObj.question}
+              </button>
+            ))}
+          </div>
+        </div>
         <form onSubmit={handleSubmit} className="chat-form">
           <input
             ref={inputRef}
@@ -300,24 +315,7 @@ const ChatWithGPT = () => {
           </button>
 
         </form>
-        <br></br>
-        <div className="chat-controls">
 
-          <div className="preset-questions">
-            {questions.slice(0, 5).map((qObj, i) => (
-              <button
-                key={i}
-                onClick={() =>
-                  isFollowUp
-                    ? handleFollowUpClick(qObj.question)
-                    : handlePrimaryClick(qObj)
-                }
-              >
-                {qObj.question}
-              </button>
-            ))}
-          </div>
-        </div>
         <p className="chat-disclaimer">
           Responses may contain inaccuracies or AI hallucinations.
         </p>

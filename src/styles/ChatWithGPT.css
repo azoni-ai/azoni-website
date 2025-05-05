@@ -70,10 +70,12 @@
 .chat-time {
   font-style: italic;
 }
-
+.chat-controls{
+  margin-top: 10px;
+}
 .chat-form {
   display: flex;
-  margin-top: 20px;
+  /* margin-top: 20px; */
   gap: 10px;
 }
 
