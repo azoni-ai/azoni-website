@@ -53,6 +53,7 @@ const ChatWithGPT = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   const handleToneChange = (newTone) => {
+    setIsAtBottom(true);
     setTone(newTone);
   };
 
