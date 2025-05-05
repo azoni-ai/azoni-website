@@ -11,6 +11,7 @@ const ChatWithGPT = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const isFirstRender = useRef(true); // 👈 tracks if it's the first render
+  const inputRef = useRef(null);
 
   const chatEndRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -53,6 +54,34 @@ const ChatWithGPT = () => {
     window.addEventListener("scroll", handleWindowScroll);
     return () => window.removeEventListener("scroll", handleWindowScroll);
   }, []);
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const active = document.activeElement;
+      const isInputFocused = inputRef.current && inputRef.current === active;
+  
+      if (e.key === "Enter") {
+        if (!isInputFocused) {
+          e.preventDefault();
+          inputRef.current?.focus();
+        } else {
+          // If input is focused and empty, blur it
+          if (input.trim() === "") {
+            e.preventDefault(); // Prevent submit
+            inputRef.current?.blur();
+          }
+          // Otherwise let form submit naturally
+        }
+      }
+  
+      if (e.key === "Escape" && isInputFocused) {
+        inputRef.current?.blur();
+        setInput("");
+      }
+    };
+  
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [input]);
   
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -274,6 +303,7 @@ const ChatWithGPT = () => {
         </div>
         <form onSubmit={handleSubmit} className="chat-form">
           <input
+            ref={inputRef}
             type="text"
             className="chat-input"
             value={input}
