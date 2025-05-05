@@ -224,15 +224,16 @@ const charltonBio = {
   
     {
       name: "HashMaps",
-      description: `A T-Mobile hackathon-winning project that gamified network configuration. Visualized cell site data on interactive maps and let engineers simulate configuration changes.`,
+      description: `A T-Mobile hackathon-winning project that automated hashtag generation for smartphone photos. Users could take a photo via a mobile app, and the system would automatically generate relevant hashtags based on the image content and location metadata.`,
       highlights: [
-        "Used React Native to build a mobile map interface with real-world location overlays",
-        "Pulled from mock LTE/5G site data to support site performance toggling",
-        "Gamified system configuration to engage users with network optimization choices"
+        "Built an Android app that accessed geolocation and image metadata from captured photos",
+        "Implemented basic computer vision tagging to suggest hashtags based on detected objects",
+        "Used GPS coordinates to suggest location-based tags (e.g., #seattle, #goldengatebridge)",
+        "Created a simple UI for previewing and editing auto-suggested hashtags before posting"
       ],
-      tech: ["android studio", "java", "Map APIs"]
+      tech: ["Android Studio", "Java", "Map APIs", "Computer Vision (tagging libraries)"]
     },
-  
+    
     {
       name: "Neverwinter Nights Balance Rework",
       description: `Modernized a legacy persistent NWN server by rebuilding game systems. Rebalanced gear, added DPS tracking, and implemented custom scripting for new boss mechanics.`,
@@ -340,5 +341,7 @@ const charltonBio = {
   gapExplanation:
     "Charlton took a break from full-time work to focus on his family and personal development — including building new skills, launching personal projects, and exploring cutting-edge AI tools. This time was instrumental in shaping his current direction and deepening his technical range.",
 };
+// salary expectation
+// what hes looking for
 
 export default charltonBio;
