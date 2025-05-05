@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 import "../styles/ChatWithGPT.css";
 import { GPT_MODES } from "../data/GPTModes";
 
@@ -11,11 +10,20 @@ const ChatWithGPT = () => {
   // const [messages, setMessages] = useState([getSystemPrompt(tone), { role: "assistant", content: getWelcomeMessage(tone) }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef(null);
-  const [chatMode, setChatMode] = useState("azoni"); // "azoni" or "pdf"
-  const gptConfig = GPT_MODES[chatMode];
-  const [messages, setMessages] = useState([]);
 
+  const chatEndRef = useRef(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  // const [chatMode, setChatMode] = useState("azoni"); // "azoni" or "pdf"
+  const [chatMode, ] = useState("azoni"); // "azoni" or "pdf"
+  const [isFollowUp, setIsFollowUp] = useState(false);
+  const gptConfig = GPT_MODES[chatMode];
+  const getRandomSubset = (list, count = 5) => {
+    return [...list].sort(() => Math.random() - 0.5).slice(0, count);
+  };
+  const [questions, setQuestions] = useState(getRandomSubset(gptConfig.presetQuestions));
+
+  const [messages, setMessages] = useState([]);
   // const [messages, setMessages] = useState(() => {
   //   const initialConfig = GPT_MODES["azoni"];
   //   return [
@@ -29,14 +37,42 @@ const ChatWithGPT = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [loading]);
-
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      const bottomThreshold = 150; // px from bottom
+      const isNearBottom =
+        window.innerHeight + window.scrollY >= document.body.scrollHeight - bottomThreshold;
+      setIsAtBottom(isNearBottom);
+    };
+  
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, []);
+  
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
   const handleToneChange = (newTone) => {
+    setIsAtBottom(true);
     setTone(newTone);
   };
 
+  const handlePrimaryClick = (qObj) => {
+    handleSubmit(null, qObj.question);
+
+    if (qObj.followUps?.length) {
+      setQuestions(qObj.followUps.map(f => ({ question: f })));
+      setIsFollowUp(true);
+    }
+  };
+  const handleFollowUpClick = (q) => {
+    handleSubmit(null, q);
+    setQuestions(getRandomSubset(gptConfig.presetQuestions));
+    setIsFollowUp(false);
+  };
   const handleSubmit = async (e = null, customInput = null) => {
     if (e) e.preventDefault();
-    
+
     const message = customInput || input;
     if (!message.trim()) return;
   
@@ -140,30 +176,32 @@ const ChatWithGPT = () => {
             </button>
           ))}
         </div>
-        <div className="chat-mode-toggle">
-          {Object.keys(GPT_MODES).map((mode) => (
-            <button
-              key={mode}
-              className={`gpt-tab ${chatMode === mode ? "active" : ""}`}
-              onClick={() => setChatMode(mode)}
-            >
-              {GPT_MODES[mode].name.replace("-GPT", "")}
-            </button>
-          ))}
-        </div>
-        <div className="chat-controls">
-        
-        <div className="preset-questions">
-          {gptConfig.presetQuestions.map((q, i) => (
-            <button
-              key={i}
-              onClick={() => handleSubmit(null, q)} // 👈 auto-submit
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-        </div>
+      {/* <div className="chat-mode-toggle">
+          <button
+            className={chatMode === "azoni" ? "active" : ""}
+            onClick={() => setChatMode("azoni")}
+          >
+            Azoni-GPT
+          </button>
+          <button
+            className={chatMode === "pdf" ? "active" : ""}
+            onClick={() => setChatMode("pdf")}
+          >
+            PDF-GPT
+          </button>
+          <button
+            className={chatMode === "fab" ? "active" : ""}
+            onClick={() => setChatMode("fab")}
+          >
+            FAB-GPT
+          </button>
+          <button
+            className={chatMode === "bench" ? "active" : ""}
+            onClick={() => setChatMode("bench")}
+          >
+            BENCH-GPT
+          </button>
+        </div> */}
         
         {/* {chatMode === "pdf" && (
           <div className="pdf-upload">
@@ -201,9 +239,33 @@ const ChatWithGPT = () => {
               <em>Azoni is typing...</em>
             </div>
           )}
-          <div ref={chatEndRef} />
-        </div>
+{!isAtBottom && (
+  <button className="scroll-to-bottom" onClick={scrollToBottom}>
+    ⬇️
+  </button>
+)}
 
+          <div ref={chatEndRef} />
+          
+        </div>
+        <br></br>
+        <div className="chat-controls">
+        
+        <div className="preset-questions">
+        {questions.slice(0, 5).map((qObj, i) => (
+          <button
+            key={i}
+            onClick={() =>
+              isFollowUp
+                ? handleFollowUpClick(qObj.question)
+                : handlePrimaryClick(qObj)
+            }
+          >
+            {qObj.question}
+          </button>
+        ))}
+        </div>
+        </div>
         <form onSubmit={handleSubmit} className="chat-form">
           <input
             type="text"
@@ -215,9 +277,10 @@ const ChatWithGPT = () => {
           <button type="submit" className="chat-button">
             Send
           </button>
+          
         </form>
+        
       </div>
-      <Footer />
     </div>
   );
 };

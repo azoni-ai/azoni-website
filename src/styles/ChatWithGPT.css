@@ -1,7 +1,7 @@
 .chat-container {
   max-width: 1200px;
   margin: 100px auto 60px;
-  padding: 20px;
+  /* padding: 20px; */
   color: #ffffff;
 }
 
@@ -16,8 +16,8 @@
   background-color: #111318;
   border-radius: 12px;
   padding: 16px;
-  overflow-y: auto;
-  max-height: 1200px;
+  /* overflow-y: auto;
+  max-height: 1200px; */
   border: 1px solid #1f2937;
   display: flex;
   flex-direction: column;
@@ -78,6 +78,7 @@
 }
 
 .chat-input {
+  font-size: 16px; /* ✅ Prevent zoom on mobile */
   flex: 1;
   padding: 12px 14px;
   border-radius: 8px;
@@ -167,4 +168,25 @@ koiok
 .chat-mode-toggle button.active {
   background-color: #3b82f6;
   color: white;
+}
+.scroll-to-bottom {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  padding: 12px 14px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+
+.scroll-to-bottom:hover {
+  background-color: #333;
 }
