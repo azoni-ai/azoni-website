@@ -78,6 +78,7 @@
 }
 
 .chat-input {
+  font-size: 16px; /* ✅ Prevent zoom on mobile */
   flex: 1;
   padding: 12px 14px;
   border-radius: 8px;
