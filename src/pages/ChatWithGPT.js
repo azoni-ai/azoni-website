@@ -279,7 +279,9 @@ const ChatWithGPT = () => {
           </button>
           
         </form>
-        
+        <p className="chat-disclaimer">
+          Responses may contain inaccuracies or AI hallucinations.
+        </p>
       </div>
     </div>
   );

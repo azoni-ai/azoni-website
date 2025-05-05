@@ -12,7 +12,14 @@ export const GPT_MODES = {
     Curious Visitors: Try questions like “What is Azoni AI?” or “What are some fun facts about Charlton?”
     You can also switch between tones (Professional, Friendly, Casual) to see different communication styles.
     
-    Future plans: Reccommended questions based on current context.
+    What’s Next for Azoni AI?
+
+    Training with TensorFlow: To fine-tune Azoni AI’s conversational quality using real anonymized user interactions and feedback.
+    MLflow Integration: Logging token usage, prompt-response quality, and user engagement metrics to visualize improvements.
+    Data Governance: Smart filtering of inputs to balance privacy with insight. Only relevant feedback loops are retained to improve model alignment.
+    LLM Switching: Support for multiple foundation models (OpenAI, Grok, DeepSeek) depending on the assistant’s persona or domain.
+
+
     `
   },
   presetQuestions: [
