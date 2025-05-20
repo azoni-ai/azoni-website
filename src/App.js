@@ -8,6 +8,8 @@ import ChatWithGPT from "./pages/ChatWithGPT";
 import ResumeViewer from "./components/ResumeViewer";
 import GameCanvas from "./components/GameCanvas";
 import ProjectDetail from "./pages/ProjectDetail";
+import Blog from "./components/Blog";
+import BlogPost from './components/BlogPost';
 
 const App = () => {
   return (
@@ -19,6 +21,8 @@ const App = () => {
         <Route path="/chat" element={<ChatWithGPT />} />
         <Route path="/play" element={<GameCanvas />} />
         <Route path="/resume" element={<ResumeViewer />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:id" element={<BlogPost />} />
         <Route path="/documentation" element={<Documentation />} />
         <Route path="/projects/:slug" element={<ProjectDetail />} />
       </Routes>

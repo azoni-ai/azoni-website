@@ -9,6 +9,11 @@ import "../styles/Home.css";
 
 const sections = [
   {
+    title: 'Blog',
+    path: '/blog',
+    description: "Blogs",
+  },
+  {
     title: 'Old Ways Today',
     path: 'https://www.oldwaystoday.com',
     description: "Check this out!.",
