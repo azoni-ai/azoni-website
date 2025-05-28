@@ -4,7 +4,7 @@ export const blogPosts = [
 id: "lifting-code-and-plates",
 title: "From Lifting Code to Lifting Plates: Building AI, Games, and a Better Bench",
 date: "May 25, 2025",
-summary: "Based on our conversations can you write me a 500 word blog post?        ",
+summary: "Prompted GPT-4: Based on our conversations can you write me a 500 word blog post?        ",
 content: `For the past year, I’ve been living at the intersection of software engineering, artificial intelligence, and powerlifting—three passions that, at first glance, might not seem connected. But to me, they’re all about optimization, iteration, and building things that last.
 
 After a career in software engineering, including roles at Capital One and T-Mobile, I took time off to focus on my growing family and personal development. That break turned out to be one of the most productive periods of my life. I went deep into full-stack development, launched AI-driven projects, built a multiplayer game from scratch, and restructured my strength training program to hit new PRs—both in the gym and in my codebase.
