@@ -9,6 +9,11 @@ import "../styles/Home.css";
 
 const sections = [
   {
+    title: 'Row Crew',
+    path: 'https://rowcrew.netlify.app/',
+    description: "Row with Friends!",
+  },
+  {
     title: 'Blog',
     path: '/blog',
     description: "Blogs",
