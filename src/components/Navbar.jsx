@@ -21,7 +21,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="navbar-logo">
-          <span className="navbar-logo-icon">A</span>
+          {/* <span className="navbar-logo-icon">A</span> */}
           Azoni
         </Link>
 

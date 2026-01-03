@@ -1,7 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+const FALLBACK_EMOJIS = {
+  'dumarket': '📊',
+  'rowing-tracker': '🚣',
+  'polymarket-tool': '📈',
+  'discord-bots': '🤖',
+  'dustbunny': '🐰',
+  'adoh': '⚔️',
+  'oli-fitness': '💪',
+  'hashmaps': '#️⃣'
+};
+
 const ProjectCard = ({ project }) => {
+  const [imageError, setImageError] = React.useState(false);
+  const fallbackEmoji = FALLBACK_EMOJIS[project.id] || '📁';
+
   return (
     <Link to={`/projects/${project.id}`} className="card project-card">
       <div 
@@ -11,18 +25,25 @@ const ProjectCard = ({ project }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '3rem'
+          fontSize: '3rem',
+          overflow: 'hidden'
         }}
       >
-        {/* Placeholder - can be replaced with actual images */}
-        {project.id === 'dumarket' && '📊'}
-        {project.id === 'rowing-tracker' && '🚣'}
-        {project.id === 'polymarket-tool' && '📈'}
-        {project.id === 'discord-bots' && '🤖'}
-        {project.id === 'dustbunny' && '🐰'}
-        {project.id === 'adoh' && '⚔️'}
-        {project.id === 'oli-fitness' && '💪'}
-        {project.id === 'hashmaps' && '#️⃣'}
+        {project.image && !imageError ? (
+          <img 
+            src={project.image} 
+            alt={project.title}
+            onError={() => setImageError(true)}
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'cover',
+              borderRadius: 'var(--radius-md)'
+            }}
+          />
+        ) : (
+          fallbackEmoji
+        )}
       </div>
       
       <h3 className="card-title">{project.title}</h3>
