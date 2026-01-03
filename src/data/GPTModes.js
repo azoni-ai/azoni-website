@@ -18,7 +18,7 @@ export const GPT_MODES = {
     MLflow Integration: Logging token usage, prompt-response quality, and user engagement metrics to visualize improvements.
     Data Governance: Smart filtering of inputs to balance privacy with insight. Only relevant feedback loops are retained to improve model alignment.
     LLM Switching: Support for multiple foundation models (OpenAI, Grok, DeepSeek) depending on the assistant’s persona or domain.
-
+    
 
     `
   },

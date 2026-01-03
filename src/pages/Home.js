@@ -9,19 +9,19 @@ import "../styles/Home.css";
 
 const sections = [
   {
+    title: 'Prediction with Friends',
+    path: 'https://dumarket.netlify.app/',
+    description: "Homemade Prediction market.",
+  },
+  {
     title: 'Row Crew',
     path: 'https://rowcrew.netlify.app/',
     description: "Row with Friends!",
   },
   {
-    title: 'Blog',
-    path: '/blog',
-    description: "Blogs",
-  },
-  {
     title: 'Old Ways Today',
     path: 'https://www.oldwaystoday.com',
-    description: "Check this out!.",
+    description: "Check this out!",
   },
   {
     title: 'About Me',
