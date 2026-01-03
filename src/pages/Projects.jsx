@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
-import { projects, categories, getProjectsByCategory } from '../data/projects';
+import { categories, getProjectsByCategory } from '../data/projects';
 
 const Projects = () => {
   const [activeCategory, setActiveCategory] = useState('all');
