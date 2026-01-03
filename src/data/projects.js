@@ -1,125 +1,219 @@
-// src/data/projects.js
-
-const projects = [
+export const projects = [
   {
-    title: "Azoni AI",
-    slug: "azoni-ai",
-    description: "Customize AI agents with unique personalities.",
-    image: "/projects/seal.png",
-    github: "https://github.com/azoni/azoni-package",
-    details: `
-      <h3>Overview</h3>
-      <p>Azoni AI is a platform for creating and interacting with unique AI agents powered by LLMs like GPT-4. Each agent can have its own name, memory, and personality traits.</p>
+    id: "dumarket",
+    title: "DuMarket",
+    tagline: "Prediction Market Platform",
+    description: "Full-stack prediction market platform with real-time order matching, automated market making, and gamification — built for friend groups to bet on anything.",
+    longDescription: `A complete prediction market platform featuring a Central Limit Order Book (CLOB) matching engine with price-time priority algorithm. Includes an automated market maker bot that provides continuous liquidity with inventory-aware pricing, real-time position tracking with cost basis calculation and P&L attribution.
 
-      <h3>Features</h3>
-      <ul>
-        <li>Persistent agent memory and mood</li>
-        <li>Custom starter messages and prompts</li>
-        <li>WebSocket integration with multiplayer world</li>
-        <li>Switch between LLMs (OpenAI, DeepSeek, Grok)</li>
-      </ul>
-
-      <h3>Stack</h3>
-      <p>React, Flask, OpenAI API, PostgreSQL, WebSockets</p>
-    `
+Built with React frontend, FastAPI backend, and PostgreSQL database. Features Firebase Authentication, daily login rewards with streak multipliers, 14 achievements across 5 categories, and a full admin panel.`,
+    tech: ["React", "FastAPI", "PostgreSQL", "Firebase Auth", "Python"],
+    highlights: [
+      "Central Limit Order Book (CLOB) matching engine",
+      "Automated market maker with inventory-aware pricing",
+      "Real-time P&L tracking and position management",
+      "18 API endpoints, 6 database models",
+      "~4,300 lines of code"
+    ],
+    links: {
+      live: "https://dumarket.netlify.app",
+      github: null
+    },
+    image: "/images/dumarket.png",
+    featured: true,
+    category: "fintech"
   },
   {
+    id: "rowing-tracker",
+    title: "Rowing Tracker",
+    tagline: "AI-Powered Training App",
+    description: "Training app that uses Claude's multimodal API to extract workout metrics from rowing machine screen photos. Gamified with leaderboards, streaks, and achievements.",
+    longDescription: `Users photograph their rowing machine screens after workouts. Claude's multimodal API parses the image and extracts meters rowed, with human-in-the-loop verification where users can edit before saving.
+
+Features Firebase for data storage, gamification elements including leaderboards, streaks, and achievements to drive engagement among the rowing crew.`,
+    tech: ["React", "Claude API", "Firebase", "JavaScript"],
+    highlights: [
+      "Claude multimodal API for image parsing",
+      "Human-in-the-loop data verification",
+      "Gamification: leaderboards, streaks, achievements",
+      "Used by local rowing crew"
+    ],
+    links: {
+      live: null,
+      github: "https://github.com/azoni/rowing-tracker"
+    },
+    image: "/images/rowing.png",
+    featured: true,
+    category: "ai"
+  },
+  {
+    id: "polymarket-tool",
+    title: "Polymarket Analysis Tool",
+    tagline: "Trading Signal Detection",
+    description: "Prediction market analysis tool to detect trading opportunities via Polymarket API using multiple signal detection strategies.",
+    longDescription: `Building a tool to analyze Polymarket prediction markets and identify trading opportunities through multiple strategies:
+
+• Arbitrage — Price differences across markets or YES+NO not summing to 100%
+• Spread Analysis — Wide bid-ask spreads for buy low/sell high opportunities  
+• Volume Anomalies — Unusual volume spikes that often precede price moves
+• Momentum — Price trending in one direction tends to continue
+• Mean Reversion — Prices far from historical average tend to snap back`,
+    tech: ["Python", "React", "Polymarket API"],
+    highlights: [
+      "Multiple signal detection strategies",
+      "Arbitrage and spread analysis",
+      "Volume anomaly detection",
+      "Momentum and mean reversion signals"
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: "/images/polymarket.png",
+    featured: false,
+    category: "fintech"
+  },
+  {
+    id: "discord-bots",
+    title: "LLM-Powered Bots",
+    tagline: "Agentic AI Systems",
+    description: "Context-aware Twitter and Discord bots with conversation memory, tool integration, and agentic architectures using OpenAI and Anthropic APIs.",
+    longDescription: `Built multiple AI agents that go beyond simple chatbots:
+
+• Persistent Memory — Conversation history stored in SQLite, fetched for context
+• Tool Integration — Google Calendar integration for scheduling
+• Agentic Architecture — Bots decide when to use tools vs just respond
+• Multi-platform — Discord and Twitter implementations
+
+These bots can reason about what action to take, remember past conversations, and execute external tools — the defining characteristics of AI agents.`,
+    tech: ["Python", "OpenAI API", "SQLite", "Discord.py"],
+    highlights: [
+      "Persistent memory with SQLite",
+      "Tool integration (Google Calendar)",
+      "Agentic decision-making",
+      "Context-aware responses"
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: "/images/bots.png",
+    featured: true,
+    category: "ai"
+  },
+  {
+    id: "dustbunny",
+    title: "Dustbunny",
+    tagline: "High-Frequency NFT Trading",
+    description: "Automated NFT bidding system distributed across 50 machines, processing 2,500+ requests per minute with intelligent bidding algorithms.",
+    longDescription: `High-performance NFT bidding system built to handle OpenSea's IP-based rate limits by distributing across 50 MacBooks, each running the bidding bot independently.
+
+Features included:
+• Real-time floor price polling aggregated to Redis
+• Intelligent bidding algorithms analyzing floor prices, existing bids, and historical data
+• Max bid safeguards and competitive margin calculations
+• Support for ERC-721 and ERC-1155 tokens
+• Deployed CryptoHeartZ NFT collection via Remix`,
+    tech: ["Node.js", "Redis", "OpenSea SDK", "Docker", "Etherscan API"],
+    highlights: [
+      "50 machines, 2,500 requests/minute",
+      "Redis for real-time floor price caching",
+      "Intelligent bidding with safeguards",
+      "Deployed ERC-721 smart contract"
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: "/images/dustbunny.png",
+    featured: true,
+    category: "web3"
+  },
+  {
+    id: "adoh",
     title: "A Dawn of Heroes",
-    slug: "a-dawn-of-heroes",
-    description: "Volunteer developer working on a persistent world in Neverwinter Nights.",
-    image: "/projects/nwn.png",
-    github: "https://github.com/azoni/adoh-dps",
-    details: `
-      <h3>About</h3>
-      <p>A Dawn of Heroes is a community-driven Neverwinter Nights server focused on long-term progression, immersive storytelling, and quality-of-life enhancements for players. As part of the developer team, I’ve contributed to rebalancing game mechanics, improving player experience, and extending the game's core scripting systems.</p>
+    tagline: "Game Development & Analytics",
+    description: "Contributing game balance and mechanics for NeverWinter Nights persistent world server, plus a player dashboard with DPS calculations and real-time leaderboards.",
+    longDescription: `Active contributor to a persistent world server for NeverWinter Nights: Enhanced Edition with 20-50 concurrent players.
 
-      <h3>Highlights</h3>
-      <ul>
-        <li>
-          Reworked weapons and combat to be more balanced and rewarding for all classes.
-        </li>
-        <li>
-          Added custom mechanics such as item prefixes, scaling stats, and environmental triggers using NWScript.
-        </li>
-        <li>
-        Implemented QoL improvements including restructured loot tables, persistent banking, and modular NPC behaviors.
-        </li>
-      </ul>
-
-      <h3>Stack</h3>
-      <p>NWScript (Neverwinter’s scripting language)</p>
-      <p>Object-Oriented Design</p>
-      <p>Python (for external tools and automation)</p>
-    `
-  },
-  {
-    title: "DustBunny",
-    slug: "dustbunny",
-    description: "OpenSea bidding platform built for speed and automation.",
-    image: "/projects/opensea.png",
-    github: "https://github.com/azoni/dustbunny",
-    images: [
-      "/projects/dustbunny1.png",
-      "/projects/dustbunny2.png",
-      "/projects/dustbunny3.png",
+Contributions include game balance, custom mechanics, and quality of life improvements. Built an external player dashboard that parses game log files to calculate theoretical DPS based on weapon stats, class, and abilities — displayed with real-time leaderboards.`,
+    tech: ["Python", "React", "NWScript", "Log Parsing"],
+    highlights: [
+      "Game balance and custom mechanics",
+      "DPS calculator from log parsing",
+      "Real-time player leaderboards",
+      "20-50 concurrent players"
     ],
-    details: `
-      <h3>Overview</h3>
-      <p>DustBunny is a Python-based bidding bot for OpenSea that helps place and manage bids on NFT collections at scale.</p>
-
-      <h3>Features</h3>
-      <ul>
-        <li>Live floor tracking</li>
-        <li>Automated bid rotation</li>
-        <li>Gas optimization and failure handling</li>
-      </ul>
-
-      <h3>Stack</h3>
-      <p>Python, Web3.py, Redis, Etherscan API</p>
-    `
+    links: {
+      live: "https://adoh.online",
+      github: null
+    },
+    image: "/images/adoh.png",
+    featured: false,
+    category: "games"
   },
   {
-    title: "Oli Fitness",
-    slug: "oli-fitness",
-    description: "Startup fitness platform for community-driven workouts and progress tracking.",
-    image: "/projects/oli.png",
-    github: "https://github.com/azoni/oli",
-    details: `
-      <h3>What It Is</h3>
-      <p>Built for a startup, this platform allows users to log fitness sessions, view their analytics, and share workouts socially.</p>
+    id: "oli-fitness",
+    title: "OLI Fitness",
+    tagline: "Computer Vision Startup",
+    description: "Co-founded fitness startup using Microsoft Kinect and computer vision to analyze weightlifting form and detect injury-risk movements. Published at ACM CHI 2017.",
+    longDescription: `Co-founded a fitness technology startup that used Microsoft Kinect SDK to track joint positions during weightlifting exercises like squats and deadlifts.
 
-      <h3>Features</h3>
-      <ul>
-        <li>Personal dashboards</li>
-        <li>Community leaderboards</li>
-        <li></li>
-      </ul>
-    `
+Developed movement scoring algorithms that compared user joint angles against professional form overlays in real-time, flagging potentially dangerous movements. Consulted with fitness experts to define "good" vs "bad" form parameters.
+
+• Regional finalist at Princeton Tiger Launch
+• Finalist at UW Business Plan Competition  
+• Selected for Collision Alpha startup program
+• Published extended abstract at ACM CHI 2017`,
+    tech: ["C#", "Kinect SDK", "Computer Vision", "Unity"],
+    highlights: [
+      "Real-time joint position tracking",
+      "Movement scoring algorithms",
+      "ACM CHI 2017 publication",
+      "Princeton Tiger Launch finalist"
+    ],
+    links: {
+      live: null,
+      github: null,
+      paper: "https://dl.acm.org/doi/abs/10.1145/3027063.3048429"
+    },
+    image: "/images/oli.png",
+    featured: true,
+    category: "ai"
   },
   {
+    id: "hashmaps",
     title: "HashMaps",
-    slug: "hashmaps",
-    description: "T-Mobile Hackathon",
-    image: "/projects/tmobile.png",
-    github: "https://github.com/azoni/hashmaps",
-    images: [
-      "/projects/tmobile1.png",
+    tagline: "1st Place Hackathon Winner",
+    description: "Auto-hashtag generation tool using OpenCV image analysis and geolocation. Won 1st place at T-Mobile Big Data Hackathon.",
+    longDescription: `Built at T-Mobile Big Data Hackathon. HashMaps analyzes photos using OpenCV and combines that with geolocation metadata to generate trending, relevant hashtags for maximum social media reach.
+
+Example: A coffee photo taken in Seattle would generate hashtags like #SeattleCoffee #PNW #CoffeeLovers based on both the image content and location context.`,
+    tech: ["Python", "OpenCV", "Geolocation API"],
+    highlights: [
+      "1st Place — T-Mobile Big Data Hackathon",
+      "OpenCV image analysis",
+      "Geolocation-aware hashtag generation"
     ],
-    details: `
-      <h3>About</h3>
-      <p>Hackathon 1st place</p>
-
-      <h3>Highlights</h3>
-      <ul>
-        <li>Real-time geolocation of users</li>
-        <li></li>
-        <li></li>
-      </ul>
-
-      <h3>Built With</h3>
-      <p>React Native, Firebase, Google Maps</p>
-    `
+    links: {
+      live: null,
+      github: null
+    },
+    image: "/images/hashmaps.png",
+    featured: false,
+    category: "ai"
   }
 ];
 
-export default projects;
+export const categories = {
+  all: "All Projects",
+  ai: "AI & ML",
+  fintech: "Fintech",
+  web3: "Web3",
+  games: "Games"
+};
+
+export const getFeaturedProjects = () => projects.filter(p => p.featured);
+export const getProjectById = (id) => projects.find(p => p.id === id);
+export const getProjectsByCategory = (category) => 
+  category === 'all' ? projects : projects.filter(p => p.category === category);

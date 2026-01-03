@@ -1,70 +1,125 @@
-# Getting Started with Create React App
+# Azoni.ai - Portfolio Website
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Personal portfolio website for Charlton Smith, featuring an AI-powered chatbot, project showcase, and more.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **AI Chatbot (Azoni-GPT)** - GPT-4 powered assistant trained on my background and projects
+- **Project Showcase** - Filterable gallery of projects with detailed pages
+- **Responsive Design** - Mobile-first, dark theme
+- **Fast & Modern** - React 19, no unnecessary dependencies
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- React 19
+- React Router 7
+- OpenAI API (GPT-4)
+- CSS Custom Properties (no frameworks)
+- Deployed on Netlify
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Getting Started
 
-### `npm test`
+### Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js 18+
+- npm or yarn
+- OpenAI API key (for chatbot)
 
-### `npm run build`
+### Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+# Clone the repository
+git clone https://github.com/azoni-ai/azoni-website.git
+cd azoni-website
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# Install dependencies
+npm install
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add your OpenAI API key
 
-### `npm run eject`
+# Start development server
+npm start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Environment Variables
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```
+REACT_APP_OPENAI_API_KEY=your_openai_api_key_here
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+**Note:** The current implementation calls OpenAI directly from the frontend. For production, you should proxy this through a backend to protect your API key.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Project Structure
 
-## Learn More
+```
+src/
+  components/       # Reusable UI components
+    Layout.jsx      # Page wrapper with Navbar/Footer
+    Navbar.jsx      # Navigation
+    Footer.jsx      # Footer
+    ProjectCard.jsx # Project card component
+  pages/            # Page components
+    Home.jsx        # Landing page
+    About.jsx       # About me, skills, experience
+    Projects.jsx    # Project listing
+    ProjectDetail.jsx # Individual project page
+    Chat.jsx        # AI chatbot
+    Resume.jsx      # Resume viewer
+    Play.jsx        # Game (WIP)
+  data/             # Static data
+    projects.js     # Project information
+    profile.js      # Personal info, skills, experience
+  styles/           # CSS
+    index.css       # Global styles
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Deployment
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+The site is configured for Netlify deployment:
 
-### Code Splitting
+1. Connect your GitHub repository to Netlify
+2. Set build command: `npm run build`
+3. Set publish directory: `build`
+4. Add environment variable: `REACT_APP_OPENAI_API_KEY`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+The `_redirects` file handles client-side routing.
 
-### Analyzing the Bundle Size
+## Customization
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Adding Projects
 
-### Making a Progressive Web App
+Edit `src/data/projects.js` to add new projects:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```javascript
+{
+  id: "project-slug",
+  title: "Project Title",
+  tagline: "Short tagline",
+  description: "Brief description for cards",
+  longDescription: "Detailed description for project page",
+  tech: ["React", "Python", "etc"],
+  highlights: ["Feature 1", "Feature 2"],
+  links: {
+    live: "https://...",
+    github: "https://..."
+  },
+  featured: true,  // Show on homepage
+  category: "ai"   // ai, fintech, web3, games
+}
+```
 
-### Advanced Configuration
+### Updating Profile
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Edit `src/data/profile.js` to update personal information, skills, and experience.
 
-### Deployment
+## License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+MIT
 
-### `npm run build` fails to minify
+## Contact
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Email: charltonuw@gmail.com
+- LinkedIn: [/in/charltonsmith](https://linkedin.com/in/charltonsmith)
+- GitHub: [@azoni](https://github.com/azoni)
