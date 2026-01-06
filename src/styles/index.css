@@ -683,3 +683,84 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   color: var(--text-muted);
   margin-top: var(--space-sm);
 }
+
+/* Mobile Chat Fixes */
+@media (max-width: 768px) {
+  .chat-container {
+    padding-top: 70px;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+
+  .chat-header {
+    padding: var(--space-md) 0;
+  }
+
+  .chat-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .chat-modes {
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .chat-mode-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.75rem;
+  }
+
+  .chat-messages {
+    flex: 1;
+    min-height: 0; /* Important for flex scrolling */
+    padding: var(--space-md);
+  }
+
+  .chat-message {
+    max-width: 90%;
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.9rem;
+  }
+
+  .chat-input-area {
+    padding: var(--space-sm) var(--space-md);
+    flex-shrink: 0;
+  }
+
+  .chat-suggestions {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .chat-suggestions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chat-suggestion {
+    flex-shrink: 0;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .chat-form {
+    gap: var(--space-sm);
+  }
+
+  .chat-input {
+    padding: var(--space-sm);
+    font-size: 0.9rem;
+  }
+
+  .chat-disclaimer {
+    font-size: 0.7rem;
+    margin-top: var(--space-xs);
+  }
+}

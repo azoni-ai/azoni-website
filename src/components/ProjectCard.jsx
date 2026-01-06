@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const FALLBACK_EMOJIS = {
+  'old-ways-today': '🌿',
   'dumarket': '📊',
   'rowing-tracker': '🚣',
   'polymarket-tool': '📈',

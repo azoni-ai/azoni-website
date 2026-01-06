@@ -1,5 +1,43 @@
 export const projects = [
   {
+    id: "old-ways-today",
+    title: "Old Ways Today",
+    tagline: "AI-Powered Product Research",
+    description: "Full-stack AI chatbot helping families find non-toxic, traditional product alternatives. Features real-time chat, blog system, and admin panel.",
+    longDescription: `A full-stack AI chatbot web application helping families find non-toxic, traditional product alternatives. Built with a modern React frontend and FastAPI backend.
+
+Features include:
+• Real-time AI chat interface with markdown rendering and typing indicators
+• Conversation persistence across sessions
+• Mobile-first responsive design with custom CSS (no frameworks)
+• IP-based rate limiting with configurable thresholds
+• Token usage logging and cost tracking per API call
+• Full blog system with PostgreSQL persistence
+• Password-protected admin panel for content management
+• Tag filtering and SEO-friendly URL slugs
+
+Architecture highlights:
+• Clean separation of concerns (hooks, components, pages)
+• RESTful API design with proper error handling
+• SQLAlchemy ORM with automatic table creation
+• Environment-based configuration for multi-environment deployment`,
+    tech: ["React", "FastAPI", "PostgreSQL", "OpenAI API", "Vite"],
+    highlights: [
+      "Real-time AI chat with markdown rendering",
+      "IP-based rate limiting and token cost tracking",
+      "Full blog CMS with admin panel",
+      "Mobile-first responsive design",
+      "SQLAlchemy ORM with PostgreSQL"
+    ],
+    links: {
+      live: "https://oldwaystoday.com",
+      github: null
+    },
+    image: "/images/oldways.png",
+    featured: true,
+    category: "ai"
+  },
+  {
     id: "dumarket",
     title: "DuMarket",
     tagline: "Prediction Market Platform",
