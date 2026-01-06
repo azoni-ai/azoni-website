@@ -1,5 +1,33 @@
 export const projects = [
   {
+    id: "scryfall-ai",
+    title: "Scryfall AI",
+    tagline: "Natural Language Card Search",
+    description: "AI-powered search tool that translates plain English queries into complex Scryfall database searches. Makes Magic: The Gathering card discovery accessible to everyone.",
+    longDescription: `An AI application that leverages natural language processing to run complex queries on the Scryfall Magic: The Gathering database.
+
+Instead of learning Scryfall's complex query syntax, users can simply type what they're looking for in plain English:
+• "Show me all red dragons that cost less than 5 mana"
+• "Find blue instant spells that draw cards"
+• "What legendary creatures are in the latest set?"
+
+The AI interprets the natural language input and translates it into the appropriate Scryfall query syntax, making card discovery accessible to players of all technical levels.`,
+    tech: ["React", "OpenAI API", "Scryfall API", "NLP"],
+    highlights: [
+      "Natural language to query translation",
+      "AI-powered search interpretation",
+      "Accessible card discovery for all skill levels",
+      "Real-time Scryfall API integration"
+    ],
+    links: {
+      live: "https://scryfall.netlify.app",
+      github: null
+    },
+    image: "/images/scryfall.png",
+    featured: true,
+    category: "ai"
+  },
+  {
     id: "old-ways-today",
     title: "Old Ways Today",
     tagline: "AI-Powered Product Research",
@@ -77,7 +105,7 @@ Features Firebase for data storage, gamification elements including leaderboards
       "Used by local rowing crew"
     ],
     links: {
-      live: null,
+      live: "https://rowcrew.netlify.app/",
       github: "https://github.com/azoni/rowing-tracker"
     },
     image: "/images/rowing.png",
