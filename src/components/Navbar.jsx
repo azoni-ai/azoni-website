@@ -20,8 +20,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="navbar-logo">
-          <span className="navbar-logo-icon">A</span>
-          Azoni
+          azoni<span className="navbar-logo-dot">.</span>
         </Link>
 
         <ul className={`navbar-links ${mobileMenuOpen ? 'open' : ''}`}>
