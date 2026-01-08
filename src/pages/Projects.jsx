@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
-import { categories, getProjectsByCategory } from '../data/projects';
+import { useProjects } from '../hooks/useProjects';
 
+/**
+ * Projects page demonstrating:
+ * - Custom hooks for data management
+ * - Memoized filtering via useProjects hook
+ */
 const Projects = () => {
-  const [activeCategory, setActiveCategory] = useState('all');
-  
-  const filteredProjects = getProjectsByCategory(activeCategory);
+  const { 
+    projects: filteredProjects, 
+    categories, 
+    activeCategory, 
+    changeCategory 
+  } = useProjects('all');
 
   return (
     <Layout>
@@ -16,7 +24,7 @@ const Projects = () => {
           <div className="section-header">
             <h1>Projects</h1>
             <p>
-              A collection of things I've built — from prediction markets to AI agents 
+              A collection of things I've built — from AI platforms to prediction markets 
               to high-frequency trading systems.
             </p>
           </div>
@@ -32,7 +40,7 @@ const Projects = () => {
             {Object.entries(categories).map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setActiveCategory(key)}
+                onClick={() => changeCategory(key)}
                 className={`chat-mode-btn ${activeCategory === key ? 'active' : ''}`}
               >
                 {label}
