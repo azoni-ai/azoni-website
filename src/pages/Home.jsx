@@ -1,13 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import ProjectCard from '../components/ProjectCard';
 import { profile } from '../data/profile';
-import { getFeaturedProjects } from '../data/projects';
+import { projects } from '../data/projects';
 
 const Home = () => {
-  const featuredProjects = getFeaturedProjects();
-  const [topProject, secondProject, ...otherProjects] = featuredProjects;
+  // Get specific projects by ID
+  const getProject = (id) => projects.find(p => p.id === id);
+  
+  const recentProjects = [
+    getProject('old-ways-today'),
+    getProject('azoni-ai')
+  ].filter(Boolean);
+  
+  const featuredProjects = [
+    getProject('dustbunny'),
+    getProject('oli-fitness')
+  ].filter(Boolean);
 
   return (
     <Layout>
@@ -34,70 +43,66 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Recent Work - Hero Projects */}
+      {/* Recent Work */}
       <section className="section-tight">
         <div className="container">
-          <div className="section-label">Recent Work</div>
+          <div className="section-header-row">
+            <div className="section-label">Recent Work</div>
+            <Link to="/projects" className="section-link">View all →</Link>
+          </div>
           
-          <div className="featured-projects-hero">
-            {topProject && (
-              <Link to={`/projects/${topProject.id}`} className="project-hero-card">
-                <div className="project-hero-emoji">{getEmoji(topProject.id)}</div>
-                <div className="project-hero-content">
-                  <div className="project-hero-tag">{topProject.category.toUpperCase()}</div>
-                  <h2>{topProject.title}</h2>
-                  <p>{topProject.tagline}</p>
-                  <div className="project-hero-tech">
-                    {topProject.tech.slice(0, 4).map(t => <span key={t}>{t}</span>)}
+          <div className="recent-projects">
+            {recentProjects.map(project => (
+              <Link key={project.id} to={`/projects/${project.id}`} className="recent-project-card">
+                <div className="recent-project-emoji">{getEmoji(project.id)}</div>
+                <div className="recent-project-content">
+                  <div className="recent-project-tag">{project.category.toUpperCase()}</div>
+                  <h2>{project.title}</h2>
+                  <p className="recent-project-tagline">{project.tagline}</p>
+                  <p className="recent-project-desc">{project.description}</p>
+                  <div className="recent-project-tech">
+                    {project.tech.slice(0, 5).map(t => <span key={t}>{t}</span>)}
                   </div>
                 </div>
-                <span className="project-hero-arrow">→</span>
+                <span className="recent-project-arrow">→</span>
               </Link>
-            )}
-            
-            {secondProject && (
-              <Link to={`/projects/${secondProject.id}`} className="project-hero-card">
-                <div className="project-hero-emoji">{getEmoji(secondProject.id)}</div>
-                <div className="project-hero-content">
-                  <div className="project-hero-tag">{secondProject.category.toUpperCase()}</div>
-                  <h2>{secondProject.title}</h2>
-                  <p>{secondProject.tagline}</p>
-                  <div className="project-hero-tech">
-                    {secondProject.tech.slice(0, 4).map(t => <span key={t}>{t}</span>)}
-                  </div>
-                </div>
-                <span className="project-hero-arrow">→</span>
-              </Link>
-            )}
+            ))}
           </div>
         </div>
       </section>
 
-      {/* AI Chat CTA - Inline Banner */}
+      {/* AI Chat CTA */}
       <section className="section-tight">
         <div className="container">
           <Link to="/chat" className="chat-banner">
             <div className="chat-banner-icon">💬</div>
             <div className="chat-banner-content">
               <strong>Ask me anything</strong>
-              <span>Chat with an AI trained on my background — or paste a job description for fit analysis</span>
+              <span>Chat with an AI trained on my background — or paste a job description</span>
             </div>
             <span className="chat-banner-arrow">Try it →</span>
           </Link>
         </div>
       </section>
 
-      {/* More Projects */}
+      {/* Featured Projects */}
       <section className="section-tight" style={{ background: 'var(--bg-secondary)' }}>
         <div className="container">
-          <div className="section-header-row">
-            <div className="section-label">More Projects</div>
-            <Link to="/projects" className="section-link">View all →</Link>
-          </div>
+          <div className="section-label">Featured Projects</div>
           
-          <div className="project-grid-compact">
-            {otherProjects.slice(0, 4).map((project) => (
-              <ProjectCard key={project.id} project={project} />
+          <div className="featured-projects">
+            {featuredProjects.map(project => (
+              <Link key={project.id} to={`/projects/${project.id}`} className="featured-project-card">
+                <div className="featured-project-emoji">{getEmoji(project.id)}</div>
+                <div className="featured-project-content">
+                  <h3>{project.title}</h3>
+                  <p>{project.tagline}</p>
+                  <div className="featured-project-tech">
+                    {project.tech.slice(0, 3).map(t => <span key={t}>{t}</span>)}
+                  </div>
+                </div>
+                <span className="featured-project-arrow">→</span>
+              </Link>
             ))}
           </div>
         </div>
@@ -106,7 +111,6 @@ const Home = () => {
   );
 };
 
-// Simple emoji getter (matches ProjectCard fallbacks)
 const getEmoji = (id) => {
   const emojis = {
     'old-ways-today': '🌿',
