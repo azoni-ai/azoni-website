@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Loading from "./components/Loading";
+import ScrollToTop from "./components/ScrollToTop";
 
 // Lazy load pages for code splitting
 // This creates separate bundles for each page, improving initial load time
@@ -25,6 +26,7 @@ const App = () => {
     <ErrorBoundary>
       <AppProvider>
         <Router>
+          <ScrollToTop />
           <Suspense fallback={<Loading fullScreen message="Loading..." />}>
             <Routes>
               <Route path="/" element={<Home />} />
