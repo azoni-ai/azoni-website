@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 const FALLBACK_EMOJIS = {
   'scryfall-ai': '🃏',
   'old-ways-today': '🌿',
+  'azoni-ai': '🤖',
   'dumarket': '📊',
   'rowing-tracker': '🚣',
   'polymarket-tool': '📈',
