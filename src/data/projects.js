@@ -1,61 +1,43 @@
 export const projects = [
-  {
-    id: "scryfall-ai",
-    title: "Scryfall AI",
-    tagline: "Natural Language Card Search",
-    description: "AI-powered search tool that translates plain English queries into complex Scryfall database searches. Makes Magic: The Gathering card discovery accessible to everyone.",
-    longDescription: `An AI application that leverages natural language processing to run complex queries on the Scryfall Magic: The Gathering database.
-
-Instead of learning Scryfall's complex query syntax, users can simply type what they're looking for in plain English:
-• "Show me all red dragons that cost less than 5 mana"
-• "Find blue instant spells that draw cards"
-• "What legendary creatures are in the latest set?"
-
-The AI interprets the natural language input and translates it into the appropriate Scryfall query syntax, making card discovery accessible to players of all technical levels.`,
-    tech: ["React", "OpenAI API", "Scryfall API", "NLP"],
-    highlights: [
-      "Natural language to query translation",
-      "AI-powered search interpretation",
-      "Accessible card discovery for all skill levels",
-      "Real-time Scryfall API integration"
-    ],
-    links: {
-      live: "https://scryfall.netlify.app",
-      github: null
-    },
-    image: "/images/scryfall.png",
-    featured: true,
-    category: "ai"
-  },
+  // ===== MAJOR RECENT PROJECTS =====
   {
     id: "old-ways-today",
     title: "Old Ways Today",
-    tagline: "AI-Powered Product Research",
-    description: "Full-stack AI chatbot helping families find non-toxic, traditional product alternatives. Features real-time chat, blog system, and admin panel.",
-    longDescription: `A full-stack AI chatbot web application helping families find non-toxic, traditional product alternatives. Built with a modern React frontend and FastAPI backend.
+    tagline: "Full-Stack AI Platform",
+    description: "Production AI application helping families discover non-toxic products. Full-stack with AI chat, blog CMS, admin dashboard, email system, and SEO optimization.",
+    longDescription: `A production-grade full-stack web application helping families discover non-toxic, traditional alternatives to everyday products. Combines AI-powered product recommendations with educational content through an integrated blog system.
 
-Features include:
-• Real-time AI chat interface with markdown rendering and typing indicators
-• Conversation persistence across sessions
-• Mobile-first responsive design with custom CSS (no frameworks)
-• IP-based rate limiting with configurable thresholds
-• Token usage logging and cost tracking per API call
-• Full blog system with PostgreSQL persistence
-• Password-protected admin panel for content management
-• Tag filtering and SEO-friendly URL slugs
+**AI Chat System:**
+• Natural language product search with GPT-4o-mini
+• "Ask AI" buttons on product pages for contextual follow-ups
+• IP-based rate limiting (30 requests/60s)
+• Token usage logging with cost tracking per API call
+• Architecture designed for future LangChain/Chroma RAG implementation
 
-Architecture highlights:
-• Clean separation of concerns (hooks, components, pages)
-• RESTful API design with proper error handling
-• SQLAlchemy ORM with automatic table creation
-• Environment-based configuration for multi-environment deployment`,
-    tech: ["React", "FastAPI", "PostgreSQL", "OpenAI API", "Vite"],
+**Content Management:**
+• Full blog system with markdown editor and inline image uploads
+• Product management with Amazon affiliate link integration
+• SEO-friendly slugs, XML sitemap generation, meta tags
+• View tracking (unique views by IP) and comment moderation
+
+**Admin Dashboard:**
+• Posts, Products, Comments, Subscribers tabs
+• Email subscription system with SMTP integration
+• Newsletter sending with one-click unsubscribe
+• Quick-edit modals and status badges
+
+**Infrastructure:**
+• React/Vite frontend on Netlify
+• FastAPI/PostgreSQL backend on Render
+• SQLAlchemy ORM with auto table creation
+• Twitter auto-posting for new content`,
+    tech: ["React", "FastAPI", "PostgreSQL", "OpenAI API", "SQLAlchemy", "Vite"],
     highlights: [
-      "Real-time AI chat with markdown rendering",
-      "IP-based rate limiting and token cost tracking",
-      "Full blog CMS with admin panel",
-      "Mobile-first responsive design",
-      "SQLAlchemy ORM with PostgreSQL"
+      "Production AI chat with rate limiting & cost tracking",
+      "Full CMS with blog, products, and admin panel",
+      "Email subscription system with SMTP",
+      "SEO: XML sitemap, meta tags, Google Search Console",
+      "Amazon affiliate integration"
     ],
     links: {
       live: "https://oldwaystoday.com",
@@ -66,13 +48,65 @@ Architecture highlights:
     category: "ai"
   },
   {
+    id: "azoni-ai",
+    title: "azoni.ai",
+    tagline: "AI Portfolio Assistant",
+    description: "Personal portfolio with an AI chatbot trained on my background. Recruiters can paste job descriptions for automated fit analysis. Built with React and Netlify Functions.",
+    longDescription: `This portfolio site features an AI assistant that can answer questions about my background, skills, and projects in real-time.
+
+**Key Features:**
+• AI chatbot with 4 tone modes (Professional, Friendly, Casual, Funny)
+• Recruiters can paste job descriptions for automated fit analysis
+• Custom system prompt with comprehensive background info
+• Secure API key handling via Netlify serverless functions
+
+**Technical Implementation:**
+• React with modern patterns (Context, Hooks, Suspense, Error Boundaries)
+• Code splitting with React.lazy for performance
+• Netlify Functions proxy for secure OpenAI API calls
+• Mobile-first responsive design
+• Dark theme with custom CSS (no frameworks)
+
+This site itself demonstrates the React patterns and AI integration skills relevant to the Anthropic role.`,
+    tech: ["React", "OpenAI API", "Netlify Functions", "CSS"],
+    highlights: [
+      "AI chatbot with custom system prompts",
+      "Job description fit analysis for recruiters",
+      "Secure API via Netlify serverless functions",
+      "Modern React patterns (Context, Suspense, Error Boundaries)",
+      "Mobile-first responsive design"
+    ],
+    links: {
+      live: "https://azoni.ai",
+      github: null
+    },
+    image: "/images/azoni.png",
+    featured: true,
+    category: "ai"
+  },
+  {
     id: "dumarket",
     title: "DuMarket",
     tagline: "Prediction Market Platform",
-    description: "Full-stack prediction market platform with real-time order matching, automated market making, and gamification — built for friend groups to bet on anything.",
-    longDescription: `A complete prediction market platform featuring a Central Limit Order Book (CLOB) matching engine with price-time priority algorithm. Includes an automated market maker bot that provides continuous liquidity with inventory-aware pricing, real-time position tracking with cost basis calculation and P&L attribution.
+    description: "Full-stack prediction market webapp with CLOB matching engine, automated market maker, and real-time P&L tracking. 18 API endpoints, 6 database models.",
+    longDescription: `A complete prediction market webapp featuring a Central Limit Order Book (CLOB) matching engine with price-time priority algorithm. Built to understand prediction market mechanics hands-on.
 
-Built with React frontend, FastAPI backend, and PostgreSQL database. Features Firebase Authentication, daily login rewards with streak multipliers, 14 achievements across 5 categories, and a full admin panel.`,
+**Core Features:**
+• CLOB matching engine with price-time priority
+• Automated market maker bot with inventory-aware pricing
+• Real-time position tracking with cost basis and P&L
+• Firebase Authentication integration
+
+**Gamification:**
+• Daily login rewards with streak multipliers
+• 14 achievements across 5 categories
+• Leaderboards and user rankings
+
+**Technical Scope:**
+• 18 REST API endpoints
+• 6 database models
+• ~4,300 lines of code
+• Full admin panel for market management`,
     tech: ["React", "FastAPI", "PostgreSQL", "Firebase Auth", "Python"],
     highlights: [
       "Central Limit Order Book (CLOB) matching engine",
@@ -92,31 +126,189 @@ Built with React frontend, FastAPI backend, and PostgreSQL database. Features Fi
   {
     id: "rowing-tracker",
     title: "Rowing Tracker",
-    tagline: "AI-Powered Training App",
-    description: "Training app that uses Claude's multimodal API to extract workout metrics from rowing machine screen photos. Gamified with leaderboards, streaks, and achievements.",
-    longDescription: `Users photograph their rowing machine screens after workouts. Claude's multimodal API parses the image and extracts meters rowed, with human-in-the-loop verification where users can edit before saving.
+    tagline: "AI-Powered Fitness App",
+    description: "Training app using Claude's multimodal API to extract workout metrics from rowing machine photos. Features human-in-the-loop verification and gamification.",
+    longDescription: `Users photograph their rowing machine screens after workouts. Claude's multimodal API parses the image and extracts meters rowed, with human-in-the-loop verification where users can edit values before saving.
 
-Features Firebase for data storage, gamification elements including leaderboards, streaks, and achievements to drive engagement among the rowing crew.`,
+**AI Integration:**
+• Claude multimodal API for image-to-data extraction
+• Structured prompts for consistent metric parsing
+• Human-in-the-loop verification before saving
+
+**Gamification:**
+• Leaderboards across active users
+• Streak tracking for consecutive workout days
+• Achievement system for milestones
+• Architected for scalability to more users`,
     tech: ["React", "Claude API", "Firebase", "JavaScript"],
     highlights: [
       "Claude multimodal API for image parsing",
       "Human-in-the-loop data verification",
       "Gamification: leaderboards, streaks, achievements",
-      "Used by local rowing crew"
+      "Architected for scalability"
     ],
     links: {
-      live: "https://rowcrew.netlify.app/",
+      live: null,
       github: "https://github.com/azoni/rowing-tracker"
     },
     image: "/images/rowing.png",
     featured: true,
     category: "ai"
   },
+
+  // ===== OLDER BUT IMPRESSIVE PROJECTS =====
+  {
+    id: "dustbunny",
+    title: "Dustbunny",
+    tagline: "NFT Trading Operation",
+    description: "Automated NFT bidding system distributed across 50 machines, processing 2,500+ requests/minute with Redis caching and competitive bidding algorithms.",
+    longDescription: `High-performance NFT trading operation built to work around OpenSea's IP-based rate limits by distributing across 50 machines on a local network.
+
+**Architecture:**
+• Worker machines polling OpenSea API for floor prices
+• Redis aggregation for sub-second price lookups
+• Bidder machines executing orders via OpenSea SDK
+• Etherscan API for blockchain data
+
+**Bidding Logic:**
+• Competitive algorithms analyzing floor prices and existing bids
+• Max bid safeguards to prevent overpaying
+• Liquidity analysis to avoid dead collections
+• Support for ERC-721 and ERC-1155 tokens
+
+**Scale:**
+• 50 machines processing 2,500+ requests/minute
+• Real-time floor price tracking across collections
+• Profitable for ~6 months until market downturn
+
+Learned: The system worked great, but I should have taken profits instead of reinvesting during the decline.`,
+    tech: ["Node.js", "Redis", "OpenSea SDK", "Docker", "Etherscan API"],
+    highlights: [
+      "50 machines, 2,500+ requests/minute",
+      "Redis for real-time floor price caching",
+      "Competitive bidding algorithms with safeguards",
+      "Deployed ERC-721 smart contract"
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: "/images/dustbunny.png",
+    featured: true,
+    category: "web3"
+  },
+  {
+    id: "oli-fitness",
+    title: "OLI Fitness",
+    tagline: "Computer Vision Startup",
+    description: "Co-founded fitness startup using Kinect SDK to analyze weightlifting form in real-time. Published at ACM CHI 2017, Princeton Tiger Launch finalist.",
+    longDescription: `Co-founded with friends right out of college. Built a fitness app using Microsoft Kinect SDK to track joint positions during squats and deadlifts, comparing against "good form" overlays.
+
+**Technical Implementation:**
+• C# with Kinect SDK for 25-joint tracking at 30fps
+• Form scoring algorithm comparing user angles to reference ranges
+• Real-time overlay showing professional form comparison
+• Normalized for different body types using ratios
+
+**Achievements:**
+• Published extended abstract at ACM CHI 2017
+• Regional finalist at Princeton Tiger Launch
+• Finalist at UW Business Plan Competition
+• Selected for Collision Alpha startup program
+
+**Lessons Learned:**
+Ultimately couldn't crack distribution — Kinect was dying as a platform and pivoting to mobile CV wasn't feasible with our resources. But I learned how to ship under uncertainty and build from zero to one.`,
+    tech: ["C#", "Kinect SDK", "Computer Vision", "Unity"],
+    highlights: [
+      "Real-time joint position tracking at 30fps",
+      "Movement scoring algorithms with expert input",
+      "ACM CHI 2017 publication",
+      "Princeton Tiger Launch finalist"
+    ],
+    links: {
+      live: null,
+      github: null,
+      paper: "https://dl.acm.org/doi/abs/10.1145/3027063.3048429"
+    },
+    image: "/images/oli.png",
+    featured: true,
+    category: "ai"
+  },
+
+  // ===== SMALLER UTILITIES =====
+  {
+    id: "scryfall-ai",
+    title: "Scryfall AI",
+    tagline: "Natural Language Card Search",
+    description: "AI tool that translates plain English into complex Scryfall database queries. Makes Magic: The Gathering card discovery accessible to everyone.",
+    longDescription: `An AI application that uses natural language processing to query the Scryfall Magic: The Gathering database.
+
+Instead of learning Scryfall's complex query syntax, users type in plain English:
+• "Show me all red dragons that cost less than 5 mana"
+• "Find blue instant spells that draw cards"
+• "What legendary creatures are in the latest set?"
+
+The AI interprets the input and translates it into proper Scryfall query syntax, making card discovery accessible to casual players who don't know the search operators.`,
+    tech: ["React", "OpenAI API", "Scryfall API", "NLP"],
+    highlights: [
+      "Natural language to query translation",
+      "AI-powered search interpretation",
+      "Accessible to non-technical users",
+      "Real-time Scryfall API integration"
+    ],
+    links: {
+      live: "https://scryfall.netlify.app",
+      github: null
+    },
+    image: "/images/scryfall.png",
+    featured: false,
+    category: "ai"
+  },
+  {
+    id: "discord-bots",
+    title: "LLM-Powered Bots",
+    tagline: "Agentic AI Systems",
+    description: "Discord and Twitter bots with persistent memory, tool integration, and agentic decision-making using OpenAI and Anthropic APIs.",
+    longDescription: `Built multiple AI agents that go beyond simple chatbots:
+
+**Persistent Memory:**
+• Conversation history stored in SQLite
+• Context fetched for relevant past discussions
+• User preferences and facts remembered
+
+**Tool Integration:**
+• Google Calendar integration for scheduling
+• Web search capabilities
+• Custom function calling
+
+**Agentic Architecture:**
+• Bots decide when to use tools vs just respond
+• Multi-step reasoning for complex requests
+• Error handling and retry logic
+
+These bots can reason about what action to take, remember past conversations, and execute external tools — the defining characteristics of AI agents.`,
+    tech: ["Python", "OpenAI API", "Claude API", "SQLite", "Discord.py"],
+    highlights: [
+      "Persistent memory with SQLite",
+      "Tool integration (Google Calendar, web search)",
+      "Agentic decision-making architecture",
+      "Multi-platform (Discord, Twitter)"
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: "/images/bots.png",
+    featured: false,
+    category: "ai"
+  },
+
+  // ===== OTHER PROJECTS =====
   {
     id: "polymarket-tool",
     title: "Polymarket Analysis Tool",
     tagline: "Trading Signal Detection",
-    description: "Prediction market analysis tool to detect trading opportunities via Polymarket API using multiple signal detection strategies.",
+    description: "Tool to analyze Polymarket prediction markets and identify trading opportunities through arbitrage, spread analysis, and momentum signals.",
     longDescription: `Building a tool to analyze Polymarket prediction markets and identify trading opportunities through multiple strategies:
 
 • Arbitrage — Price differences across markets or YES+NO not summing to 100%
@@ -140,66 +332,10 @@ Features Firebase for data storage, gamification elements including leaderboards
     category: "fintech"
   },
   {
-    id: "discord-bots",
-    title: "LLM-Powered Bots",
-    tagline: "Agentic AI Systems",
-    description: "Context-aware Twitter and Discord bots with conversation memory, tool integration, and agentic architectures using OpenAI and Anthropic APIs.",
-    longDescription: `Built multiple AI agents that go beyond simple chatbots:
-
-• Persistent Memory — Conversation history stored in SQLite, fetched for context
-• Tool Integration — Google Calendar integration for scheduling
-• Agentic Architecture — Bots decide when to use tools vs just respond
-• Multi-platform — Discord and Twitter implementations
-
-These bots can reason about what action to take, remember past conversations, and execute external tools — the defining characteristics of AI agents.`,
-    tech: ["Python", "OpenAI API", "SQLite", "Discord.py"],
-    highlights: [
-      "Persistent memory with SQLite",
-      "Tool integration (Google Calendar)",
-      "Agentic decision-making",
-      "Context-aware responses"
-    ],
-    links: {
-      live: null,
-      github: null
-    },
-    image: "/images/bots.png",
-    featured: true,
-    category: "ai"
-  },
-  {
-    id: "dustbunny",
-    title: "Dustbunny",
-    tagline: "High-Frequency NFT Trading",
-    description: "Automated NFT bidding system distributed across 50 machines, processing 2,500+ requests per minute with intelligent bidding algorithms.",
-    longDescription: `High-performance NFT bidding system built to handle OpenSea's IP-based rate limits by distributing across 50 MacBooks, each running the bidding bot independently.
-
-Features included:
-• Real-time floor price polling aggregated to Redis
-• Intelligent bidding algorithms analyzing floor prices, existing bids, and historical data
-• Max bid safeguards and competitive margin calculations
-• Support for ERC-721 and ERC-1155 tokens
-• Deployed CryptoHeartZ NFT collection via Remix`,
-    tech: ["Node.js", "Redis", "OpenSea SDK", "Docker", "Etherscan API"],
-    highlights: [
-      "50 machines, 2,500 requests/minute",
-      "Redis for real-time floor price caching",
-      "Intelligent bidding with safeguards",
-      "Deployed ERC-721 smart contract"
-    ],
-    links: {
-      live: null,
-      github: null
-    },
-    image: "/images/dustbunny.png",
-    featured: true,
-    category: "web3"
-  },
-  {
     id: "adoh",
     title: "A Dawn of Heroes",
     tagline: "Game Development & Analytics",
-    description: "Contributing game balance and mechanics for NeverWinter Nights persistent world server, plus a player dashboard with DPS calculations and real-time leaderboards.",
+    description: "Contributing game balance for NeverWinter Nights server, plus a player dashboard with DPS calculations and real-time leaderboards.",
     longDescription: `Active contributor to a persistent world server for NeverWinter Nights: Enhanced Edition with 20-50 concurrent players.
 
 Contributions include game balance, custom mechanics, and quality of life improvements. Built an external player dashboard that parses game log files to calculate theoretical DPS based on weapon stats, class, and abilities — displayed with real-time leaderboards.`,
@@ -219,39 +355,10 @@ Contributions include game balance, custom mechanics, and quality of life improv
     category: "games"
   },
   {
-    id: "oli-fitness",
-    title: "OLI Fitness",
-    tagline: "Computer Vision Startup",
-    description: "Co-founded fitness startup using Microsoft Kinect and computer vision to analyze weightlifting form and detect injury-risk movements. Published at ACM CHI 2017.",
-    longDescription: `Co-founded a fitness technology startup that used Microsoft Kinect SDK to track joint positions during weightlifting exercises like squats and deadlifts.
-
-Developed movement scoring algorithms that compared user joint angles against professional form overlays in real-time, flagging potentially dangerous movements. Consulted with fitness experts to define "good" vs "bad" form parameters.
-
-• Regional finalist at Princeton Tiger Launch
-• Finalist at UW Business Plan Competition  
-• Selected for Collision Alpha startup program
-• Published extended abstract at ACM CHI 2017`,
-    tech: ["C#", "Kinect SDK", "Computer Vision", "Unity"],
-    highlights: [
-      "Real-time joint position tracking",
-      "Movement scoring algorithms",
-      "ACM CHI 2017 publication",
-      "Princeton Tiger Launch finalist"
-    ],
-    links: {
-      live: null,
-      github: null,
-      paper: "https://dl.acm.org/doi/abs/10.1145/3027063.3048429"
-    },
-    image: "/images/oli.png",
-    featured: true,
-    category: "ai"
-  },
-  {
     id: "hashmaps",
     title: "HashMaps",
     tagline: "1st Place Hackathon Winner",
-    description: "Auto-hashtag generation tool using OpenCV image analysis and geolocation. Won 1st place at T-Mobile Big Data Hackathon.",
+    description: "Auto-hashtag generation using OpenCV image analysis and geolocation. Won 1st place at T-Mobile Big Data Hackathon.",
     longDescription: `Built at T-Mobile Big Data Hackathon. HashMaps analyzes photos using OpenCV and combines that with geolocation metadata to generate trending, relevant hashtags for maximum social media reach.
 
 Example: A coffee photo taken in Seattle would generate hashtags like #SeattleCoffee #PNW #CoffeeLovers based on both the image content and location context.`,
