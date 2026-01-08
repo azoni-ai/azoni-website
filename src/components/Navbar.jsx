@@ -11,7 +11,6 @@ const Navbar = () => {
     { path: '/about', label: 'About' },
     { path: '/projects', label: 'Projects' },
     { path: '/chat', label: 'Chat' },
-    { path: '/play', label: 'Play' },
     { path: '/resume', label: 'Resume' },
   ];
 
@@ -21,7 +20,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="navbar-logo">
-          {/* <span className="navbar-logo-icon">A</span> */}
+          <span className="navbar-logo-icon">A</span>
           Azoni
         </Link>
 
