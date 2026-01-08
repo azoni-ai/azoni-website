@@ -1,12 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
 
 /**
  * Custom hook for chat functionality
- * Demonstrates: useCallback, useRef, custom hooks composing other hooks
+ * Demonstrates: useCallback, useRef, useState composition
  */
-export const useChat = () => {
-  const { chatMode, setChatMode } = useApp();
+export const useChat = (initialMode = 'professional') => {
+  const [chatMode, setChatMode] = useState(initialMode);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,13 +17,7 @@ export const useChat = () => {
   useEffect(() => {
     setMessages([{
       role: 'assistant',
-      content: `👋 Hi! I'm Azoni-GPT, an AI assistant trained on Charlton Smith's background, skills, and projects.
-
-**Recruiters:** Paste a job description and I'll explain why Charlton is a strong fit.
-**Hiring Managers:** Ask about specific technologies or projects.
-**Curious Visitors:** Try "What are some fun facts about Charlton?" or ask about any project.
-
-You can also switch between tones (Professional, Friendly, Casual, Funny) above.`
+      content: `Hi! I'm an AI trained on Charlton's background. Ask me anything, or paste a job description for fit analysis.`
     }]);
   }, []);
 
@@ -88,34 +81,17 @@ You can also switch between tones (Professional, Friendly, Casual, Funny) above.
       setError(err.message);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again or reach out to Charlton directly at charltonuw@gmail.com.'
+        content: 'Sorry, something went wrong. Email charltonuw@gmail.com directly.'
       }]);
     } finally {
       setIsLoading(false);
     }
   }, [messages, chatMode, isLoading]);
 
-  // Cancel ongoing request
-  const cancelRequest = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Clear chat history
-  const clearChat = useCallback(() => {
-    setMessages([{
-      role: 'assistant',
-      content: '👋 Chat cleared! How can I help you learn about Charlton?'
-    }]);
-    setError(null);
-  }, []);
-
   // Change chat mode
   const changeMode = useCallback((mode) => {
     setChatMode(mode);
-  }, [setChatMode]);
+  }, []);
 
   return {
     messages,
@@ -126,8 +102,6 @@ You can also switch between tones (Professional, Friendly, Casual, Funny) above.
     chatMode,
     messagesEndRef,
     sendMessage,
-    cancelRequest,
-    clearChat,
     changeMode,
   };
 };

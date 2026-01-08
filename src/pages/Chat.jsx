@@ -1,111 +1,53 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import Layout from '../components/Layout';
+import { useChat } from '../hooks/useChat';
 
 const MODES = {
   professional: 'Professional',
-  friendly: 'Friendly',
+  friendly: 'Friendly', 
   casual: 'Casual',
   funny: 'Funny'
 };
 
 const SUGGESTIONS = [
   "What's your experience with Python and AI?",
-  "Tell me about DuMarket and how you built it",
-  "Why would Charlton be great for a senior engineer role?",
-  "What are some fun facts about Charlton?"
+  "Tell me about DuMarket",
+  "Why hire Charlton?",
+  "Fun facts about Charlton"
 ];
 
+/**
+ * Chat page using custom useChat hook
+ * Demonstrates: Custom hooks, controlled components
+ */
 const Chat = () => {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [mode, setMode] = useState('professional');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  // Initial greeting
-  useEffect(() => {
-    setMessages([{
-      role: 'assistant',
-      content: `👋 Hi! I'm Azoni-GPT, an AI assistant trained on Charlton Smith's background, skills, and projects.
-
-**Recruiters:** Paste a job description and I'll explain why Charlton is a strong fit.
-**Hiring Managers:** Ask about specific technologies or projects.
-**Curious Visitors:** Try "What are some fun facts about Charlton?" or ask about any project.
-
-You can also switch between tones (Professional, Friendly, Casual, Funny) above.`
-    }]);
-  }, []);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const sendMessage = async (messageText) => {
-    if (!messageText.trim() || isLoading) return;
-
-    const userMessage = { role: 'user', content: messageText };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      // Call Netlify function (API key is secure on server)
-      const response = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...messages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content: messageText }],
-          mode: mode
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.choices && data.choices[0]) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.choices[0].message.content
-        }]);
-      } else if (data.error) {
-        throw new Error(data.error);
-      } else {
-        throw new Error('Invalid response');
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again or reach out to Charlton directly at charltonuw@gmail.com.'
-      }]);
-    }
-
-    setIsLoading(false);
-  };
+  const {
+    messages,
+    input,
+    setInput,
+    isLoading,
+    chatMode,
+    messagesEndRef,
+    sendMessage,
+    changeMode
+  } = useChat();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     sendMessage(input);
   };
 
-  const handleSuggestion = (suggestion) => {
-    sendMessage(suggestion);
-  };
-
   return (
     <Layout hideFooter>
       <div className="chat-container">
-        {/* Header */}
         <div className="chat-header">
-          <h1 style={{ fontSize: '2rem' }}>Azoni-GPT</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Azoni-GPT</h1>
           <div className="chat-modes">
             {Object.entries(MODES).map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setMode(key)}
-                className={`chat-mode-btn ${mode === key ? 'active' : ''}`}
+                onClick={() => changeMode(key)}
+                className={`chat-mode-btn ${chatMode === key ? 'active' : ''}`}
               >
                 {label}
               </button>
@@ -113,7 +55,6 @@ You can also switch between tones (Professional, Friendly, Casual, Funny) above.
           </div>
         </div>
 
-        {/* Messages */}
         <div className="chat-messages">
           {messages.map((message, index) => (
             <div 
@@ -126,20 +67,19 @@ You can also switch between tones (Professional, Friendly, Casual, Funny) above.
           ))}
           {isLoading && (
             <div className="chat-message assistant">
-              <span style={{ opacity: 0.7 }}>Thinking...</span>
+              <span className="typing-indicator">Thinking...</span>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
         <div className="chat-input-area">
           <div className="chat-suggestions">
             {SUGGESTIONS.map((suggestion, index) => (
               <button
                 key={index}
                 className="chat-suggestion"
-                onClick={() => handleSuggestion(suggestion)}
+                onClick={() => sendMessage(suggestion)}
               >
                 {suggestion}
               </button>
@@ -152,7 +92,7 @@ You can also switch between tones (Professional, Friendly, Casual, Funny) above.
               className="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message here..."
+              placeholder="Ask anything about Charlton..."
               disabled={isLoading}
             />
             <button 
@@ -165,7 +105,7 @@ You can also switch between tones (Professional, Friendly, Casual, Funny) above.
           </form>
           
           <p className="chat-disclaimer">
-            Responses may contain inaccuracies. For accurate information, contact Charlton directly.
+            AI responses may be inaccurate. Contact charltonuw@gmail.com for specifics.
           </p>
         </div>
       </div>
