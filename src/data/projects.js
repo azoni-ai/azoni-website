@@ -8,11 +8,11 @@ export const projects = [
     longDescription: `A production-grade full-stack web application helping families discover non-toxic, traditional alternatives to everyday products. Combines AI-powered product recommendations with educational content through an integrated blog system.
 
 **AI Chat System:**
-• Natural language product search with GPT-4o-mini
-• "Ask AI" buttons on product pages for contextual follow-ups
-• IP-based rate limiting (30 requests/60s)
-• Token usage logging with cost tracking per API call
-• Architecture designed for future LangChain/Chroma RAG implementation
+• Semantic search RAG pipeline using OpenAI embeddings (text-embedding-3-small)
+• Custom cosine similarity ranking with PostgreSQL JSON storage
+• Hybrid retrieval: semantic similarity with keyword fallback
+• ~40% reduction in LLM context tokens while improving relevance
+• IP-based rate limiting and token usage logging with cost tracking
 
 **Content Management:**
 • Full blog system with markdown editor and inline image uploads
@@ -33,7 +33,7 @@ export const projects = [
 • Twitter auto-posting for new content`,
     tech: ["React", "FastAPI", "PostgreSQL", "OpenAI API", "SQLAlchemy", "Vite"],
     highlights: [
-      "Production AI chat with rate limiting & cost tracking",
+      "Semantic search RAG with OpenAI embeddings",
       "Full CMS with blog, products, and admin panel",
       "Email subscription system with SMTP",
       "SEO: XML sitemap, meta tags, Google Search Console",
@@ -88,7 +88,7 @@ This site itself demonstrates the React patterns and AI integration skills relev
     id: "dumarket",
     title: "DuMarket",
     tagline: "Prediction Market Platform",
-    description: "Full-stack prediction market webapp with CLOB matching engine, automated market maker, and real-time P&L tracking. 18 API endpoints, 6 database models.",
+    description: "Full-stack prediction market webapp with CLOB matching engine, automated market maker, and real-time P&L tracking.",
     longDescription: `A complete prediction market webapp featuring a Central Limit Order Book (CLOB) matching engine with price-time priority algorithm. Built to understand prediction market mechanics hands-on.
 
 **Core Features:**
@@ -99,21 +99,18 @@ This site itself demonstrates the React patterns and AI integration skills relev
 
 **Gamification:**
 • Daily login rewards with streak multipliers
-• 14 achievements across 5 categories
+• Achievement system
 • Leaderboards and user rankings
 
-**Technical Scope:**
-• 18 REST API endpoints
-• 6 database models
-• ~4,300 lines of code
+**Technical:**
+• React frontend, FastAPI backend, PostgreSQL
 • Full admin panel for market management`,
     tech: ["React", "FastAPI", "PostgreSQL", "Firebase Auth", "Python"],
     highlights: [
       "Central Limit Order Book (CLOB) matching engine",
       "Automated market maker with inventory-aware pricing",
       "Real-time P&L tracking and position management",
-      "18 API endpoints, 6 database models",
-      "~4,300 lines of code"
+      "Gamification: streaks, achievements, leaderboards"
     ],
     links: {
       live: "https://dumarket.netlify.app",
