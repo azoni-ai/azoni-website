@@ -931,6 +931,57 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   background: var(--border-subtle);
 }
 
+/* GitHub Activity */
+.github-activity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-md);
+}
+
+.github-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.github-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  font-family: var(--font-mono);
+}
+
+.github-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.github-label-main {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.github-label-main::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+}
+
 .hero-links {
   display: flex;
   gap: var(--space-lg);
@@ -1312,6 +1363,20 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   }
   
   .credential-divider {
+    display: none;
+  }
+  
+  .github-activity {
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    justify-content: center;
+  }
+  
+  .github-value {
+    font-size: 1rem;
+  }
+  
+  .github-label-main {
     display: none;
   }
   

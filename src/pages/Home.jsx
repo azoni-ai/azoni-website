@@ -1,10 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { profile } from '../data/profile';
 import { projects } from '../data/projects';
 
 const Home = () => {
+  const [githubStats, setGithubStats] = useState(null);
+
+  useEffect(() => {
+    fetch('/.netlify/functions/github-stats')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setGithubStats(data);
+      })
+      .catch(err => console.error('Failed to fetch GitHub stats:', err));
+  }, []);
+
   const getProject = (id) => projects.find(p => p.id === id);
   
   const liveProjects = [
@@ -54,6 +65,25 @@ const Home = () => {
                 <span className="credential-label">Published</span>
               </div>
             </div>
+
+            {/* GitHub Activity */}
+            {githubStats && (
+              <div className="github-activity">
+                <div className="github-stat">
+                  <span className="github-value">{githubStats.today}</span>
+                  <span className="github-label">Today</span>
+                </div>
+                <div className="github-stat">
+                  <span className="github-value">{githubStats.last7Days}</span>
+                  <span className="github-label">7 Days</span>
+                </div>
+                <div className="github-stat">
+                  <span className="github-value">{githubStats.last30Days}</span>
+                  <span className="github-label">30 Days</span>
+                </div>
+                <span className="github-label-main">commits</span>
+              </div>
+            )}
           </div>
         </div>
       </section>
