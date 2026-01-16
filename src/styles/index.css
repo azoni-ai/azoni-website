@@ -1050,11 +1050,8 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   background: rgba(99, 102, 241, 0.2);
 }
 
-.commit-repo.private {
+span.commit-repo.private {
   cursor: default;
-}
-
-.commit-repo.private:hover {
   background: rgba(99, 102, 241, 0.1);
 }
 
@@ -1070,12 +1067,8 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   border: 1px solid var(--border-subtle);
 }
 
-.commit-message.private {
+span.commit-message.private {
   cursor: default;
-}
-
-.commit-message.private:hover {
-  color: var(--text-primary);
 }
 
 .commit-live-link {

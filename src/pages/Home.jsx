@@ -113,28 +113,34 @@ const Home = () => {
                   <div className={`commit-list ${showAllCommits ? 'expanded' : ''}`}>
                     {(showAllCommits ? githubStats.recentCommits : githubStats.recentCommits.slice(0, 4)).map((commit, i) => (
                       <div key={`${commit.sha}-${i}`} className="commit-item">
-                        <a 
-                          href={commit.isPrivate ? '#' : commit.url}
-                          target={commit.isPrivate ? undefined : "_blank"}
-                          rel="noopener noreferrer"
-                          className={`commit-message ${commit.isPrivate ? 'private' : ''}`}
-                          onClick={commit.isPrivate ? (e) => e.preventDefault() : undefined}
-                        >
-                          {commit.message}
-                        </a>
+                        {commit.isPrivate ? (
+                          <span className="commit-message private">{commit.message}</span>
+                        ) : (
+                          <a 
+                            href={commit.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="commit-message"
+                          >
+                            {commit.message}
+                          </a>
+                        )}
                         <div className="commit-meta">
                           {commit.isPrivate && (
                             <span className="commit-private-badge">Private</span>
                           )}
-                          <a 
-                            href={commit.isPrivate ? '#' : commit.repoUrl}
-                            target={commit.isPrivate ? undefined : "_blank"}
-                            rel="noopener noreferrer"
-                            className={`commit-repo ${commit.isPrivate ? 'private' : ''}`}
-                            onClick={commit.isPrivate ? (e) => e.preventDefault() : undefined}
-                          >
-                            {commit.repo}
-                          </a>
+                          {commit.isPrivate ? (
+                            <span className="commit-repo private">{commit.repo}</span>
+                          ) : (
+                            <a 
+                              href={commit.repoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="commit-repo"
+                            >
+                              {commit.repo}
+                            </a>
+                          )}
                           {REPO_TO_SITE[commit.repo] && (
                             <a 
                               href={REPO_TO_SITE[commit.repo]}
