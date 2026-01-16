@@ -22,6 +22,7 @@ const Home = () => {
     fetch('/.netlify/functions/github-stats')
       .then(res => res.json())
       .then(data => {
+        console.log('GitHub stats response:', data);
         if (!data.error) setGithubStats(data);
       })
       .catch(err => console.error('Failed to fetch GitHub stats:', err));

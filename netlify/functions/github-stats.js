@@ -134,11 +134,12 @@ async function fetchRecentCommits(token, username) {
   );
 
   if (!response.ok) {
-    console.error('Events API error:', response.status);
+    console.error('Events API error:', response.status, await response.text());
     return [];
   }
 
   const events = await response.json();
+  console.log('Total events fetched:', events.length);
   
   // Filter to push events and extract commits
   const commits = [];
@@ -149,6 +150,9 @@ async function fetchRecentCommits(token, username) {
       const repoUrl = `https://github.com/${event.repo?.name}`;
       
       for (const commit of event.payload.commits) {
+        // Skip merge commits
+        if (commit.message?.startsWith('Merge')) continue;
+        
         commits.push({
           message: commit.message.split('\n')[0], // First line only
           sha: commit.sha?.substring(0, 7),
@@ -164,5 +168,6 @@ async function fetchRecentCommits(token, username) {
     if (commits.length >= 20) break;
   }
 
+  console.log('Commits extracted:', commits.length);
   return commits.slice(0, 20);
 }
