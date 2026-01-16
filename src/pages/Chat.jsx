@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 
@@ -11,7 +11,7 @@ const MODES = {
 
 const SUGGESTIONS = [
   "What's your experience with Python and AI?",
-  "Tell me about DuMarket",
+  "Tell me about your projects",
   "Why hire Charlton?",
   "Fun facts about Charlton"
 ];
@@ -33,6 +33,20 @@ const Chat = () => {
     changeModel
   } = useChat();
 
+  const [showModelMenu, setShowModelMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowModelMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     sendMessage(input);
@@ -44,21 +58,41 @@ const Chat = () => {
     <Layout hideFooter>
       <div className="chat-container">
         <div className="chat-header">
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Azoni-GPT</h1>
-          
-          {/* Model Selector */}
-          <div className="chat-model-selector">
-            <select 
-              value={model} 
-              onChange={(e) => changeModel(e.target.value)}
-              className="model-select"
-            >
-              {AVAILABLE_MODELS.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.provider}: {m.name}
-                </option>
-              ))}
-            </select>
+          <div className="chat-title-row">
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Azoni-GPT</h1>
+            
+            {/* Model Selector - Gear Icon */}
+            <div className="model-menu-wrapper" ref={menuRef}>
+              <button 
+                className="model-gear-btn"
+                onClick={() => setShowModelMenu(!showModelMenu)}
+                title="Change AI model"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <span className="current-model-name">{currentModel.name}</span>
+              </button>
+              
+              {showModelMenu && (
+                <div className="model-dropdown">
+                  {AVAILABLE_MODELS.map(m => (
+                    <button
+                      key={m.id}
+                      className={`model-dropdown-item ${model === m.id ? 'active' : ''}`}
+                      onClick={() => {
+                        changeModel(m.id);
+                        setShowModelMenu(false);
+                      }}
+                    >
+                      <span className="model-provider">{m.provider}</span>
+                      <span className="model-name">{m.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="chat-modes">
@@ -124,7 +158,7 @@ const Chat = () => {
           </form>
           
           <p className="chat-disclaimer">
-            Powered by {currentModel.provider} · AI responses may be inaccurate
+            AI responses may be inaccurate
           </p>
         </div>
       </div>
