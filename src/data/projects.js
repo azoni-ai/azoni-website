@@ -188,7 +188,7 @@ This site itself demonstrates the React patterns and AI integration skills relev
       "Mobile-first responsive design"
     ],
     links: {
-      live: "https://azoni.ai",
+      live: "https://azoni.ai/chat",
       github: null
     },
     image: "/images/azoni.png",
@@ -228,6 +228,33 @@ This site itself demonstrates the React patterns and AI integration skills relev
       github: null
     },
     image: "/images/polymarket.svg",
+    featured: true,
+    category: "fintech"
+  },
+  {
+    id: "polymarket-tool",
+    title: "Polymarket Analysis Tool",
+    tagline: "Trading Signal Detection",
+    description: "Tool to analyze Polymarket prediction markets and identify trading opportunities through arbitrage, spread analysis, and momentum signals.",
+    longDescription: `Building a tool to analyze Polymarket prediction markets and identify trading opportunities through multiple strategies:
+
+• Arbitrage — Price differences across markets or YES+NO not summing to 100%
+• Spread Analysis — Wide bid-ask spreads for buy low/sell high opportunities  
+• Volume Anomalies — Unusual volume spikes that often precede price moves
+• Momentum — Price trending in one direction tends to continue
+• Mean Reversion — Prices far from historical average tend to snap back`,
+    tech: ["Python", "React", "Polymarket API"],
+    highlights: [
+      "Multiple signal detection strategies",
+      "Arbitrage and spread analysis",
+      "Volume anomaly detection",
+      "Momentum and mean reversion signals"
+    ],
+    links: {
+      live: "https://kalshi.netlify.app",
+      github: null
+    },
+    image: "/images/polymarket.png",
     featured: true,
     category: "fintech"
   },
@@ -380,33 +407,6 @@ These bots can reason about what action to take, remember past conversations, an
   },
 
   // ===== OTHER PROJECTS =====
-  {
-    id: "polymarket-tool",
-    title: "Polymarket Analysis Tool",
-    tagline: "Trading Signal Detection",
-    description: "Tool to analyze Polymarket prediction markets and identify trading opportunities through arbitrage, spread analysis, and momentum signals.",
-    longDescription: `Building a tool to analyze Polymarket prediction markets and identify trading opportunities through multiple strategies:
-
-• Arbitrage — Price differences across markets or YES+NO not summing to 100%
-• Spread Analysis — Wide bid-ask spreads for buy low/sell high opportunities  
-• Volume Anomalies — Unusual volume spikes that often precede price moves
-• Momentum — Price trending in one direction tends to continue
-• Mean Reversion — Prices far from historical average tend to snap back`,
-    tech: ["Python", "React", "Polymarket API"],
-    highlights: [
-      "Multiple signal detection strategies",
-      "Arbitrage and spread analysis",
-      "Volume anomaly detection",
-      "Momentum and mean reversion signals"
-    ],
-    links: {
-      live: "https://kalshi.netlify.app/",
-      github: null
-    },
-    image: "/images/polymarket.png",
-    featured: false,
-    category: "fintech"
-  },
   {
     id: "adoh",
     title: "A Dawn of Heroes",

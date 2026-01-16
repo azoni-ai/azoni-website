@@ -7,11 +7,12 @@ import { projects } from '../data/projects';
 const Home = () => {
   const getProject = (id) => projects.find(p => p.id === id);
   
-  const recentProjects = [
+  const liveProjects = [
     getProject('old-ways-today'),
     getProject('row-crew'),
     getProject('tcgdoku'),
-    getProject('azoni-ai')
+    getProject('azoni-ai'),
+    getProject('polymarket-tool')
   ].filter(Boolean);
   
   const featuredProjects = [
@@ -57,16 +58,16 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Recent Work */}
+      {/* Live Projects */}
       <section className="section-tight">
         <div className="container">
           <div className="section-header-row">
-            <div className="section-label">Recent Work</div>
+            <div className="section-label">Live Projects</div>
             <Link to="/projects" className="section-link">View all projects →</Link>
           </div>
           
           <div className="recent-projects">
-            {recentProjects.map(project => (
+            {liveProjects.map(project => (
               <Link key={project.id} to={`/projects/${project.id}`} className="recent-project-card">
                 <div className="recent-project-content">
                   <div className="recent-project-header">
