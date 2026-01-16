@@ -22,7 +22,6 @@ const Home = () => {
     fetch('/.netlify/functions/github-stats')
       .then(res => res.json())
       .then(data => {
-        console.log('GitHub stats response:', data);
         if (!data.error) setGithubStats(data);
       })
       .catch(err => console.error('Failed to fetch GitHub stats:', err));
@@ -88,72 +87,65 @@ const Home = () => {
                 <span className="credential-label">Published</span>
               </div>
             </div>
-
-            {/* GitHub Activity */}
-            {githubStats && (
-              <div className="github-activity">
-                <div className="github-stat">
-                  <span className="github-value">{githubStats.today}</span>
-                  <span className="github-label">Today</span>
-                </div>
-                <div className="github-stat">
-                  <span className="github-value">{githubStats.last7Days}</span>
-                  <span className="github-label">7 Days</span>
-                </div>
-                <div className="github-stat">
-                  <span className="github-value">{githubStats.last30Days}</span>
-                  <span className="github-label">30 Days</span>
-                </div>
-                <span className="github-label-main">commits</span>
-              </div>
-            )}
           </div>
         </div>
       </section>
 
-      {/* Commit Feed */}
-      {githubStats?.recentCommits?.length > 0 && (
-        <section className="commit-feed-section">
+      {/* GitHub Activity - Combined Stats + Commits */}
+      {githubStats && (
+        <section className="github-section">
           <div className="container">
-            <div className="commit-feed">
-              <div className="commit-feed-header">
-                <span className="commit-feed-title">
-                  <span className="commit-pulse"></span>
-                  Recent Activity
-                </span>
-                <button 
-                  className="commit-feed-toggle"
-                  onClick={() => setShowAllCommits(!showAllCommits)}
-                >
-                  {showAllCommits ? 'Show less' : `View all (${githubStats.recentCommits.length})`}
-                </button>
+            <div className="github-card">
+              <div className="github-header">
+                <div className="github-title">
+                  <span className="github-pulse"></span>
+                  <span>Building in public</span>
+                </div>
+                <div className="github-stats-inline">
+                  <span><strong>{githubStats.today}</strong> today</span>
+                  <span><strong>{githubStats.last7Days}</strong> this week</span>
+                  <span><strong>{githubStats.last30Days}</strong> this month</span>
+                </div>
               </div>
               
-              <div className={`commit-list ${showAllCommits ? 'expanded' : ''}`}>
-                {(showAllCommits ? githubStats.recentCommits : githubStats.recentCommits.slice(0, 3)).map((commit, i) => (
-                  <div key={`${commit.sha}-${i}`} className="commit-item">
-                    <a 
-                      href={commit.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="commit-message"
-                    >
-                      {commit.message}
-                    </a>
-                    <div className="commit-meta">
-                      <a 
-                        href={REPO_TO_SITE[commit.repo] || commit.repoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="commit-repo"
-                      >
-                        {commit.repo}
-                      </a>
-                      <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
-                    </div>
+              {githubStats.recentCommits?.length > 0 && (
+                <>
+                  <div className={`commit-list ${showAllCommits ? 'expanded' : ''}`}>
+                    {(showAllCommits ? githubStats.recentCommits : githubStats.recentCommits.slice(0, 4)).map((commit, i) => (
+                      <div key={`${commit.sha}-${i}`} className="commit-item">
+                        <a 
+                          href={commit.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="commit-message"
+                        >
+                          {commit.message}
+                        </a>
+                        <div className="commit-meta">
+                          <a 
+                            href={REPO_TO_SITE[commit.repo] || commit.repoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="commit-repo"
+                          >
+                            {commit.repo}
+                          </a>
+                          <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                  
+                  {githubStats.recentCommits.length > 4 && (
+                    <button 
+                      className="github-toggle"
+                      onClick={() => setShowAllCommits(!showAllCommits)}
+                    >
+                      {showAllCommits ? 'Show less' : `Show ${githubStats.recentCommits.length - 4} more commits`}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </section>

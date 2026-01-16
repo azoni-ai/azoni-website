@@ -931,91 +931,37 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   background: var(--border-subtle);
 }
 
-/* GitHub Activity */
-.github-activity {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  margin-top: var(--space-md);
+/* GitHub Activity - Combined Section */
+.github-section {
+  padding: var(--space-lg) 0 var(--space-xl);
 }
 
-.github-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.github-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--accent-secondary);
-  font-family: var(--font-mono);
-}
-
-.github-label {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.github-label-main {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.github-label-main::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: var(--success);
-  border-radius: 50%;
-}
-
-/* Commit Feed */
-.commit-feed-section {
-  padding: var(--space-lg) 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.commit-feed {
+.github-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
-.commit-feed-header {
+.github-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.commit-feed-title {
+.github-title {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.commit-pulse {
+.github-pulse {
   width: 8px;
   height: 8px;
   background: var(--success);
@@ -1028,29 +974,26 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   50% { opacity: 0.5; transform: scale(1.2); }
 }
 
-.commit-feed-toggle {
-  background: none;
-  border: none;
-  color: var(--accent-secondary);
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+.github-stats-inline {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
-.commit-feed-toggle:hover {
-  background: rgba(99, 102, 241, 0.1);
+.github-stats-inline strong {
+  color: var(--accent-secondary);
+  font-family: var(--font-mono);
 }
 
 .commit-list {
-  max-height: 180px;
+  max-height: 240px;
   overflow: hidden;
   transition: max-height 0.3s ease;
 }
 
 .commit-list.expanded {
-  max-height: 600px;
+  max-height: 800px;
   overflow-y: auto;
 }
 
@@ -1059,7 +1002,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
   border-bottom: 1px solid var(--border-subtle);
   transition: background var(--transition-fast);
 }
@@ -1110,8 +1053,25 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 .commit-time {
   font-size: 0.75rem;
   color: var(--text-muted);
-  min-width: 50px;
+  min-width: 60px;
   text-align: right;
+}
+
+.github-toggle {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-secondary);
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--accent-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.github-toggle:hover {
+  background: var(--bg-card-hover);
 }
 
 .hero-links {
@@ -1535,28 +1495,27 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     display: none;
   }
   
-  .github-activity {
-    gap: var(--space-md);
-    padding: var(--space-sm) var(--space-md);
-    justify-content: center;
-  }
-  
-  .github-value {
-    font-size: 1rem;
-  }
-  
-  .github-label-main {
-    display: none;
+  .github-section {
+    padding: var(--space-md) 0 var(--space-lg);
   }
 
-  .commit-feed-section {
-    padding: var(--space-md) 0;
+  .github-header {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: flex-start;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .github-stats-inline {
+    gap: var(--space-md);
+    font-size: 0.8rem;
   }
 
   .commit-item {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
   }
 
   .commit-message {

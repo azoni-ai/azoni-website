@@ -28,19 +28,6 @@ exports.handler = async (event, context) => {
       query($username: String!, $from: DateTime!, $to: DateTime!) {
         user(login: $username) {
           contributionsCollection(from: $from, to: $to) {
-            commitContributionsByRepository(maxRepositories: 10) {
-              repository {
-                name
-                url
-                isPrivate
-              }
-              contributions(first: 10) {
-                nodes {
-                  commitCount
-                  occurredAt
-                }
-              }
-            }
             contributionCalendar {
               weeks {
                 contributionDays {
@@ -50,20 +37,57 @@ exports.handler = async (event, context) => {
               }
             }
           }
-          repositories(first: 20, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: OWNER) {
+          repositories(first: 20, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
             nodes {
               name
               url
               isPrivate
+              owner {
+                login
+              }
               defaultBranchRef {
                 target {
                   ... on Commit {
-                    history(first: 5) {
+                    history(first: 5, author: {id: null}) {
                       nodes {
                         message
                         committedDate
                         oid
                         url
+                        author {
+                          user {
+                            login
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          repositoriesContributedTo(first: 20, orderBy: {field: PUSHED_AT, direction: DESC}, contributionTypes: [COMMIT]) {
+            nodes {
+              name
+              url
+              isPrivate
+              owner {
+                login
+              }
+              defaultBranchRef {
+                target {
+                  ... on Commit {
+                    history(first: 10) {
+                      nodes {
+                        message
+                        committedDate
+                        oid
+                        url
+                        author {
+                          user {
+                            login
+                          }
+                        }
                       }
                     }
                   }
@@ -130,21 +154,34 @@ exports.handler = async (event, context) => {
       .reduce((sum, d) => sum + d.contributionCount, 0);
     const last30Days = allDays.reduce((sum, d) => sum + d.contributionCount, 0);
 
-    // Extract recent commits from repositories
+    // Extract recent commits from both owned and contributed repos
     const recentCommits = [];
-    const repos = user.repositories?.nodes || [];
+    const seenCommits = new Set();
     
-    for (const repo of repos) {
+    // Combine both repo lists
+    const allRepos = [
+      ...(user.repositories?.nodes || []),
+      ...(user.repositoriesContributedTo?.nodes || [])
+    ];
+    
+    for (const repo of allRepos) {
       const commits = repo.defaultBranchRef?.target?.history?.nodes || [];
       for (const commit of commits) {
-        // Skip merge commits
+        // Only include commits by this user
+        if (commit.author?.user?.login !== username) continue;
+        
+        // Skip duplicates and merge commits
+        if (seenCommits.has(commit.oid)) continue;
         if (commit.message?.startsWith('Merge')) continue;
+        
+        seenCommits.add(commit.oid);
         
         recentCommits.push({
           message: commit.message.split('\n')[0],
           sha: commit.oid?.substring(0, 7),
           repo: repo.name,
           repoUrl: repo.url,
+          owner: repo.owner?.login,
           isPrivate: repo.isPrivate,
           timestamp: commit.committedDate,
           url: commit.url
