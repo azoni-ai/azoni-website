@@ -103,12 +103,60 @@ export const projects = [
       "~6,000 lines React, 20+ releases"
     ],
     links: {
-      live: "https://rowcrew.netlify.app/",
+      live: "https://rowcrew.netlify.app",
       github: "https://github.com/azoni/rowing-tracker"
     },
     image: "/images/rowing.png",
     featured: true,
     category: "ai"
+  },
+  {
+    id: "tcgdoku",
+    title: "TCGDoku",
+    tagline: "Daily Card Puzzle Game",
+    description: "Daily puzzle game webapp inspired by Wordle meets Sudoku. Players guess cards that match both row and column category criteria in a 3x3 grid.",
+    longDescription: `TCGDoku combines the daily puzzle format of Wordle with Sudoku-style logic. Players fill a 3x3 grid where each cell requires a card matching both its row and column category criteria.
+
+**Multi-Game Support:**
+• Magic: The Gathering (powered by Scryfall API)
+• Flesh and Blood TCG
+• Real-time card validation with image previews as you type
+
+**Daily Puzzle System:**
+• Seeded daily puzzles - same puzzle for all players each day
+• Share results with Wordle-style emoji grid
+• Streak tracking for consecutive days played
+
+**Community Features:**
+• Custom puzzle creator - users can build and share puzzles
+• Firebase backend tracking guess statistics across all players
+• See how your guesses compare to the community
+
+**Admin Dashboard:**
+• Stats dashboard with player metrics
+• Category management for each supported game
+• Game visibility controls (enable/disable games)
+
+**Technical:**
+• React frontend with responsive dark theme design
+• Firebase Firestore for real-time data
+• Scryfall API integration for MTG card data
+• Netlify hosting with fast global CDN`,
+    tech: ["React", "Firebase", "Scryfall API", "Firestore", "Netlify"],
+    highlights: [
+      "Daily seeded puzzles (same for all players)",
+      "Multi-game: Magic: The Gathering, Flesh and Blood",
+      "Community puzzle creator",
+      "Real-time card search with image preview",
+      "Wordle-style shareable results"
+    ],
+    links: {
+      live: "https://tcgdoku.netlify.app",
+      github: null
+    },
+    image: "/images/tcgdoku.svg",
+    featured: true,
+    category: "web"
   },
   {
     id: "azoni-ai",

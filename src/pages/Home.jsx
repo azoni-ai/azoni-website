@@ -10,6 +10,7 @@ const Home = () => {
   const recentProjects = [
     getProject('old-ways-today'),
     getProject('row-crew'),
+    getProject('tcgdoku'),
     getProject('azoni-ai')
   ].filter(Boolean);
   
