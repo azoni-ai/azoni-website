@@ -9,7 +9,6 @@ const generateSessionId = () => {
 
 /**
  * Custom hook for chat functionality
- * Demonstrates: useCallback, useRef, useState composition
  */
 export const useChat = (initialMode = 'professional') => {
   const [chatMode, setChatMode] = useState(initialMode);
@@ -42,23 +41,6 @@ export const useChat = (initialMode = 'professional') => {
       }
     };
   }, []);
-
-  // Log chat to Firestore
-  const logChat = async (userMessage, assistantMessage, usage) => {
-    try {
-      await addDoc(collection(db, 'chatLogs'), {
-        sessionId: sessionIdRef.current,
-        userMessage,
-        assistantMessage,
-        mode: chatMode,
-        usage: usage || null,
-        timestamp: serverTimestamp()
-      });
-    } catch (err) {
-      console.error('Error logging chat:', err);
-      // Don't throw - logging failure shouldn't break chat
-    }
-  };
 
   // Send message with abort capability
   const sendMessage = useCallback(async (messageText) => {
@@ -95,8 +77,15 @@ export const useChat = (initialMode = 'professional') => {
           content: assistantContent
         }]);
 
-        // Log to Firestore
-        await logChat(messageText, assistantContent, data.usage);
+        // Log to Firestore (fire and forget)
+        addDoc(collection(db, 'chatLogs'), {
+          sessionId: sessionIdRef.current,
+          userMessage: messageText,
+          assistantMessage: assistantContent,
+          mode: chatMode,
+          usage: data.usage || null,
+          timestamp: serverTimestamp()
+        }).catch(err => console.error('Error logging chat:', err));
 
       } else if (data.error) {
         throw new Error(data.error);
