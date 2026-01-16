@@ -400,7 +400,7 @@ These bots can reason about what action to take, remember past conversations, an
       "Momentum and mean reversion signals"
     ],
     links: {
-      live: null,
+      live: "https://kalshi.netlify.app/",
       github: null
     },
     image: "/images/polymarket.png",
