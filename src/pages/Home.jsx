@@ -114,22 +114,38 @@ const Home = () => {
                     {(showAllCommits ? githubStats.recentCommits : githubStats.recentCommits.slice(0, 4)).map((commit, i) => (
                       <div key={`${commit.sha}-${i}`} className="commit-item">
                         <a 
-                          href={commit.url} 
-                          target="_blank" 
+                          href={commit.isPrivate ? '#' : commit.url}
+                          target={commit.isPrivate ? undefined : "_blank"}
                           rel="noopener noreferrer"
-                          className="commit-message"
+                          className={`commit-message ${commit.isPrivate ? 'private' : ''}`}
+                          onClick={commit.isPrivate ? (e) => e.preventDefault() : undefined}
                         >
                           {commit.message}
                         </a>
                         <div className="commit-meta">
+                          {commit.isPrivate && (
+                            <span className="commit-private-badge">Private</span>
+                          )}
                           <a 
-                            href={REPO_TO_SITE[commit.repo] || commit.repoUrl}
-                            target="_blank"
+                            href={commit.isPrivate ? '#' : commit.repoUrl}
+                            target={commit.isPrivate ? undefined : "_blank"}
                             rel="noopener noreferrer"
-                            className="commit-repo"
+                            className={`commit-repo ${commit.isPrivate ? 'private' : ''}`}
+                            onClick={commit.isPrivate ? (e) => e.preventDefault() : undefined}
                           >
                             {commit.repo}
                           </a>
+                          {REPO_TO_SITE[commit.repo] && (
+                            <a 
+                              href={REPO_TO_SITE[commit.repo]}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="commit-live-link"
+                              title="View live site"
+                            >
+                              ↗
+                            </a>
+                          )}
                           <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
                         </div>
                       </div>
