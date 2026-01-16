@@ -13,6 +13,7 @@ const Projects = lazy(() => import("./pages/Projects"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Chat = lazy(() => import("./pages/Chat"));
 const Resume = lazy(() => import("./pages/Resume"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 /**
  * Main App component demonstrating:
@@ -35,6 +36,7 @@ const App = () => {
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/resume" element={<Resume />} />
+              <Route path="/admin" element={<Admin />} />
               
               {/* Redirects for old routes */}
               <Route path="/aboutme" element={<About />} />

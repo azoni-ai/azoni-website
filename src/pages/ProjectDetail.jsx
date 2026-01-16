@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Comments from '../components/Comments';
 import { getProjectById } from '../data/projects';
 
 const ProjectDetail = () => {
@@ -112,7 +113,7 @@ const ProjectDetail = () => {
 
           {/* Highlights */}
           {project.highlights && project.highlights.length > 0 && (
-            <div className="card">
+            <div className="card" style={{ marginBottom: 'var(--space-2xl)' }}>
               <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-lg)' }}>Key Features</h2>
               <ul style={{ 
                 color: 'var(--text-secondary)',
@@ -127,6 +128,11 @@ const ProjectDetail = () => {
               </ul>
             </div>
           )}
+
+          {/* Comments Section */}
+          <div className="card">
+            <Comments projectId={id} />
+          </div>
         </div>
       </section>
     </Layout>
