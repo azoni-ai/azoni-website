@@ -4,8 +4,19 @@ import Layout from '../components/Layout';
 import { profile } from '../data/profile';
 import { projects } from '../data/projects';
 
+// Map repo names to live sites
+const REPO_TO_SITE = {
+  'rowing-tracker': 'https://rowcrew.netlify.app',
+  'azoni-website': 'https://azoni.ai',
+  'old-ways-today': 'https://oldwaystoday.com',
+  'tcgdoku': 'https://tcgdoku.netlify.app',
+  'dumarket': 'https://dumarket.netlify.app',
+  'kalshi': 'https://kalshi.netlify.app',
+};
+
 const Home = () => {
   const [githubStats, setGithubStats] = useState(null);
+  const [showAllCommits, setShowAllCommits] = useState(false);
 
   useEffect(() => {
     fetch('/.netlify/functions/github-stats')
@@ -17,6 +28,17 @@ const Home = () => {
   }, []);
 
   const getProject = (id) => projects.find(p => p.id === id);
+  
+  const formatTimeAgo = (timestamp) => {
+    const seconds = Math.floor((new Date() - new Date(timestamp)) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
   
   const liveProjects = [
     getProject('old-ways-today'),
@@ -87,6 +109,54 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Commit Feed */}
+      {githubStats?.recentCommits?.length > 0 && (
+        <section className="commit-feed-section">
+          <div className="container">
+            <div className="commit-feed">
+              <div className="commit-feed-header">
+                <span className="commit-feed-title">
+                  <span className="commit-pulse"></span>
+                  Recent Activity
+                </span>
+                <button 
+                  className="commit-feed-toggle"
+                  onClick={() => setShowAllCommits(!showAllCommits)}
+                >
+                  {showAllCommits ? 'Show less' : `View all (${githubStats.recentCommits.length})`}
+                </button>
+              </div>
+              
+              <div className={`commit-list ${showAllCommits ? 'expanded' : ''}`}>
+                {(showAllCommits ? githubStats.recentCommits : githubStats.recentCommits.slice(0, 3)).map((commit, i) => (
+                  <div key={`${commit.sha}-${i}`} className="commit-item">
+                    <a 
+                      href={commit.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="commit-message"
+                    >
+                      {commit.message}
+                    </a>
+                    <div className="commit-meta">
+                      <a 
+                        href={REPO_TO_SITE[commit.repo] || commit.repoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="commit-repo"
+                      >
+                        {commit.repo}
+                      </a>
+                      <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Live Projects */}
       <section className="section-tight">

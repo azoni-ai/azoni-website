@@ -982,6 +982,138 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   border-radius: 50%;
 }
 
+/* Commit Feed */
+.commit-feed-section {
+  padding: var(--space-lg) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.commit-feed {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.commit-feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.commit-feed-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.commit-pulse {
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.commit-feed-toggle {
+  background: none;
+  border: none;
+  color: var(--accent-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.commit-feed-toggle:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.commit-list {
+  max-height: 180px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.commit-list.expanded {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.commit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.commit-item:last-child {
+  border-bottom: none;
+}
+
+.commit-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.commit-message {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+}
+
+.commit-message:hover {
+  color: var(--accent-primary);
+}
+
+.commit-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.commit-repo {
+  font-size: 0.75rem;
+  color: var(--accent-secondary);
+  text-decoration: none;
+  padding: 2px var(--space-xs);
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.commit-repo:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.commit-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: right;
+}
+
 .hero-links {
   display: flex;
   gap: var(--space-lg);
@@ -1378,6 +1510,26 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   
   .github-label-main {
     display: none;
+  }
+
+  .commit-feed-section {
+    padding: var(--space-md) 0;
+  }
+
+  .commit-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  .commit-message {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  .commit-meta {
+    width: 100%;
+    justify-content: space-between;
   }
   
   .hero-links {
