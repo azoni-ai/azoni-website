@@ -48,6 +48,69 @@ export const projects = [
     category: "ai"
   },
   {
+    id: "row-crew",
+    title: "Row Crew",
+    tagline: "AI-Powered Social Fitness App",
+    description: "Social fitness tracking app for rowers with AI-powered workout verification using Claude Vision API. Features group challenges, leaderboards, achievements, and a PWA for mobile.",
+    longDescription: `Row Crew transforms solitary rowing machine workouts into a connected, competitive experience through AI-powered workout verification, group challenges, and gamification. Built as a full Progressive Web App with ~6,000 lines of React.
+
+**AI-Powered Workout Verification:**
+• Photos of rowing machine displays analyzed using Claude Vision API
+• Multi-layer verification: AI confidence scoring + duplicate image detection + behavioral analysis
+• OCR extracts meters, time, and calories automatically from machine displays
+• AI training system learns from user corrections to improve accuracy over time
+• Manual entry option available (marked as "unverified" for data integrity)
+
+**Social Competition System:**
+• Private groups with shareable invite codes
+• 8 challenge types: Collective Distance Goals, Distance Races, Time Trials, Streak Battles, Session Count, Total Time, Calorie Burn, Team Calorie Goals
+• Real-time progress tracking with group-filtered leaderboards
+• Activity feed showing friend workouts, achievements, and milestones
+
+**Gamification Engine:**
+• 50+ achievements across multiple categories (distance, streaks, consistency, time, calories)
+• Military-inspired rank progression system (Landlubber → Admiral of the Fleet)
+• Weekly leaderboard competitions with champion badges
+• Personal records tracking with celebration animations
+• Global goal: collectively row 40,075km (Earth's circumference)
+
+**Leaderboards:**
+• All-Time Distance, Weekly Distance, Current Streak
+• Achievement Count, Total Time, Total Calories
+• Filterable by global or group membership
+
+**Security & Technical:**
+• Firebase Security Rules enforce data integrity at database level
+• Users can only submit entries for their own account
+• Entries are immutable (no edits/deletes after submission)
+• Rate limiting: 15-minute cooldown between entries
+• Entry validation: 100-50,000 meters per session bounds
+• Firestore listeners provide instant real-time updates
+
+**PWA & UX:**
+• Installable on iOS/Android home screens with offline viewing
+• Version-aware changelog system with "What's New" modal
+• First-time visitor onboarding modal
+• Device remembers last-used rowing machine
+• Mobile-first responsive design
+• "2025 Wrapped" - Spotify-style year-in-review with 10 story slides`,
+    tech: ["React", "Firebase", "Claude API", "PWA", "Firestore", "Cloud Functions"],
+    highlights: [
+      "Claude Vision API for photo verification & OCR",
+      "50+ achievements, 8 challenge types, rank progression",
+      "Real-time leaderboards and activity feed",
+      "Full PWA with offline support",
+      "~6,000 lines React, 20+ releases"
+    ],
+    links: {
+      live: "https://rowcrew.netlify.app/",
+      github: "https://github.com/azoni/rowing-tracker"
+    },
+    image: "/images/rowing.png",
+    featured: true,
+    category: "ai"
+  },
+  {
     id: "azoni-ai",
     title: "azoni.ai",
     tagline: "AI Portfolio Assistant",
@@ -119,38 +182,6 @@ This site itself demonstrates the React patterns and AI integration skills relev
     image: "/images/dumarket.png",
     featured: true,
     category: "fintech"
-  },
-  {
-    id: "rowing-tracker",
-    title: "Rowing Tracker",
-    tagline: "AI-Powered Fitness App",
-    description: "Training app using Claude's multimodal API to extract workout metrics from rowing machine photos. Features human-in-the-loop verification and gamification.",
-    longDescription: `Users photograph their rowing machine screens after workouts. Claude's multimodal API parses the image and extracts meters rowed, with human-in-the-loop verification where users can edit values before saving.
-
-**AI Integration:**
-• Claude multimodal API for image-to-data extraction
-• Structured prompts for consistent metric parsing
-• Human-in-the-loop verification before saving
-
-**Gamification:**
-• Leaderboards across active users
-• Streak tracking for consecutive workout days
-• Achievement system for milestones
-• Architected for scalability to more users`,
-    tech: ["React", "Claude API", "Firebase", "JavaScript"],
-    highlights: [
-      "Claude multimodal API for image parsing",
-      "Human-in-the-loop data verification",
-      "Gamification: leaderboards, streaks, achievements",
-      "Architected for scalability"
-    ],
-    links: {
-      live: null,
-      github: "https://github.com/azoni/rowing-tracker"
-    },
-    image: "/images/rowing.png",
-    featured: true,
-    category: "ai"
   },
 
   // ===== OLDER BUT IMPRESSIVE PROJECTS =====
