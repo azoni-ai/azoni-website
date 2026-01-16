@@ -10,7 +10,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 
-const RATE_LIMIT_MINUTES = 5;
+const RATE_LIMIT_MINUTES = 1;
 
 const Comments = ({ projectId }) => {
   const [comments, setComments] = useState([]);
