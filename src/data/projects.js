@@ -227,7 +227,7 @@ This site itself demonstrates the React patterns and AI integration skills relev
       live: "https://dumarket.netlify.app",
       github: null
     },
-    image: "/images/dumarket.png",
+    image: "/images/polymarket.svg",
     featured: true,
     category: "fintech"
   },
