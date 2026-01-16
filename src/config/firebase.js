@@ -2,12 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyCwAemduEmk58XsdvNXKa9EDphRm_xHpOQ",
+  authDomain: "azoni-ai-7abdd.firebaseapp.com",
+  projectId: "azoni-ai-7abdd",
+  storageBucket: "azoni-ai-7abdd.firebasestorage.app",
+  messagingSenderId: "903911545007",
+  appId: "1:903911545007:web:cec595d26d3058c9f29c5a",
+  measurementId: "G-VSTYTS3KL1"
 };
 
 const app = initializeApp(firebaseConfig);

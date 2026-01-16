@@ -14,6 +14,8 @@ import {
   increment
 } from 'firebase/firestore';
 
+const RATE_LIMIT_MINUTES = 5; // One comment per 5 minutes
+
 const Comments = ({ projectId }) => {
   const [comments, setComments] = useState([]);
   const [name, setName] = useState('');
@@ -21,9 +23,33 @@ const Comments = ({ projectId }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [rateLimitRemaining, setRateLimitRemaining] = useState(0);
   const [stars, setStars] = useState(0);
   const [userStarred, setUserStarred] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
+
+  // Check rate limit on mount
+  useEffect(() => {
+    checkRateLimit();
+    const interval = setInterval(checkRateLimit, 10000); // Check every 10s
+    return () => clearInterval(interval);
+  }, []);
+
+  const checkRateLimit = () => {
+    const lastComment = localStorage.getItem('last_comment_time');
+    if (lastComment) {
+      const elapsed = Date.now() - parseInt(lastComment);
+      const limitMs = RATE_LIMIT_MINUTES * 60 * 1000;
+      if (elapsed < limitMs) {
+        setRateLimited(true);
+        setRateLimitRemaining(Math.ceil((limitMs - elapsed) / 1000 / 60));
+      } else {
+        setRateLimited(false);
+        setRateLimitRemaining(0);
+      }
+    }
+  };
 
   // Load approved comments
   useEffect(() => {
@@ -59,7 +85,6 @@ const Comments = ({ projectId }) => {
       }
     });
 
-    // Check if user already starred (using localStorage)
     const starred = localStorage.getItem(`starred_${projectId}`);
     if (starred) {
       setUserStarred(true);
@@ -88,20 +113,46 @@ const Comments = ({ projectId }) => {
     }
   };
 
+  const sanitizeInput = (str) => {
+    return str
+      .trim()
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/[<>]/g, '') // Remove any remaining angle brackets
+      .substring(0, 1000); // Enforce max length
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!comment.trim()) return;
+    
+    // Check rate limit
+    if (rateLimited) {
+      alert(`Please wait ${rateLimitRemaining} more minute(s) before commenting again.`);
+      return;
+    }
+
+    const sanitizedComment = sanitizeInput(comment);
+    const sanitizedName = sanitizeInput(name).substring(0, 50) || 'Anonymous';
+
+    if (!sanitizedComment || sanitizedComment.length < 2) {
+      alert('Please enter a valid comment.');
+      return;
+    }
 
     setSubmitting(true);
     try {
       await addDoc(collection(db, 'comments'), {
         projectId,
-        name: name.trim() || 'Anonymous',
-        comment: comment.trim(),
+        name: sanitizedName,
+        comment: sanitizedComment,
         approved: false,
         createdAt: serverTimestamp(),
         replies: []
       });
+      
+      // Set rate limit
+      localStorage.setItem('last_comment_time', Date.now().toString());
+      setRateLimited(true);
+      setRateLimitRemaining(RATE_LIMIT_MINUTES);
       
       setName('');
       setComment('');
@@ -167,12 +218,17 @@ const Comments = ({ projectId }) => {
               maxLength={1000}
               rows={4}
             />
+            {rateLimited && (
+              <p className="rate-limit-warning">
+                Please wait {rateLimitRemaining} minute(s) before commenting again.
+              </p>
+            )}
             <button 
               type="submit" 
               className="btn btn-primary"
-              disabled={submitting || !comment.trim()}
+              disabled={submitting || !comment.trim() || rateLimited}
             >
-              {submitting ? 'Submitting...' : 'Submit Comment'}
+              {submitting ? 'Submitting...' : rateLimited ? `Wait ${rateLimitRemaining}m` : 'Submit Comment'}
             </button>
           </form>
         )}

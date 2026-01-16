@@ -1527,6 +1527,12 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   text-align: center;
 }
 
+.rate-limit-warning {
+  color: var(--warning);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 .comments-list {
   margin-top: var(--space-xl);
 }
