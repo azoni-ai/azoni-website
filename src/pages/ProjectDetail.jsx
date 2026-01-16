@@ -1,8 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Comments from '../components/Comments';
 import { getProjectById } from '../data/projects';
+import { db } from '../config/firebase';
+import { doc, getDoc, setDoc, onSnapshot, increment } from 'firebase/firestore';
+
+const StarButton = ({ projectId }) => {
+  const [stars, setStars] = useState(0);
+  const [userStarred, setUserStarred] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    const starDocRef = doc(db, 'stars', projectId);
+    const unsubscribe = onSnapshot(starDocRef, (doc) => {
+      if (doc.exists()) setStars(doc.data().count || 0);
+    });
+    const starred = localStorage.getItem(`starred_${projectId}`);
+    if (starred) setUserStarred(true);
+    return () => unsubscribe();
+  }, [projectId]);
+
+  const handleStar = async () => {
+    if (userStarred) return;
+    try {
+      const starDocRef = doc(db, 'stars', projectId);
+      const starDoc = await getDoc(starDocRef);
+      if (starDoc.exists()) {
+        await setDoc(starDocRef, { count: increment(1) }, { merge: true });
+      } else {
+        await setDoc(starDocRef, { count: 1, projectId });
+      }
+      localStorage.setItem(`starred_${projectId}`, 'true');
+      setUserStarred(true);
+    } catch (error) {
+      console.error('Error starring:', error);
+    }
+  };
+
+  return (
+    <button 
+      className={`star-button ${userStarred ? 'starred' : ''}`}
+      onClick={handleStar}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      disabled={userStarred}
+    >
+      <span className="star-icon">{userStarred || hovered ? '★' : '☆'}</span>
+      <span className="star-count">{stars}</span>
+    </button>
+  );
+};
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -56,7 +104,12 @@ const ProjectDetail = () => {
             }}>
               {project.tagline}
             </p>
-            <h1 style={{ marginBottom: 'var(--space-lg)' }}>{project.title}</h1>
+            
+            {/* Title with Star */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)', flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0 }}>{project.title}</h1>
+              <StarButton projectId={id} />
+            </div>
             
             <div className="tags" style={{ marginBottom: 'var(--space-xl)' }}>
               {project.tech.map((tech) => (

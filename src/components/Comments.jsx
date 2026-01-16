@@ -7,14 +7,10 @@ import {
   orderBy, 
   onSnapshot, 
   addDoc, 
-  serverTimestamp,
-  doc,
-  getDoc,
-  setDoc,
-  increment
+  serverTimestamp
 } from 'firebase/firestore';
 
-const RATE_LIMIT_MINUTES = 5; // One comment per 5 minutes
+const RATE_LIMIT_MINUTES = 5;
 
 const Comments = ({ projectId }) => {
   const [comments, setComments] = useState([]);
@@ -25,14 +21,10 @@ const Comments = ({ projectId }) => {
   const [submitted, setSubmitted] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
   const [rateLimitRemaining, setRateLimitRemaining] = useState(0);
-  const [stars, setStars] = useState(0);
-  const [userStarred, setUserStarred] = useState(false);
-  const [hoveredStar, setHoveredStar] = useState(0);
 
-  // Check rate limit on mount
   useEffect(() => {
     checkRateLimit();
-    const interval = setInterval(checkRateLimit, 10000); // Check every 10s
+    const interval = setInterval(checkRateLimit, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -51,7 +43,6 @@ const Comments = ({ projectId }) => {
     }
   };
 
-  // Load approved comments
   useEffect(() => {
     const q = query(
       collection(db, 'comments'),
@@ -75,56 +66,17 @@ const Comments = ({ projectId }) => {
     return () => unsubscribe();
   }, [projectId]);
 
-  // Load stars count
-  useEffect(() => {
-    const starDocRef = doc(db, 'stars', projectId);
-    
-    const unsubscribe = onSnapshot(starDocRef, (doc) => {
-      if (doc.exists()) {
-        setStars(doc.data().count || 0);
-      }
-    });
-
-    const starred = localStorage.getItem(`starred_${projectId}`);
-    if (starred) {
-      setUserStarred(true);
-    }
-
-    return () => unsubscribe();
-  }, [projectId]);
-
-  const handleStar = async () => {
-    if (userStarred) return;
-
-    try {
-      const starDocRef = doc(db, 'stars', projectId);
-      const starDoc = await getDoc(starDocRef);
-      
-      if (starDoc.exists()) {
-        await setDoc(starDocRef, { count: increment(1) }, { merge: true });
-      } else {
-        await setDoc(starDocRef, { count: 1, projectId });
-      }
-      
-      localStorage.setItem(`starred_${projectId}`, 'true');
-      setUserStarred(true);
-    } catch (error) {
-      console.error('Error starring:', error);
-    }
-  };
-
   const sanitizeInput = (str) => {
     return str
       .trim()
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/[<>]/g, '') // Remove any remaining angle brackets
-      .substring(0, 1000); // Enforce max length
+      .replace(/<[^>]*>/g, '')
+      .replace(/[<>]/g, '')
+      .substring(0, 1000);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Check rate limit
     if (rateLimited) {
       alert(`Please wait ${rateLimitRemaining} more minute(s) before commenting again.`);
       return;
@@ -149,7 +101,6 @@ const Comments = ({ projectId }) => {
         replies: []
       });
       
-      // Set rate limit
       localStorage.setItem('last_comment_time', Date.now().toString());
       setRateLimited(true);
       setRateLimitRemaining(RATE_LIMIT_MINUTES);
@@ -177,21 +128,6 @@ const Comments = ({ projectId }) => {
 
   return (
     <div className="comments-section">
-      {/* Stars */}
-      <div className="stars-container">
-        <button 
-          className={`star-button ${userStarred ? 'starred' : ''}`}
-          onClick={handleStar}
-          onMouseEnter={() => setHoveredStar(1)}
-          onMouseLeave={() => setHoveredStar(0)}
-          disabled={userStarred}
-        >
-          <span className="star-icon">{userStarred || hoveredStar ? '★' : '☆'}</span>
-          <span className="star-count">{stars}</span>
-          <span className="star-label">{stars === 1 ? 'star' : 'stars'}</span>
-        </button>
-      </div>
-
       {/* Comment Form */}
       <div className="comment-form-container">
         <h3>Leave a Comment</h3>
@@ -250,7 +186,6 @@ const Comments = ({ projectId }) => {
               </div>
               <p className="comment-text">{c.comment}</p>
               
-              {/* Replies */}
               {c.replies && c.replies.length > 0 && (
                 <div className="comment-replies">
                   {c.replies.map((reply, index) => (
