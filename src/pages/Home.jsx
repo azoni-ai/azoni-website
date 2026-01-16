@@ -169,6 +169,11 @@ const Home = () => {
           <div className="recent-projects">
             {liveProjects.map(project => (
               <Link key={project.id} to={`/projects/${project.id}`} className="recent-project-card">
+                {project.image && (
+                  <div className="recent-project-image">
+                    <img src={project.image} alt={project.title} />
+                  </div>
+                )}
                 <div className="recent-project-content">
                   <div className="recent-project-header">
                     <h2>{project.title}</h2>
@@ -197,6 +202,11 @@ const Home = () => {
           <div className="featured-projects">
             {featuredProjects.map(project => (
               <Link key={project.id} to={`/projects/${project.id}`} className="featured-project-card">
+                {project.image && (
+                  <div className="featured-project-image">
+                    <img src={project.image} alt={project.title} />
+                  </div>
+                )}
                 <div className="featured-project-content">
                   <h3>{project.title}</h3>
                   <p className="featured-project-tagline">{project.tagline}</p>
