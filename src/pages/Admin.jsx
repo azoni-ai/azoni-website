@@ -56,7 +56,7 @@ const Admin = () => {
     e.preventDefault();
     setLoginError('');
     
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    const adminPassword = process.env.REACT_APP_ADMIN_PASSWORD;
     
     if (password === adminPassword) {
       setAuthenticated(true);
