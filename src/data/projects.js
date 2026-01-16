@@ -106,7 +106,7 @@ export const projects = [
       live: "https://rowcrew.netlify.app",
       github: "https://github.com/azoni/rowing-tracker"
     },
-    image: "/images/rowing.png",
+    image: "/images/rowing-favicon.svg",
     featured: true,
     category: "ai"
   },
