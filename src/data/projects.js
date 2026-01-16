@@ -43,7 +43,7 @@ export const projects = [
       live: "https://oldwaystoday.com",
       github: null
     },
-    image: "/images/oldways.png",
+    image: "/images/favicon-sprout.svg",
     featured: true,
     category: "ai"
   },

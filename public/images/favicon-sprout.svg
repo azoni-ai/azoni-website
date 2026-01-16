@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Sprout/seedling - represents growth and natural living -->
+  
+  <!-- Ground/base arc -->
+  <path 
+    d="M6 26C6 26 10 22 16 22C22 22 26 26 26 26" 
+    stroke="#5C4033" 
+    stroke-width="3" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  
+  <!-- Stem -->
+  <path 
+    d="M16 22V12" 
+    stroke="#5F7A52" 
+    stroke-width="2.5" 
+    stroke-linecap="round"
+  />
+  
+  <!-- Left leaf -->
+  <path 
+    d="M16 14C16 14 10 12 9 7C12 8 16 11 16 14Z" 
+    fill="#5F7A52"
+  />
+  
+  <!-- Right leaf -->
+  <path 
+    d="M16 10C16 10 22 8 23 3C20 4 16 7 16 10Z" 
+    fill="#87A878"
+  />
+</svg>
