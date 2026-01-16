@@ -1,37 +1,50 @@
 // netlify/functions/chat.js
 
+// OpenRouter pricing per 1K tokens - cheapest from each provider
+const MODEL_PRICING = {
+  'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006, name: 'GPT-4o Mini', provider: 'OpenAI' },
+  'anthropic/claude-3-5-haiku-latest': { input: 0.0008, output: 0.004, name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
+  'google/gemini-2.0-flash-001': { input: 0.0001, output: 0.0004, name: 'Gemini 2.0 Flash', provider: 'Google' },
+  'meta-llama/llama-3.3-70b-instruct': { input: 0.0003, output: 0.0004, name: 'Llama 3.3 70B', provider: 'Meta' },
+  'mistralai/mistral-small-24b-instruct-2501': { input: 0.00014, output: 0.00014, name: 'Mistral Small', provider: 'Mistral' },
+  'deepseek/deepseek-chat': { input: 0.00014, output: 0.00028, name: 'DeepSeek V3', provider: 'DeepSeek' },
+};
+
+const DEFAULT_MODEL = 'openai/gpt-4o-mini';
+
 exports.handler = async (event, context) => {
-  // Only allow POST
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json'
   };
 
-  // Handle preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
   try {
-    const { messages, mode } = JSON.parse(event.body);
+    const { messages, mode, model: requestedModel } = JSON.parse(event.body);
+    
+    const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
+    const pricing = MODEL_PRICING[model];
 
-    // Build system prompt based on mode
     const systemPrompt = buildSystemPrompt(mode);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        'Authorization': `Bearer ${process.env.REACT_APP_OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://azoni.ai',
+        'X-Title': 'Azoni Portfolio Chat'
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model,
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
@@ -44,18 +57,17 @@ exports.handler = async (event, context) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('OpenAI error:', data);
+      console.error('OpenRouter error:', data);
       return {
         statusCode: response.status,
         headers,
-        body: JSON.stringify({ error: data.error?.message || 'OpenAI API error' })
+        body: JSON.stringify({ error: data.error?.message || 'API error' })
       };
     }
 
-    // Calculate cost (GPT-4 pricing: $0.03/1K input, $0.06/1K output)
     const usage = data.usage || {};
-    const inputCost = (usage.prompt_tokens || 0) / 1000 * 0.03;
-    const outputCost = (usage.completion_tokens || 0) / 1000 * 0.06;
+    const inputCost = (usage.prompt_tokens || 0) / 1000 * pricing.input;
+    const outputCost = (usage.completion_tokens || 0) / 1000 * pricing.output;
     const totalCost = inputCost + outputCost;
 
     return {
@@ -63,11 +75,17 @@ exports.handler = async (event, context) => {
       headers,
       body: JSON.stringify({
         ...data,
+        model,
+        modelName: pricing.name,
+        provider: pricing.provider,
         usage: {
           ...usage,
-          inputCost: inputCost.toFixed(4),
-          outputCost: outputCost.toFixed(4),
-          totalCost: totalCost.toFixed(4)
+          model,
+          modelName: pricing.name,
+          provider: pricing.provider,
+          inputCost: inputCost.toFixed(6),
+          outputCost: outputCost.toFixed(6),
+          totalCost: totalCost.toFixed(6)
         }
       })
     };
@@ -123,7 +141,7 @@ CURRENT PROJECTS:
 - Old Ways Today: Full-stack AI chatbot (React, FastAPI, PostgreSQL, OpenAI) helping families find non-toxic products. Features rate limiting, token tracking, blog CMS with admin panel.
 - DuMarket: Prediction market webapp with CLOB matching engine, automated market maker, real-time P&L tracking. 18 API endpoints.
 - LLM-Powered Bots: Discord/Twitter bots with persistent memory, tool integration, agentic decision-making.
-- Rowing Tracker: AI fitness app using Claude's multimodal API to extract workout metrics from photos.
+- Row Crew: AI fitness app using Claude's multimodal API to extract workout metrics from photos.
 - Dustbunny (2021-2022): NFT bidding system across 50 machines, 2,500+ requests/minute, Redis caching.
 - azoni.ai: This portfolio with AI assistant.
 

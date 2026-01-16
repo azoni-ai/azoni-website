@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '../components/Layout';
-import { useChat } from '../hooks/useChat';
+import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 
 const MODES = {
   professional: 'Professional',
@@ -18,7 +18,6 @@ const SUGGESTIONS = [
 
 /**
  * Chat page using custom useChat hook
- * Demonstrates: Custom hooks, controlled components
  */
 const Chat = () => {
   const {
@@ -27,9 +26,11 @@ const Chat = () => {
     setInput,
     isLoading,
     chatMode,
+    model,
     messagesEndRef,
     sendMessage,
-    changeMode
+    changeMode,
+    changeModel
   } = useChat();
 
   const handleSubmit = (e) => {
@@ -37,11 +38,29 @@ const Chat = () => {
     sendMessage(input);
   };
 
+  const currentModel = AVAILABLE_MODELS.find(m => m.id === model) || AVAILABLE_MODELS[0];
+
   return (
     <Layout hideFooter>
       <div className="chat-container">
         <div className="chat-header">
           <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Azoni-GPT</h1>
+          
+          {/* Model Selector */}
+          <div className="chat-model-selector">
+            <select 
+              value={model} 
+              onChange={(e) => changeModel(e.target.value)}
+              className="model-select"
+            >
+              {AVAILABLE_MODELS.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.provider}: {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="chat-modes">
             {Object.entries(MODES).map(([key, label]) => (
               <button
@@ -105,7 +124,7 @@ const Chat = () => {
           </form>
           
           <p className="chat-disclaimer">
-            AI responses may be inaccurate. Contact charltonuw@gmail.com for specifics.
+            Powered by {currentModel.provider} · AI responses may be inaccurate
           </p>
         </div>
       </div>

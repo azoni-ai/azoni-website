@@ -11,7 +11,9 @@ import {
   updateDoc, 
   deleteDoc,
   arrayUnion,
-  Timestamp
+  Timestamp,
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD;
@@ -103,10 +105,21 @@ const Admin = () => {
 };
 
 // ============ USAGE TAB ============
+const AVAILABLE_MODELS = [
+  { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', cost: '~$0.0003' },
+  { id: 'anthropic/claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'Anthropic', cost: '~$0.002' },
+  { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google', cost: '~$0.0002' },
+  { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', provider: 'Meta', cost: '~$0.0003' },
+  { id: 'mistralai/mistral-small-24b-instruct-2501', name: 'Mistral Small', provider: 'Mistral', cost: '~$0.0001' },
+  { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3', provider: 'DeepSeek', cost: '~$0.0002' },
+];
+
 const UsageTab = () => {
   const [chatLogs, setChatLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedSession, setExpandedSession] = useState(null);
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
+  const [savingModel, setSavingModel] = useState(false);
   const [stats, setStats] = useState({
     totalChats: 0,
     totalTokens: 0,
@@ -114,6 +127,34 @@ const UsageTab = () => {
     todayChats: 0,
     todayCost: 0
   });
+
+  // Load current model setting
+  useEffect(() => {
+    const fetchModel = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, 'settings', 'chat'));
+        if (settingsDoc.exists() && settingsDoc.data().model) {
+          setSelectedModel(settingsDoc.data().model);
+        }
+      } catch (err) {
+        console.error('Error fetching model:', err);
+      }
+    };
+    fetchModel();
+  }, []);
+
+  // Save model setting
+  const saveModel = async (model) => {
+    setSavingModel(true);
+    try {
+      await setDoc(doc(db, 'settings', 'chat'), { model }, { merge: true });
+      setSelectedModel(model);
+    } catch (err) {
+      console.error('Error saving model:', err);
+      alert('Failed to save model setting');
+    }
+    setSavingModel(false);
+  };
 
   useEffect(() => {
     const q = query(
@@ -164,9 +205,9 @@ const UsageTab = () => {
     setStats({
       totalChats: logs.length,
       totalTokens,
-      totalCost: totalCost.toFixed(4),
+      totalCost: totalCost.toFixed(6),
       todayChats,
-      todayCost: todayCost.toFixed(4)
+      todayCost: todayCost.toFixed(6)
     });
   };
 
@@ -179,12 +220,15 @@ const UsageTab = () => {
         totalTokens: 0,
         totalCost: 0,
         firstTimestamp: log.timestamp,
-        mode: log.mode
+        mode: log.mode,
+        model: log.model
       };
     }
     acc[sessionId].logs.push(log);
     acc[sessionId].totalTokens += log.usage?.total_tokens || 0;
     acc[sessionId].totalCost += parseFloat(log.usage?.totalCost || 0);
+    // Use the most recent model for the session
+    if (log.model) acc[sessionId].model = log.model;
     return acc;
   }, {});
 
@@ -207,6 +251,26 @@ const UsageTab = () => {
 
   return (
     <div className="usage-tab">
+      {/* Model Selector */}
+      <div className="model-selector-card">
+        <h3>Chat Model</h3>
+        <div className="model-options">
+          {AVAILABLE_MODELS.map(m => (
+            <button
+              key={m.id}
+              className={`model-option ${selectedModel === m.id ? 'active' : ''}`}
+              onClick={() => saveModel(m.id)}
+              disabled={savingModel}
+            >
+              <span className="model-provider">{m.provider}</span>
+              <span className="model-name">{m.name}</span>
+              <span className="model-cost">{m.cost}/chat</span>
+            </button>
+          ))}
+        </div>
+        {savingModel && <p className="saving-text">Saving...</p>}
+      </div>
+
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{stats.totalChats}</div>
@@ -246,12 +310,13 @@ const UsageTab = () => {
               >
                 <div className="session-info">
                   <span className="session-date">{formatDate(session.firstTimestamp)}</span>
+                  <span className="session-model">{session.model || 'gpt-4'}</span>
                   <span className="session-mode">{session.mode || 'professional'}</span>
                   <span className="session-messages">{session.logs.length} msg</span>
                 </div>
                 <div className="session-stats">
                   <span>{session.totalTokens.toLocaleString()} tok</span>
-                  <span>${session.totalCost.toFixed(4)}</span>
+                  <span>${session.totalCost.toFixed(6)}</span>
                   <span className="expand-icon">{expandedSession === session.id ? '▼' : '▶'}</span>
                 </div>
               </div>
@@ -269,6 +334,7 @@ const UsageTab = () => {
                       </div>
                       {log.usage && (
                         <div className="chat-log-meta">
+                          <span>{log.model || 'gpt-4'}</span>
                           <span>In: {log.usage.prompt_tokens}</span>
                           <span>Out: {log.usage.completion_tokens}</span>
                           <span>${log.usage.totalCost}</span>
