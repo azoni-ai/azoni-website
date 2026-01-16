@@ -52,13 +52,6 @@ const Home = () => {
                 <span className="credential-label">Published</span>
               </div>
             </div>
-
-            <div className="hero-links">
-              <a href={profile.links.github} target="_blank" rel="noopener noreferrer">GitHub</a>
-              <a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
-              <a href={profile.links.resume} target="_blank" rel="noopener noreferrer">Resume</a>
-              <a href={`mailto:${profile.email}`}>Contact</a>
-            </div>
           </div>
         </div>
       </section>
