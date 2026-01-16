@@ -52,10 +52,24 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Calculate cost (GPT-4 pricing: $0.03/1K input, $0.06/1K output)
+    const usage = data.usage || {};
+    const inputCost = (usage.prompt_tokens || 0) / 1000 * 0.03;
+    const outputCost = (usage.completion_tokens || 0) / 1000 * 0.06;
+    const totalCost = inputCost + outputCost;
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        ...data,
+        usage: {
+          ...usage,
+          inputCost: inputCost.toFixed(4),
+          outputCost: outputCost.toFixed(4),
+          totalCost: totalCost.toFixed(4)
+        }
+      })
     };
 
   } catch (error) {

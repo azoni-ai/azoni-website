@@ -1,4 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { db } from '../config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+// Generate unique session ID
+const generateSessionId = () => {
+  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
 
 /**
  * Custom hook for chat functionality
@@ -12,6 +19,7 @@ export const useChat = (initialMode = 'professional') => {
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const sessionIdRef = useRef(generateSessionId());
 
   // Initial greeting
   useEffect(() => {
@@ -34,6 +42,23 @@ export const useChat = (initialMode = 'professional') => {
       }
     };
   }, []);
+
+  // Log chat to Firestore
+  const logChat = async (userMessage, assistantMessage, usage) => {
+    try {
+      await addDoc(collection(db, 'chatLogs'), {
+        sessionId: sessionIdRef.current,
+        userMessage,
+        assistantMessage,
+        mode: chatMode,
+        usage: usage || null,
+        timestamp: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Error logging chat:', err);
+      // Don't throw - logging failure shouldn't break chat
+    }
+  };
 
   // Send message with abort capability
   const sendMessage = useCallback(async (messageText) => {
@@ -63,10 +88,16 @@ export const useChat = (initialMode = 'professional') => {
       const data = await response.json();
 
       if (data.choices?.[0]) {
+        const assistantContent = data.choices[0].message.content;
+        
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: data.choices[0].message.content
+          content: assistantContent
         }]);
+
+        // Log to Firestore
+        await logChat(messageText, assistantContent, data.usage);
+
       } else if (data.error) {
         throw new Error(data.error);
       } else {
