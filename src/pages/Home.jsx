@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import ContributionGarden from '../components/ContributionGarden';
-import { profile } from '../data/profile';
+import {  } from '../data/profile';
 import { projects } from '../data/projects';
 import '../styles/bento.css';
 
