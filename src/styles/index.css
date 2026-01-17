@@ -961,6 +961,10 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   color: var(--text-secondary);
 }
 
+.github-icon {
+  opacity: 0.7;
+}
+
 .github-pulse {
   width: 8px;
   height: 8px;
