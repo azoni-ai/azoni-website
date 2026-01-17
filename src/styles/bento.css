@@ -8,7 +8,7 @@
 /* Hero */
 .hero {
   position: relative;
-  padding: 140px 0 50px;
+  padding: 120px 0 20px;
   overflow: hidden;
 }
 
@@ -51,13 +51,6 @@
 .meta-dot {
   color: var(--text-muted);
   opacity: 0.5;
-}
-
-.hero-desc {
-  max-width: 540px;
-  font-size: 1.05rem;
-  color: var(--text-muted);
-  line-height: 1.6;
 }
 
 /* Activity Section */
@@ -207,12 +200,13 @@ a.commit-repo:hover {
 
 .view-all {
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--accent-primary);
   text-decoration: none;
+  font-weight: 500;
 }
 
 .view-all:hover {
-  color: var(--accent-primary);
+  text-decoration: underline;
 }
 
 /* Project Grid */
@@ -306,12 +300,11 @@ a.commit-repo:hover {
 
 .cta-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: var(--space-lg);
   padding: var(--space-lg) var(--space-xl);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.1) 0%, rgba(255, 179, 71, 0.05) 100%);
+  border: 1px solid rgba(255, 122, 92, 0.2);
   border-radius: var(--radius-md);
   text-decoration: none;
   transition: all 0.2s ease;
@@ -319,35 +312,49 @@ a.commit-repo:hover {
 
 .cta-card:hover {
   border-color: var(--accent-primary);
-  background: var(--bg-card-hover);
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.15) 0%, rgba(255, 179, 71, 0.08) 100%);
 }
 
-.cta-card h3 {
+.cta-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.cta-text {
+  flex: 1;
+}
+
+.cta-text h3 {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
 }
 
-.cta-card p {
-  font-size: 0.9rem;
+.cta-text p {
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-.cta-arrow {
-  font-size: 1.5rem;
-  color: var(--accent-primary);
-  transition: transform 0.2s ease;
+.cta-btn {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--accent-primary);
+  color: #0f0f12;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
 }
 
-.cta-card:hover .cta-arrow {
-  transform: translateX(4px);
+.cta-card:hover .cta-btn {
+  background: var(--accent-secondary);
 }
 
 /* Mobile */
 @media (max-width: 768px) {
   .hero {
-    padding: 120px 0 40px;
+    padding: 100px 0 16px;
   }
   
   .hero-name {
@@ -392,9 +399,11 @@ a.commit-repo:hover {
   .cta-card {
     flex-direction: column;
     text-align: center;
+    gap: var(--space-md);
   }
   
-  .cta-arrow {
-    display: none;
+  .cta-btn {
+    width: 100%;
+    text-align: center;
   }
 }

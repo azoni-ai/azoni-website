@@ -88,17 +88,10 @@ const Home = () => {
             <div className="hero-meta">
               <span className="meta-item">M.S. Software Engineering</span>
               <span className="meta-dot">·</span>
-              <span className="meta-item">Senior SWE @ Capital One</span>
-              <span className="meta-dot">·</span>
-              <span className="meta-item">Previously T-Mobile</span>
+              <span className="meta-item">Previously Capital One, T-Mobile</span>
               <span className="meta-dot">·</span>
               <span className="meta-item">Co-founded OLI Fitness</span>
             </div>
-
-            <p className="hero-desc">
-              I build things. Mostly web apps, AI tools, and the occasional startup. 
-              Currently shipping side projects and learning in public.
-            </p>
           </div>
         </section>
 
@@ -202,11 +195,12 @@ const Home = () => {
         <section className="cta-section">
           <div className="container">
             <Link to="/chat" className="cta-card">
-              <div>
-                <h3>Ask me anything</h3>
-                <p>Chat with an AI that knows my work, or paste a job description for fit analysis.</p>
+              <div className="cta-icon">🤖</div>
+              <div className="cta-text">
+                <h3>Chat with my AI</h3>
+                <p>Ask questions about my work or paste a job description for fit analysis</p>
               </div>
-              <span className="cta-arrow">→</span>
+              <span className="cta-btn">Start Chat</span>
             </Link>
           </div>
         </section>
