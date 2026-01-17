@@ -367,12 +367,9 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   gap: var(--space-sm);
 }
 
-/* Hero */
+/* Hero - basic fallback, overridden by bento.css */
 .hero {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  padding-top: 80px;
+  padding-top: 70px;
 }
 
 .hero-content {
@@ -872,7 +869,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 /* Compact Hero */
 .hero-compact {
-  padding: 120px 0 40px;
+  padding: 70px 0 20px;
 }
 
 .hero-intro {
@@ -1542,7 +1539,7 @@ span.commit-message.private {
 /* Mobile Adjustments */
 @media (max-width: 768px) {
   .hero-compact {
-    padding: 100px 0 30px;
+    padding: 60px 0 16px;
   }
   
   .hero-intro h1 {

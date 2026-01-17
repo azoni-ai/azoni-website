@@ -6,10 +6,12 @@
 }
 
 /* Hero */
-.hero {
+.home-page .hero {
   position: relative;
   padding: 70px 0 0;
   overflow: hidden;
+  min-height: auto;
+  display: block;
 }
 
 .hero-glow {
@@ -367,7 +369,7 @@ a.commit-repo:hover {
 
 /* Mobile */
 @media (max-width: 768px) {
-  .hero {
+  .home-page .hero {
     padding: 60px 0 0;
   }
   
