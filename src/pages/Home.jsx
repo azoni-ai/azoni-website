@@ -84,6 +84,7 @@ const Home = () => {
           
           <div className="container">
             <h1 className="hero-name">Charlton Smith</h1>
+            <p className="hero-title">Senior Software Engineer · 7+ Years Experience</p>
             
             <div className="hero-meta">
               <span className="meta-item">M.S. Software Engineering</span>
@@ -92,6 +93,10 @@ const Home = () => {
               <span className="meta-dot">·</span>
               <span className="meta-item">Co-founded OLI Fitness</span>
             </div>
+
+            <p className="hero-desc">
+              Building web apps, AI tools, and side projects. Currently focused on full-stack development and shipping in public.
+            </p>
           </div>
         </section>
 
