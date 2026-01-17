@@ -8,7 +8,7 @@
 /* Hero */
 .hero {
   position: relative;
-  padding: 80px 0 16px;
+  padding: 70px 0 0;
   overflow: hidden;
 }
 
@@ -69,7 +69,7 @@
 
 /* Activity Section */
 .activity-section {
-  padding: var(--space-md) 0 var(--space-lg);
+  padding: var(--space-sm) 0 var(--space-lg);
 }
 
 .activity-card {
@@ -190,7 +190,7 @@ a.commit-repo:hover {
 
 /* Projects Section */
 .projects-section {
-  padding: var(--space-xl) 0 var(--space-2xl);
+  padding: var(--space-lg) 0 var(--space-xl);
 }
 
 .section-header {
@@ -368,7 +368,7 @@ a.commit-repo:hover {
 /* Mobile */
 @media (max-width: 768px) {
   .hero {
-    padding: 70px 0 12px;
+    padding: 60px 0 0;
   }
   
   .hero-name {
