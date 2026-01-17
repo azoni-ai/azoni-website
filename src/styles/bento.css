@@ -8,7 +8,7 @@
 /* Hero */
 .home-page .hero {
   position: relative;
-  padding: 70px 0 0;
+  padding: 80px 0 16px;
   overflow: hidden;
   min-height: auto;
   display: block;
@@ -71,7 +71,7 @@
 
 /* Activity Section */
 .activity-section {
-  padding: var(--space-sm) 0 var(--space-lg);
+  padding: var(--space-md) 0 var(--space-lg);
 }
 
 .activity-card {
@@ -370,7 +370,7 @@ a.commit-repo:hover {
 /* Mobile */
 @media (max-width: 768px) {
   .home-page .hero {
-    padding: 60px 0 0;
+    padding: 70px 0 12px;
   }
   
   .hero-name {
