@@ -340,6 +340,24 @@ a.commit-repo:hover {
   text-align: right;
 }
 
+.commit-live {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  color: var(--accent-tertiary);
+  background: rgba(32, 217, 210, 0.1);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.commit-live:hover {
+  background: rgba(32, 217, 210, 0.2);
+}
+
 /* Featured Project */
 .bento-featured {
   grid-column: span 8;

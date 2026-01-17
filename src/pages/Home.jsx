@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import ContributionGarden from '../components/ContributionGarden';
-import {  } from '../data/profile';
 import { projects } from '../data/projects';
 import '../styles/bento.css';
 
@@ -196,6 +195,17 @@ const Home = () => {
                           ) : (
                             <a href={commit.repoUrl} target="_blank" rel="noopener noreferrer" className="commit-repo">
                               {commit.repo}
+                            </a>
+                          )}
+                          {REPO_TO_SITE[commit.repo] && (
+                            <a 
+                              href={REPO_TO_SITE[commit.repo]} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="commit-live"
+                              title="View live"
+                            >
+                              ↗
                             </a>
                           )}
                           <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
