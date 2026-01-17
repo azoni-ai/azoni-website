@@ -200,7 +200,13 @@ const Home = () => {
         <section className="cta-section">
           <div className="container">
             <Link to="/chat" className="cta-card">
-              <div className="cta-icon">🤖</div>
+              <div className="cta-icon">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 8C4 6.89543 4.89543 6 6 6H26C27.1046 6 28 6.89543 28 8V20C28 21.1046 27.1046 22 26 22H20L16 26L12 22H6C4.89543 22 4 21.1046 4 20V8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 12L12 15L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 18H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
               <div className="cta-text">
                 <h3>Chat with my AI</h3>
                 <p>Ask questions about my work or paste a job description for fit analysis</p>
