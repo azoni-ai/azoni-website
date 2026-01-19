@@ -111,6 +111,60 @@ export const projects = [
     category: "ai"
   },
   {
+    id: "bench-only",
+    title: "Bench Only",
+    tagline: "AI-Powered Strength Training App",
+    description: "Full-stack PWA for tracking bench press with AI coach. Generates workouts, analyzes progress, tracks goals with auto-completion detection. Group training features for team programs.",
+    longDescription: `Full-stack progressive web app for serious lifters who want data-driven training insights. Built because I wanted an app that actually helps you get stronger, not just log sets.
+
+**AI Assistant:**
+• GPT-4o-mini powered chat with full context of your workout history and goals
+• Workout generation based on your recent training and target goals
+• Progress analysis with actionable insights
+• Autofill suggestions during workout logging
+• Token usage tracking to manage costs
+
+**Goal System:**
+• Multiple metric types: weight (lbs), reps, time (seconds)
+• Progress tracking with visual indicators
+• Deadline tracking with calendar integration
+• Auto-completion detection from workout data
+• Optional notes (e.g., "with pause", "20lb weighted vest")
+
+**Workout Tracking:**
+• Create scheduled or completed workouts
+• Track sets, reps, weight, RPE, pain levels
+• Prescribed vs actual performance comparison
+• Inline logging from scheduled templates
+
+**Group Training:**
+• Create/join training groups
+• Assign workouts to group members
+• Shared calendar and attendance tracking
+
+**Technical:**
+• React 18 + Vite, Tailwind CSS, Framer Motion
+• Firebase Auth + Firestore
+• 4 Netlify serverless functions for AI features
+• Full PWA with offline caching and iOS safe area handling
+• "Brutalist fitness" design system with Bebas Neue typography`,
+    tech: ["React", "Firebase", "OpenAI API", "Tailwind", "Framer Motion", "PWA"],
+    highlights: [
+      "4 AI serverless functions (workout gen, progress analysis, autofill, chat)",
+      "Goal tracking with auto-completion detection",
+      "Group training with workout assignment",
+      "Offline-first PWA, installable on iOS/Android",
+      "Custom brutalist design system"
+    ],
+    links: {
+      live: "https://benchpressonly.com",
+      github: null
+    },
+    image: "/images/benchpressonly.svg",
+    featured: true,
+    category: "ai"
+  },
+  {
     id: "tcgdoku",
     title: "TCGDoku",
     tagline: "Daily Card Puzzle Game",

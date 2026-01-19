@@ -13,6 +13,9 @@ const REPO_TO_SITE = {
   'tcgdoku': 'https://tcgdoku.netlify.app',
   'dumarket': 'https://dumarket.netlify.app',
   'kalshi': 'https://kalshi.netlify.app',
+  'bench-only': 'https://benchpressonly.com',
+  'benchpressonly': 'https://benchpressonly.com',
+  'BenchPressOnly': 'https://benchpressonly.com',
 };
 
 const Home = () => {
@@ -59,10 +62,10 @@ const Home = () => {
   const mainProjects = [
     getProject('old-ways-today'),
     getProject('row-crew'),
+    getProject('bench-only'),
     getProject('tcgdoku'),
     getProject('azoni-ai'),
     getProject('polymarket-tool'),
-    getProject('dumarket'),
   ].filter(Boolean);
 
   const olderProjects = [
