@@ -13,9 +13,7 @@ const REPO_TO_SITE = {
   'tcgdoku': 'https://tcgdoku.netlify.app',
   'dumarket': 'https://dumarket.netlify.app',
   'kalshi': 'https://kalshi.netlify.app',
-  'bench-only': 'https://benchpressonly.com',
-  'benchpressonly': 'https://benchpressonly.com',
-  'BenchPressOnly': 'https://benchpressonly.com',
+  'benchonly': 'https://benchpressonly.com',
 };
 
 const Home = () => {
