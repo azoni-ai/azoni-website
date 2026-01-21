@@ -12,7 +12,7 @@ Currently focused on LLM agents and prediction markets. Background includes star
   links: {
     github: "https://github.com/azoni",
     linkedin: "https://linkedin.com/in/charltonsmith",
-    twitter: "https://twitter.com/azaborodkin",
+    twitter: "https://x.com/azoninft",
     resume: "/CharltonResume.pdf"
   }
 };
