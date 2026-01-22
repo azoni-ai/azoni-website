@@ -62,9 +62,9 @@ const Home = () => {
     getProject('old-ways-today'),
     getProject('row-crew'),
     getProject('bench-only'),
-    getProject('tcgdoku'),
-    getProject('azoni-ai'),
-    getProject('polymarket-tool'),
+    // getProject('tcgdoku'),
+    // getProject('azoni-ai'),
+    // getProject('polymarket-tool'),
   ].filter(Boolean);
 
   const olderProjects = [
