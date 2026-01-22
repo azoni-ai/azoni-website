@@ -190,6 +190,23 @@ a.commit-repo:hover {
   text-align: right;
 }
 
+.commits-toggle {
+  width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-secondary);
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.commits-toggle:hover {
+  color: var(--accent-primary);
+  background: var(--bg-card-hover);
+}
+
 /* Projects Section */
 .projects-section {
   padding: var(--space-lg) 0 var(--space-xl);
@@ -314,6 +331,12 @@ a.commit-repo:hover {
   padding: 0 0 var(--space-3xl);
 }
 
+.cta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg);
+}
+
 .cta-card {
   display: flex;
   align-items: center;
@@ -329,6 +352,29 @@ a.commit-repo:hover {
 .cta-card:hover {
   border-color: var(--accent-primary);
   background: linear-gradient(135deg, rgba(255, 122, 92, 0.15) 0%, rgba(255, 179, 71, 0.08) 100%);
+}
+
+/* Blog CTA - teal color */
+.cta-card.blog-cta {
+  background: linear-gradient(135deg, rgba(32, 217, 210, 0.1) 0%, rgba(32, 217, 210, 0.03) 100%);
+  border-color: rgba(32, 217, 210, 0.2);
+}
+
+.cta-card.blog-cta:hover {
+  border-color: var(--accent-tertiary);
+  background: linear-gradient(135deg, rgba(32, 217, 210, 0.15) 0%, rgba(32, 217, 210, 0.06) 100%);
+}
+
+.cta-card.blog-cta .cta-icon {
+  color: var(--accent-tertiary);
+}
+
+.cta-card.blog-cta .cta-btn {
+  background: var(--accent-tertiary);
+}
+
+.cta-card.blog-cta:hover .cta-btn {
+  background: #26c9c2;
 }
 
 .cta-icon {
@@ -413,6 +459,10 @@ a.commit-repo:hover {
   }
   
   .projects-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .cta-grid {
     grid-template-columns: 1fr;
   }
   

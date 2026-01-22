@@ -19,6 +19,7 @@ const REPO_TO_SITE = {
 const Home = () => {
   const [githubStats, setGithubStats] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [showAllCommits, setShowAllCommits] = useState(false);
   const heroRef = useRef(null);
 
   useEffect(() => {
@@ -125,7 +126,7 @@ const Home = () => {
                 </div>
                 
                 <div className="commits-list">
-                  {githubStats.recentCommits?.slice(0, 6).map((commit, i) => (
+                  {githubStats.recentCommits?.slice(0, showAllCommits ? 20 : 6).map((commit, i) => (
                     <div key={`${commit.sha}-${i}`} className="commit-row">
                       <span className="commit-msg">{commit.message}</span>
                       <div className="commit-meta">
@@ -144,10 +145,56 @@ const Home = () => {
                     </div>
                   ))}
                 </div>
+                {githubStats.recentCommits?.length > 6 && (
+                  <button 
+                    className="commits-toggle"
+                    onClick={() => setShowAllCommits(!showAllCommits)}
+                  >
+                    {showAllCommits ? 'Show less' : `View more (${Math.min(githubStats.recentCommits.length, 20) - 6})`}
+                  </button>
+                )}
               </div>
             </div>
           </section>
         )}
+
+        {/* CTAs - Blog & Chat */}
+        <section className="cta-section">
+          <div className="container">
+            <div className="cta-grid">
+              <Link to="/blog" className="cta-card blog-cta">
+                <div className="cta-icon">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 4H26V28H6V4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 10H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M10 15H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M10 20H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div className="cta-text">
+                  <h3>Building in Public</h3>
+                  <p>Technical breakdowns of my projects, lessons learned, and AI integrations</p>
+                </div>
+                <span className="cta-btn">Read Blog</span>
+              </Link>
+
+              <Link to="/chat" className="cta-card chat-cta">
+                <div className="cta-icon">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 8C4 6.89543 4.89543 6 6 6H26C27.1046 6 28 6.89543 28 8V20C28 21.1046 27.1046 22 26 22H20L16 26L12 22H6C4.89543 22 4 21.1046 4 20V8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 12L12 15L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M15 18H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div className="cta-text">
+                  <h3>Chat with my AI</h3>
+                  <p>Ask questions about my work or paste a job description for fit analysis</p>
+                </div>
+                <span className="cta-btn">Start Chat</span>
+              </Link>
+            </div>
+          </div>
+        </section>
 
         {/* Projects */}
         <section className="projects-section">
@@ -194,26 +241,6 @@ const Home = () => {
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Chat CTA */}
-        <section className="cta-section">
-          <div className="container">
-            <Link to="/chat" className="cta-card">
-              <div className="cta-icon">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M4 8C4 6.89543 4.89543 6 6 6H26C27.1046 6 28 6.89543 28 8V20C28 21.1046 27.1046 22 26 22H20L16 26L12 22H6C4.89543 22 4 21.1046 4 20V8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M9 12L12 15L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M15 18H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <div className="cta-text">
-                <h3>Chat with my AI</h3>
-                <p>Ask questions about my work or paste a job description for fit analysis</p>
-              </div>
-              <span className="cta-btn">Start Chat</span>
-            </Link>
           </div>
         </section>
       </div>
