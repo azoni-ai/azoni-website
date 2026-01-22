@@ -6,7 +6,6 @@ import Loading from "./components/Loading";
 import ScrollToTop from "./components/ScrollToTop";
 
 // Lazy load pages for code splitting
-// This creates separate bundles for each page, improving initial load time
 const Home = lazy(() => import("./pages/Home"));
 const About = lazy(() => import("./pages/About"));
 const Projects = lazy(() => import("./pages/Projects"));
@@ -14,14 +13,9 @@ const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Chat = lazy(() => import("./pages/Chat"));
 const Resume = lazy(() => import("./pages/Resume"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 
-/**
- * Main App component demonstrating:
- * - React.lazy() for code splitting
- * - Suspense for loading states
- * - Error Boundaries for error handling
- * - Context Provider for global state
- */
 const App = () => {
   return (
     <ErrorBoundary>
@@ -37,6 +31,8 @@ const App = () => {
               <Route path="/chat" element={<Chat />} />
               <Route path="/resume" element={<Resume />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               
               {/* Redirects for old routes */}
               <Route path="/aboutme" element={<About />} />
