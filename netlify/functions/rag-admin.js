@@ -505,6 +505,7 @@ async function getStats(headers) {
 
 async function seedDefaults(headers) {
   const defaultChunks = [
+    // ============ BIO (4) ============
     {
       category: 'bio',
       title: 'About Charlton Smith',
@@ -522,13 +523,57 @@ Contact:
 - GitHub: github.com/azoni-ai
 - Portfolio: azoni.ai
 
-Philosophy: "Proof of work over claims of work" - ships real products with real users.`,
-      metadata: { priority: 1 }
+Philosophy: "Proof of work over claims of work" - ships real products with real users.`
     },
     {
+      category: 'bio',
+      title: 'Contact Information',
+      content: `How to reach Charlton Smith:
+
+Email: charltonuw@gmail.com (preferred for professional inquiries)
+Portfolio: azoni.ai (features AI chatbot and project showcases)
+Location: Seattle, Washington
+Availability: Open to remote opportunities
+
+The chatbot on azoni.ai can answer questions about his background, skills, and projects. For direct inquiries about opportunities, email is best.`
+    },
+    {
+      category: 'bio',
+      title: 'Education Background',
+      content: `Charlton's Education:
+
+Master of Science (M.S.) in Software Engineering
+- Colorado Technical University, 2021
+- Completed while working full-time
+
+Bachelor of Science (B.S.) in Computer Science  
+- University of Washington Tacoma, 2017
+- Graduated with Honors
+
+His academic background combined with 7+ years of industry experience provides both theoretical foundations and practical expertise in software development, particularly full-stack development and AI applications.`
+    },
+    {
+      category: 'bio',
+      title: 'Work Philosophy',
+      content: `Charlton's Professional Philosophy:
+
+Core belief: "Proof of work over claims of work"
+
+This means:
+- Demonstrating capabilities through shipped products, not just talking about skills
+- Focusing on measurable outcomes (e.g., "reduced workload by 80%")
+- Building real applications with real users
+- Direct, no-fluff communication style
+- Valuing technical specifics and concrete results over vague claims
+
+His portfolio at azoni.ai is itself an example - the RAG-powered chatbot demonstrates his AI capabilities in action.`
+    },
+
+    // ============ SKILLS (4) ============
+    {
       category: 'skill',
-      title: 'Technical Skills',
-      content: `Charlton's Technical Skills:
+      title: 'Technical Skills Overview',
+      content: `Charlton's Technical Stack:
 
 Languages: Python, JavaScript, TypeScript, Java, SQL, C#
 
@@ -543,13 +588,112 @@ Backend: Node.js, FastAPI, Django, Express, REST APIs, Microservices
 
 Cloud & DevOps: AWS (Lambda, S3, EC2), Netlify, Vercel, Render, Docker, CI/CD
 
-Databases: PostgreSQL, Firebase Firestore, MongoDB, Redis, Supabase, SQLite`,
-      metadata: { priority: 1 }
+Databases: PostgreSQL, Firebase Firestore, MongoDB, Redis, Supabase, SQLite`
+    },
+    {
+      category: 'skill',
+      title: 'AI and Machine Learning Experience',
+      content: `Charlton's AI/ML Experience:
+
+Hands-on production experience with:
+
+RAG Systems:
+- Built this chatbot using RAG with vector embeddings
+- OpenAI text-embedding-3-small for semantic search
+- Firebase Firestore as vector store
+- Intent detection and context retrieval
+
+LLM Integration:
+- Claude API (including Vision for image analysis)
+- GPT-4 and GPT-4o-mini
+- Multi-model support via OpenRouter
+- Prompt engineering for various use cases
+
+Computer Vision:
+- Claude Vision API for exercise form verification in Row Crew
+- Extracting structured data from images
+
+Focus: Practical AI applications that solve real problems, not theoretical ML research.`
+    },
+    {
+      category: 'skill',
+      title: 'Frontend Development',
+      content: `Charlton's Frontend Skills:
+
+React Expertise:
+- React 18 with hooks, context, functional components
+- State management patterns
+- Custom hooks for reusable logic
+
+Styling:
+- Tailwind CSS for utility-first styling
+- CSS-in-JS solutions
+- Responsive, mobile-first design
+- Framer Motion for animations
+
+Modern Tooling:
+- TypeScript for type safety
+- Vite and Next.js build tools
+- PWA development for offline-capable apps
+
+Focus: Clean code, good UX, accessibility, and performance.`
+    },
+    {
+      category: 'skill',
+      title: 'Backend and Infrastructure',
+      content: `Charlton's Backend Skills:
+
+Serverless Architecture:
+- Netlify Functions for API endpoints
+- AWS Lambda for event-driven computing
+- Vercel Edge Functions
+
+Databases:
+- Firebase Firestore (real-time, NoSQL)
+- PostgreSQL and Supabase
+- MongoDB, Redis for caching
+
+API Development:
+- RESTful API design
+- Authentication and authorization
+- Third-party API integration
+
+Cloud Platforms:
+- AWS (Lambda, S3, EC2, CloudWatch)
+- Netlify, Vercel for deployment
+- CI/CD pipelines with GitLab/GitHub Actions
+
+Focus: Scalable, cost-effective architectures that minimize infrastructure overhead.`
+    },
+
+    // ============ PROJECTS (7) ============
+    {
+      category: 'project',
+      title: 'Row Crew - AI Fitness App',
+      content: `Row Crew - Social Fitness App with AI Verification
+URL: https://rowcrew.netlify.app
+
+Social fitness tracking for rowers with AI-powered workout verification.
+
+AI Anti-Cheat System:
+- Claude Vision API extracts meters, time, calories from rowing machine photos
+- Multi-layer verification: AI confidence scoring, duplicate detection, behavioral analysis
+
+Features:
+- 50+ achievements across distance, streaks, time, calories
+- 8 challenge types with group competitions
+- Real-time leaderboards
+- Social features: activity feed, reactions, comments
+
+Stats: ~6,000 lines of React, 2M+ meters logged by users.
+
+Tech: React, Firebase Firestore, Claude Vision API, PWA.`
     },
     {
       category: 'project',
-      title: 'EmbedRoute',
-      content: `EmbedRoute - Unified Embedding API Gateway (https://embedroute.com)
+      title: 'EmbedRoute - Embedding API Gateway',
+      content: `EmbedRoute - Unified Embedding API Gateway
+URL: https://embedroute.com
 
 A developer tool that simplifies working with multiple embedding providers through a single, unified API.
 
@@ -563,34 +707,13 @@ Features:
 
 Tech Stack: Next.js 14, Supabase (PostgreSQL + Auth), Vercel Edge Functions, Stripe for billing.
 
-Status: Live with paying users.`,
-      metadata: { priority: 1, url: 'https://embedroute.com', tech: ['Next.js', 'Supabase', 'Vercel'] }
+Status: Live with paying users.`
     },
     {
       category: 'project',
-      title: 'Row Crew',
-      content: `Row Crew - Social Fitness App with AI Verification (https://rowcrew.netlify.app)
-
-Social fitness tracking for rowers with AI-powered workout verification.
-
-AI Anti-Cheat System:
-- Claude Vision API extracts meters, time, calories from rowing machine photos
-- Multi-layer verification: AI confidence scoring, duplicate detection, behavioral analysis
-
-Features:
-- 50+ achievements across distance, streaks, time, calories
-- 8 challenge types with group competitions
-- Real-time leaderboards
-
-Stats: ~6,000 lines of React, 2M+ meters logged by users.
-
-Tech: React, Firebase Firestore, Claude Vision API, PWA.`,
-      metadata: { priority: 1, url: 'https://rowcrew.netlify.app', tech: ['React', 'Firebase', 'Claude Vision'] }
-    },
-    {
-      category: 'project',
-      title: 'Bench Only',
-      content: `Bench Only - AI Strength Training PWA (https://benchpressonly.com)
+      title: 'Bench Only - Strength Training PWA',
+      content: `Bench Only - AI Strength Training PWA
+URL: https://benchpressonly.com
 
 Full-stack PWA with AI coach for bench press training.
 
@@ -600,54 +723,332 @@ AI Features:
 - Intelligent form autofill based on history
 
 Features:
+- Workout logging with sets, reps, weight
 - Goal tracking with auto-completion detection
 - Group training: assign workouts to athletes
+- Progress analytics and personal records
 
-Tech: React 18, Firebase Firestore, OpenAI API, Tailwind CSS, PWA.`,
-      metadata: { priority: 1, url: 'https://benchpressonly.com', tech: ['React', 'Firebase', 'OpenAI'] }
+Tech: React 18, Firebase Firestore, OpenAI API, Tailwind CSS, PWA.`
     },
+    {
+      category: 'project',
+      title: 'Azoni.ai Portfolio',
+      content: `Azoni.ai - AI-Powered Developer Portfolio
+URL: https://azoni.ai
+
+Charlton's portfolio website featuring a RAG-enabled chatbot.
+
+Features:
+- AI chatbot with RAG retrieval (you're using it now!)
+- Project showcases with live demos
+- Admin panel for content management
+- Multi-model LLM support (GPT, Claude, Gemini, Llama, etc.)
+- Usage analytics and cost tracking
+- Blog system for technical writing
+
+The chatbot demonstrates AI capabilities in action - it uses semantic search to find relevant information about Charlton and generates grounded responses.
+
+Tech: React, Firebase, Netlify Functions, OpenAI Embeddings, Multi-model LLM.`
+    },
+    {
+      category: 'project',
+      title: 'Social Features Implementation',
+      content: `Fitness App Social Features (Recent Project)
+
+Comprehensive social system implementation:
+
+Activity Feed:
+- Real-time updates for workout completions
+- Achievement unlocks and milestones
+- Challenge progress and completions
+
+User Interactions:
+- Reactions (like, celebrate, fire, etc.)
+- Comments on activities
+- User mentions and notifications
+
+Privacy Controls:
+- Granular sharing settings
+- Public/private/friends-only options
+- Activity visibility management
+
+Admin Analytics:
+- Engagement metrics dashboard
+- User activity patterns
+- Content moderation tools
+
+Integration: Works seamlessly with existing workout tracking, cardio logging, and goal systems.`
+    },
+    {
+      category: 'project',
+      title: 'T-Mobile Internal Tools',
+      content: `Internal Tools at T-Mobile
+
+Built automation platform that consolidated 4-5 separate tools into one interface.
+
+Impact:
+- Reduced manual work for network operations teams by over 80%
+- Streamlined workflows that previously required switching between multiple systems
+- Improved data consistency and reduced errors
+
+Technical Work:
+- Migrated frontend from Django templates to Angular with reusable components
+- Built REST APIs for tool integration
+- Contributed to org-wide migration from Jenkins to GitLab CI/CD
+
+This demonstrates ability to identify pain points in large organizations and build practical solutions that deliver measurable business value.`
+    },
+    {
+      category: 'project',
+      title: 'Old Ways Today',
+      content: `Old Ways Today - Historical Documentation Project
+
+A web project documenting historical practices and their modern applications.
+
+Focus: Preserving and presenting historical information in an accessible digital format.
+
+This project showcases Charlton's ability to work on content-focused applications and create engaging user experiences for educational content.`
+    },
+
+    // ============ EXPERIENCE (4) ============
     {
       category: 'experience',
       title: 'T-Mobile - Software Engineer II',
-      content: `Software Engineer II at T-Mobile (June 2018 - April 2022)
-Bellevue, WA
+      content: `Software Engineer II at T-Mobile
+June 2018 - April 2022 | Bellevue, WA
 
 Built internal tools that significantly improved team productivity.
 
-Key accomplishments:
+Key Accomplishments:
 - Built internal automation platform consolidating 4-5 separate tools into one interface
 - Reduced manual work for network operations teams by over 80%
 - Migrated frontend from Django templates to Angular with reusable components
-- Contributed to org-wide migration from Jenkins to GitLab CI/CD`,
-      metadata: { priority: 1, company: 'T-Mobile', dates: '2018-2022' }
+- Contributed to org-wide migration from Jenkins to GitLab CI/CD
+- Collaborated with cross-functional teams in enterprise environment
+
+Technologies: Python, Django, Angular, PostgreSQL, GitLab CI/CD`
     },
     {
       category: 'experience',
       title: 'Capital One - Senior Software Engineer',
-      content: `Senior Software Engineer at Capital One (November 2022 - November 2023)
-Remote
+      content: `Senior Software Engineer at Capital One
+November 2022 - November 2023 | Remote
 
 Worked on automated testing infrastructure for customer communications.
 
-Key accomplishments:
+Key Accomplishments:
 - Maintained automated testing pipeline for customer email notifications
 - Test cases stored as JSON in S3, executed via AWS Lambda, results in CloudWatch
 - Designed JSON schema so new tests could be added without code changes
-- Mentored summer intern through project scoping to deployment`,
-      metadata: { priority: 1, company: 'Capital One', dates: '2022-2023' }
+- Mentored summer intern through project scoping to deployment
+- Worked in highly regulated financial services environment
+
+Technologies: AWS (Lambda, S3, CloudWatch), Python, JSON Schema`
     },
+    {
+      category: 'experience',
+      title: 'Independent Software Engineer',
+      content: `Independent Software Engineer
+2024 - Present | Seattle, WA (Remote)
+
+Currently working independently on AI-powered applications.
+
+Projects:
+- Row Crew: Fitness app with Claude Vision AI verification
+- Bench Only: Strength training PWA with GPT coach
+- EmbedRoute: Unified embedding API gateway
+- Azoni.ai: Portfolio with RAG chatbot
+
+Experience Gained:
+- Full product lifecycle from ideation to deployment
+- Direct user feedback and rapid iteration
+- Managing projects end-to-end (design, dev, deploy, maintain)
+- Building and shipping AI-powered features
+
+Focus: Demonstrating AI capabilities through shipped products.`
+    },
+    {
+      category: 'experience',
+      title: 'Career Overview',
+      content: `Charlton's Career Progression:
+
+2017: B.S. Computer Science, UW Tacoma
+2018-2022: Software Engineer II at T-Mobile
+- Built tools reducing team workload by 80%
+2021: M.S. Software Engineering (completed while working)
+2022-2023: Senior Software Engineer at Capital One
+- AWS-based testing infrastructure
+2024-Present: Independent Software Engineer
+- AI-powered applications and tools
+
+Total: 7+ years in software engineering
+Progression: Junior → Senior → Independent
+Focus Shift: Enterprise tools → AI-powered applications
+
+Key Theme: Consistently building practical tools that solve real problems.`
+    },
+
+    // ============ FAQ (8) ============
     {
       category: 'faq',
       title: 'Why Hire Charlton',
       content: `Why should you hire Charlton Smith?
 
-1. Ships fast: 6+ production apps in the past year, all live with real users
-2. Full-stack AI expertise: Builds end-to-end from React frontend to RAG pipelines
-3. Proven at scale: Ran distributed system processing 2,500 bids/minute across 50 machines
-4. Internal tools impact: Built platform at T-Mobile that reduced team workload by 80%
-5. Startup experience: Co-founded OLI Fitness, published at ACM CHI
-6. Continuous learner: M.S. while working full-time, constantly building new projects`,
-      metadata: { priority: 1 }
+1. Ships Fast: 6+ production apps in the past year, all live with real users
+2. Full-Stack AI Expertise: Builds end-to-end from React frontend to RAG pipelines
+3. Proven at Scale: Built tools at T-Mobile used by entire teams
+4. Internal Tools Impact: Platform that reduced team workload by 80%
+5. Modern Stack: React, TypeScript, Firebase, serverless, AI APIs
+6. Continuous Learner: M.S. while working full-time, constantly building new projects
+7. Direct Communication: Focuses on results and specifics, not buzzwords`
+    },
+    {
+      category: 'faq',
+      title: 'What Makes Charlton Different',
+      content: `What sets Charlton apart from other candidates?
+
+"Proof of work over claims of work"
+
+Rather than just listing skills on a resume, he builds and ships real applications that demonstrate those skills.
+
+Examples:
+- Says he knows RAG? This chatbot proves it.
+- Says he can integrate AI APIs? Row Crew uses Claude Vision.
+- Says he builds full-stack apps? Multiple live PWAs with users.
+
+His portfolio at azoni.ai is itself a demonstration - it features a working RAG system that shows his AI capabilities in action.
+
+He focuses on practical applications that solve real problems, not theoretical exercises or tutorial projects.`
+    },
+    {
+      category: 'faq',
+      title: 'Available for Work',
+      content: `Is Charlton available for work?
+
+Yes, currently open to opportunities.
+
+Interested in:
+- AI-focused engineering roles
+- Full-stack development positions
+- Building internal tools and developer productivity
+- Startups working on AI applications
+
+Location: Seattle, WA
+Remote: Yes, open to remote positions
+Preference: Roles where he can apply AI/ML experience
+
+Contact: charltonuw@gmail.com
+
+Note: Particularly interested in companies where he can build AI-powered features and ship products that users actually use.`
+    },
+    {
+      category: 'faq',
+      title: 'Technical Interview Topics',
+      content: `What can Charlton discuss in technical interviews?
+
+Strong Topics:
+- React and modern frontend development
+- Serverless architecture (Netlify Functions, AWS Lambda)
+- Firebase and Firestore database design
+- RAG systems and vector embeddings
+- AI API integration (Claude, GPT, OpenAI)
+- Building and deploying PWAs
+- TypeScript and type-safe development
+- Practical system design
+
+Preferred Approach:
+- Discussing real projects he's built
+- Walking through architecture decisions
+- Explaining tradeoffs and lessons learned
+
+He believes practical experience is more relevant than abstract algorithm puzzles.`
+    },
+    {
+      category: 'faq',
+      title: 'Work Style',
+      content: `How does Charlton work?
+
+Communication:
+- Direct and specific (no fluff)
+- Prefers written async communication
+- Documents decisions and code
+- Comfortable with remote work
+
+Development Approach:
+- Iterative development with frequent deploys
+- Focus on shipping MVPs and iterating
+- Writes clean, maintainable code
+- Tests critical paths
+
+Collaboration:
+- Works well independently or on teams
+- Values clear requirements and goals
+- Gives and receives direct feedback
+- Focuses on outcomes over process`
+    },
+    {
+      category: 'faq',
+      title: 'Strengths and Growth Areas',
+      content: `Charlton's Strengths and Growth Areas:
+
+Strengths:
+- Full-stack development (React to serverless backend)
+- AI integration and RAG systems
+- Building complete products end-to-end
+- Practical problem-solving
+- Clear communication
+- Shipping working software quickly
+
+Currently Learning:
+- Multi-agent AI systems
+- Kubernetes and container orchestration
+- Advanced ML concepts
+- Infrastructure as code
+
+Honest Assessment: He's upfront about what he knows well versus what he's still learning. Ask him directly about any specific technology.`
+    },
+    {
+      category: 'faq',
+      title: 'RAG System Explanation',
+      content: `How does this chatbot work? (RAG Explanation)
+
+This chatbot uses RAG (Retrieval Augmented Generation):
+
+1. Your Question → Converted to a vector embedding (1536 numbers)
+2. Vector Search → Find chunks with similar meaning in the knowledge base
+3. Ranking → Sort by cosine similarity (how close in meaning)
+4. Retrieval → Pull the top 5 most relevant chunks
+5. Context → Send chunks to the LLM as background info
+6. Generation → LLM answers using the retrieved context
+
+Why RAG?
+- Ensures accurate, specific answers about Charlton
+- Prevents hallucination (making things up)
+- Can be updated without retraining a model
+- Shows his AI implementation skills
+
+Tech: OpenAI embeddings, Firebase Firestore, Netlify Functions, multi-model LLM.`
+    },
+    {
+      category: 'faq',
+      title: 'Projects and Code Samples',
+      content: `Where can I see Charlton's work?
+
+Live Projects:
+- azoni.ai - This portfolio with RAG chatbot
+- rowcrew.netlify.app - Fitness app with AI verification
+- benchpressonly.com - Strength training PWA
+- embedroute.com - Embedding API gateway
+
+GitHub: github.com/azoni-ai (public repositories)
+
+What to Look For:
+- Real applications with real users
+- AI integration (Claude Vision, GPT, RAG)
+- Full-stack implementation
+- Clean, documented code
+
+These aren't tutorial projects - they're production apps that people actually use.`
     }
   ];
 
