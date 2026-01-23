@@ -318,8 +318,8 @@ function detectIntent(message) {
       categories: ['experience', 'bio']
     },
     skills: {
-      keywords: ['skill', 'tech', 'stack', 'language', 'framework', 'know', 'proficient', 'python', 'react', 'javascript', 'typescript', 'ai', 'ml', 'database', 'aws'],
-      topK: 5,
+      keywords: ['skill', 'tech', 'stack', 'language', 'framework', 'know', 'proficient', 'python', 'react', 'javascript', 'typescript', 'ai', 'ml', 'machine learning', 'llm', 'rag', 'embedding', 'database', 'aws', 'frontend', 'backend', 'api', 'node', 'firebase', 'openai', 'claude', 'gpt'],
+      topK: 6,
       categories: ['skill']
     },
     hire: {
@@ -339,14 +339,26 @@ function detectIntent(message) {
     };
   }
 
+  // Check skills BEFORE experience - so "experience with Python" → skills
+  const skillMatches = intents.skills.keywords.filter(kw => lower.includes(kw));
+  if (skillMatches.length > 0) {
+    return {
+      intent: 'skills',
+      confidence: skillMatches.length > 2 ? 'high' : 'medium',
+      matchedKeywords: skillMatches,
+      settings: intents.skills
+    };
+  }
+
   // Check other intents
   for (const [intent, config] of Object.entries(intents)) {
-    if (intent === 'job_analysis') continue;
+    if (intent === 'job_analysis' || intent === 'skills') continue;
     const matches = config.keywords.filter(kw => lower.includes(kw));
     if (matches.length > 0) {
       return {
         intent,
         confidence: matches.length > 2 ? 'high' : 'medium',
+        matchedKeywords: matches,
         settings: config
       };
     }

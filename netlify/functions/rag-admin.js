@@ -422,20 +422,28 @@ function detectIntent(message) {
       topK: 12,
       categories: null
     },
-    contact: { keywords: ['email', 'phone', 'contact', 'linkedin', 'github'], topK: 2, categories: ['bio'] },
-    projects: { keywords: ['project', 'built', 'portfolio', 'app', 'shipped'], topK: 8, categories: ['project', 'experience'] },
-    experience: { keywords: ['experience', 'work history', 'previous job', 'career', 'background'], topK: 6, categories: ['experience', 'bio'] },
-    skills: { keywords: ['skill', 'tech', 'stack', 'language', 'framework'], topK: 5, categories: ['skill'] },
-    hire: { keywords: ['hire', 'why should', 'strength', 'weakness'], topK: 6, categories: ['bio', 'faq'] }
+    contact: { keywords: ['email', 'phone', 'contact', 'linkedin', 'github', 'reach'], topK: 2, categories: ['bio'] },
+    projects: { keywords: ['project', 'built', 'portfolio', 'app', 'shipped', 'row crew', 'embedroute', 'bench only'], topK: 8, categories: ['project', 'experience'] },
+    skills: { keywords: ['skill', 'tech', 'stack', 'language', 'framework', 'python', 'javascript', 'react', 'ai', 'machine learning', 'ml', 'llm', 'rag', 'typescript', 'node', 'firebase', 'database', 'frontend', 'backend', 'api'], topK: 6, categories: ['skill'] },
+    experience: { keywords: ['work history', 'previous job', 'career', 't-mobile', 'capital one', 'company', 'employer'], topK: 6, categories: ['experience', 'bio'] },
+    hire: { keywords: ['hire', 'why should', 'strength', 'weakness', 'fit', 'candidate', 'interview'], topK: 6, categories: ['bio', 'faq', 'skill'] }
   };
 
+  // Check for job analysis first (longest, most specific)
   if (message.length > intents.job_analysis.lengthThreshold ||
       intents.job_analysis.keywords.some(kw => lower.includes(kw))) {
     return { intent: 'job_analysis', confidence: 'high', settings: intents.job_analysis };
   }
 
+  // Check skills BEFORE experience (so "experience with Python" → skills)
+  const skillMatches = intents.skills.keywords.filter(kw => lower.includes(kw));
+  if (skillMatches.length > 0) {
+    return { intent: 'skills', confidence: skillMatches.length > 2 ? 'high' : 'medium', matchedKeywords: skillMatches, settings: intents.skills };
+  }
+
+  // Then check other intents
   for (const [intent, config] of Object.entries(intents)) {
-    if (intent === 'job_analysis') continue;
+    if (intent === 'job_analysis' || intent === 'skills') continue;
     const matches = config.keywords.filter(kw => lower.includes(kw));
     if (matches.length > 0) {
       return { intent, confidence: matches.length > 2 ? 'high' : 'medium', matchedKeywords: matches, settings: config };
@@ -595,25 +603,60 @@ Databases: PostgreSQL, Firebase Firestore, MongoDB, Redis, Supabase, SQLite`
       title: 'AI and Machine Learning Experience',
       content: `Charlton's AI/ML Experience:
 
-Hands-on production experience with:
+Hands-on production experience building AI-powered applications with Python and JavaScript:
 
-RAG Systems:
+RAG Systems (Python & Node.js):
 - Built this chatbot using RAG with vector embeddings
 - OpenAI text-embedding-3-small for semantic search
 - Firebase Firestore as vector store
 - Intent detection and context retrieval
+- Cosine similarity ranking algorithms
 
-LLM Integration:
+LLM Integration (Python & JavaScript):
 - Claude API (including Vision for image analysis)
 - GPT-4 and GPT-4o-mini
 - Multi-model support via OpenRouter
 - Prompt engineering for various use cases
+- Building AI features into production apps
 
 Computer Vision:
 - Claude Vision API for exercise form verification in Row Crew
-- Extracting structured data from images
+- Extracting structured data from images using AI
+
+Python AI Libraries: OpenAI SDK, Anthropic SDK, LangChain basics, FastAPI for AI endpoints
 
 Focus: Practical AI applications that solve real problems, not theoretical ML research.`
+    },
+    {
+      category: 'skill',
+      title: 'Python Development Experience',
+      content: `Charlton's Python Experience:
+
+Python is one of Charlton's primary languages, used extensively for:
+
+AI/ML Development:
+- OpenAI and Anthropic Python SDKs for LLM integration
+- Building RAG pipelines and embedding systems
+- Prompt engineering and AI application development
+- Working with vector embeddings and similarity search
+
+Backend Development:
+- FastAPI for high-performance REST APIs
+- Django for full-stack web applications (used at T-Mobile)
+- Flask for lightweight services
+- Async Python for concurrent operations
+
+Data & Automation:
+- Data processing and analysis scripts
+- Automation tools that reduced team workload by 80% at T-Mobile
+- API integrations and ETL pipelines
+
+Production Experience:
+- Built internal tools at T-Mobile using Python/Django
+- AI-powered features in production applications
+- AWS Lambda functions in Python
+
+Python is his go-to language for AI work and backend services, complementing JavaScript/TypeScript for frontend development.`
     },
     {
       category: 'skill',
