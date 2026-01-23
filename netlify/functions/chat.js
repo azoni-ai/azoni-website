@@ -297,6 +297,11 @@ function detectIntent(message) {
       topK: 12,
       categories: null
     },
+    behavioral: {
+      keywords: ['tell me about a time', 'describe a situation', 'give an example', 'how did you handle', 'what happened when', 'challenge you faced', 'difficult situation', 'conflict', 'mistake', 'failure', 'missed deadline', 'under pressure', 'disagreed with', 'critical feedback', 'went wrong'],
+      topK: 6,
+      categories: ['faq', 'experience']
+    },
     contact: {
       keywords: ['email', 'phone', 'contact', 'linkedin', 'github', 'reach', 'get in touch'],
       topK: 2,
@@ -313,7 +318,7 @@ function detectIntent(message) {
       categories: ['project', 'experience']
     },
     experience: {
-      keywords: ['experience', 'work history', 'previous job', 'capital one', 't-mobile', 'tmobile', 'career', 'background', 'worked at'],
+      keywords: ['work history', 'previous job', 'capital one', 't-mobile', 'tmobile', 'career', 'worked at'],
       topK: 6,
       categories: ['experience', 'bio']
     },
@@ -350,9 +355,20 @@ function detectIntent(message) {
     };
   }
 
+  // Check behavioral BEFORE other intents - catches interview questions
+  const behavioralMatches = intents.behavioral.keywords.filter(kw => lower.includes(kw));
+  if (behavioralMatches.length > 0) {
+    return {
+      intent: 'behavioral',
+      confidence: behavioralMatches.length > 1 ? 'high' : 'medium',
+      matchedKeywords: behavioralMatches,
+      settings: intents.behavioral
+    };
+  }
+
   // Check other intents
   for (const [intent, config] of Object.entries(intents)) {
-    if (intent === 'job_analysis' || intent === 'skills') continue;
+    if (intent === 'job_analysis' || intent === 'skills' || intent === 'behavioral') continue;
     const matches = config.keywords.filter(kw => lower.includes(kw));
     if (matches.length > 0) {
       return {
