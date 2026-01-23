@@ -13,9 +13,7 @@ import {
   arrayUnion,
   Timestamp,
   getDoc,
-  setDoc,
-  getDocs,
-  limit
+  setDoc
 } from 'firebase/firestore';
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD;
