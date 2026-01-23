@@ -1,6 +1,57 @@
 export const projects = [
   // ===== MAJOR RECENT PROJECTS =====
   {
+    id: "embedroute",
+    title: "EmbedRoute",
+    tagline: "Unified Embedding API Gateway",
+    description: "Unified API gateway for text embeddings. One endpoint to access OpenAI, Voyage AI, Cohere, and Mistral. OpenAI SDK-compatible drop-in replacement—switch providers by changing two lines of code.",
+    longDescription: `EmbedRoute is a unified embedding API gateway that provides developers with a single endpoint to access multiple text embedding providers. Instead of managing separate API keys, SDKs, and billing accounts for each provider, developers use one API key and one consistent interface.
+
+**Problem Solved:**
+• Provider lock-in: Different models excel at different tasks (Voyage for code, Cohere for multilingual, OpenAI for general purpose)
+• SDK fragmentation: Each provider has its own SDK, auth method, and response format
+• Cost optimization: No easy way to compare pricing across providers
+• Billing complexity: Managing multiple accounts and tracking spend
+
+**Technical Implementation:**
+• OpenAI SDK-compatible API—existing codebases switch with 2 line changes
+• Model routing via provider/model format (e.g., voyage/voyage-3, cohere/embed-english-v3.0)
+• Next.js 14 App Router with TypeScript
+• Supabase PostgreSQL with Row Level Security
+• Server-side rendering for GEO (AI crawler discoverability)
+
+**Features Built:**
+• Landing page with interactive code examples
+• Waitlist system with real-time validation and duplicate handling
+• Blog with SSR for SEO/GEO optimization
+• Comprehensive API documentation with code examples (JS, Python, cURL)
+• Custom design system: dark theme, gradient borders, grid backgrounds
+
+**Supported Providers:**
+• OpenAI (text-embedding-3-small, text-embedding-3-large)
+• Voyage AI (voyage-3, voyage-3-lite, voyage-code-3)
+• Cohere (embed-english-v3.0, embed-multilingual-v3.0)
+• Mistral (mistral-embed)
+
+**Pricing Model:**
+Provider API cost + 20% routing fee. No hidden charges, no monthly minimums.`,
+    tech: ["Next.js 14", "TypeScript", "Supabase", "PostgreSQL", "Tailwind CSS", "Vercel"],
+    highlights: [
+      "OpenAI SDK-compatible drop-in replacement",
+      "8 embedding models across 4 providers",
+      "Server-side rendering for GEO optimization",
+      "Row Level Security with Supabase",
+      "Custom design system with dark theme"
+    ],
+    links: {
+      live: "https://www.embedroute.com",
+      github: null
+    },
+    image: "/images/embedroute-icon.svg",
+    featured: true,
+    category: "ai"
+  },
+  {
     id: "old-ways-today",
     title: "Old Ways Today",
     tagline: "Full-Stack AI Platform",
