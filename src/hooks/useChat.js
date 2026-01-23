@@ -18,7 +18,7 @@ export const AVAILABLE_MODELS = [
 ];
 
 /**
- * Custom hook for chat functionality
+ * Custom hook for chat functionality with RAG metadata
  */
 export const useChat = (initialMode = 'professional') => {
   const [chatMode, setChatMode] = useState(initialMode);
@@ -36,7 +36,8 @@ export const useChat = (initialMode = 'professional') => {
   useEffect(() => {
     setMessages([{
       role: 'assistant',
-      content: `Hi! I'm an AI trained on Charlton's background. Ask me anything, or paste a job description for fit analysis.`
+      content: `Hi! I'm an AI trained on Charlton's background. Ask me anything, or paste a job description for fit analysis.`,
+      rag: null // No RAG for initial message
     }]);
   }, []);
 
@@ -76,7 +77,7 @@ export const useChat = (initialMode = 'professional') => {
     if (!messageText.trim() || isLoading) return;
 
     setError(null);
-    const userMessage = { role: 'user', content: messageText };
+    const userMessage = { role: 'user', content: messageText, rag: null };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -91,7 +92,8 @@ export const useChat = (initialMode = 'professional') => {
           messages: [...messages.map(m => ({ role: m.role, content: m.content })), 
                     { role: 'user', content: messageText }],
           mode: chatMode,
-          model
+          model,
+          sessionId: sessionIdRef.current
         }),
         signal: abortControllerRef.current.signal
       });
@@ -101,9 +103,14 @@ export const useChat = (initialMode = 'professional') => {
       if (data.choices?.[0]) {
         const assistantContent = data.choices[0].message.content;
         
+        // Extract RAG metadata from response
+        const ragData = data._rag || null;
+        
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: assistantContent
+          content: assistantContent,
+          rag: ragData,
+          usage: data.usage
         }]);
 
         // Log to Firestore (fire and forget)
@@ -115,6 +122,7 @@ export const useChat = (initialMode = 'professional') => {
           model: data.usage?.model || model,
           modelName: data.modelName || model,
           usage: data.usage || null,
+          rag: ragData,
           timestamp: serverTimestamp()
         }).catch(err => console.error('Error logging chat:', err));
 
@@ -132,7 +140,8 @@ export const useChat = (initialMode = 'professional') => {
       setError(err.message);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, something went wrong. Email charltonuw@gmail.com directly.'
+        content: 'Sorry, something went wrong. Email charltonuw@gmail.com directly.',
+        rag: null
       }]);
     } finally {
       setIsLoading(false);
@@ -149,6 +158,9 @@ export const useChat = (initialMode = 'professional') => {
     setModel(newModel);
   }, []);
 
+  // Check if any message has RAG data (for showing/hiding intro)
+  const hasRagMessages = messages.some(m => m.rag?.enabled);
+
   return {
     messages,
     input,
@@ -161,6 +173,7 @@ export const useChat = (initialMode = 'professional') => {
     sendMessage,
     changeMode,
     changeModel,
+    hasRagMessages,
   };
 };
 
