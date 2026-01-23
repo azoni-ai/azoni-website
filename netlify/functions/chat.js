@@ -1,23 +1,8 @@
 // netlify/functions/chat.js
-// RAG-powered portfolio chatbot using Firebase
+// Portfolio chatbot with optional RAG enhancement
+// Falls back to static prompt if Firebase Admin isn't configured
 
-const admin = require('firebase-admin');
-
-// Initialize Firebase Admin
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-    })
-  });
-}
-
-const db = admin.firestore();
-const RAG_COLLECTION = 'rag_knowledge_base';
-const CHAT_LOGS_COLLECTION = 'chat_logs';
-
+// OpenRouter pricing per 1K tokens
 const MODEL_PRICING = {
   'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006, name: 'GPT-4o Mini', provider: 'OpenAI' },
   'anthropic/claude-3-5-haiku-latest': { input: 0.0008, output: 0.004, name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
@@ -30,6 +15,44 @@ const MODEL_PRICING = {
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENROUTER_API_KEY = process.env.REACT_APP_OPENROUTER_API_KEY;
+
+// Firebase Admin - only initialize if credentials are available
+let db = null;
+let admin = null;
+let firebaseInitialized = false;
+
+function initFirebase() {
+  if (firebaseInitialized) return !!db;
+  firebaseInitialized = true;
+  
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  
+  if (!projectId || !clientEmail || !privateKey) {
+    console.log('Firebase Admin credentials not configured - RAG disabled');
+    return false;
+  }
+  
+  try {
+    admin = require('firebase-admin');
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n')
+        })
+      });
+    }
+    db = admin.firestore();
+    console.log('Firebase Admin initialized - RAG enabled');
+    return true;
+  } catch (error) {
+    console.error('Firebase Admin init failed:', error.message);
+    return false;
+  }
+}
 
 // ===== MAIN HANDLER =====
 exports.handler = async (event) => {
@@ -47,8 +70,6 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const startTime = Date.now();
-
   try {
     const { messages, mode = 'professional', model: requestedModel, sessionId } = JSON.parse(event.body);
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
@@ -57,19 +78,26 @@ exports.handler = async (event) => {
     // Get user's latest message
     const userMessage = messages[messages.length - 1]?.content || '';
 
-    // Detect intent
-    const intentResult = detectIntent(userMessage);
+    // Try RAG if Firebase is available
+    let systemPrompt;
+    let ragInfo = null;
+    
+    const ragEnabled = initFirebase();
+    
+    if (ragEnabled && OPENAI_API_KEY) {
+      try {
+        const ragResult = await getRAGContext(userMessage, mode, messages.length);
+        systemPrompt = ragResult.systemPrompt;
+        ragInfo = ragResult.ragInfo;
+      } catch (ragError) {
+        console.error('RAG error, falling back to static prompt:', ragError.message);
+        systemPrompt = buildStaticSystemPrompt(mode);
+      }
+    } else {
+      systemPrompt = buildStaticSystemPrompt(mode);
+    }
 
-    // Retrieve relevant chunks via RAG
-    const ragStartTime = Date.now();
-    const retrievalResult = await retrieveContext(userMessage, intentResult.intent);
-    const ragLatency = Date.now() - ragStartTime;
-
-    // Build dynamic system prompt
-    const systemPrompt = buildSystemPrompt(mode, intentResult, retrievalResult.chunks, messages.length);
-
-    // Call LLM
-    const llmStartTime = Date.now();
+    // Call LLM via OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -90,7 +118,6 @@ exports.handler = async (event) => {
     });
 
     const data = await response.json();
-    const llmLatency = Date.now() - llmStartTime;
 
     if (!response.ok) {
       console.error('OpenRouter error:', data);
@@ -105,21 +132,22 @@ exports.handler = async (event) => {
     const usage = data.usage || {};
     const inputCost = (usage.prompt_tokens || 0) / 1000 * pricing.input;
     const outputCost = (usage.completion_tokens || 0) / 1000 * pricing.output;
-    const totalCost = inputCost + outputCost + retrievalResult.embeddingCost;
+    const embeddingCost = ragInfo?.embeddingCost || 0;
+    const totalCost = inputCost + outputCost + embeddingCost;
 
-    // Log chat for analytics (async, don't wait)
-    logChat({
-      sessionId,
-      userMessage,
-      assistantMessage: data.choices?.[0]?.message?.content,
-      model,
-      mode,
-      intent: intentResult,
-      chunksUsed: retrievalResult.chunks.map(c => ({ id: c.id, title: c.title, similarity: c.similarity })),
-      usage,
-      costs: { input: inputCost, output: outputCost, embedding: retrievalResult.embeddingCost, total: totalCost },
-      latency: { rag: ragLatency, llm: llmLatency, total: Date.now() - startTime }
-    }).catch(console.error);
+    // Log to Firebase if available (async, don't wait)
+    if (db) {
+      logChat({
+        sessionId,
+        userMessage,
+        assistantMessage: data.choices?.[0]?.message?.content,
+        model,
+        mode,
+        ragEnabled: !!ragInfo,
+        usage,
+        costs: { input: inputCost, output: outputCost, embedding: embeddingCost, total: totalCost }
+      }).catch(console.error);
+    }
 
     return {
       statusCode: 200,
@@ -129,23 +157,12 @@ exports.handler = async (event) => {
         model,
         modelName: pricing.name,
         provider: pricing.provider,
-        _rag: {
-          intent: intentResult.intent,
-          intentConfidence: intentResult.confidence,
-          chunksRetrieved: retrievalResult.chunks.length,
-          topChunks: retrievalResult.chunks.slice(0, 3).map(c => ({
-            title: c.title,
-            category: c.category,
-            similarity: c.similarity.toFixed(3)
-          })),
-          ragLatencyMs: ragLatency,
-          llmLatencyMs: llmLatency
-        },
+        _rag: ragInfo || { enabled: false },
         usage: {
           ...usage,
           inputCost: inputCost.toFixed(6),
           outputCost: outputCost.toFixed(6),
-          embeddingCost: retrievalResult.embeddingCost.toFixed(6),
+          embeddingCost: embeddingCost.toFixed(6),
           totalCost: totalCost.toFixed(6)
         }
       })
@@ -161,17 +178,124 @@ exports.handler = async (event) => {
   }
 };
 
-// ===== INTENT DETECTION =====
+// ===== RAG FUNCTIONS =====
+
+function cosineSimilarity(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  let dotProduct = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+async function getEmbedding(text) {
+  const response = await fetch('https://api.openai.com/v1/embeddings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'text-embedding-3-small',
+      input: text.slice(0, 8000)
+    })
+  });
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
+
+  return {
+    embedding: data.data[0].embedding,
+    tokens: data.usage.total_tokens
+  };
+}
+
+async function getRAGContext(query, mode, messageCount) {
+  const RAG_COLLECTION = 'rag_knowledge_base';
+  
+  // Detect intent
+  const intent = detectIntent(query);
+  const { topK, categories } = intent.settings;
+  
+  // Get query embedding
+  const { embedding: queryEmbedding, tokens } = await getEmbedding(query);
+  const embeddingCost = tokens / 1000000 * 0.02;
+  
+  // Fetch and rank chunks
+  const snapshot = await db.collection(RAG_COLLECTION).get();
+  
+  let results = snapshot.docs
+    .filter(doc => {
+      const data = doc.data();
+      if (!data.embedding) return false;
+      if (categories && !categories.includes(data.category)) return false;
+      return true;
+    })
+    .map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title,
+        category: data.category,
+        content: data.content,
+        similarity: cosineSimilarity(queryEmbedding, data.embedding),
+        tokenEstimate: data.tokenEstimate
+      };
+    })
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, topK);
+  
+  // Fallback to all categories if no results
+  if (results.length === 0 && categories) {
+    results = snapshot.docs
+      .filter(doc => doc.data().embedding)
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          category: data.category,
+          content: data.content,
+          similarity: cosineSimilarity(queryEmbedding, data.embedding),
+          tokenEstimate: data.tokenEstimate
+        };
+      })
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, topK);
+  }
+  
+  // Build system prompt with RAG context
+  const systemPrompt = buildRAGSystemPrompt(mode, intent, results, messageCount);
+  
+  return {
+    systemPrompt,
+    ragInfo: {
+      enabled: true,
+      intent: intent.intent,
+      intentConfidence: intent.confidence,
+      chunksRetrieved: results.length,
+      topChunks: results.slice(0, 3).map(c => ({
+        title: c.title,
+        category: c.category,
+        similarity: c.similarity.toFixed(3)
+      })),
+      embeddingCost
+    }
+  };
+}
+
 function detectIntent(message) {
   const lower = message.toLowerCase();
-
-  // Intent definitions with keywords and settings
+  
   const intents = {
     job_analysis: {
       keywords: ['responsibilities', 'requirements', 'qualifications', 'experience required', 'we are looking', 'ideal candidate', 'job description', 'role:', 'about the role', 'years of experience'],
       lengthThreshold: 400,
       topK: 12,
-      categories: null // All categories
+      categories: null
     },
     contact: {
       keywords: ['email', 'phone', 'contact', 'linkedin', 'github', 'reach', 'get in touch'],
@@ -205,13 +329,12 @@ function detectIntent(message) {
     }
   };
 
-  // Check job analysis first (length-based or keywords)
+  // Check job analysis first
   if (message.length > intents.job_analysis.lengthThreshold ||
       intents.job_analysis.keywords.some(kw => lower.includes(kw))) {
     return {
       intent: 'job_analysis',
       confidence: 'high',
-      matchedKeywords: intents.job_analysis.keywords.filter(kw => lower.includes(kw)),
       settings: intents.job_analysis
     };
   }
@@ -219,13 +342,11 @@ function detectIntent(message) {
   // Check other intents
   for (const [intent, config] of Object.entries(intents)) {
     if (intent === 'job_analysis') continue;
-
     const matches = config.keywords.filter(kw => lower.includes(kw));
     if (matches.length > 0) {
       return {
         intent,
         confidence: matches.length > 2 ? 'high' : 'medium',
-        matchedKeywords: matches,
         settings: config
       };
     }
@@ -234,139 +355,11 @@ function detectIntent(message) {
   return {
     intent: 'general',
     confidence: 'low',
-    matchedKeywords: [],
     settings: { topK: 5, categories: null }
   };
 }
 
-// ===== RAG RETRIEVAL =====
-function cosineSimilarity(a, b) {
-  if (!a || !b || a.length !== b.length) return 0;
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-async function getEmbedding(text) {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: text.slice(0, 8000)
-    })
-  });
-
-  const data = await response.json();
-
-  if (data.error) {
-    throw new Error(`OpenAI error: ${data.error.message}`);
-  }
-
-  return {
-    embedding: data.data[0].embedding,
-    tokens: data.usage.total_tokens
-  };
-}
-
-async function retrieveContext(query, intent) {
-  try {
-    // Get intent settings
-    const intentResult = detectIntent(query);
-    const { topK, categories } = intentResult.settings;
-
-    // Get query embedding
-    const { embedding: queryEmbedding, tokens } = await getEmbedding(query);
-    const embeddingCost = tokens / 1000000 * 0.02;
-
-    // Fetch chunks from Firebase (filter by category if specified)
-    let chunksQuery = db.collection(RAG_COLLECTION);
-    const snapshot = await chunksQuery.get();
-
-    // Calculate similarities and filter
-    let results = snapshot.docs
-      .filter(doc => {
-        const data = doc.data();
-        // Must have embedding
-        if (!data.embedding) return false;
-        // Filter by category if specified
-        if (categories && !categories.includes(data.category)) return false;
-        return true;
-      })
-      .map(doc => {
-        const data = doc.data();
-        const similarity = cosineSimilarity(queryEmbedding, data.embedding);
-        return {
-          id: doc.id,
-          title: data.title,
-          category: data.category,
-          content: data.content,
-          metadata: data.metadata,
-          similarity,
-          tokenEstimate: data.tokenEstimate
-        };
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, topK);
-
-    // If no good results, fall back to all categories
-    if (results.length === 0 && categories) {
-      results = snapshot.docs
-        .filter(doc => doc.data().embedding)
-        .map(doc => {
-          const data = doc.data();
-          const similarity = cosineSimilarity(queryEmbedding, data.embedding);
-          return {
-            id: doc.id,
-            title: data.title,
-            category: data.category,
-            content: data.content,
-            metadata: data.metadata,
-            similarity,
-            tokenEstimate: data.tokenEstimate
-          };
-        })
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, topK);
-    }
-
-    return {
-      chunks: results,
-      embeddingCost,
-      queryTokens: tokens
-    };
-
-  } catch (error) {
-    console.error('RAG retrieval error:', error);
-    // Return minimal fallback
-    return {
-      chunks: [{
-        id: 'fallback',
-        title: 'Summary',
-        category: 'bio',
-        content: 'Charlton Smith is a software engineer with 7+ years experience, building AI-powered applications in Seattle. Portfolio: azoni.ai. Email: charltonuw@gmail.com.',
-        similarity: 0
-      }],
-      embeddingCost: 0,
-      queryTokens: 0
-    };
-  }
-}
-
-// ===== SYSTEM PROMPT BUILDER =====
-function buildSystemPrompt(mode, intentResult, chunks, messageCount) {
+function buildRAGSystemPrompt(mode, intent, chunks, messageCount) {
   const tones = {
     professional: 'Be professional and concise. Highlight relevant qualifications clearly.',
     friendly: 'Be warm and approachable while remaining informative.',
@@ -374,14 +367,10 @@ function buildSystemPrompt(mode, intentResult, chunks, messageCount) {
     funny: 'Add humor and personality while still being helpful and accurate.'
   };
 
-  // Format retrieved chunks into context
   const contextBlocks = chunks.map(c => {
     const similarityNote = c.similarity > 0 ? ` [relevance: ${(c.similarity * 100).toFixed(0)}%]` : '';
     return `### ${c.title} (${c.category})${similarityNote}\n${c.content}`;
   }).join('\n\n');
-
-  // Calculate total context tokens
-  const contextTokens = chunks.reduce((sum, c) => sum + (c.tokenEstimate || 0), 0);
 
   let prompt = `You are Azoni-GPT, an AI assistant representing Charlton Smith, a software engineer based in Seattle. Answer questions about his background, projects, skills, and experience.
 
@@ -389,60 +378,100 @@ TONE: ${tones[mode] || tones.professional}
 
 RULES:
 1. Use ONLY the information in CONTEXT below. Do not invent or assume details.
-2. If the context doesn't have the answer, say so honestly ("I don't have that specific information").
+2. If the context doesn't have the answer, say so honestly.
 3. Refer to Charlton in third person unless asked to roleplay.
 4. Be concise but thorough. Use bullet points for lists.
 5. Include specific numbers, dates, project names, and URLs when available.
-6. For project questions, always mention the live URL if available.
 
-DETECTED INTENT: ${intentResult.intent} (confidence: ${intentResult.confidence})
-CONTEXT TOKENS: ~${contextTokens}
+DETECTED INTENT: ${intent.intent} (confidence: ${intent.confidence})
 
 ---
 CONTEXT:
 ${contextBlocks}
 ---
-
 `;
 
-  // Add intent-specific instructions
-  if (intentResult.intent === 'job_analysis') {
+  if (intent.intent === 'job_analysis') {
     prompt += `
 JOB DESCRIPTION ANALYSIS MODE:
-The user has provided a job description. Provide a detailed fit analysis:
-
-1. **Matching Requirements** - List specific requirements from the JD that Charlton meets, with evidence from his experience (project names, metrics, technologies)
-
-2. **Strong Points** - Highlight his unique strengths relevant to this role:
-   - Ships fast (6+ production apps in a year)
-   - Full-stack AI expertise (RAG, embeddings, LLM integration)
-   - Scale experience (2,500 bids/min across 50 machines)
-   - Internal tools impact (80% workload reduction at T-Mobile)
-
-3. **Potential Gaps** - Be honest about areas where he has less experience or the JD asks for something not in his background
-
-4. **Fit Assessment** - Conclude with one of:
-   - "Strong Fit" (>80% requirements match)
-   - "Good Fit" (60-80% match)
-   - "Moderate Fit" (40-60% match)
-   - Brief reasoning for the rating
-
-Be specific and use evidence from the context.
+Provide a detailed fit analysis:
+1. **Matching Requirements** - Requirements Charlton meets with evidence
+2. **Strong Points** - His unique strengths for this role
+3. **Potential Gaps** - Honestly note areas with less experience
+4. **Fit Assessment** - Strong/Good/Moderate Fit with reasoning
 `;
   }
 
-  // Conversation awareness
   if (messageCount > 2) {
-    prompt += `\nThis is message ${messageCount} in the conversation. Build on previous context naturally without repeating information already discussed.`;
+    prompt += `\nThis is message ${messageCount}. Build on previous context naturally.`;
   }
 
   return prompt;
 }
 
+// ===== STATIC FALLBACK PROMPT =====
+function buildStaticSystemPrompt(mode) {
+  const toneInstructions = {
+    professional: 'Be professional, concise, and highlight relevant qualifications.',
+    friendly: 'Be warm and approachable while remaining informative.',
+    casual: 'Be relaxed and conversational, like talking to a friend.',
+    funny: 'Add humor and wit while still being helpful and informative.'
+  };
+
+  return `You are Azoni-GPT, an AI assistant that represents Charlton Smith, a software engineer. Your job is to answer questions about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton unless asked to roleplay as him.
+
+TONE: ${toneInstructions[mode] || toneInstructions.professional}
+
+CHARLTON'S PROFILE:
+- Name: Charlton Smith
+- Location: Seattle, WA
+- Education: M.S. Software Engineering (Colorado Technical University, 2021), B.S. Computer Science (University of Washington Tacoma, 2017, Graduated with Honors)
+- Experience: 7+ years as a software engineer
+
+CURRENT FOCUS:
+- LLM agents and AI-powered applications
+- Tools for web3, crypto, and fintech
+- Full-stack development with React and FastAPI
+
+SKILLS:
+Languages: Python, JavaScript, Java, SQL, C#
+AI/ML: OpenAI APIs (GPT-4), Claude API, LLM Agents, RAG, LangChain, Prompt Engineering
+Frontend: React, Vite, HTML, CSS, Mobile-First Responsive Design
+Backend: Node.js, FastAPI, Django, REST APIs, Microservices
+Cloud: AWS (Lambda, EC2, S3), Docker, CI/CD, Netlify, Render
+Databases: PostgreSQL, MongoDB, Redis, Firebase, SQLite
+
+WORK EXPERIENCE:
+- Senior Software Engineer at Capital One (Nov 2022 - Nov 2023): Led automated testing pipelines using AWS Lambda, S3, CloudWatch. Built Python microservices. Mentored junior engineers.
+- Software Engineer II at T-Mobile (Jun 2018 - Apr 2022): Built automation platform reducing workload by 80%. Designed Python/Django backend with microservices. Led Angular frontend development.
+- Computer Science Instructor at Nucamp (2018): Taught full-stack development to career-transition students.
+- Co-founder at OLI Fitness (2016-2018): Built computer vision fitness tracking with Kinect SDK. Published at ACM CHI 2017.
+
+CURRENT PROJECTS:
+- EmbedRoute: Unified embedding API gateway (Next.js, Supabase, Vercel)
+- Old Ways Today: Full-stack AI chatbot helping families find non-toxic products.
+- Row Crew: AI fitness app using Claude's multimodal API to extract workout metrics from photos.
+- Bench Only: AI strength training PWA with GPT-4o-mini coach.
+- Dustbunny (2021-2022): NFT bidding system across 50 machines, 2,500+ requests/minute.
+- azoni.ai: This portfolio with AI assistant.
+
+NOTABLE ACHIEVEMENTS:
+- Published extended abstract at ACM CHI 2017 on computer vision for fitness
+- 1st Place at T-Mobile Big Data Hackathon
+- Co-founded OLI Fitness startup, regional finalist at Princeton Tiger Launch
+- Head Organizer, Global AI Hackathon Seattle 2017
+
+FOR RECRUITERS:
+If someone pastes a job description, analyze how Charlton's experience matches the requirements and make a compelling case for why he'd be a good fit.
+
+Keep responses concise but informative. If you don't know something specific about Charlton, say so rather than making things up.`;
+}
+
 // ===== LOGGING =====
 async function logChat(data) {
+  if (!db) return;
   try {
-    await db.collection(CHAT_LOGS_COLLECTION).add({
+    await db.collection('chat_logs').add({
       ...data,
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });

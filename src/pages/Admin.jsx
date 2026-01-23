@@ -10,6 +10,7 @@ import {
   doc, 
   updateDoc, 
   deleteDoc,
+  addDoc,
   arrayUnion,
   Timestamp,
   getDoc,
@@ -95,6 +96,12 @@ const Admin = () => {
               💬 Comments
             </button>
             <button 
+              className={`admin-main-tab ${activeTab === 'blog' ? 'active' : ''}`}
+              onClick={() => setActiveTab('blog')}
+            >
+              ✍️ Blog
+            </button>
+            <button 
               className={`admin-main-tab ${activeTab === 'rag' ? 'active' : ''}`}
               onClick={() => setActiveTab('rag')}
             >
@@ -104,10 +111,356 @@ const Admin = () => {
 
           {activeTab === 'usage' && <UsageTab />}
           {activeTab === 'comments' && <CommentsTab />}
+          {activeTab === 'blog' && <BlogTab />}
           {activeTab === 'rag' && <RAGTab />}
         </div>
       </section>
     </Layout>
+  );
+};
+
+// ============ BLOG TAB ============
+const BlogTab = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingPost, setEditingPost] = useState(null);
+  const [showEditor, setShowEditor] = useState(false);
+
+  const emptyPost = {
+    title: '',
+    slug: '',
+    excerpt: '',
+    content: '',
+    coverImage: '',
+    tags: [],
+    relatedProject: '',
+    published: false
+  };
+
+  const [formData, setFormData] = useState(emptyPost);
+  const [tagInput, setTagInput] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'blogPosts'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const blogPosts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPosts(blogPosts);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const generateSlug = (title) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleTitleChange = (e) => {
+    const title = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      title,
+      slug: editingPost ? prev.slug : generateSlug(title)
+    }));
+  };
+
+  const insertImageMarkdown = () => {
+    const url = prompt('Paste image URL:');
+    if (url) {
+      const alt = prompt('Image description (optional):') || 'image';
+      const imageMarkdown = `\n\n![${alt}](${url})\n\n`;
+      setFormData(prev => ({ ...prev, content: prev.content + imageMarkdown }));
+    }
+  };
+
+  const addTag = () => {
+    const tag = tagInput.trim().toLowerCase();
+    if (tag && !formData.tags.includes(tag)) {
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }));
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const savePost = async () => {
+    if (!formData.title || !formData.slug) {
+      alert('Title and slug are required');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const postData = {
+        ...formData,
+        updatedAt: Timestamp.now()
+      };
+
+      if (formData.published && !editingPost?.publishedAt) {
+        postData.publishedAt = Timestamp.now();
+      }
+
+      if (editingPost) {
+        await updateDoc(doc(db, 'blogPosts', editingPost.id), postData);
+      } else {
+        postData.createdAt = Timestamp.now();
+        await addDoc(collection(db, 'blogPosts'), postData);
+      }
+
+      setShowEditor(false);
+      setEditingPost(null);
+      setFormData(emptyPost);
+    } catch (error) {
+      console.error('Error saving post:', error);
+      alert('Failed to save post');
+    }
+    setSaving(false);
+  };
+
+  const editPost = (post) => {
+    setEditingPost(post);
+    setFormData({
+      title: post.title || '',
+      slug: post.slug || '',
+      excerpt: post.excerpt || '',
+      content: post.content || '',
+      coverImage: post.coverImage || '',
+      tags: post.tags || [],
+      relatedProject: post.relatedProject || '',
+      published: post.published || false
+    });
+    setShowEditor(true);
+  };
+
+  const deletePost = async (post) => {
+    if (!window.confirm(`Delete "${post.title}"?`)) return;
+    await deleteDoc(doc(db, 'blogPosts', post.id));
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp?.toDate) return 'N/A';
+    return timestamp.toDate().toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+  };
+
+  if (showEditor) {
+    return (
+      <div className="blog-editor">
+        <div className="blog-editor-header">
+          <h2>{editingPost ? 'Edit Post' : 'New Post'}</h2>
+          <button className="btn btn-secondary" onClick={() => { setShowEditor(false); setEditingPost(null); setFormData(emptyPost); }}>
+            Cancel
+          </button>
+        </div>
+
+        <div className="blog-form">
+          <div className="form-group">
+            <label>Title *</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={handleTitleChange}
+              placeholder="Post title"
+              className="comment-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Slug *</label>
+            <input
+              type="text"
+              value={formData.slug}
+              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+              placeholder="url-friendly-slug"
+              className="comment-input"
+            />
+            <small>URL: /blog/{formData.slug || 'your-slug'}</small>
+          </div>
+
+          <div className="form-group">
+            <label>Excerpt</label>
+            <textarea
+              value={formData.excerpt}
+              onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
+              placeholder="Brief description for cards and SEO..."
+              className="comment-textarea"
+              rows={2}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Cover Image URL</label>
+            <input
+              type="text"
+              value={formData.coverImage}
+              onChange={(e) => setFormData(prev => ({ ...prev, coverImage: e.target.value }))}
+              placeholder="https://example.com/image.jpg"
+              className="comment-input"
+            />
+            {formData.coverImage && (
+              <div className="cover-preview">
+                <img src={formData.coverImage} alt="Cover preview" />
+              </div>
+            )}
+            <small>Tip: Upload to GitHub issue, Cloudinary, or imgbb and paste URL</small>
+          </div>
+
+          <div className="form-group">
+            <label>Content (Markdown)</label>
+            <div className="content-toolbar">
+              <button 
+                type="button" 
+                className="btn btn-secondary btn-sm"
+                onClick={insertImageMarkdown}
+              >
+                📷 Insert Image
+              </button>
+            </div>
+            <textarea
+              value={formData.content}
+              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+              placeholder="Write your post in markdown...
+
+# Heading 1
+## Heading 2
+
+**bold** and *italic*
+
+- bullet list
+- item 2
+
+`inline code`
+
+```javascript
+code block
+```
+
+[link text](url)
+
+![image alt](image-url)"
+              className="comment-textarea content-editor"
+              rows={20}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Tags</label>
+            <div className="tags-input-area">
+              <div className="tags-list">
+                {formData.tags.map(tag => (
+                  <span key={tag} className="blog-tag editable" onClick={() => removeTag(tag)}>
+                    {tag} ×
+                  </span>
+                ))}
+              </div>
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  placeholder="Add tag..."
+                  className="comment-input"
+                />
+                <button type="button" className="btn btn-secondary btn-sm" onClick={addTag}>Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Related Project (optional)</label>
+            <input
+              type="text"
+              value={formData.relatedProject}
+              onChange={(e) => setFormData(prev => ({ ...prev, relatedProject: e.target.value }))}
+              placeholder="project-id (e.g., row-crew)"
+              className="comment-input"
+            />
+          </div>
+
+          <div className="form-group checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={formData.published}
+                onChange={(e) => setFormData(prev => ({ ...prev, published: e.target.checked }))}
+              />
+              Published
+            </label>
+          </div>
+
+          <div className="form-actions">
+            <button 
+              className="btn btn-primary" 
+              onClick={savePost}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : (editingPost ? 'Update Post' : 'Create Post')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="blog-tab">
+      <div className="blog-tab-header">
+        <h3>Blog Posts ({posts.length})</h3>
+        <button className="btn btn-primary" onClick={() => setShowEditor(true)}>
+          + New Post
+        </button>
+      </div>
+
+      {loading ? (
+        <p>Loading...</p>
+      ) : posts.length === 0 ? (
+        <p className="comments-empty">No blog posts yet.</p>
+      ) : (
+        <div className="blog-posts-list">
+          {posts.map(post => (
+            <div key={post.id} className={`blog-post-item ${post.published ? 'published' : 'draft'}`}>
+              <div className="blog-post-info">
+                <h4>{post.title}</h4>
+                <div className="blog-post-meta-admin">
+                  <span className={`status-badge ${post.published ? 'published' : 'draft'}`}>
+                    {post.published ? 'Published' : 'Draft'}
+                  </span>
+                  <span>/blog/{post.slug}</span>
+                  <span>{formatDate(post.createdAt)}</span>
+                </div>
+              </div>
+              <div className="blog-post-actions">
+                {post.published && (
+                  <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
+                    View
+                  </a>
+                )}
+                <button className="btn btn-secondary btn-sm" onClick={() => editPost(post)}>Edit</button>
+                <button className="btn btn-danger btn-sm" onClick={() => deletePost(post)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -135,7 +488,6 @@ const UsageTab = () => {
     todayCost: 0
   });
 
-  // Load current model setting
   useEffect(() => {
     const fetchModel = async () => {
       try {
@@ -150,7 +502,6 @@ const UsageTab = () => {
     fetchModel();
   }, []);
 
-  // Save model setting
   const saveModel = async (model) => {
     setSavingModel(true);
     try {
@@ -218,7 +569,6 @@ const UsageTab = () => {
     });
   };
 
-  // Group logs by session
   const groupedSessions = chatLogs.reduce((acc, log) => {
     const sessionId = log.sessionId || 'unknown';
     if (!acc[sessionId]) {
@@ -234,8 +584,6 @@ const UsageTab = () => {
     acc[sessionId].logs.push(log);
     acc[sessionId].totalTokens += log.usage?.total_tokens || 0;
     acc[sessionId].totalCost += parseFloat(log.usage?.totalCost || 0);
-    // Use the most recent model for the session
-    if (log.model) acc[sessionId].model = log.model;
     return acc;
   }, {});
 
@@ -254,18 +602,17 @@ const UsageTab = () => {
     });
   };
 
-  if (loading) return <p>Loading usage data...</p>;
+  if (loading) return <p>Loading chat logs...</p>;
 
   return (
     <div className="usage-tab">
-      {/* Model Selector */}
-      <div className="model-selector-card">
-        <h3>Chat Model</h3>
-        <div className="model-options">
-          {AVAILABLE_MODELS.map(m => (
+      <div className="model-selector">
+        <h3>Active Model</h3>
+        <div className="model-grid">
+          {AVAILABLE_MODELS.map((m) => (
             <button
               key={m.id}
-              className={`model-option ${selectedModel === m.id ? 'active' : ''}`}
+              className={`model-card ${selectedModel === m.id ? 'active' : ''}`}
               onClick={() => saveModel(m.id)}
               disabled={savingModel}
             >
@@ -497,6 +844,7 @@ const CommentsTab = () => {
 const RAG_CATEGORIES = ['bio', 'skill', 'project', 'experience', 'faq'];
 
 const EXAMPLE_QUERIES = [
+  { label: 'Overview', query: 'Tell me about Charlton Smith' },
   { label: 'Projects', query: 'What projects has Charlton built?' },
   { label: 'AI Skills', query: 'What AI and machine learning experience does he have?' },
   { label: 'Contact', query: 'How can I reach Charlton?' },
@@ -512,7 +860,6 @@ const RAGTab = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // API helper
   const apiCall = useCallback(async (endpoint, options = {}) => {
     const response = await fetch(`/.netlify/functions/rag-admin${endpoint}`, {
       ...options,
@@ -524,13 +871,12 @@ const RAGTab = () => {
 
     if (!response.ok) {
       const err = await response.json();
-      throw new Error(err.error || 'API error');
+      throw new Error(err.error || err.details || 'API error');
     }
 
     return response.json();
   }, []);
 
-  // Load chunks
   const loadChunks = useCallback(async () => {
     try {
       setLoading(true);
@@ -544,7 +890,6 @@ const RAGTab = () => {
     }
   }, [apiCall]);
 
-  // Load stats
   const loadStats = useCallback(async () => {
     try {
       const data = await apiCall('/stats');
@@ -564,7 +909,7 @@ const RAGTab = () => {
     try {
       setLoading(true);
       const result = await apiCall('/embed-all', { method: 'POST' });
-      alert(`Embedded ${result.success}/${result.total} chunks. Cost: $${result.totalCost}`);
+      alert(`Embedded ${result.success} chunks. Failed: ${result.failed}`);
       loadChunks();
       loadStats();
     } catch (err) {
@@ -610,7 +955,10 @@ const RAGTab = () => {
 
       {error && (
         <div className="rag-error">
-          {error}
+          <strong>RAG System Error:</strong> {error}
+          <p style={{ fontSize: '0.85rem', marginTop: '8px' }}>
+            To enable RAG, add Firebase Admin credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) to Netlify environment variables.
+          </p>
         </div>
       )}
 
@@ -999,8 +1347,8 @@ const RAGTestPanel = ({ apiCall }) => {
           {intentResult.matchedKeywords?.length > 0 && (
             <p><strong>Keywords:</strong> {intentResult.matchedKeywords.join(', ')}</p>
           )}
-          <p><strong>Recommended:</strong> Top {intentResult.recommendedRetrieval?.topK}, 
-            Categories: {intentResult.recommendedRetrieval?.categories?.join(', ') || 'All'}</p>
+          <p><strong>Recommended:</strong> Top {intentResult.settings?.topK || 5}, 
+            Categories: {intentResult.settings?.categories?.join(', ') || 'All'}</p>
         </div>
       )}
 
@@ -1008,8 +1356,8 @@ const RAGTestPanel = ({ apiCall }) => {
         <div className="rag-retrieval-results">
           <h4>Retrieval Results</h4>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            Searched {results.stats.chunksSearched} chunks in {results.stats.totalLatencyMs}ms • 
-            Query cost: ${results.stats.queryCost}
+            Searched {results.chunksSearched} chunks • 
+            Embedding tokens: {results.embeddingTokens}
           </p>
 
           {results.results.map((r, i) => (
@@ -1072,15 +1420,15 @@ const RAGStatsPanel = ({ stats, chunks }) => {
           <div className="stat-label">Total Chunks</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.chunksWithEmbeddings}</div>
+          <div className="stat-value">{stats.embeddedChunks}</div>
           <div className="stat-label">Embedded</div>
         </div>
-        <div className="stat-card" style={stats.chunksMissingEmbeddings > 0 ? { borderColor: '#f59e0b' } : {}}>
-          <div className="stat-value">{stats.chunksMissingEmbeddings}</div>
+        <div className="stat-card" style={stats.missingEmbeddings > 0 ? { borderColor: '#f59e0b' } : {}}>
+          <div className="stat-value">{stats.missingEmbeddings}</div>
           <div className="stat-label">Missing</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.totalTokens.toLocaleString()}</div>
+          <div className="stat-value">{stats.totalTokens?.toLocaleString() || 0}</div>
           <div className="stat-label">Total Tokens</div>
         </div>
         <div className="stat-card">
@@ -1120,7 +1468,7 @@ const RAGStatsPanel = ({ stats, chunks }) => {
         <tbody>
           <tr>
             <td>Embed all chunks (one-time)</td>
-            <td>${stats.estimatedEmbeddingCost}</td>
+            <td>${stats.costs?.embedding || '0.0001'}</td>
           </tr>
           <tr>
             <td>Per query embedding</td>
@@ -1132,14 +1480,14 @@ const RAGStatsPanel = ({ stats, chunks }) => {
           </tr>
           <tr style={{ fontWeight: 'bold', backgroundColor: 'var(--bg-secondary)' }}>
             <td>Total per chat message</td>
-            <td>{stats.estimatedQueryCost}</td>
+            <td>~${stats.costs?.queryEstimate || '0.0005'}</td>
           </tr>
         </tbody>
       </table>
 
-      {stats.chunksMissingEmbeddings > 0 && (
+      {stats.missingEmbeddings > 0 && (
         <div className="rag-warning">
-          ⚠️ {stats.chunksMissingEmbeddings} chunks missing embeddings. Click "Re-embed All" to fix.
+          ⚠️ {stats.missingEmbeddings} chunks missing embeddings. Click "Re-embed All" to fix.
         </div>
       )}
     </div>
