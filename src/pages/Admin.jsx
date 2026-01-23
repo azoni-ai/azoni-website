@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { db } from '../config/firebase';
@@ -10,11 +10,12 @@ import {
   doc, 
   updateDoc, 
   deleteDoc,
-  addDoc,
   arrayUnion,
   Timestamp,
   getDoc,
-  setDoc
+  setDoc,
+  getDocs,
+  limit
 } from 'firebase/firestore';
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD;
@@ -96,364 +97,19 @@ const Admin = () => {
               💬 Comments
             </button>
             <button 
-              className={`admin-main-tab ${activeTab === 'blog' ? 'active' : ''}`}
-              onClick={() => setActiveTab('blog')}
+              className={`admin-main-tab ${activeTab === 'rag' ? 'active' : ''}`}
+              onClick={() => setActiveTab('rag')}
             >
-              ✍️ Blog
+              🧠 RAG
             </button>
           </div>
 
           {activeTab === 'usage' && <UsageTab />}
           {activeTab === 'comments' && <CommentsTab />}
-          {activeTab === 'blog' && <BlogTab />}
+          {activeTab === 'rag' && <RAGTab />}
         </div>
       </section>
     </Layout>
-  );
-};
-
-// ============ BLOG TAB ============
-const BlogTab = () => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editingPost, setEditingPost] = useState(null);
-  const [showEditor, setShowEditor] = useState(false);
-
-  const emptyPost = {
-    title: '',
-    slug: '',
-    excerpt: '',
-    content: '',
-    coverImage: '',
-    tags: [],
-    relatedProject: '',
-    published: false
-  };
-
-  const [formData, setFormData] = useState(emptyPost);
-  const [tagInput, setTagInput] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const q = query(
-      collection(db, 'blogPosts'),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const blogPosts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPosts(blogPosts);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const generateSlug = (title) => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-  };
-
-  const handleTitleChange = (e) => {
-    const title = e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      title,
-      slug: editingPost ? prev.slug : generateSlug(title)
-    }));
-  };
-
-  const insertImageMarkdown = () => {
-    const url = prompt('Paste image URL:');
-    if (url) {
-      const alt = prompt('Image description (optional):') || 'image';
-      const imageMarkdown = `\n\n![${alt}](${url})\n\n`;
-      setFormData(prev => ({ ...prev, content: prev.content + imageMarkdown }));
-    }
-  };
-
-  const addTag = () => {
-    const tag = tagInput.trim().toLowerCase();
-    if (tag && !formData.tags.includes(tag)) {
-      setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }));
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
-  };
-
-  const savePost = async () => {
-    if (!formData.title || !formData.slug) {
-      alert('Title and slug are required');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const postData = {
-        ...formData,
-        updatedAt: Timestamp.now()
-      };
-
-      if (formData.published && !editingPost?.publishedAt) {
-        postData.publishedAt = Timestamp.now();
-      }
-
-      if (editingPost) {
-        await updateDoc(doc(db, 'blogPosts', editingPost.id), postData);
-      } else {
-        postData.createdAt = Timestamp.now();
-        await addDoc(collection(db, 'blogPosts'), postData);
-      }
-
-      setShowEditor(false);
-      setEditingPost(null);
-      setFormData(emptyPost);
-    } catch (error) {
-      console.error('Error saving post:', error);
-      alert('Failed to save post');
-    }
-    setSaving(false);
-  };
-
-  const editPost = (post) => {
-    setEditingPost(post);
-    setFormData({
-      title: post.title || '',
-      slug: post.slug || '',
-      excerpt: post.excerpt || '',
-      content: post.content || '',
-      coverImage: post.coverImage || '',
-      tags: post.tags || [],
-      relatedProject: post.relatedProject || '',
-      published: post.published || false
-    });
-    setShowEditor(true);
-  };
-
-  const deletePost = async (post) => {
-    if (!window.confirm(`Delete "${post.title}"?`)) return;
-    await deleteDoc(doc(db, 'blogPosts', post.id));
-  };
-
-  const formatDate = (timestamp) => {
-    if (!timestamp?.toDate) return 'N/A';
-    return timestamp.toDate().toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric'
-    });
-  };
-
-  if (showEditor) {
-    return (
-      <div className="blog-editor">
-        <div className="blog-editor-header">
-          <h2>{editingPost ? 'Edit Post' : 'New Post'}</h2>
-          <button className="btn btn-secondary" onClick={() => { setShowEditor(false); setEditingPost(null); setFormData(emptyPost); }}>
-            Cancel
-          </button>
-        </div>
-
-        <div className="blog-form">
-          <div className="form-group">
-            <label>Title *</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={handleTitleChange}
-              placeholder="Post title"
-              className="comment-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Slug *</label>
-            <input
-              type="text"
-              value={formData.slug}
-              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-              placeholder="url-friendly-slug"
-              className="comment-input"
-            />
-            <small>URL: /blog/{formData.slug || 'your-slug'}</small>
-          </div>
-
-          <div className="form-group">
-            <label>Excerpt</label>
-            <textarea
-              value={formData.excerpt}
-              onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-              placeholder="Brief description for cards and SEO..."
-              className="comment-textarea"
-              rows={2}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Cover Image URL</label>
-            <input
-              type="text"
-              value={formData.coverImage}
-              onChange={(e) => setFormData(prev => ({ ...prev, coverImage: e.target.value }))}
-              placeholder="https://example.com/image.jpg"
-              className="comment-input"
-            />
-            {formData.coverImage && (
-              <div className="cover-preview">
-                <img src={formData.coverImage} alt="Cover preview" />
-              </div>
-            )}
-            <small>Tip: Upload to GitHub issue, Cloudinary, or imgbb and paste URL</small>
-          </div>
-
-          <div className="form-group">
-            <label>Content (Markdown)</label>
-            <div className="content-toolbar">
-              <button 
-                type="button" 
-                className="btn btn-secondary btn-sm"
-                onClick={insertImageMarkdown}
-              >
-                📷 Insert Image
-              </button>
-            </div>
-            <textarea
-              value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-              placeholder="Write your post in markdown...
-
-# Heading 1
-## Heading 2
-
-**bold** and *italic*
-
-- bullet list
-- item 2
-
-`inline code`
-
-```javascript
-code block
-```
-
-[link text](url)
-
-![image alt](image-url)"
-              className="comment-textarea content-editor"
-              rows={20}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Tags</label>
-            <div className="tags-input-area">
-              <div className="tags-list">
-                {formData.tags.map(tag => (
-                  <span key={tag} className="blog-tag editable" onClick={() => removeTag(tag)}>
-                    {tag} ×
-                  </span>
-                ))}
-              </div>
-              <div className="tag-input-row">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  placeholder="Add tag..."
-                  className="comment-input"
-                />
-                <button type="button" className="btn btn-secondary btn-sm" onClick={addTag}>Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Related Project (optional)</label>
-            <input
-              type="text"
-              value={formData.relatedProject}
-              onChange={(e) => setFormData(prev => ({ ...prev, relatedProject: e.target.value }))}
-              placeholder="project-id (e.g., row-crew)"
-              className="comment-input"
-            />
-          </div>
-
-          <div className="form-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={formData.published}
-                onChange={(e) => setFormData(prev => ({ ...prev, published: e.target.checked }))}
-              />
-              Published
-            </label>
-          </div>
-
-          <div className="form-actions">
-            <button 
-              className="btn btn-primary" 
-              onClick={savePost}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : (editingPost ? 'Update Post' : 'Create Post')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="blog-tab">
-      <div className="blog-tab-header">
-        <h3>Blog Posts ({posts.length})</h3>
-        <button className="btn btn-primary" onClick={() => setShowEditor(true)}>
-          + New Post
-        </button>
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : posts.length === 0 ? (
-        <p className="comments-empty">No blog posts yet.</p>
-      ) : (
-        <div className="blog-posts-list">
-          {posts.map(post => (
-            <div key={post.id} className={`blog-post-item ${post.published ? 'published' : 'draft'}`}>
-              <div className="blog-post-info">
-                <h4>{post.title}</h4>
-                <div className="blog-post-meta-admin">
-                  <span className={`status-badge ${post.published ? 'published' : 'draft'}`}>
-                    {post.published ? 'Published' : 'Draft'}
-                  </span>
-                  <span>/blog/{post.slug}</span>
-                  <span>{formatDate(post.createdAt)}</span>
-                </div>
-              </div>
-              <div className="blog-post-actions">
-                {post.published && (
-                  <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
-                    View
-                  </a>
-                )}
-                <button className="btn btn-secondary btn-sm" onClick={() => editPost(post)}>Edit</button>
-                <button className="btn btn-danger btn-sm" onClick={() => deletePost(post)}>Delete</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
   );
 };
 
@@ -481,6 +137,7 @@ const UsageTab = () => {
     todayCost: 0
   });
 
+  // Load current model setting
   useEffect(() => {
     const fetchModel = async () => {
       try {
@@ -495,6 +152,7 @@ const UsageTab = () => {
     fetchModel();
   }, []);
 
+  // Save model setting
   const saveModel = async (model) => {
     setSavingModel(true);
     try {
@@ -562,6 +220,7 @@ const UsageTab = () => {
     });
   };
 
+  // Group logs by session
   const groupedSessions = chatLogs.reduce((acc, log) => {
     const sessionId = log.sessionId || 'unknown';
     if (!acc[sessionId]) {
@@ -577,6 +236,8 @@ const UsageTab = () => {
     acc[sessionId].logs.push(log);
     acc[sessionId].totalTokens += log.usage?.total_tokens || 0;
     acc[sessionId].totalCost += parseFloat(log.usage?.totalCost || 0);
+    // Use the most recent model for the session
+    if (log.model) acc[sessionId].model = log.model;
     return acc;
   }, {});
 
@@ -595,17 +256,18 @@ const UsageTab = () => {
     });
   };
 
-  if (loading) return <p>Loading chat logs...</p>;
+  if (loading) return <p>Loading usage data...</p>;
 
   return (
     <div className="usage-tab">
-      <div className="model-selector">
-        <h3>Active Model</h3>
-        <div className="model-grid">
-          {AVAILABLE_MODELS.map((m) => (
+      {/* Model Selector */}
+      <div className="model-selector-card">
+        <h3>Chat Model</h3>
+        <div className="model-options">
+          {AVAILABLE_MODELS.map(m => (
             <button
               key={m.id}
-              className={`model-card ${selectedModel === m.id ? 'active' : ''}`}
+              className={`model-option ${selectedModel === m.id ? 'active' : ''}`}
               onClick={() => saveModel(m.id)}
               disabled={savingModel}
             >
@@ -829,6 +491,659 @@ const CommentsTab = () => {
           ))
         )}
       </div>
+    </div>
+  );
+};
+
+// ============ RAG TAB ============
+const RAG_CATEGORIES = ['bio', 'skill', 'project', 'experience', 'faq'];
+
+const EXAMPLE_QUERIES = [
+  { label: 'Projects', query: 'What projects has Charlton built?' },
+  { label: 'AI Skills', query: 'What AI and machine learning experience does he have?' },
+  { label: 'Contact', query: 'How can I reach Charlton?' },
+  { label: 'T-Mobile', query: 'Tell me about his work at T-Mobile' },
+  { label: 'Row Crew', query: 'What is Row Crew?' },
+  { label: 'Strengths', query: 'Why should we hire him?' },
+];
+
+const RAGTab = () => {
+  const [subTab, setSubTab] = useState('chunks');
+  const [chunks, setChunks] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // API helper
+  const apiCall = useCallback(async (endpoint, options = {}) => {
+    const response = await fetch(`/.netlify/functions/rag-admin${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'API error');
+    }
+
+    return response.json();
+  }, []);
+
+  // Load chunks
+  const loadChunks = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await apiCall('/chunks');
+      setChunks(data.chunks);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiCall]);
+
+  // Load stats
+  const loadStats = useCallback(async () => {
+    try {
+      const data = await apiCall('/stats');
+      setStats(data);
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+    }
+  }, [apiCall]);
+
+  useEffect(() => {
+    loadChunks();
+    loadStats();
+  }, [loadChunks, loadStats]);
+
+  const handleEmbedAll = async () => {
+    if (!window.confirm('Re-embed all chunks? This will cost ~$0.001.')) return;
+    try {
+      setLoading(true);
+      const result = await apiCall('/embed-all', { method: 'POST' });
+      alert(`Embedded ${result.success}/${result.total} chunks. Cost: $${result.totalCost}`);
+      loadChunks();
+      loadStats();
+    } catch (err) {
+      alert(`Failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSeedDefaults = async () => {
+    if (!window.confirm('Seed default knowledge chunks?')) return;
+    try {
+      setLoading(true);
+      const result = await apiCall('/seed-defaults', { method: 'POST' });
+      alert(`Created ${result.created} chunks. Skipped ${result.skipped}. Errors: ${result.errors}`);
+      loadChunks();
+      loadStats();
+    } catch (err) {
+      alert(`Failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rag-tab">
+      <div className="rag-header">
+        <div className="rag-header-info">
+          <h3>RAG Knowledge Base</h3>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+            Manage embeddings, test retrieval, and monitor performance
+          </p>
+        </div>
+        <div className="rag-header-actions">
+          <button onClick={handleEmbedAll} className="btn btn-secondary btn-sm" disabled={loading}>
+            🔄 Re-embed All
+          </button>
+          <button onClick={handleSeedDefaults} className="btn btn-secondary btn-sm" disabled={loading}>
+            🌱 Seed Defaults
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rag-error">
+          {error}
+        </div>
+      )}
+
+      <div className="admin-tabs" style={{ marginTop: 'var(--space-md)' }}>
+        <button className={`admin-tab ${subTab === 'chunks' ? 'active' : ''}`} onClick={() => setSubTab('chunks')}>
+          📚 Chunks ({chunks.length})
+        </button>
+        <button className={`admin-tab ${subTab === 'test' ? 'active' : ''}`} onClick={() => setSubTab('test')}>
+          🔍 Test
+        </button>
+        <button className={`admin-tab ${subTab === 'stats' ? 'active' : ''}`} onClick={() => setSubTab('stats')}>
+          📊 Stats
+        </button>
+      </div>
+
+      {subTab === 'chunks' && (
+        <RAGChunksPanel 
+          chunks={chunks} 
+          loading={loading} 
+          apiCall={apiCall}
+          onRefresh={() => { loadChunks(); loadStats(); }}
+        />
+      )}
+      {subTab === 'test' && <RAGTestPanel apiCall={apiCall} />}
+      {subTab === 'stats' && <RAGStatsPanel stats={stats} chunks={chunks} />}
+    </div>
+  );
+};
+
+// ============ RAG CHUNKS PANEL ============
+const RAGChunksPanel = ({ chunks, loading, apiCall, onRefresh }) => {
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [expandedId, setExpandedId] = useState(null);
+  const [editingChunk, setEditingChunk] = useState(null);
+  const [reembedding, setReembedding] = useState(null);
+
+  const filteredChunks = useMemo(() => {
+    let result = [...chunks];
+    if (filter !== 'all') {
+      result = result.filter(c => c.category === filter);
+    }
+    if (search) {
+      const lower = search.toLowerCase();
+      result = result.filter(c =>
+        c.title.toLowerCase().includes(lower) ||
+        c.content?.toLowerCase().includes(lower)
+      );
+    }
+    return result;
+  }, [chunks, filter, search]);
+
+  const handleReembed = async (chunkId) => {
+    setReembedding(chunkId);
+    try {
+      const result = await apiCall(`/chunks/${chunkId}/embed`, { method: 'POST' });
+      if (result.success) {
+        alert(`Embedded! Tokens: ${result.tokens}, Cost: $${result.cost}`);
+        onRefresh();
+      } else {
+        alert(`Failed: ${result.error}`);
+      }
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setReembedding(null);
+    }
+  };
+
+  const handleDelete = async (chunkId) => {
+    if (!window.confirm('Delete this chunk?')) return;
+    try {
+      await apiCall(`/chunks/${chunkId}`, { method: 'DELETE' });
+      onRefresh();
+    } catch (err) {
+      alert(`Failed: ${err.message}`);
+    }
+  };
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      bio: '#3b82f6',
+      skill: '#10b981',
+      project: '#8b5cf6',
+      experience: '#f59e0b',
+      faq: '#ec4899'
+    };
+    return colors[category] || '#6b7280';
+  };
+
+  if (loading && chunks.length === 0) {
+    return <p>Loading chunks...</p>;
+  }
+
+  return (
+    <div className="rag-chunks-panel">
+      <div className="rag-filters">
+        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="all">All Categories</option>
+          {RAG_CATEGORIES.map(cat => (
+            <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+          ))}
+        </select>
+        <input
+          type="text"
+          placeholder="Search chunks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ flex: 1 }}
+        />
+        <button onClick={() => setEditingChunk({})} className="btn btn-primary btn-sm">
+          + Add Chunk
+        </button>
+      </div>
+
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 'var(--space-sm) 0' }}>
+        Showing {filteredChunks.length} of {chunks.length} chunks • 
+        {chunks.filter(c => c.embedding?.exists).length} embedded • 
+        ~{chunks.reduce((sum, c) => sum + (c.tokenEstimate || 0), 0).toLocaleString()} tokens
+      </p>
+
+      <div className="rag-chunks-list">
+        {filteredChunks.map(chunk => (
+          <div key={chunk.id} className="rag-chunk-card">
+            <div 
+              className="rag-chunk-header"
+              onClick={() => setExpandedId(expandedId === chunk.id ? null : chunk.id)}
+            >
+              <div className="rag-chunk-title">
+                <span 
+                  className="rag-category-badge"
+                  style={{ backgroundColor: getCategoryColor(chunk.category) }}
+                >
+                  {chunk.category}
+                </span>
+                <strong>{chunk.title}</strong>
+              </div>
+              <div className="rag-chunk-meta">
+                <span>~{chunk.tokenEstimate || 0} tok</span>
+                <span className={chunk.embedding?.exists ? 'rag-embedded' : 'rag-not-embedded'}>
+                  {chunk.embedding?.exists ? '✓' : '⚠'}
+                </span>
+                <span>{expandedId === chunk.id ? '▼' : '▶'}</span>
+              </div>
+            </div>
+
+            {expandedId === chunk.id && (
+              <div className="rag-chunk-details">
+                <pre className="rag-chunk-content">{chunk.content}</pre>
+                <div className="rag-chunk-actions">
+                  <button onClick={() => setEditingChunk(chunk)} className="btn btn-secondary btn-sm">
+                    ✏️ Edit
+                  </button>
+                  <button 
+                    onClick={() => handleReembed(chunk.id)} 
+                    className="btn btn-secondary btn-sm"
+                    disabled={reembedding === chunk.id}
+                  >
+                    {reembedding === chunk.id ? '⏳...' : '🔄 Re-embed'}
+                  </button>
+                  <button onClick={() => handleDelete(chunk.id)} className="btn btn-danger btn-sm">
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {filteredChunks.length === 0 && (
+          <p className="comments-empty">
+            {chunks.length === 0 
+              ? 'No chunks yet. Click "Seed Defaults" to get started.' 
+              : 'No chunks match your filters.'}
+          </p>
+        )}
+      </div>
+
+      {editingChunk && (
+        <RAGChunkEditor 
+          chunk={editingChunk.id ? editingChunk : null}
+          apiCall={apiCall}
+          onClose={() => setEditingChunk(null)}
+          onSave={() => { setEditingChunk(null); onRefresh(); }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ============ RAG CHUNK EDITOR MODAL ============
+const RAGChunkEditor = ({ chunk, apiCall, onClose, onSave }) => {
+  const [form, setForm] = useState({
+    category: chunk?.category || 'bio',
+    title: chunk?.title || '',
+    content: chunk?.content || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.content.trim()) {
+      setError('Title and content are required');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      if (chunk?.id) {
+        await apiCall(`/chunks/${chunk.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(form),
+        });
+      } else {
+        await apiCall('/chunks', {
+          method: 'POST',
+          body: JSON.stringify(form),
+        });
+      }
+      onSave();
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rag-modal-overlay" onClick={onClose}>
+      <div className="rag-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="rag-modal-header">
+          <h3>{chunk?.id ? 'Edit Chunk' : 'New Chunk'}</h3>
+          <button onClick={onClose} className="rag-modal-close">×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          {error && <div className="rag-error">{error}</div>}
+
+          <div className="rag-form-row">
+            <label>Category</label>
+            <select 
+              value={form.category} 
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
+              {RAG_CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rag-form-row">
+            <label>Title</label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="e.g., 'Row Crew' or 'AI Experience'"
+            />
+          </div>
+
+          <div className="rag-form-row">
+            <label>
+              Content
+              <span style={{ float: 'right', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+                ~{Math.ceil(form.content.length / 4)} tokens
+              </span>
+            </label>
+            <textarea
+              value={form.content}
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              placeholder="The content that will be embedded and retrieved..."
+              rows={12}
+            />
+          </div>
+
+          <div className="rag-modal-actions">
+            <button type="button" onClick={onClose} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Saving...' : chunk?.id ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ============ RAG TEST PANEL ============
+const RAGTestPanel = ({ apiCall }) => {
+  const [query, setQuery] = useState('');
+  const [topK, setTopK] = useState(5);
+  const [results, setResults] = useState(null);
+  const [intentResult, setIntentResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const testRetrieval = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    try {
+      const data = await apiCall('/test-retrieval', {
+        method: 'POST',
+        body: JSON.stringify({ query, topK: parseInt(topK) }),
+      });
+      setResults(data);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testIntent = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    try {
+      const data = await apiCall('/test-intent', {
+        method: 'POST',
+        body: JSON.stringify({ query }),
+      });
+      setIntentResult(data);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSimilarityColor = (sim) => {
+    if (sim >= 0.8) return '#10b981';
+    if (sim >= 0.6) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  return (
+    <div className="rag-test-panel">
+      <div className="rag-test-input">
+        <textarea
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Enter a query to test retrieval..."
+          rows={3}
+        />
+        
+        <div className="rag-test-examples">
+          {EXAMPLE_QUERIES.map((ex, i) => (
+            <button key={i} onClick={() => setQuery(ex.query)} className="rag-example-btn">
+              {ex.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="rag-test-options">
+          <label>
+            Top K:
+            <input 
+              type="number" 
+              value={topK} 
+              onChange={(e) => setTopK(e.target.value)}
+              min={1}
+              max={20}
+              style={{ width: '60px', marginLeft: '8px' }}
+            />
+          </label>
+          <button onClick={testRetrieval} className="btn btn-primary btn-sm" disabled={loading || !query.trim()}>
+            🔍 Test Retrieval
+          </button>
+          <button onClick={testIntent} className="btn btn-secondary btn-sm" disabled={loading || !query.trim()}>
+            🎯 Test Intent
+          </button>
+        </div>
+      </div>
+
+      {intentResult && (
+        <div className="rag-intent-result">
+          <h4>Intent Detection</h4>
+          <p>
+            <strong>Intent:</strong> <span className="rag-intent-badge">{intentResult.intent}</span>
+            <span className={`rag-confidence rag-confidence-${intentResult.confidence}`}>
+              {intentResult.confidence}
+            </span>
+          </p>
+          {intentResult.matchedKeywords?.length > 0 && (
+            <p><strong>Keywords:</strong> {intentResult.matchedKeywords.join(', ')}</p>
+          )}
+          <p><strong>Recommended:</strong> Top {intentResult.recommendedRetrieval?.topK}, 
+            Categories: {intentResult.recommendedRetrieval?.categories?.join(', ') || 'All'}</p>
+        </div>
+      )}
+
+      {results && (
+        <div className="rag-retrieval-results">
+          <h4>Retrieval Results</h4>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            Searched {results.stats.chunksSearched} chunks in {results.stats.totalLatencyMs}ms • 
+            Query cost: ${results.stats.queryCost}
+          </p>
+
+          {results.results.map((r, i) => (
+            <div key={r.id} className="rag-result-card">
+              <div className="rag-result-header">
+                <span className="rag-result-rank">#{i + 1}</span>
+                <span className="rag-category-badge" style={{ backgroundColor: '#6b7280' }}>{r.category}</span>
+                <strong>{r.title}</strong>
+                <span 
+                  className="rag-similarity"
+                  style={{ color: getSimilarityColor(r.similarity) }}
+                >
+                  {(r.similarity * 100).toFixed(1)}%
+                </span>
+              </div>
+              <div className="rag-similarity-bar">
+                <div 
+                  style={{ 
+                    width: `${r.similarity * 100}%`, 
+                    backgroundColor: getSimilarityColor(r.similarity),
+                    height: '4px',
+                    borderRadius: '2px'
+                  }} 
+                />
+              </div>
+              <p className="rag-result-preview">{r.preview}</p>
+            </div>
+          ))}
+
+          {results.results.length === 0 && (
+            <p className="comments-empty">No results matched.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============ RAG STATS PANEL ============
+const RAGStatsPanel = ({ stats, chunks }) => {
+  if (!stats) return <p>Loading stats...</p>;
+
+  const avgTokens = chunks.length > 0 
+    ? Math.round(stats.totalTokens / chunks.length) 
+    : 0;
+
+  const categoryColors = {
+    bio: '#3b82f6',
+    skill: '#10b981',
+    project: '#8b5cf6',
+    experience: '#f59e0b',
+    faq: '#ec4899'
+  };
+
+  return (
+    <div className="rag-stats-panel">
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-value">{stats.totalChunks}</div>
+          <div className="stat-label">Total Chunks</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{stats.chunksWithEmbeddings}</div>
+          <div className="stat-label">Embedded</div>
+        </div>
+        <div className="stat-card" style={stats.chunksMissingEmbeddings > 0 ? { borderColor: '#f59e0b' } : {}}>
+          <div className="stat-value">{stats.chunksMissingEmbeddings}</div>
+          <div className="stat-label">Missing</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{stats.totalTokens.toLocaleString()}</div>
+          <div className="stat-label">Total Tokens</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{avgTokens}</div>
+          <div className="stat-label">Avg/Chunk</div>
+        </div>
+      </div>
+
+      <h4 style={{ marginTop: 'var(--space-lg)' }}>By Category</h4>
+      <div className="rag-category-breakdown">
+        {Object.entries(stats.byCategory || {}).map(([cat, data]) => (
+          <div key={cat} className="rag-category-row">
+            <span 
+              className="rag-category-badge" 
+              style={{ backgroundColor: categoryColors[cat] }}
+            >
+              {cat}
+            </span>
+            <span>{data.count} chunks</span>
+            <span style={{ color: 'var(--text-secondary)' }}>~{data.tokens} tokens</span>
+            <div className="rag-category-bar">
+              <div 
+                style={{ 
+                  width: `${(data.count / stats.totalChunks) * 100}%`,
+                  backgroundColor: categoryColors[cat],
+                  height: '6px',
+                  borderRadius: '3px'
+                }} 
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h4 style={{ marginTop: 'var(--space-lg)' }}>Cost Estimates</h4>
+      <table className="rag-cost-table">
+        <tbody>
+          <tr>
+            <td>Embed all chunks (one-time)</td>
+            <td>${stats.estimatedEmbeddingCost}</td>
+          </tr>
+          <tr>
+            <td>Per query embedding</td>
+            <td>~$0.000001</td>
+          </tr>
+          <tr>
+            <td>Per LLM call (GPT-4o-mini)</td>
+            <td>~$0.0004</td>
+          </tr>
+          <tr style={{ fontWeight: 'bold', backgroundColor: 'var(--bg-secondary)' }}>
+            <td>Total per chat message</td>
+            <td>{stats.estimatedQueryCost}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {stats.chunksMissingEmbeddings > 0 && (
+        <div className="rag-warning">
+          ⚠️ {stats.chunksMissingEmbeddings} chunks missing embeddings. Click "Re-embed All" to fix.
+        </div>
+      )}
     </div>
   );
 };
