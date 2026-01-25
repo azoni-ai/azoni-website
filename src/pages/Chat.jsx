@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 
@@ -9,12 +9,83 @@ const MODES = [
   { id: 'funny', name: 'Funny' }
 ];
 
-const SUGGESTIONS = [
+// Initial question pool - shown on first load
+const INITIAL_QUESTIONS = [
   "What's your experience with Python and AI?",
   "Tell me about your projects",
   "Why hire Charlton?",
-  "What is Row Crew?"
+  "What is Row Crew?",
+  "What tech stack do you use?",
+  "Tell me about your experience at T-Mobile",
+  "What is EmbedRoute?",
+  "How does this chatbot work?",
+  "What's your background in machine learning?",
+  "Tell me about Bench Only",
+  "What databases have you worked with?",
+  "What cloud platforms do you know?",
+  "Where did you go to school?",
+  "Are you available for work?",
+  "What makes you different from other candidates?",
+  "Tell me about your work at Capital One"
 ];
+
+// Follow-up questions based on detected intent/topic
+const FOLLOW_UP_QUESTIONS = {
+  skills: [
+    "What AI frameworks have you used?",
+    "Tell me about your frontend experience",
+    "What backend technologies do you know?",
+    "Have you worked with cloud infrastructure?",
+    "What's your experience with databases?"
+  ],
+  projects: [
+    "How did you build Row Crew's anti-cheat system?",
+    "What's the tech stack for Bench Only?",
+    "Tell me more about EmbedRoute",
+    "What challenges did you face building these?",
+    "Which project are you most proud of?"
+  ],
+  experience: [
+    "What did you build at T-Mobile?",
+    "Tell me about your Capital One work",
+    "What's your biggest professional achievement?",
+    "Have you led any teams?",
+    "What industries have you worked in?"
+  ],
+  behavioral: [
+    "Tell me about a time you solved a hard problem",
+    "How do you handle tight deadlines?",
+    "Describe a project that failed",
+    "How do you learn new technologies?",
+    "Tell me about working with difficult stakeholders"
+  ],
+  hire: [
+    "What value would you bring to a team?",
+    "What are your career goals?",
+    "What type of role are you looking for?",
+    "What's your ideal work environment?",
+    "Why are you interested in AI/ML roles?"
+  ],
+  contact: [
+    "Are you open to remote work?",
+    "What's your availability?",
+    "Are you open to contract work?",
+    "What locations are you considering?"
+  ],
+  general: [
+    "What are you currently working on?",
+    "Tell me something interesting about yourself",
+    "What's your development philosophy?",
+    "How do you stay current with tech?",
+    "What excites you about AI?"
+  ]
+};
+
+// Helper to shuffle and pick N items from array
+const shufflePick = (arr, n) => {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+};
 
 // Custom SVG Icons
 const Icons = {
@@ -271,7 +342,27 @@ const Chat = () => {
   } = useChat();
 
   const [diagramCollapsed, setDiagramCollapsed] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
   const inputRef = useRef(null);
+
+  // Initialize with random suggestions on mount
+  useEffect(() => {
+    setSuggestions(shufflePick(INITIAL_QUESTIONS, 4));
+  }, []);
+
+  // Update suggestions based on last message's detected intent
+  useEffect(() => {
+    if (messages.length === 0) return;
+    
+    const lastMessage = messages[messages.length - 1];
+    
+    // Only update after assistant responses with RAG data
+    if (lastMessage.role === 'assistant' && lastMessage.rag?.intent) {
+      const intent = lastMessage.rag.intent;
+      const followUps = FOLLOW_UP_QUESTIONS[intent] || FOLLOW_UP_QUESTIONS.general;
+      setSuggestions(shufflePick(followUps, 4));
+    }
+  }, [messages]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -279,6 +370,21 @@ const Chat = () => {
     // Keep focus on input after sending
     setTimeout(() => inputRef.current?.focus(), 0);
   };
+
+  const shuffleSuggestions = useCallback(() => {
+    // If we have messages, use follow-ups based on last intent
+    if (messages.length > 0) {
+      const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.rag?.intent);
+      if (lastAssistantMsg) {
+        const intent = lastAssistantMsg.rag.intent;
+        const followUps = FOLLOW_UP_QUESTIONS[intent] || FOLLOW_UP_QUESTIONS.general;
+        setSuggestions(shufflePick(followUps, 4));
+        return;
+      }
+    }
+    // Otherwise use initial questions
+    setSuggestions(shufflePick(INITIAL_QUESTIONS, 4));
+  }, [messages]);
 
   // Auto-collapse diagram after first RAG response
   const showFullDiagram = !hasRagMessages && !diagramCollapsed;
@@ -358,16 +464,30 @@ const Chat = () => {
         </div>
 
         <div className="chat-input-area">
-          <div className="chat-suggestions">
-            {SUGGESTIONS.map((suggestion, index) => (
-              <button
-                key={index}
-                className="chat-suggestion"
-                onClick={() => sendMessage(suggestion)}
-              >
-                {suggestion}
-              </button>
-            ))}
+          <div className="chat-suggestions-wrapper">
+            <div className="chat-suggestions">
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  className="chat-suggestion"
+                  onClick={() => sendMessage(suggestion)}
+                  disabled={isLoading}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+            <button 
+              className="chat-suggestions-refresh"
+              onClick={shuffleSuggestions}
+              title="Get new suggestions"
+              disabled={isLoading}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <path d="M21 12a9 9 0 11-3-6.7"/>
+                <path d="M21 4v4h-4"/>
+              </svg>
+            </button>
           </div>
           
           <form className="chat-form" onSubmit={handleSubmit}>
