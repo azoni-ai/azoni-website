@@ -1,515 +1,521 @@
-// netlify/functions/chat.js
-// Portfolio chatbot with optional RAG enhancement
-// Falls back to static prompt if Firebase Admin isn't configured
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Layout from '../components/Layout';
+import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 
-// OpenRouter pricing per 1K tokens
-const MODEL_PRICING = {
-  'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006, name: 'GPT-4o Mini', provider: 'OpenAI' },
-  'anthropic/claude-3-5-haiku-latest': { input: 0.0008, output: 0.004, name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
-  'google/gemini-2.0-flash-001': { input: 0.0001, output: 0.0004, name: 'Gemini 2.0 Flash', provider: 'Google' },
-  'meta-llama/llama-3.3-70b-instruct': { input: 0.0003, output: 0.0004, name: 'Llama 3.3 70B', provider: 'Meta' },
-  'mistralai/mistral-small-24b-instruct-2501': { input: 0.00014, output: 0.00014, name: 'Mistral Small', provider: 'Mistral' },
-  'deepseek/deepseek-chat': { input: 0.00014, output: 0.00028, name: 'DeepSeek V3', provider: 'DeepSeek' },
+const MODES = [
+  { id: 'professional', name: 'Professional' },
+  { id: 'friendly', name: 'Friendly' },
+  { id: 'casual', name: 'Casual' },
+  { id: 'funny', name: 'Funny' }
+];
+
+// Initial question pool - shown on first load
+const INITIAL_QUESTIONS = [
+  "What's your experience with Python and AI?",
+  "Tell me about your projects",
+  "Why hire Charlton?",
+  "What is Row Crew?",
+  "What tech stack do you use?",
+  "Tell me about your experience at T-Mobile",
+  "What is EmbedRoute?",
+  "How does this chatbot work?",
+  "What's your background in machine learning?",
+  "Tell me about Bench Only",
+  "What databases have you worked with?",
+  "What cloud platforms do you know?",
+  "Where did you go to school?",
+  "Are you available for work?",
+  "What makes you different from other candidates?",
+  "Tell me about your work at Capital One"
+];
+
+// Follow-up questions based on detected intent/topic
+const FOLLOW_UP_QUESTIONS = {
+  skills: [
+    "What AI frameworks have you used?",
+    "Tell me about your frontend experience",
+    "What backend technologies do you know?",
+    "Have you worked with cloud infrastructure?",
+    "What's your experience with databases?"
+  ],
+  projects: [
+    "How did you build Row Crew's anti-cheat system?",
+    "What's the tech stack for Bench Only?",
+    "Tell me more about EmbedRoute",
+    "What challenges did you face building these?",
+    "Which project are you most proud of?"
+  ],
+  experience: [
+    "What did you build at T-Mobile?",
+    "Tell me about your Capital One work",
+    "What's your biggest professional achievement?",
+    "Have you led any teams?",
+    "What industries have you worked in?"
+  ],
+  behavioral: [
+    "Tell me about a time you solved a hard problem",
+    "How do you handle tight deadlines?",
+    "Describe a project that failed",
+    "How do you learn new technologies?",
+    "Tell me about working with difficult stakeholders"
+  ],
+  hire: [
+    "What value would you bring to a team?",
+    "What are your career goals?",
+    "What type of role are you looking for?",
+    "What's your ideal work environment?",
+    "Why are you interested in AI/ML roles?"
+  ],
+  contact: [
+    "Are you open to remote work?",
+    "What's your availability?",
+    "Are you open to contract work?",
+    "What locations are you considering?"
+  ],
+  general: [
+    "What are you currently working on?",
+    "Tell me something interesting about yourself",
+    "What's your development philosophy?",
+    "How do you stay current with tech?",
+    "What excites you about AI?"
+  ]
 };
 
-const DEFAULT_MODEL = 'openai/gpt-4o-mini';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENROUTER_API_KEY = process.env.REACT_APP_OPENROUTER_API_KEY;
+// Helper to shuffle and pick N items from array
+const shufflePick = (arr, n) => {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+};
 
-// Firebase Admin - only initialize if credentials are available
-let db = null;
-let admin = null;
-let firebaseInitialized = false;
+// Custom SVG Icons
+const Icons = {
+  Query: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <line x1="9" y1="9" x2="15" y2="9"/>
+      <line x1="9" y1="13" x2="13" y2="13"/>
+    </svg>
+  ),
+  Intent: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="6"/>
+      <circle cx="12" cy="12" r="2"/>
+    </svg>
+  ),
+  Embedding: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
+      <line x1="10" y1="6.5" x2="14" y2="6.5" strokeDasharray="2 2"/>
+      <line x1="6.5" y1="10" x2="6.5" y2="14" strokeDasharray="2 2"/>
+      <line x1="17.5" y1="10" x2="17.5" y2="14" strokeDasharray="2 2"/>
+      <line x1="10" y1="17.5" x2="14" y2="17.5" strokeDasharray="2 2"/>
+    </svg>
+  ),
+  Similarity: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+    </svg>
+  ),
+  Database: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+    </svg>
+  ),
+  Retrieve: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  ),
+  LLM: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2"/>
+      <path d="M9 9h6"/>
+      <path d="M9 13h6"/>
+      <path d="M9 17h4"/>
+      <circle cx="17" cy="17" r="2" fill="currentColor"/>
+    </svg>
+  ),
+  Arrow: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"/>
+      <polyline points="12 5 19 12 12 19"/>
+    </svg>
+  ),
+  Expand: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  ),
+  Collapse: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="18 15 12 9 6 15"/>
+    </svg>
+  ),
+  Brain: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+    </svg>
+  ),
+  Close: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
+};
 
-function initFirebase() {
-  if (firebaseInitialized) return !!db;
-  firebaseInitialized = true;
-  
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  
-  if (!projectId || !clientEmail || !privateKey) {
-    console.log('Firebase Admin credentials not configured - RAG disabled');
-    return false;
+// RAG Architecture Diagram Component
+const RAGArchitectureDiagram = ({ collapsed, onToggle }) => {
+  if (collapsed) {
+    return (
+      <button className="rag-diagram-toggle" onClick={onToggle}>
+        <span className="rag-toggle-icon"><Icons.Brain /></span>
+        <span>View RAG Architecture</span>
+      </button>
+    );
   }
-  
-  try {
-    admin = require('firebase-admin');
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n')
-        })
-      });
-    }
-    db = admin.firestore();
-    console.log('Firebase Admin initialized - RAG enabled');
-    return true;
-  } catch (error) {
-    console.error('Firebase Admin init failed:', error.message);
-    return false;
-  }
-}
 
-// ===== MAIN HANDLER =====
-exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
+  const steps = [
+    { icon: Icons.Query, label: 'Query', detail: 'User input' },
+    { icon: Icons.Intent, label: 'Intent', detail: 'Classify type' },
+    { icon: Icons.Embedding, label: 'Embed', detail: 'OpenAI API' },
+    { icon: Icons.Database, label: 'Firestore', detail: 'Vector storage' },
+    { icon: Icons.Similarity, label: 'Similarity', detail: 'Cosine ranking' },
+    { icon: Icons.Retrieve, label: 'Retrieve', detail: 'Top-K chunks' },
+    { icon: Icons.LLM, label: 'Generate', detail: 'LLM response' },
+  ];
+
+  return (
+    <div className="rag-architecture">
+      <div className="rag-architecture-header">
+        <div className="rag-header-title">
+          <span className="rag-header-icon"><Icons.Brain /></span>
+          <h3>RAG Pipeline</h3>
+        </div>
+        <button className="rag-close-btn" onClick={onToggle} aria-label="Close">
+          <Icons.Close />
+        </button>
+      </div>
+      
+      <div className="rag-pipeline">
+        {steps.map((step, index) => (
+          <React.Fragment key={step.label}>
+            <div className={`rag-pipeline-step ${index >= 2 && index <= 4 ? 'highlight' : ''}`}>
+              <div className="rag-step-icon">
+                <step.icon />
+              </div>
+              <div className="rag-step-label">{step.label}</div>
+              <div className="rag-step-detail">{step.detail}</div>
+            </div>
+            {index < steps.length - 1 && (
+              <div className="rag-pipeline-arrow">
+                <Icons.Arrow />
+              </div>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="rag-architecture-footer">
+        <div className="rag-tech-stack">
+          <span className="rag-tech-badge">Firebase Firestore</span>
+          <span className="rag-tech-badge">OpenAI Embeddings</span>
+          <span className="rag-tech-badge">Cosine Similarity</span>
+          <span className="rag-tech-badge">Netlify Functions</span>
+        </div>
+        <p className="rag-architecture-note">
+          Queries are embedded into 1,536-dimensional vectors and matched against stored knowledge chunks 
+          using cosine similarity. Relevant context is retrieved and passed to the LLM for grounded responses.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// RAG Stats Component (per-message)
+const RAGStats = ({ rag, usage }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!rag || !rag.enabled) {
+    return null;
+  }
+
+  const getSimilarityColor = (sim) => {
+    const similarity = parseFloat(sim);
+    if (similarity >= 0.8) return '#10b981';
+    if (similarity >= 0.6) return '#f59e0b';
+    return '#ef4444';
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  return (
+    <div className="rag-stats">
+      <button 
+        className="rag-stats-toggle"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="rag-stats-summary">
+          <span className="rag-intent-pill">{rag.intent}</span>
+          <span className="rag-chunks-count">{rag.chunksRetrieved} chunks retrieved</span>
+          {usage?.totalCost && (
+            <span className="rag-cost">${usage.totalCost}</span>
+          )}
+        </span>
+        <span className="rag-expand-icon">
+          {expanded ? <Icons.Collapse /> : <Icons.Expand />}
+        </span>
+      </button>
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
+      {expanded && (
+        <div className="rag-stats-details">
+          <div className="rag-stats-row">
+            <span className="rag-stats-label">Intent Detected:</span>
+            <span className="rag-stats-value">
+              {rag.intent} 
+              <span className={`rag-confidence-badge ${rag.intentConfidence}`}>
+                {rag.intentConfidence}
+              </span>
+            </span>
+          </div>
 
-  try {
-    const { messages, mode = 'professional', model: requestedModel, sessionId } = JSON.parse(event.body);
-    const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
-    const pricing = MODEL_PRICING[model];
+          {rag.topChunks && rag.topChunks.length > 0 && (
+            <div className="rag-chunks-used">
+              <span className="rag-stats-label">Context Retrieved:</span>
+              <div className="rag-chunks-list-mini">
+                {rag.topChunks.map((chunk, i) => (
+                  <div key={i} className="rag-chunk-mini">
+                    <span className="rag-chunk-rank">#{i + 1}</span>
+                    <span className="rag-chunk-category">{chunk.category}</span>
+                    <span className="rag-chunk-title">{chunk.title}</span>
+                    <span 
+                      className="rag-chunk-similarity"
+                      style={{ color: getSimilarityColor(chunk.similarity) }}
+                    >
+                      {(parseFloat(chunk.similarity) * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-    // Get user's latest message
-    const userMessage = messages[messages.length - 1]?.content || '';
+          {usage && (
+            <div className="rag-usage-stats">
+              <span>Tokens: {usage.prompt_tokens} in / {usage.completion_tokens} out</span>
+              {usage.embeddingCost && parseFloat(usage.embeddingCost) > 0 && (
+                <span>Embedding: ${usage.embeddingCost}</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
-    // Try RAG if Firebase is available
-    let systemPrompt;
-    let ragInfo = null;
+/**
+ * Chat page with RAG visualization
+ */
+const Chat = () => {
+  const {
+    messages,
+    input,
+    setInput,
+    isLoading,
+    chatMode,
+    model,
+    messagesEndRef,
+    sendMessage,
+    changeMode,
+    changeModel,
+    hasRagMessages
+  } = useChat();
+
+  const [diagramCollapsed, setDiagramCollapsed] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const inputRef = useRef(null);
+
+  // Initialize with random suggestions on mount
+  useEffect(() => {
+    setSuggestions(shufflePick(INITIAL_QUESTIONS, 4));
+  }, []);
+
+  // Update suggestions based on last message's detected intent
+  useEffect(() => {
+    if (messages.length === 0) return;
     
-    const ragEnabled = initFirebase();
+    const lastMessage = messages[messages.length - 1];
     
-    if (ragEnabled && OPENAI_API_KEY) {
-      try {
-        const ragResult = await getRAGContext(userMessage, mode, messages.length);
-        systemPrompt = ragResult.systemPrompt;
-        ragInfo = ragResult.ragInfo;
-      } catch (ragError) {
-        console.error('RAG error, falling back to static prompt:', ragError.message);
-        systemPrompt = buildStaticSystemPrompt(mode);
+    // Only update after assistant responses with RAG data
+    if (lastMessage.role === 'assistant' && lastMessage.rag?.intent) {
+      const intent = lastMessage.rag.intent;
+      const followUps = FOLLOW_UP_QUESTIONS[intent] || FOLLOW_UP_QUESTIONS.general;
+      setSuggestions(shufflePick(followUps, 4));
+    }
+  }, [messages]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendMessage(input);
+    // Keep focus on input after sending
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const shuffleSuggestions = useCallback(() => {
+    // If we have messages, use follow-ups based on last intent
+    if (messages.length > 0) {
+      const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.rag?.intent);
+      if (lastAssistantMsg) {
+        const intent = lastAssistantMsg.rag.intent;
+        const followUps = FOLLOW_UP_QUESTIONS[intent] || FOLLOW_UP_QUESTIONS.general;
+        setSuggestions(shufflePick(followUps, 4));
+        return;
       }
-    } else {
-      systemPrompt = buildStaticSystemPrompt(mode);
     }
+    // Otherwise use initial questions
+    setSuggestions(shufflePick(INITIAL_QUESTIONS, 4));
+  }, [messages]);
 
-    // Call LLM via OpenRouter
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://azoni.ai',
-        'X-Title': 'Azoni Portfolio Chat'
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
-        max_tokens: 1024,
-        temperature: mode === 'funny' ? 0.9 : 0.7
-      })
-    });
+  // Auto-collapse diagram after first RAG response
+  const showFullDiagram = !hasRagMessages && !diagramCollapsed;
 
-    const data = await response.json();
+  return (
+    <Layout hideFooter>
+      <div className="chat-container">
+        <div className="chat-header">
+          <h1 className="chat-title">Azoni-GPT</h1>
+          
+          <div className="chat-controls">
+            <div className="chat-control">
+              <label>Model</label>
+              <select 
+                value={model} 
+                onChange={(e) => changeModel(e.target.value)}
+                className="chat-select"
+              >
+                {AVAILABLE_MODELS.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="chat-control">
+              <label>Tone</label>
+              <select 
+                value={chatMode} 
+                onChange={(e) => changeMode(e.target.value)}
+                className="chat-select"
+              >
+                {MODES.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
 
-    if (!response.ok) {
-      console.error('OpenRouter error:', data);
-      return {
-        statusCode: response.status,
-        headers,
-        body: JSON.stringify({ error: data.error?.message || 'LLM API error' })
-      };
-    }
+        <div className="chat-messages">
+          {/* RAG Architecture Diagram - inside scroll area */}
+          <RAGArchitectureDiagram 
+            collapsed={!showFullDiagram} 
+            onToggle={() => setDiagramCollapsed(!diagramCollapsed)}
+          />
 
-    // Calculate costs
-    const usage = data.usage || {};
-    const inputCost = (usage.prompt_tokens || 0) / 1000 * pricing.input;
-    const outputCost = (usage.completion_tokens || 0) / 1000 * pricing.output;
-    const embeddingCost = ragInfo?.embeddingCost || 0;
-    const totalCost = inputCost + outputCost + embeddingCost;
+          {messages.map((message, index) => (
+            <div key={index} className="chat-message-wrapper">
+              <div 
+                className={`chat-message ${message.role}`}
+                style={{ whiteSpace: 'pre-wrap' }}
+              >
+                {message.content}
+              </div>
+              {message.role === 'assistant' && message.rag && (
+                <RAGStats rag={message.rag} usage={message.usage} />
+              )}
+            </div>
+          ))}
+          {isLoading && (
+            <div className="chat-message-wrapper">
+              <div className="chat-message assistant">
+                <span className="typing-indicator">
+                  <span className="rag-loading-text">Searching knowledge base</span>
+                  <span className="typing-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-    // Log to Firebase if available (async, don't wait)
-    if (db) {
-      logChat({
-        sessionId,
-        userMessage,
-        assistantMessage: data.choices?.[0]?.message?.content,
-        model,
-        mode,
-        ragEnabled: !!ragInfo,
-        usage,
-        costs: { input: inputCost, output: outputCost, embedding: embeddingCost, total: totalCost }
-      }).catch(console.error);
-    }
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        ...data,
-        model,
-        modelName: pricing.name,
-        provider: pricing.provider,
-        _rag: ragInfo || { enabled: false },
-        usage: {
-          ...usage,
-          inputCost: inputCost.toFixed(6),
-          outputCost: outputCost.toFixed(6),
-          embeddingCost: embeddingCost.toFixed(6),
-          totalCost: totalCost.toFixed(6)
-        }
-      })
-    };
-
-  } catch (error) {
-    console.error('Chat function error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Internal server error', details: error.message })
-    };
-  }
+        <div className="chat-input-area">
+          <div className="chat-suggestions-wrapper">
+            <div className="chat-suggestions">
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  className="chat-suggestion"
+                  onClick={() => sendMessage(suggestion)}
+                  disabled={isLoading}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+            <button 
+              className="chat-suggestions-refresh"
+              onClick={shuffleSuggestions}
+              title="Get new suggestions"
+              disabled={isLoading}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <path d="M21 12a9 9 0 11-3-6.7"/>
+                <path d="M21 4v4h-4"/>
+              </svg>
+            </button>
+          </div>
+          
+          <form className="chat-form" onSubmit={handleSubmit}>
+            <input
+              ref={inputRef}
+              type="text"
+              className="chat-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything about Charlton..."
+              disabled={isLoading}
+            />
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isLoading || !input.trim()}
+            >
+              Send
+            </button>
+          </form>
+          
+          <p className="chat-disclaimer">
+            AI responses may be inaccurate • Powered by RAG
+          </p>
+        </div>
+      </div>
+    </Layout>
+  );
 };
 
-// ===== RAG FUNCTIONS =====
-
-function cosineSimilarity(a, b) {
-  if (!a || !b || a.length !== b.length) return 0;
-  let dotProduct = 0, normA = 0, normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-async function getEmbedding(text) {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: text.slice(0, 8000)
-    })
-  });
-
-  const data = await response.json();
-  if (data.error) throw new Error(data.error.message);
-
-  return {
-    embedding: data.data[0].embedding,
-    tokens: data.usage.total_tokens
-  };
-}
-
-async function getRAGContext(query, mode, messageCount) {
-  const RAG_COLLECTION = 'rag_knowledge_base';
-  
-  // Detect intent
-  const intent = detectIntent(query);
-  const { topK, categories } = intent.settings;
-  
-  // Get query embedding
-  const { embedding: queryEmbedding, tokens } = await getEmbedding(query);
-  const embeddingCost = tokens / 1000000 * 0.02;
-  
-  // Fetch and rank chunks
-  const snapshot = await db.collection(RAG_COLLECTION).get();
-  
-  let results = snapshot.docs
-    .filter(doc => {
-      const data = doc.data();
-      if (!data.embedding) return false;
-      if (categories && !categories.includes(data.category)) return false;
-      return true;
-    })
-    .map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        category: data.category,
-        content: data.content,
-        similarity: cosineSimilarity(queryEmbedding, data.embedding),
-        tokenEstimate: data.tokenEstimate
-      };
-    })
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, topK);
-  
-  // Fallback to all categories if no results
-  if (results.length === 0 && categories) {
-    results = snapshot.docs
-      .filter(doc => doc.data().embedding)
-      .map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title,
-          category: data.category,
-          content: data.content,
-          similarity: cosineSimilarity(queryEmbedding, data.embedding),
-          tokenEstimate: data.tokenEstimate
-        };
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, topK);
-  }
-  
-  // Build system prompt with RAG context
-  const systemPrompt = buildRAGSystemPrompt(mode, intent, results, messageCount);
-  
-  return {
-    systemPrompt,
-    ragInfo: {
-      enabled: true,
-      intent: intent.intent,
-      intentConfidence: intent.confidence,
-      chunksRetrieved: results.length,
-      topChunks: results.slice(0, 3).map(c => ({
-        title: c.title,
-        category: c.category,
-        similarity: c.similarity.toFixed(3)
-      })),
-      embeddingCost
-    }
-  };
-}
-
-function detectIntent(message) {
-  const lower = message.toLowerCase();
-  
-  const intents = {
-    job_analysis: {
-      keywords: ['responsibilities', 'requirements', 'qualifications', 'experience required', 'we are looking', 'ideal candidate', 'job description', 'role:', 'about the role', 'years of experience'],
-      lengthThreshold: 400,
-      topK: 12,
-      categories: null
-    },
-    behavioral: {
-      keywords: ['tell me about a time', 'describe a situation', 'give an example', 'how did you handle', 'what happened when', 'challenge you faced', 'difficult situation', 'conflict', 'mistake', 'failure', 'missed deadline', 'under pressure', 'disagreed with', 'critical feedback', 'went wrong'],
-      topK: 6,
-      categories: ['faq', 'experience']
-    },
-    contact: {
-      keywords: ['email', 'phone', 'contact', 'linkedin', 'github', 'reach', 'get in touch'],
-      topK: 2,
-      categories: ['bio']
-    },
-    project_specific: {
-      keywords: ['embedroute', 'row crew', 'rowcrew', 'bench only', 'benchonly', 'old ways', 'oldways', 'tcgdoku', 'dumarket', 'azoni.ai', 'dustbunny', 'oli fitness'],
-      topK: 4,
-      categories: ['project']
-    },
-    projects: {
-      keywords: ['project', 'built', 'portfolio', 'app', 'shipped', 'work on', 'created', 'developed', 'building'],
-      topK: 8,
-      categories: ['project', 'experience']
-    },
-    experience: {
-      keywords: ['work history', 'previous job', 'capital one', 't-mobile', 'tmobile', 'career', 'worked at'],
-      topK: 6,
-      categories: ['experience', 'bio']
-    },
-    skills: {
-      keywords: ['skill', 'tech', 'stack', 'language', 'framework', 'know', 'proficient', 'python', 'react', 'javascript', 'typescript', 'ai', 'ml', 'machine learning', 'llm', 'rag', 'embedding', 'database', 'aws', 'frontend', 'backend', 'api', 'node', 'firebase', 'openai', 'claude', 'gpt'],
-      topK: 6,
-      categories: ['skill']
-    },
-    hire: {
-      keywords: ['hire', 'why should', 'strength', 'weakness', 'good at', 'best at', 'stand out', 'different'],
-      topK: 6,
-      categories: ['bio', 'faq']
-    }
-  };
-
-  // Check job analysis first
-  if (message.length > intents.job_analysis.lengthThreshold ||
-      intents.job_analysis.keywords.some(kw => lower.includes(kw))) {
-    return {
-      intent: 'job_analysis',
-      confidence: 'high',
-      settings: intents.job_analysis
-    };
-  }
-
-  // Check skills BEFORE experience - so "experience with Python" → skills
-  const skillMatches = intents.skills.keywords.filter(kw => lower.includes(kw));
-  if (skillMatches.length > 0) {
-    return {
-      intent: 'skills',
-      confidence: skillMatches.length > 2 ? 'high' : 'medium',
-      matchedKeywords: skillMatches,
-      settings: intents.skills
-    };
-  }
-
-  // Check behavioral BEFORE other intents - catches interview questions
-  const behavioralMatches = intents.behavioral.keywords.filter(kw => lower.includes(kw));
-  if (behavioralMatches.length > 0) {
-    return {
-      intent: 'behavioral',
-      confidence: behavioralMatches.length > 1 ? 'high' : 'medium',
-      matchedKeywords: behavioralMatches,
-      settings: intents.behavioral
-    };
-  }
-
-  // Check other intents
-  for (const [intent, config] of Object.entries(intents)) {
-    if (intent === 'job_analysis' || intent === 'skills' || intent === 'behavioral') continue;
-    const matches = config.keywords.filter(kw => lower.includes(kw));
-    if (matches.length > 0) {
-      return {
-        intent,
-        confidence: matches.length > 2 ? 'high' : 'medium',
-        matchedKeywords: matches,
-        settings: config
-      };
-    }
-  }
-
-  return {
-    intent: 'general',
-    confidence: 'low',
-    settings: { topK: 5, categories: null }
-  };
-}
-
-function buildRAGSystemPrompt(mode, intent, chunks, messageCount) {
-  const tones = {
-    professional: 'Be professional and concise. Highlight relevant qualifications clearly.',
-    friendly: 'Be warm and approachable while remaining informative.',
-    casual: 'Be relaxed and conversational, like talking to a colleague.',
-    funny: 'Add humor and personality while still being helpful and accurate.'
-  };
-
-  const contextBlocks = chunks.map(c => {
-    const similarityNote = c.similarity > 0 ? ` [relevance: ${(c.similarity * 100).toFixed(0)}%]` : '';
-    return `### ${c.title} (${c.category})${similarityNote}\n${c.content}`;
-  }).join('\n\n');
-
-  let prompt = `You are Azoni-GPT, an AI assistant representing Charlton Smith, a software engineer based in Seattle. Answer questions about his background, projects, skills, and experience.
-
-TONE: ${tones[mode] || tones.professional}
-
-RULES:
-1. Use ONLY the information in CONTEXT below. Do not invent or assume details.
-2. If the context doesn't fully answer the question, just answer what you can - don't say "the context doesn't provide" or mention limitations. Keep it natural.
-3. Refer to Charlton in third person unless asked to roleplay.
-4. Be concise and conversational. Sound like a helpful person, not a search engine.
-5. Include specific numbers, dates, project names, and URLs when available.
-6. DO NOT use markdown formatting (no **, no ##, no \`code\`, no bullet points with -). Write in plain conversational text.
-
-DETECTED INTENT: ${intent.intent} (confidence: ${intent.confidence})
-
----
-CONTEXT:
-${contextBlocks}
----
-`;
-
-  if (intent.intent === 'job_analysis') {
-    prompt += `
-JOB DESCRIPTION ANALYSIS MODE:
-Provide a detailed fit analysis covering:
-1. Matching Requirements - Requirements Charlton meets with evidence
-2. Strong Points - His unique strengths for this role  
-3. Potential Gaps - Honestly note areas with less experience
-4. Fit Assessment - Strong/Good/Moderate Fit with reasoning
-
-Use plain text with line breaks between sections. No markdown.
-`;
-  }
-
-  if (messageCount > 2) {
-    prompt += `\nThis is message ${messageCount}. Build on previous context naturally.`;
-  }
-
-  return prompt;
-}
-
-// ===== STATIC FALLBACK PROMPT =====
-function buildStaticSystemPrompt(mode) {
-  const toneInstructions = {
-    professional: 'Be professional, concise, and highlight relevant qualifications.',
-    friendly: 'Be warm and approachable while remaining informative.',
-    casual: 'Be relaxed and conversational, like talking to a friend.',
-    funny: 'Add humor and wit while still being helpful and informative.'
-  };
-
-  return `You are Azoni-GPT, an AI assistant that represents Charlton Smith, a software engineer. Your job is to answer questions about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton unless asked to roleplay as him.
-
-TONE: ${toneInstructions[mode] || toneInstructions.professional}
-
-CHARLTON'S PROFILE:
-- Name: Charlton Smith
-- Location: Seattle, WA
-- Education: M.S. Software Engineering (Colorado Technical University, 2021), B.S. Computer Science (University of Washington Tacoma, 2017, Graduated with Honors)
-- Experience: 7+ years as a software engineer
-
-CURRENT FOCUS:
-- LLM agents and AI-powered applications
-- Tools for web3, crypto, and fintech
-- Full-stack development with React and FastAPI
-
-SKILLS:
-Languages: Python, JavaScript, Java, SQL, C#
-AI/ML: OpenAI APIs (GPT-4), Claude API, LLM Agents, RAG, LangChain, Prompt Engineering
-Frontend: React, Vite, HTML, CSS, Mobile-First Responsive Design
-Backend: Node.js, FastAPI, Django, REST APIs, Microservices
-Cloud: AWS (Lambda, EC2, S3), Docker, CI/CD, Netlify, Render
-Databases: PostgreSQL, MongoDB, Redis, Firebase, SQLite
-
-WORK EXPERIENCE:
-- Senior Software Engineer at Capital One (Nov 2022 - Nov 2023): Led automated testing pipelines using AWS Lambda, S3, CloudWatch. Built Python microservices. Mentored junior engineers.
-- Software Engineer II at T-Mobile (Jun 2018 - Apr 2022): Built automation platform reducing workload by 80%. Designed Python/Django backend with microservices. Led Angular frontend development.
-- Computer Science Instructor at Nucamp (2018): Taught full-stack development to career-transition students.
-- Co-founder at OLI Fitness (2016-2018): Built computer vision fitness tracking with Kinect SDK. Published at ACM CHI 2017.
-
-CURRENT PROJECTS:
-- EmbedRoute: Unified embedding API gateway (Next.js, Supabase, Vercel)
-- Old Ways Today: Full-stack AI chatbot helping families find non-toxic products.
-- Row Crew: AI fitness app using Claude's multimodal API to extract workout metrics from photos.
-- Bench Only: AI strength training PWA with GPT-4o-mini coach.
-- Dustbunny (2021-2022): NFT bidding system across 50 machines, 2,500+ requests/minute.
-- azoni.ai: This portfolio with AI assistant.
-
-NOTABLE ACHIEVEMENTS:
-- Published extended abstract at ACM CHI 2017 on computer vision for fitness
-- 1st Place at T-Mobile Big Data Hackathon
-- Co-founded OLI Fitness startup, regional finalist at Princeton Tiger Launch
-- Head Organizer, Global AI Hackathon Seattle 2017
-
-FOR RECRUITERS:
-If someone pastes a job description, analyze how Charlton's experience matches the requirements and make a compelling case for why he'd be a good fit.
-
-FORMATTING:
-Do NOT use markdown formatting (no **, no ##, no \`code\`, no bullet points with - or *). Write in plain conversational text.
-
-Keep responses concise and natural - sound like a helpful person, not a database. If you don't know something specific about Charlton, just say you're not sure rather than being robotic about it.`;
-}
-
-// ===== LOGGING =====
-async function logChat(data) {
-  if (!db) return;
-  try {
-    await db.collection('chat_logs').add({
-      ...data,
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    });
-  } catch (error) {
-    console.error('Failed to log chat:', error);
-  }
-}
+export default Chat;

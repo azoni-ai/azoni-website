@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 
@@ -271,10 +271,13 @@ const Chat = () => {
   } = useChat();
 
   const [diagramCollapsed, setDiagramCollapsed] = useState(false);
+  const inputRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     sendMessage(input);
+    // Keep focus on input after sending
+    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   // Auto-collapse diagram after first RAG response
@@ -369,6 +372,7 @@ const Chat = () => {
           
           <form className="chat-form" onSubmit={handleSubmit}>
             <input
+              ref={inputRef}
               type="text"
               className="chat-input"
               value={input}
