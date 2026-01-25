@@ -3988,6 +3988,10 @@ span.commit-message.private {
   flex: 1;
 }
 
+.chat-suggestion {
+  white-space: nowrap;
+}
+
 .chat-suggestions-refresh {
   display: flex;
   align-items: center;
@@ -4026,12 +4030,86 @@ span.commit-message.private {
 
 @media (max-width: 768px) {
   .chat-suggestions-wrapper {
-    flex-direction: column;
-    align-items: stretch;
+    gap: var(--space-xs);
   }
   
-  .chat-suggestions-refresh {
-    align-self: flex-end;
-    margin-top: var(--space-xs);
+  .chat-suggestions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: var(--space-xs);
+  }
+  
+  .chat-suggestions::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .chat-suggestion {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    padding: var(--space-xs) var(--space-sm);
+  }
+}
+
+/* ==========================================
+   CHAT READABILITY IMPROVEMENTS
+   ========================================== */
+
+/* Larger, more readable message text */
+.chat-message {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  padding: var(--space-lg);
+}
+
+.chat-message p {
+  margin-bottom: var(--space-md);
+}
+
+.chat-message p:last-child {
+  margin-bottom: 0;
+}
+
+/* Give messages area more room */
+.chat-messages {
+  flex: 1;
+  min-height: 400px;
+}
+
+/* Slightly smaller header to save space */
+.chat-header {
+  padding: var(--space-md) var(--space-lg);
+}
+
+.chat-title {
+  font-size: 1.4rem;
+}
+
+/* Tighter RAG stats bar */
+.rag-stats-bar {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.85rem;
+}
+
+/* Mobile: prioritize message readability */
+@media (max-width: 768px) {
+  .chat-message {
+    font-size: 1rem;
+    line-height: 1.65;
+    padding: var(--space-md);
+  }
+  
+  .chat-messages {
+    min-height: 300px;
+  }
+  
+  .chat-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  .chat-title {
+    font-size: 1.2rem;
   }
 }

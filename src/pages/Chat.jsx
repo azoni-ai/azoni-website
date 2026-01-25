@@ -9,75 +9,75 @@ const MODES = [
   { id: 'funny', name: 'Funny' }
 ];
 
-// Initial question pool - shown on first load
+// Initial question pool - shown on first load (third person / neutral phrasing)
 const INITIAL_QUESTIONS = [
-  "What's your experience with Python and AI?",
-  "Tell me about your projects",
-  "Why hire Charlton?",
+  "What's Charlton's experience with Python and AI?",
+  "Tell me about Charlton's projects",
+  "Why should I hire Charlton?",
   "What is Row Crew?",
-  "What tech stack do you use?",
-  "Tell me about your experience at T-Mobile",
+  "What tech stack does Charlton use?",
+  "Tell me about Charlton's time at T-Mobile",
   "What is EmbedRoute?",
   "How does this chatbot work?",
-  "What's your background in machine learning?",
+  "What's Charlton's background in machine learning?",
   "Tell me about Bench Only",
-  "What databases have you worked with?",
-  "What cloud platforms do you know?",
-  "Where did you go to school?",
-  "Are you available for work?",
-  "What makes you different from other candidates?",
-  "Tell me about your work at Capital One"
+  "What databases has Charlton worked with?",
+  "What cloud platforms does Charlton know?",
+  "Where did Charlton go to school?",
+  "Is Charlton available for work?",
+  "What makes Charlton different from other candidates?",
+  "Tell me about Charlton's work at Capital One"
 ];
 
 // Follow-up questions based on detected intent/topic
 const FOLLOW_UP_QUESTIONS = {
   skills: [
-    "What AI frameworks have you used?",
-    "Tell me about your frontend experience",
-    "What backend technologies do you know?",
-    "Have you worked with cloud infrastructure?",
-    "What's your experience with databases?"
+    "What AI frameworks has Charlton used?",
+    "Tell me about Charlton's frontend experience",
+    "What backend technologies does Charlton know?",
+    "Has Charlton worked with cloud infrastructure?",
+    "What's Charlton's experience with databases?"
   ],
   projects: [
-    "How did you build Row Crew's anti-cheat system?",
+    "How did Charlton build Row Crew's anti-cheat?",
     "What's the tech stack for Bench Only?",
     "Tell me more about EmbedRoute",
-    "What challenges did you face building these?",
-    "Which project are you most proud of?"
+    "What challenges did Charlton face building these?",
+    "Which project is Charlton most proud of?"
   ],
   experience: [
-    "What did you build at T-Mobile?",
-    "Tell me about your Capital One work",
-    "What's your biggest professional achievement?",
-    "Have you led any teams?",
-    "What industries have you worked in?"
+    "What did Charlton build at T-Mobile?",
+    "Tell me about Charlton's Capital One work",
+    "What's Charlton's biggest achievement?",
+    "Has Charlton led any teams?",
+    "What industries has Charlton worked in?"
   ],
   behavioral: [
-    "Tell me about a time you solved a hard problem",
-    "How do you handle tight deadlines?",
-    "Describe a project that failed",
-    "How do you learn new technologies?",
-    "Tell me about working with difficult stakeholders"
+    "Tell me about a time Charlton solved a hard problem",
+    "How does Charlton handle tight deadlines?",
+    "Describe a project that didn't go as planned",
+    "How does Charlton learn new technologies?",
+    "Tell me about Charlton working with stakeholders"
   ],
   hire: [
-    "What value would you bring to a team?",
-    "What are your career goals?",
-    "What type of role are you looking for?",
-    "What's your ideal work environment?",
-    "Why are you interested in AI/ML roles?"
+    "What value would Charlton bring to a team?",
+    "What are Charlton's career goals?",
+    "What type of role is Charlton looking for?",
+    "What's Charlton's ideal work environment?",
+    "Why is Charlton interested in AI/ML roles?"
   ],
   contact: [
-    "Are you open to remote work?",
-    "What's your availability?",
-    "Are you open to contract work?",
-    "What locations are you considering?"
+    "Is Charlton open to remote work?",
+    "What's Charlton's availability?",
+    "Is Charlton open to contract work?",
+    "What locations is Charlton considering?"
   ],
   general: [
-    "What are you currently working on?",
-    "Tell me something interesting about yourself",
-    "What's your development philosophy?",
-    "How do you stay current with tech?",
-    "What excites you about AI?"
+    "What is Charlton currently working on?",
+    "Tell me something interesting about Charlton",
+    "What's Charlton's development philosophy?",
+    "How does Charlton stay current with tech?",
+    "What excites Charlton about AI?"
   ]
 };
 
