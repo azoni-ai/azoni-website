@@ -1671,7 +1671,8 @@ const ProjectsManager = () => {
   const emptyProject = {
     id: '', title: '', tagline: '', description: '', longDescription: '',
     tech: [], highlights: [], links: { live: '', github: '' },
-    image: '', featured: false, category: 'ai', syncEnabled: false, syncRepo: ''
+    image: '', featured: false, category: 'ai', syncEnabled: false, syncRepo: '',
+    displayOrder: 99
   };
 
   useEffect(() => { loadProjects(); }, []);
@@ -1679,9 +1680,17 @@ const ProjectsManager = () => {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const q = query(collection(db, 'projects'), orderBy('featured', 'desc'));
-      const snapshot = await getDocs(q);
-      setProjects(snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() })));
+      const snapshot = await getDocs(collection(db, 'projects'));
+      const projectsData = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+      // Sort by displayOrder (lower = first), then featured, then title
+      projectsData.sort((a, b) => {
+        const orderA = a.displayOrder ?? 99;
+        const orderB = b.displayOrder ?? 99;
+        if (orderA !== orderB) return orderA - orderB;
+        if (a.featured !== b.featured) return b.featured ? 1 : -1;
+        return (a.title || '').localeCompare(b.title || '');
+      });
+      setProjects(projectsData);
     } catch (err) {
       console.error('Error loading projects:', err);
     } finally {
@@ -1726,10 +1735,14 @@ const ProjectsManager = () => {
         <button className="btn btn-primary btn-sm" onClick={() => { setEditingProject({ ...emptyProject }); setShowEditor(true); }}>+ Add Project</button>
       </div>
       <div className="projects-list">
-        {projects.map(project => (
+        {projects.map((project, index) => (
           <div key={project.docId} className="project-card-admin">
             <div className="project-card-info">
-              <div className="project-card-title">{project.featured && <span className="featured-badge">⭐</span>}{project.title}</div>
+              <div className="project-card-title">
+                <span className="project-order">#{project.displayOrder ?? index + 1}</span>
+                {project.featured && <span className="featured-badge">⭐</span>}
+                {project.title}
+              </div>
               <div className="project-card-tagline">{project.tagline}</div>
               <div className="project-card-description">{project.description}</div>
               {project.syncEnabled && <div className="project-sync-badge">🔄 Syncs with {project.syncRepo}</div>}
@@ -1839,11 +1852,19 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
             </select>
           </div>
         </div>
-        <div className="editor-section">
-          <label className="editor-checkbox-label">
-            <input type="checkbox" checked={form.featured || false} onChange={(e) => setForm(prev => ({ ...prev, featured: e.target.checked }))} />
-            Featured Project
-          </label>
+        <div className="editor-grid">
+          <div className="editor-section">
+            <label className="editor-label">Display Order</label>
+            <input type="number" className="editor-input" placeholder="1" min="1" max="99" value={form.displayOrder || ''}
+              onChange={(e) => setForm(prev => ({ ...prev, displayOrder: parseInt(e.target.value) || 99 }))} />
+            <span className="editor-hint">Lower numbers appear first (1 = top)</span>
+          </div>
+          <div className="editor-section">
+            <label className="editor-checkbox-label" style={{ marginTop: '28px' }}>
+              <input type="checkbox" checked={form.featured || false} onChange={(e) => setForm(prev => ({ ...prev, featured: e.target.checked }))} />
+              Featured Project (shows on homepage)
+            </label>
+          </div>
         </div>
         <div className="editor-section sync-settings">
           <label className="editor-label">🔄 Auto-Sync Settings</label>

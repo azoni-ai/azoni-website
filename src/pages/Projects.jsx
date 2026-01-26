@@ -4,16 +4,15 @@ import ProjectCard from '../components/ProjectCard';
 import { useProjects } from '../hooks/useProjects';
 
 /**
- * Projects page demonstrating:
- * - Custom hooks for data management
- * - Memoized filtering via useProjects hook
+ * Projects page with loading state to prevent flash
  */
 const Projects = () => {
   const { 
     projects: filteredProjects, 
     categories, 
     activeCategory, 
-    changeCategory 
+    changeCategory,
+    loading 
   } = useProjects('all');
 
   return (
@@ -37,7 +36,7 @@ const Projects = () => {
             gap: 'var(--space-sm)',
             marginBottom: 'var(--space-2xl)'
           }}>
-            {Object.entries(categories).map(([key, label]) => (
+            {Object.entries(categories || {}).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => changeCategory(key)}
@@ -48,17 +47,30 @@ const Projects = () => {
             ))}
           </div>
 
-          {/* Project Grid */}
-          <div className="project-grid">
-            {filteredProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </div>
+          {/* Loading State */}
+          {loading ? (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              padding: 'var(--space-2xl)' 
+            }}>
+              <p style={{ color: 'var(--text-muted)' }}>Loading projects...</p>
+            </div>
+          ) : (
+            <>
+              {/* Project Grid */}
+              <div className="project-grid">
+                {filteredProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
 
-          {filteredProjects.length === 0 && (
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              No projects in this category yet.
-            </p>
+              {filteredProjects.length === 0 && (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No projects in this category yet.
+                </p>
+              )}
+            </>
           )}
         </div>
       </section>

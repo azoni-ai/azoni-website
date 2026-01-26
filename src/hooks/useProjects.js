@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '../config/firebase';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 
 // Fallback to static data if Firestore fails or is empty
 import { projects as staticProjects, categories as staticCategories } from '../data/projects';
@@ -10,13 +10,13 @@ import { projects as staticProjects, categories as staticCategories } from '../d
  * Maintains same interface as original for Projects.jsx compatibility
  */
 export const useProjects = (initialCategory = 'all') => {
-  const [allProjects, setAllProjects] = useState(staticProjects);
+  const [allProjects, setAllProjects] = useState([]);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [source, setSource] = useState('static'); // 'firestore' | 'static'
+  const [source, setSource] = useState(null); // 'firestore' | 'static'
 
-  // Categories - use static as default, could be fetched from Firestore later
+  // Categories - use static as default
   const categories = staticCategories || {
     all: "All Projects",
     ai: "AI & ML",
@@ -34,8 +34,7 @@ export const useProjects = (initialCategory = 'all') => {
     try {
       setLoading(true);
       const projectsRef = collection(db, 'projects');
-      const q = query(projectsRef, orderBy('featured', 'desc'));
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(projectsRef);
 
       if (snapshot.empty) {
         // No projects in Firestore, use static data
@@ -47,6 +46,17 @@ export const useProjects = (initialCategory = 'all') => {
           id: doc.id,
           ...doc.data()
         }));
+        // Sort by displayOrder (lower = first), then featured, then title
+        projectsData.sort((a, b) => {
+          // First by displayOrder if exists
+          const orderA = a.displayOrder ?? 999;
+          const orderB = b.displayOrder ?? 999;
+          if (orderA !== orderB) return orderA - orderB;
+          // Then by featured
+          if (a.featured !== b.featured) return b.featured ? 1 : -1;
+          // Then alphabetically
+          return a.title.localeCompare(b.title);
+        });
         setAllProjects(projectsData);
         setSource('firestore');
       }
