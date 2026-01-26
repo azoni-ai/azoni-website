@@ -1,75 +1,182 @@
-import { useState, useMemo, useCallback } from 'react';
-import { projects, categories, getProjectsByCategory } from '../data/projects';
+import { useState, useEffect } from 'react';
+import { db } from '../config/firebase';
+import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+
+// Fallback to static data if Firestore fails
+import { projects as staticProjects } from '../data/projects';
 
 /**
- * Custom hook for managing project filtering and retrieval
- * Demonstrates: useMemo for expensive computations, useCallback for stable references
+ * Hook to fetch projects from Firestore with fallback to static data
  */
-export const useProjects = (initialCategory = 'all') => {
-  const [activeCategory, setActiveCategory] = useState(initialCategory);
+export const useProjects = () => {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [source, setSource] = useState('loading'); // 'firestore' | 'static' | 'loading'
 
-  // Memoize filtered projects to avoid recalculating on every render
-  const filteredProjects = useMemo(() => {
-    return getProjectsByCategory(activeCategory);
-  }, [activeCategory]);
-
-  // Memoize featured projects (expensive filter operation)
-  const featuredProjects = useMemo(() => {
-    return projects.filter(p => p.featured);
+  useEffect(() => {
+    fetchProjects();
   }, []);
 
-  // Stable callback for category changes
-  const changeCategory = useCallback((category) => {
-    setActiveCategory(category);
-  }, []);
+  const fetchProjects = async () => {
+    try {
+      const projectsRef = collection(db, 'projects');
+      const q = query(projectsRef, orderBy('featured', 'desc'));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        // Fall back to static data
+        console.log('No projects in Firestore, using static data');
+        setProjects(staticProjects);
+        setSource('static');
+      } else {
+        const projectsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setProjects(projectsData);
+        setSource('firestore');
+      }
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError(err.message);
+      // Fall back to static data
+      setProjects(staticProjects);
+      setSource('static');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get a single project by ID
-  const getProjectById = useCallback((id) => {
-    return projects.find(p => p.id === id) || null;
-  }, []);
+  const getProject = (id) => {
+    return projects.find(p => p.id === id);
+  };
 
-  // Get related projects (same category, excluding current)
-  const getRelatedProjects = useCallback((projectId, limit = 3) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project) return [];
-    
-    return projects
-      .filter(p => p.id !== projectId && p.category === project.category)
-      .slice(0, limit);
-  }, []);
+  // Get featured projects only
+  const getFeatured = () => {
+    return projects.filter(p => p.featured);
+  };
+
+  // Get projects by category
+  const getByCategory = (category) => {
+    return projects.filter(p => p.category === category);
+  };
 
   return {
-    projects: filteredProjects,
-    allProjects: projects,
-    featuredProjects,
-    categories,
-    activeCategory,
-    changeCategory,
-    getProjectById,
-    getRelatedProjects,
+    projects,
+    loading,
+    error,
+    source,
+    getProject,
+    getFeatured,
+    getByCategory,
+    refresh: fetchProjects
   };
 };
 
 /**
- * Custom hook for a single project with related projects
- * Demonstrates: derived state, memoization
+ * Hook to fetch profile data from Firestore
  */
-export const useProject = (projectId) => {
-  const { getProjectById, getRelatedProjects } = useProjects();
+export const useProfile = () => {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const project = useMemo(() => {
-    return getProjectById(projectId);
-  }, [projectId, getProjectById]);
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
-  const relatedProjects = useMemo(() => {
-    return getRelatedProjects(projectId);
-  }, [projectId, getRelatedProjects]);
+  const fetchProfile = async () => {
+    try {
+      const profileRef = doc(db, 'profile', 'main');
+      const snapshot = await getDoc(profileRef);
+
+      if (snapshot.exists()) {
+        setProfile(snapshot.data());
+      } else {
+        // Default profile data
+        setProfile({
+          aboutMe: 'Software engineer with 7+ years experience building production applications.',
+          currentWork: 'Building AI-powered applications.',
+          skills: ['React', 'TypeScript', 'Python', 'AI/ML']
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
-    project,
-    relatedProjects,
-    isLoading: false, // Could be true if fetching from API
-    error: project ? null : 'Project not found',
+    profile,
+    loading,
+    error,
+    refresh: fetchProfile
+  };
+};
+
+/**
+ * Hook for sync status and triggering sync
+ */
+export const usePortfolioSync = () => {
+  const [status, setStatus] = useState({
+    loading: true,
+    hasUpdates: false,
+    lastSyncedAt: null,
+    reposOutdated: [],
+    lastSummary: null
+  });
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  const checkStatus = async () => {
+    try {
+      const response = await fetch('/.netlify/functions/portfolio-sync');
+      const data = await response.json();
+      setStatus({
+        loading: false,
+        ...data
+      });
+    } catch (err) {
+      console.error('Error checking sync status:', err);
+      setStatus(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const triggerSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+
+    try {
+      const response = await fetch('/.netlify/functions/portfolio-sync', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      setSyncResult(data);
+      
+      // Refresh status after sync
+      await checkStatus();
+    } catch (err) {
+      console.error('Error triggering sync:', err);
+      setSyncResult({ error: err.message });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return {
+    status,
+    syncing,
+    syncResult,
+    checkStatus,
+    triggerSync
   };
 };
 
