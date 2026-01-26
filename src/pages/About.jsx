@@ -1,79 +1,148 @@
 import React from 'react';
 import Layout from '../components/Layout';
-import { profile, skills, experience } from '../data/profile';
+import { useProfile } from '../hooks/useProjects';
 
 const About = () => {
+  const { profile, loading } = useProfile();
+
   return (
     <Layout>
       <section className="section" style={{ paddingTop: '120px' }}>
-        <div className="container container-narrow">
-          {/* Intro */}
-          <div style={{ marginBottom: 'var(--space-3xl)' }}>
-            <h1 style={{ marginBottom: 'var(--space-lg)' }}>About</h1>
-            <p className="about-intro">
-              I'm a software engineer based in Seattle with 7+ years of experience building 
-              production systems. Currently focused on AI applications and tools.
-            </p>
-            <p className="about-intro">
-              I started a computer vision company out of college, spent 4 years at T-Mobile 
-              building automation platforms, and led testing infrastructure at Capital One. 
-              Now I'm building LLM agents and full-stack AI apps.
-            </p>
-            <p className="about-intro">
-              I build things because I enjoy it — prediction markets, trading bots, 
-              fitness apps, game tools. Check out the <a href="/projects">projects</a> page.
-            </p>
-          </div>
+        <div className="container" style={{ maxWidth: '800px' }}>
+          <h1 style={{ marginBottom: 'var(--space-lg)' }}>About Me</h1>
+          
+          {loading ? (
+            <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
+          ) : (
+            <>
+              {/* Tagline */}
+              {profile?.tagline && (
+                <p style={{ 
+                  fontSize: '1.25rem', 
+                  color: 'var(--accent-primary)',
+                  marginBottom: 'var(--space-xl)'
+                }}>
+                  {profile.tagline}
+                </p>
+              )}
 
-          {/* Skills - Compact */}
-          <div style={{ marginBottom: 'var(--space-3xl)' }}>
-            <div className="section-label">Skills</div>
-            <div className="skills-compact">
-              {Object.entries(skills).map(([category, items]) => (
-                <div key={category} className="skill-row">
-                  <span className="skill-category">{formatCategory(category)}</span>
-                  <span className="skill-items">{items.join(' · ')}</span>
+              {/* About Me */}
+              {profile?.aboutMe && (
+                <div style={{ marginBottom: 'var(--space-xl)' }}>
+                  {profile.aboutMe.split('\n\n').map((paragraph, i) => (
+                    <p key={i} style={{ 
+                      marginBottom: 'var(--space-md)',
+                      lineHeight: '1.8',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      {paragraph}
+                    </p>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
 
-          {/* Experience - Timeline */}
-          <div style={{ marginBottom: 'var(--space-3xl)' }}>
-            <div className="section-label">Experience</div>
-            <div className="timeline">
-              {experience.map((job, index) => (
-                <div key={index} className="timeline-item">
-                  <div className="timeline-date">{job.period}</div>
-                  <div className="timeline-content">
-                    <strong>{job.title}</strong>
-                    <span className="timeline-company">{job.company}</span>
+              {/* Current Work */}
+              {profile?.currentWork && (
+                <div style={{ marginBottom: 'var(--space-xl)' }}>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    marginBottom: 'var(--space-md)' 
+                  }}>
+                    Currently Working On
+                  </h2>
+                  <p style={{ 
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.8'
+                  }}>
+                    {profile.currentWork}
+                  </p>
+                </div>
+              )}
+
+              {/* Skills */}
+              {profile?.skills?.length > 0 && (
+                <div style={{ marginBottom: 'var(--space-xl)' }}>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    marginBottom: 'var(--space-md)' 
+                  }}>
+                    Skills
+                  </h2>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: 'var(--space-sm)' 
+                  }}>
+                    {profile.skills.map(skill => (
+                      <span 
+                        key={skill}
+                        style={{
+                          padding: 'var(--space-xs) var(--space-sm)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--border-light)',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
+                        {skill}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-            <a href="/resume" className="section-link" style={{ marginTop: 'var(--space-lg)', display: 'inline-block' }}>
-              View full resume →
-            </a>
-          </div>
+              )}
 
-          {/* Contact */}
-          <div>
-            <div className="section-label">Get in touch</div>
-            <div className="contact-links">
-              <a href={`mailto:${profile.email}`}>{profile.email}</a>
-              <a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
-              <a href={profile.links.github} target="_blank" rel="noopener noreferrer">GitHub</a>
-            </div>
-          </div>
+              {/* Contact */}
+              {profile?.contact && (
+                <div>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    marginBottom: 'var(--space-md)' 
+                  }}>
+                    Get in Touch
+                  </h2>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: 'var(--space-sm)' 
+                  }}>
+                    {profile.contact.email && (
+                      <a 
+                        href={`mailto:${profile.contact.email}`}
+                        style={{ color: 'var(--accent-primary)' }}
+                      >
+                        📧 {profile.contact.email}
+                      </a>
+                    )}
+                    {profile.contact.linkedin && (
+                      <a 
+                        href={profile.contact.linkedin.startsWith('http') ? profile.contact.linkedin : `https://${profile.contact.linkedin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--accent-primary)' }}
+                      >
+                        💼 LinkedIn
+                      </a>
+                    )}
+                    {profile.contact.github && (
+                      <a 
+                        href={profile.contact.github.startsWith('http') ? profile.contact.github : `https://${profile.contact.github}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--accent-primary)' }}
+                      >
+                        🐙 GitHub
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
     </Layout>
   );
-};
-
-const formatCategory = (cat) => {
-  return cat.replace(/([A-Z])/g, ' $1').trim();
 };
 
 export default About;

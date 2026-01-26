@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import { projects } from '../data/projects';
+import { useProfile } from '../hooks/useProjects';
 import '../styles/bento.css';
 
 // Map repo names to live sites
@@ -22,6 +23,7 @@ const Home = () => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showAllCommits, setShowAllCommits] = useState(false);
   const heroRef = useRef(null);
+  const { profile } = useProfile();
 
   useEffect(() => {
     fetch('/.netlify/functions/github-stats')
@@ -87,7 +89,7 @@ const Home = () => {
           
           <div className="container">
             <h1 className="hero-name">Charlton Smith</h1>
-            <p className="hero-title">Senior Software Engineer · 7+ Years Experience</p>
+            <p className="hero-title">{profile?.tagline || 'Senior Software Engineer · 7+ Years Experience'}</p>
             
             <div className="hero-meta">
               <span className="meta-item">M.S. Software Engineering</span>
@@ -98,7 +100,7 @@ const Home = () => {
             </div>
 
             <p className="hero-desc">
-              Building web apps, AI tools, and side projects. Currently focused on full-stack development and shipping in public.
+              {profile?.currentWork || 'Building web apps, AI tools, and side projects. Currently focused on full-stack development and shipping in public.'}
             </p>
           </div>
         </section>
