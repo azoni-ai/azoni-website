@@ -277,7 +277,9 @@ function detectIntent(query) {
     'azoni',
     'prediction market',
     'nft',
-    'discord bot', 'twitter bot'
+    'discord bot', 'twitter bot',
+    'bench only', 'benchonly',
+    'embed route', 'embedroute'
   ];
   if (projectTriggers.some(t => q.includes(t))) {
     return { intent: 'projects', confidence: 'HIGH', reason: 'project_name' };
@@ -471,6 +473,16 @@ exports.handler = async (event, context) => {
     const outputCost = (usage.completion_tokens || 0) / 1000 * pricing.output;
     const totalCost = inputCost + outputCost;
 
+    // Format RAG data for frontend display
+    // Convert score to similarity (0-1 range, capped at 1.0)
+    const maxScore = Math.max(...retrievedChunks.map(c => c.score), 1);
+    const topChunks = retrievedChunks.map(c => ({
+      id: c.id,
+      title: c.title,
+      category: c.category,
+      similarity: Math.min(c.score / maxScore, 1.0).toFixed(2)
+    }));
+
     return {
       statusCode: 200,
       headers,
@@ -479,17 +491,14 @@ exports.handler = async (event, context) => {
         model,
         modelName: pricing.name,
         provider: pricing.provider,
-        // Include RAG debug info
-        rag: {
+        // Include RAG debug info (underscore prefix for frontend)
+        _rag: {
+          enabled: true,
           intent: intent.intent,
-          confidence: intent.confidence,
+          intentConfidence: intent.confidence,
           reason: intent.reason,
-          chunksRetrieved: retrievedChunks.map(c => ({
-            id: c.id,
-            title: c.title,
-            category: c.category,
-            score: c.score
-          }))
+          chunksRetrieved: retrievedChunks.length,
+          topChunks: topChunks
         },
         usage: {
           ...usage,
