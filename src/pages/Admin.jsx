@@ -1503,55 +1503,34 @@ const RAGStatsPanel = ({ stats, chunks }) => {
   );
 };
 
-// ============ CUSTOMIZE TAB ============
+// ============ CUSTOMIZE TAB (CLEANED UP - Sync/Migrate removed) ============
 const CustomizeTab = () => {
   const [subTab, setSubTab] = useState('profile');
   
   return (
     <div className="customize-tab">
-      <div className="customize-header">
-        <h3>🎨 Customize Content</h3>
-        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-          Manage profile, projects, and sync settings
-        </p>
-      </div>
-
       <div className="customize-subtabs">
         <button 
           className={`customize-subtab ${subTab === 'profile' ? 'active' : ''}`}
           onClick={() => setSubTab('profile')}
         >
-          👤 Profile
+          Profile
         </button>
         <button 
           className={`customize-subtab ${subTab === 'projects' ? 'active' : ''}`}
           onClick={() => setSubTab('projects')}
         >
-          📁 Projects
-        </button>
-        <button 
-          className={`customize-subtab ${subTab === 'sync' ? 'active' : ''}`}
-          onClick={() => setSubTab('sync')}
-        >
-          🔄 Sync
-        </button>
-        <button 
-          className={`customize-subtab ${subTab === 'migrate' ? 'active' : ''}`}
-          onClick={() => setSubTab('migrate')}
-        >
-          📦 Migrate
+          Projects
         </button>
       </div>
 
       {subTab === 'profile' && <ProfileEditor />}
       {subTab === 'projects' && <ProjectsManager />}
-      {subTab === 'sync' && <SyncManager />}
-      {subTab === 'migrate' && <MigrateManager />}
     </div>
   );
 };
 
-// ============ PROFILE EDITOR ============
+// ============ PROFILE EDITOR (Current Work renamed to Summary) ============
 const ProfileEditor = () => {
   const [profile, setProfile] = useState({
     aboutMe: '',
@@ -1615,47 +1594,94 @@ const ProfileEditor = () => {
     <div className="profile-editor">
       <div className="editor-section">
         <label className="editor-label">Tagline</label>
-        <input type="text" className="editor-input" placeholder="Software Engineer | AI Enthusiast | Builder"
-          value={profile.tagline || ''} onChange={(e) => setProfile(prev => ({ ...prev, tagline: e.target.value }))} />
+        <input 
+          type="text" 
+          className="editor-input" 
+          placeholder="Software Engineer | AI Enthusiast | Builder"
+          value={profile.tagline || ''} 
+          onChange={(e) => setProfile(prev => ({ ...prev, tagline: e.target.value }))} 
+        />
+        <span className="editor-hint">Shown below your name on the homepage</span>
       </div>
+
+      <div className="editor-section">
+        <label className="editor-label">Summary</label>
+        <textarea 
+          className="editor-textarea" 
+          placeholder="Brief professional summary..." 
+          rows={3}
+          value={profile.currentWork || ''} 
+          onChange={(e) => setProfile(prev => ({ ...prev, currentWork: e.target.value }))} 
+        />
+        <span className="editor-hint">Brief summary shown on the homepage</span>
+      </div>
+
       <div className="editor-section">
         <label className="editor-label">About Me</label>
-        <textarea className="editor-textarea" placeholder="Write your bio here..." rows={6}
-          value={profile.aboutMe || ''} onChange={(e) => setProfile(prev => ({ ...prev, aboutMe: e.target.value }))} />
-        <span className="editor-hint">This appears on your homepage and in RAG responses</span>
+        <textarea 
+          className="editor-textarea" 
+          placeholder="Your detailed bio for the About page..." 
+          rows={6}
+          value={profile.aboutMe || ''} 
+          onChange={(e) => setProfile(prev => ({ ...prev, aboutMe: e.target.value }))} 
+        />
+        <span className="editor-hint">Shown on the About page and used in RAG responses</span>
       </div>
-      <div className="editor-section">
-        <label className="editor-label">Current Work</label>
-        <textarea className="editor-textarea" placeholder="What are you currently working on?" rows={3}
-          value={profile.currentWork || ''} onChange={(e) => setProfile(prev => ({ ...prev, currentWork: e.target.value }))} />
-        <span className="editor-hint">Auto-updated by sync, but you can edit manually</span>
-      </div>
+
       <div className="editor-section">
         <label className="editor-label">Skills</label>
         <div className="skills-input-row">
-          <input type="text" className="editor-input" placeholder="Add a skill..." value={skillInput}
-            onChange={(e) => setSkillInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())} />
+          <input 
+            type="text" 
+            className="editor-input" 
+            placeholder="Add a skill..." 
+            value={skillInput}
+            onChange={(e) => setSkillInput(e.target.value)} 
+            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())} 
+          />
           <button className="btn btn-secondary btn-sm" onClick={addSkill}>Add</button>
         </div>
         <div className="skills-tags">
           {profile.skills?.map(skill => (
-            <span key={skill} className="skill-tag">{skill}<button className="skill-remove" onClick={() => removeSkill(skill)}>×</button></span>
+            <span key={skill} className="skill-tag">
+              {skill}
+              <button className="skill-remove" onClick={() => removeSkill(skill)}>×</button>
+            </span>
           ))}
         </div>
       </div>
+
       <div className="editor-section">
         <label className="editor-label">Contact</label>
         <div className="contact-fields">
-          <input type="email" className="editor-input" placeholder="Email" value={profile.contact?.email || ''}
-            onChange={(e) => setProfile(prev => ({ ...prev, contact: { ...prev.contact, email: e.target.value } }))} />
-          <input type="text" className="editor-input" placeholder="LinkedIn URL" value={profile.contact?.linkedin || ''}
-            onChange={(e) => setProfile(prev => ({ ...prev, contact: { ...prev.contact, linkedin: e.target.value } }))} />
-          <input type="text" className="editor-input" placeholder="GitHub URL" value={profile.contact?.github || ''}
-            onChange={(e) => setProfile(prev => ({ ...prev, contact: { ...prev.contact, github: e.target.value } }))} />
+          <input 
+            type="email" 
+            className="editor-input" 
+            placeholder="Email" 
+            value={profile.contact?.email || ''}
+            onChange={(e) => setProfile(prev => ({ ...prev, contact: { ...prev.contact, email: e.target.value } }))} 
+          />
+          <input 
+            type="text" 
+            className="editor-input" 
+            placeholder="LinkedIn URL" 
+            value={profile.contact?.linkedin || ''}
+            onChange={(e) => setProfile(prev => ({ ...prev, contact: { ...prev.contact, linkedin: e.target.value } }))} 
+          />
+          <input 
+            type="text" 
+            className="editor-input" 
+            placeholder="GitHub URL" 
+            value={profile.contact?.github || ''}
+            onChange={(e) => setProfile(prev => ({ ...prev, contact: { ...prev.contact, github: e.target.value } }))} 
+          />
         </div>
       </div>
+
       <div className="editor-actions">
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : '💾 Save Profile'}</button>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Profile'}
+        </button>
       </div>
     </div>
   );
@@ -1671,8 +1697,7 @@ const ProjectsManager = () => {
   const emptyProject = {
     id: '', title: '', tagline: '', description: '', longDescription: '',
     tech: [], highlights: [], links: { live: '', github: '' },
-    image: '', featured: false, category: 'ai', syncEnabled: false, syncRepo: '',
-    displayOrder: 99
+    image: '', featured: false, category: 'ai', order: 99
   };
 
   useEffect(() => { loadProjects(); }, []);
@@ -1682,10 +1707,9 @@ const ProjectsManager = () => {
       setLoading(true);
       const snapshot = await getDocs(collection(db, 'projects'));
       const projectsData = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-      // Sort by displayOrder (lower = first), then featured, then title
       projectsData.sort((a, b) => {
-        const orderA = a.displayOrder ?? 99;
-        const orderB = b.displayOrder ?? 99;
+        const orderA = a.order ?? 99;
+        const orderB = b.order ?? 99;
         if (orderA !== orderB) return orderA - orderB;
         if (a.featured !== b.featured) return b.featured ? 1 : -1;
         return (a.title || '').localeCompare(b.title || '');
@@ -1739,13 +1763,11 @@ const ProjectsManager = () => {
           <div key={project.docId} className="project-card-admin">
             <div className="project-card-info">
               <div className="project-card-title">
-                <span className="project-order">#{project.displayOrder ?? index + 1}</span>
+                <span className="project-order">#{project.order ?? index + 1}</span>
                 {project.featured && <span className="featured-badge">⭐</span>}
                 {project.title}
               </div>
               <div className="project-card-tagline">{project.tagline}</div>
-              <div className="project-card-description">{project.description}</div>
-              {project.syncEnabled && <div className="project-sync-badge">🔄 Syncs with {project.syncRepo}</div>}
             </div>
             <div className="project-card-actions">
               <button className="btn btn-secondary btn-sm" onClick={() => { setEditingProject(project); setShowEditor(true); }}>Edit</button>
@@ -1765,11 +1787,34 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
   const [highlightInput, setHighlightInput] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e) => { e.preventDefault(); setSaving(true); await onSave(form); setSaving(false); };
-  const addTech = () => { if (techInput.trim() && !form.tech?.includes(techInput.trim())) { setForm(prev => ({ ...prev, tech: [...(prev.tech || []), techInput.trim()] })); setTechInput(''); } };
-  const removeTech = (tech) => { setForm(prev => ({ ...prev, tech: prev.tech.filter(t => t !== tech) })); };
-  const addHighlight = () => { if (highlightInput.trim()) { setForm(prev => ({ ...prev, highlights: [...(prev.highlights || []), highlightInput.trim()] })); setHighlightInput(''); } };
-  const removeHighlight = (index) => { setForm(prev => ({ ...prev, highlights: prev.highlights.filter((_, i) => i !== index) })); };
+  const handleSubmit = async (e) => { 
+    e.preventDefault(); 
+    setSaving(true); 
+    await onSave(form); 
+    setSaving(false); 
+  };
+
+  const addTech = () => { 
+    if (techInput.trim() && !form.tech?.includes(techInput.trim())) { 
+      setForm(prev => ({ ...prev, tech: [...(prev.tech || []), techInput.trim()] })); 
+      setTechInput(''); 
+    } 
+  };
+
+  const removeTech = (tech) => { 
+    setForm(prev => ({ ...prev, tech: prev.tech.filter(t => t !== tech) })); 
+  };
+
+  const addHighlight = () => { 
+    if (highlightInput.trim()) { 
+      setForm(prev => ({ ...prev, highlights: [...(prev.highlights || []), highlightInput.trim()] })); 
+      setHighlightInput(''); 
+    } 
+  };
+
+  const removeHighlight = (index) => { 
+    setForm(prev => ({ ...prev, highlights: prev.highlights.filter((_, i) => i !== index) })); 
+  };
 
   return (
     <div className="project-editor">
@@ -1790,21 +1835,25 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
               onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))} required />
           </div>
         </div>
+
         <div className="editor-section">
           <label className="editor-label">Tagline</label>
           <input type="text" className="editor-input" placeholder="One-line description" value={form.tagline || ''}
             onChange={(e) => setForm(prev => ({ ...prev, tagline: e.target.value }))} />
         </div>
+
         <div className="editor-section">
           <label className="editor-label">Card Description</label>
           <textarea className="editor-textarea" placeholder="Short description for homepage cards..." rows={3} value={form.description || ''}
             onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} />
         </div>
+
         <div className="editor-section">
           <label className="editor-label">Full Description</label>
           <textarea className="editor-textarea" placeholder="Detailed project description..." rows={8} value={form.longDescription || ''}
             onChange={(e) => setForm(prev => ({ ...prev, longDescription: e.target.value }))} />
         </div>
+
         <div className="editor-grid">
           <div className="editor-section">
             <label className="editor-label">Live URL</label>
@@ -1817,6 +1866,7 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
               onChange={(e) => setForm(prev => ({ ...prev, links: { ...prev.links, github: e.target.value } }))} />
           </div>
         </div>
+
         <div className="editor-section">
           <label className="editor-label">Tech Stack</label>
           <div className="skills-input-row">
@@ -1825,9 +1875,15 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
             <button type="button" className="btn btn-secondary btn-sm" onClick={addTech}>Add</button>
           </div>
           <div className="skills-tags">
-            {form.tech?.map(tech => (<span key={tech} className="skill-tag">{tech}<button type="button" className="skill-remove" onClick={() => removeTech(tech)}>×</button></span>))}
+            {form.tech?.map(tech => (
+              <span key={tech} className="skill-tag">
+                {tech}
+                <button type="button" className="skill-remove" onClick={() => removeTech(tech)}>×</button>
+              </span>
+            ))}
           </div>
         </div>
+
         <div className="editor-section">
           <label className="editor-label">Highlights</label>
           <div className="skills-input-row">
@@ -1836,9 +1892,15 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
             <button type="button" className="btn btn-secondary btn-sm" onClick={addHighlight}>Add</button>
           </div>
           <div className="highlights-list">
-            {form.highlights?.map((h, i) => (<div key={i} className="highlight-item"><span>• {h}</span><button type="button" className="skill-remove" onClick={() => removeHighlight(i)}>×</button></div>))}
+            {form.highlights?.map((h, i) => (
+              <div key={i} className="highlight-item">
+                <span>• {h}</span>
+                <button type="button" className="skill-remove" onClick={() => removeHighlight(i)}>×</button>
+              </div>
+            ))}
           </div>
         </div>
+
         <div className="editor-grid">
           <div className="editor-section">
             <label className="editor-label">Image Path</label>
@@ -1848,178 +1910,35 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
           <div className="editor-section">
             <label className="editor-label">Category</label>
             <select className="editor-select" value={form.category || 'ai'} onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}>
-              <option value="ai">AI / ML</option><option value="web">Web App</option><option value="fintech">Fintech</option><option value="web3">Web3</option><option value="games">Games</option>
+              <option value="ai">AI / ML</option>
+              <option value="web">Web App</option>
+              <option value="fintech">Fintech</option>
+              <option value="web3">Web3</option>
+              <option value="games">Games</option>
             </select>
           </div>
         </div>
+
         <div className="editor-grid">
           <div className="editor-section">
             <label className="editor-label">Display Order</label>
-            <input type="number" className="editor-input" placeholder="1" min="1" max="99" value={form.displayOrder || ''}
-              onChange={(e) => setForm(prev => ({ ...prev, displayOrder: parseInt(e.target.value) || 99 }))} />
-            <span className="editor-hint">Lower numbers appear first (1 = top)</span>
+            <input type="number" className="editor-input" placeholder="1" min="1" max="99" value={form.order || ''}
+              onChange={(e) => setForm(prev => ({ ...prev, order: parseInt(e.target.value) || 99 }))} />
+            <span className="editor-hint">Lower numbers appear first</span>
           </div>
           <div className="editor-section">
             <label className="editor-checkbox-label" style={{ marginTop: '28px' }}>
               <input type="checkbox" checked={form.featured || false} onChange={(e) => setForm(prev => ({ ...prev, featured: e.target.checked }))} />
-              Featured Project (shows on homepage)
+              Featured on homepage
             </label>
           </div>
         </div>
-        <div className="editor-section sync-settings">
-          <label className="editor-label">🔄 Auto-Sync Settings</label>
-          <label className="editor-checkbox-label">
-            <input type="checkbox" checked={form.syncEnabled || false} onChange={(e) => setForm(prev => ({ ...prev, syncEnabled: e.target.checked }))} />
-            Enable auto-sync from GitHub
-          </label>
-          {form.syncEnabled && <input type="text" className="editor-input" placeholder="Repository name" value={form.syncRepo || ''}
-            onChange={(e) => setForm(prev => ({ ...prev, syncRepo: e.target.value }))} style={{ marginTop: '8px' }} />}
-        </div>
+
         <div className="editor-actions">
           <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : '💾 Save Project'}</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Project'}</button>
         </div>
       </form>
-    </div>
-  );
-};
-
-// ============ SYNC MANAGER ============
-const SyncManager = () => {
-  const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [result, setResult] = useState(null);
-
-  useEffect(() => { checkStatus(); }, []);
-
-  const checkStatus = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/.netlify/functions/portfolio-sync');
-      setStatus(await response.json());
-    } catch (err) {
-      console.error('Error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const triggerSync = async () => {
-    try {
-      setSyncing(true); setResult(null);
-      const response = await fetch('/.netlify/functions/portfolio-sync', { method: 'POST' });
-      setResult(await response.json());
-      await checkStatus();
-    } catch (err) {
-      setResult({ error: err.message });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleString() : 'Never';
-
-  if (loading) return <div className="customize-loading">Checking sync status...</div>;
-
-  return (
-    <div className="sync-manager">
-      <div className="sync-status-card">
-        <h4>📊 Sync Status</h4>
-        <div className="sync-status-grid">
-          <div className="sync-stat"><span className="sync-stat-label">Last Synced</span><span className="sync-stat-value">{formatDate(status?.lastSyncedAt)}</span></div>
-          <div className="sync-stat"><span className="sync-stat-label">Status</span><span className={`sync-stat-value ${status?.hasUpdates ? 'has-updates' : 'current'}`}>{status?.hasUpdates ? '⚠️ Updates Available' : '✓ Up to Date'}</span></div>
-        </div>
-        {status?.reposOutdated?.length > 0 && <div className="sync-repos-outdated"><strong>Repos with new commits:</strong><ul>{status.reposOutdated.map(r => <li key={r}>{r}</li>)}</ul></div>}
-        {status?.lastSummary && <div className="sync-last-summary"><strong>Last sync:</strong><p>{status.lastSummary}</p></div>}
-      </div>
-      <div className="sync-actions">
-        <button className="btn btn-primary" onClick={triggerSync} disabled={syncing}>{syncing ? '🔄 Syncing...' : '🔄 Sync Now'}</button>
-        <button className="btn btn-secondary" onClick={checkStatus}>🔍 Refresh</button>
-      </div>
-      {result && (
-        <div className={`sync-result-card ${result.error ? 'error' : 'success'}`}>
-          {result.error ? <p>❌ {result.error}</p> : result.updated ? <><p>✅ Sync Complete!</p><p>{result.summary}</p></> : <p>ℹ️ No updates needed</p>}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============ MIGRATE MANAGER ============
-const MigrateManager = () => {
-  const [status, setStatus] = useState({ projects: { count: 0 }, profile: { exists: false } });
-  const [migrating, setMigrating] = useState(false);
-  const [result, setResult] = useState(null);
-
-  useEffect(() => { checkStatus(); }, []);
-
-  const checkStatus = async () => {
-    try {
-      const projectsSnap = await getDocs(collection(db, 'projects'));
-      const profileSnap = await getDoc(doc(db, 'profile', 'main'));
-      setStatus({ projects: { count: projectsSnap.size }, profile: { exists: profileSnap.exists() } });
-    } catch (err) {
-      console.error('Error:', err);
-    }
-  };
-
-  const migrateProjects = async () => {
-    if (!window.confirm('Migrate all projects to Firestore?')) return;
-    try {
-      setMigrating(true);
-      const response = await fetch('/.netlify/functions/rag-admin/migrate-projects', { method: 'POST' });
-      setResult(await response.json());
-      await checkStatus();
-    } catch (err) {
-      setResult({ error: err.message });
-    } finally {
-      setMigrating(false);
-    }
-  };
-
-  const createProfile = async () => {
-    try {
-      setMigrating(true);
-      await setDoc(doc(db, 'profile', 'main'), {
-        aboutMe: 'Software engineer with 7+ years building production applications.',
-        currentWork: 'Building AI-powered applications.',
-        tagline: 'Software Engineer | AI Builder',
-        skills: ['React', 'TypeScript', 'Python', 'Firebase', 'AI/ML'],
-        contact: { email: '', linkedin: '', github: '' },
-        lastUpdated: serverTimestamp()
-      }, { merge: true });
-      setResult({ message: 'Profile created!' });
-      await checkStatus();
-    } catch (err) {
-      setResult({ error: err.message });
-    } finally {
-      setMigrating(false);
-    }
-  };
-
-  return (
-    <div className="migrate-manager">
-      <div className="migrate-status">
-        <h4>📦 Database Status</h4>
-        <div className="migrate-status-grid">
-          <div className="migrate-stat"><span className="migrate-stat-label">Projects</span><span className="migrate-stat-value">{status.projects.count} projects</span></div>
-          <div className="migrate-stat"><span className="migrate-stat-label">Profile</span><span className="migrate-stat-value">{status.profile.exists ? '✓ Exists' : '✗ Not found'}</span></div>
-        </div>
-      </div>
-      <div className="migrate-actions">
-        <div className="migrate-action">
-          <h5>Initialize Profile</h5>
-          <p>Create profile document with defaults</p>
-          <button className="btn btn-secondary" onClick={createProfile} disabled={migrating}>{migrating ? 'Creating...' : 'Create Profile'}</button>
-        </div>
-        <div className="migrate-action">
-          <h5>Migrate Projects</h5>
-          <p>Move all projects to Firestore</p>
-          <button className="btn btn-secondary" onClick={migrateProjects} disabled={migrating}>{migrating ? 'Migrating...' : 'Migrate Projects'}</button>
-        </div>
-      </div>
-      {result && <div className={`migrate-result ${result.error ? 'error' : 'success'}`}>{result.error ? <p>❌ {result.error}</p> : <p>✅ {result.message || 'Done!'}</p>}</div>}
     </div>
   );
 };

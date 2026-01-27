@@ -282,7 +282,7 @@ const Home = () => {
             <div className="projects-grid">
               <Link to="/projects/dustbunny" className="project-card">
                 <div className="project-top">
-                  <img src="/images/projects/dustbunny.png" alt="" className="project-icon" />
+                  <img src="/images/dustbunny.png" alt="" className="project-icon" />
                 </div>
                 <h3>Dustbunny</h3>
                 <p className="project-tagline">Web3 Automation Platform</p>
@@ -296,7 +296,7 @@ const Home = () => {
 
               <Link to="/projects/oli-fitness" className="project-card">
                 <div className="project-top">
-                  <img src="/images/projects/oli.png" alt="" className="project-icon" />
+                  <img src="/images/oli.png" alt="" className="project-icon" />
                 </div>
                 <h3>OLI Fitness</h3>
                 <p className="project-tagline">Computer Vision Fitness Startup</p>
