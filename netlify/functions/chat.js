@@ -1,8 +1,7 @@
 // netlify/functions/chat.js
-// Portfolio chatbot with optional RAG enhancement
-// Falls back to static prompt if Firebase Admin isn't configured
+// RAG-Enhanced Chat with Intent Detection + Anti-Hallucination
 
-// OpenRouter pricing per 1K tokens
+// ============ MODEL CONFIGURATION ============
 const MODEL_PRICING = {
   'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006, name: 'GPT-4o Mini', provider: 'OpenAI' },
   'anthropic/claude-3-5-haiku-latest': { input: 0.0008, output: 0.004, name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
@@ -13,49 +12,402 @@ const MODEL_PRICING = {
 };
 
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENROUTER_API_KEY = process.env.REACT_APP_OPENROUTER_API_KEY;
 
-// Firebase Admin - only initialize if credentials are available
-let db = null;
-let admin = null;
-let firebaseInitialized = false;
+// ============ KNOWLEDGE BASE CHUNKS ============
+// Each chunk has: id, category, title, content, keywords
+const KNOWLEDGE_CHUNKS = [
+  // EXPERIENCE CHUNKS
+  {
+    id: 'exp-capital-one',
+    category: 'experience',
+    title: 'Capital One - Senior Software Engineer',
+    content: `Senior Software Engineer at Capital One (November 2022 - November 2023, Seattle WA)
+- Built automated testing pipeline that processed JSON test results stored in S3, triggered by AWS Lambda functions
+- Implemented CloudWatch monitoring and alerting for pipeline health
+- Developed Python microservices for test orchestration and reporting
+- Mentored an intern on Python best practices and AWS services
+- Position ended due to company-wide layoffs affecting the team
+- Technologies: Python, AWS Lambda, S3, CloudWatch, microservices architecture`,
+    keywords: ['capital one', 'senior software engineer', 'aws', 'lambda', 's3', 'cloudwatch', 'python', 'testing', 'pipeline', '2022', '2023', 'layoff', 'mentor', 'intern']
+  },
+  {
+    id: 'exp-tmobile',
+    category: 'experience',
+    title: 'T-Mobile - Software Engineer II',
+    content: `Software Engineer II at T-Mobile (June 2018 - April 2022, Bellevue WA)
+- Built internal automation platform that reduced manual workload by 80%
+- Designed and implemented Python/Django backend with microservices architecture
+- Led Angular frontend development for automation dashboard
+- Created REST APIs consumed by multiple internal teams
+- Won 1st Place at T-Mobile Big Data Hackathon
+- Collaborated with cross-functional teams on enterprise solutions
+- Technologies: Python, Django, Angular, REST APIs, microservices, PostgreSQL`,
+    keywords: ['t-mobile', 'software engineer', 'automation', 'python', 'django', 'angular', 'hackathon', '2018', '2019', '2020', '2021', '2022', 'bellevue']
+  },
+  {
+    id: 'exp-slalom',
+    category: 'experience',
+    title: 'Slalom Consulting',
+    content: `Consulted at Slalom on enterprise software projects. Worked with clients on various technology solutions including cloud migrations and custom software development. Gained experience in consulting practices and client communication.`,
+    keywords: ['slalom', 'consulting', 'consultant', 'enterprise']
+  },
+  {
+    id: 'exp-nucamp',
+    category: 'experience',
+    title: 'Nucamp - Computer Science Instructor',
+    content: `Computer Science Instructor at Nucamp Coding Bootcamp (2018)
+- Taught full-stack web development to career-transition students
+- Covered JavaScript, React, Node.js, MongoDB
+- Helped students build portfolio projects
+- Provided mentorship and career guidance`,
+    keywords: ['nucamp', 'instructor', 'teacher', 'teaching', 'bootcamp', 'education', '2018']
+  },
+  {
+    id: 'exp-oli',
+    category: 'experience',
+    title: 'OLI Fitness - Co-founder',
+    content: `Co-founder at OLI Fitness (2016-2018)
+- Built computer vision fitness tracking system using Microsoft Kinect SDK
+- Developed algorithms to analyze exercise form in real-time
+- Published extended abstract at ACM CHI 2017 conference
+- Regional finalist at Princeton Tiger Launch startup competition
+- Technologies: C#, Kinect SDK, computer vision, Unity`,
+    keywords: ['oli', 'oli fitness', 'startup', 'cofounder', 'kinect', 'computer vision', 'chi', 'acm', 'princeton', '2016', '2017', '2018', 'fitness']
+  },
+  
+  // SKILLS CHUNKS
+  {
+    id: 'skills-overview',
+    category: 'skills',
+    title: 'Technical Skills Overview',
+    content: `Charlton's Core Technical Skills:
+Programming Languages: Python (primary), JavaScript, TypeScript, Java, SQL, C#
+AI/ML: OpenAI APIs (GPT-4), Claude API, LLM Agents, RAG systems, LangChain, Prompt Engineering, Vector Embeddings
+Experience: 7+ years as a software engineer across multiple companies and domains`,
+    keywords: ['skills', 'languages', 'python', 'javascript', 'java', 'programming', 'technical']
+  },
+  {
+    id: 'skills-frontend',
+    category: 'skills',
+    title: 'Frontend Development Skills',
+    content: `Frontend Skills:
+- React (primary framework), Vite for build tooling
+- HTML5, CSS3, responsive design, mobile-first approach
+- State management, hooks, component architecture
+- UI/UX sensibilities, accessibility considerations`,
+    keywords: ['frontend', 'react', 'html', 'css', 'ui', 'ux', 'vite', 'responsive']
+  },
+  {
+    id: 'skills-backend',
+    category: 'skills',
+    title: 'Backend and Infrastructure',
+    content: `Backend & Infrastructure Skills:
+- Python: FastAPI, Django, Flask
+- Node.js, Express
+- REST API design, microservices architecture
+- Cloud: AWS (Lambda, EC2, S3, CloudWatch), Docker, CI/CD
+- Deployment: Netlify, Render, Vercel
+- Databases: PostgreSQL, MongoDB, Redis, Firebase, SQLite`,
+    keywords: ['backend', 'api', 'aws', 'docker', 'database', 'postgresql', 'mongodb', 'fastapi', 'django', 'node']
+  },
+  
+  // PROJECTS CHUNKS
+  {
+    id: 'proj-oldways',
+    category: 'projects',
+    title: 'Old Ways Today Project',
+    content: `Old Ways Today - Full-stack AI Chatbot Platform
+- AI-powered chatbot helping families find non-toxic, traditional products
+- Built with React frontend, FastAPI backend, PostgreSQL database
+- Integrated OpenAI API for intelligent product recommendations
+- Features: rate limiting, token tracking, blog CMS with admin panel
+- Implements RAG (Retrieval Augmented Generation) for accurate responses
+- Live at oldwaystoday.com`,
+    keywords: ['old ways', 'oldways', 'chatbot', 'ai', 'products', 'non-toxic', 'fastapi', 'react', 'postgresql']
+  },
+  {
+    id: 'proj-dumarket',
+    category: 'projects',
+    title: 'DuMarket Prediction Market',
+    content: `DuMarket - Prediction Market Platform
+- Web application for prediction markets with real money mechanics
+- CLOB (Central Limit Order Book) matching engine
+- Automated market maker for liquidity
+- Real-time P&L tracking and portfolio management
+- 18 API endpoints for trading operations
+- Technologies: React, Python, PostgreSQL`,
+    keywords: ['dumarket', 'prediction', 'market', 'trading', 'clob', 'order book', 'betting']
+  },
+  {
+    id: 'proj-bots',
+    category: 'projects',
+    title: 'LLM-Powered Bots',
+    content: `LLM-Powered Social Bots
+- Discord and Twitter bots with AI capabilities
+- Persistent memory across conversations
+- Tool integration for external actions
+- Agentic decision-making and task execution
+- Built with Python, LangChain, various LLM APIs`,
+    keywords: ['bots', 'discord', 'twitter', 'llm', 'agent', 'langchain', 'social']
+  },
+  {
+    id: 'proj-rowcrew',
+    category: 'projects',
+    title: 'Row Crew Fitness App',
+    content: `Row Crew - AI Fitness Tracking App
+- Uses Claude's multimodal API to extract workout metrics from photos
+- Users photograph their rowing machine display
+- AI extracts: distance, time, pace, strokes per minute
+- Tracks progress over time with visual charts
+- Technologies: React Native, Claude API, Firebase`,
+    keywords: ['row crew', 'rowing', 'fitness', 'workout', 'multimodal', 'claude', 'photos', 'tracking']
+  },
+  {
+    id: 'proj-dustbunny',
+    category: 'projects',
+    title: 'Dustbunny NFT System',
+    content: `Dustbunny - High-Frequency NFT Bidding System (2021-2022)
+- Automated NFT bidding across 50 machines simultaneously
+- Handled 2,500+ requests per minute at peak
+- Redis caching for performance optimization
+- Built during NFT market peak
+- Technologies: Python, Redis, Web3, async programming`,
+    keywords: ['dustbunny', 'nft', 'bidding', 'crypto', 'web3', 'redis', 'automation', '2021', '2022']
+  },
+  {
+    id: 'proj-portfolio',
+    category: 'projects',
+    title: 'azoni.ai Portfolio',
+    content: `azoni.ai - Personal Portfolio Website
+- This very website you're interacting with
+- Features AI chatbot (Azoni-GPT) with RAG capabilities
+- Built with React, Vite, deployed on Netlify
+- Firebase for data persistence
+- Multiple AI model support via OpenRouter`,
+    keywords: ['azoni', 'portfolio', 'website', 'chatbot', 'this site']
+  },
+  
+  // EDUCATION CHUNKS
+  {
+    id: 'edu-masters',
+    category: 'education',
+    title: 'Masters Degree',
+    content: `M.S. Software Engineering - Colorado Technical University (2021)
+- Focus on software architecture and advanced programming
+- Completed while working full-time at T-Mobile`,
+    keywords: ['masters', 'ms', 'graduate', 'colorado', 'ctu', '2021', 'software engineering']
+  },
+  {
+    id: 'edu-bachelors',
+    category: 'education',
+    title: 'Bachelors Degree',
+    content: `B.S. Computer Science - University of Washington Tacoma (2017)
+- Graduated with Honors
+- Active in hackathons and student organizations
+- Head Organizer for Global AI Hackathon Seattle 2017`,
+    keywords: ['bachelors', 'bs', 'undergraduate', 'uw', 'washington', 'tacoma', '2017', 'honors', 'hackathon']
+  },
+  
+  // PERSONAL/CONTACT
+  {
+    id: 'personal-contact',
+    category: 'personal',
+    title: 'Contact Information',
+    content: `Contact Charlton:
+- Email: charltonuw@gmail.com
+- Location: Seattle, WA
+- LinkedIn: linkedin.com/in/charltonsmith
+- GitHub: github.com/charltonaustin (or similar)
+- Portfolio: azoni.ai`,
+    keywords: ['contact', 'email', 'linkedin', 'github', 'seattle', 'location', 'reach', 'hire']
+  },
+  {
+    id: 'personal-interests',
+    category: 'personal',
+    title: 'Interests and Background',
+    content: `About Charlton:
+- Based in Seattle, WA
+- Passionate about AI/LLM applications
+- Enjoys building tools that solve real problems
+- Interests: crypto/web3, fitness tech, prediction markets
+- Currently focused on AI agents and automation`,
+    keywords: ['about', 'interests', 'hobbies', 'background', 'seattle', 'personal']
+  }
+];
 
-function initFirebase() {
-  if (firebaseInitialized) return !!db;
-  firebaseInitialized = true;
+// ============ INTENT DETECTION ============
+function detectIntent(query) {
+  const q = query.toLowerCase();
   
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  
-  if (!projectId || !clientEmail || !privateKey) {
-    console.log('Firebase Admin credentials not configured - RAG disabled');
-    return false;
+  // PRIORITY 1: Company name triggers → experience
+  const companyTriggers = [
+    'capital one', 'capitalone', 
+    't-mobile', 'tmobile', 't mobile',
+    'slalom',
+    'nucamp',
+    'oli fitness', 'oli'
+  ];
+  if (companyTriggers.some(t => q.includes(t))) {
+    return { intent: 'experience', confidence: 'HIGH', reason: 'company_name' };
   }
   
-  try {
-    admin = require('firebase-admin');
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n')
-        })
-      });
-    }
-    db = admin.firestore();
-    console.log('Firebase Admin initialized - RAG enabled');
-    return true;
-  } catch (error) {
-    console.error('Firebase Admin init failed:', error.message);
-    return false;
+  // PRIORITY 2: Explicit job/work phrases → experience
+  const experiencePatterns = [
+    /work(ed)?\s+(at|for|with)/,
+    /job\s+(at|with)/,
+    /role\s+(at|with)/,
+    /experience\s+(at|with)/,
+    /position\s+(at|with)/,
+    /employed\s+(at|by)/,
+    /previous\s+(job|role|position|employer)/,
+    /work\s+history/,
+    /career/,
+    /employment/
+  ];
+  if (experiencePatterns.some(p => p.test(q))) {
+    return { intent: 'experience', confidence: 'HIGH', reason: 'work_pattern' };
   }
+  
+  // PRIORITY 3: Project name triggers → projects
+  const projectTriggers = [
+    'old ways', 'oldways',
+    'dumarket', 'du market',
+    'dustbunny', 'dust bunny',
+    'row crew', 'rowcrew',
+    'azoni',
+    'prediction market',
+    'nft',
+    'discord bot', 'twitter bot'
+  ];
+  if (projectTriggers.some(t => q.includes(t))) {
+    return { intent: 'projects', confidence: 'HIGH', reason: 'project_name' };
+  }
+  
+  // PRIORITY 4: Education keywords
+  const educationTriggers = ['degree', 'university', 'college', 'school', 'graduate', 'study', 'studied', 'education', 'masters', 'bachelors', 'uw', 'colorado'];
+  if (educationTriggers.some(t => q.includes(t))) {
+    return { intent: 'education', confidence: 'HIGH', reason: 'education_keyword' };
+  }
+  
+  // PRIORITY 5: Skill-specific queries
+  const skillsPatterns = [
+    /what (languages?|technologies?|tools?|frameworks?)/,
+    /can (he|charlton) (use|code|program|work with)/,
+    /does (he|charlton) know/,
+    /skills?/,
+    /tech stack/,
+    /proficien/
+  ];
+  if (skillsPatterns.some(p => p.test(q))) {
+    return { intent: 'skills', confidence: 'MEDIUM', reason: 'skills_pattern' };
+  }
+  
+  // PRIORITY 6: Contact/hiring
+  const contactTriggers = ['contact', 'email', 'hire', 'hiring', 'reach', 'linkedin', 'github', 'resume'];
+  if (contactTriggers.some(t => q.includes(t))) {
+    return { intent: 'contact', confidence: 'HIGH', reason: 'contact_keyword' };
+  }
+  
+  // PRIORITY 7: General about/background
+  const generalTriggers = ['who is', 'tell me about', 'background', 'about charlton', 'introduce'];
+  if (generalTriggers.some(t => q.includes(t))) {
+    return { intent: 'general', confidence: 'MEDIUM', reason: 'general_about' };
+  }
+  
+  // Default: general with low confidence
+  return { intent: 'general', confidence: 'LOW', reason: 'no_match' };
 }
 
-// ===== MAIN HANDLER =====
-exports.handler = async (event) => {
+// ============ CHUNK RETRIEVAL ============
+function retrieveChunks(query, intent, maxChunks = 5) {
+  const q = query.toLowerCase();
+  const results = [];
+  
+  // Score each chunk
+  for (const chunk of KNOWLEDGE_CHUNKS) {
+    let score = 0;
+    
+    // Category match bonus
+    if (intent.intent === 'experience' && chunk.category === 'experience') score += 30;
+    if (intent.intent === 'projects' && chunk.category === 'projects') score += 30;
+    if (intent.intent === 'skills' && chunk.category === 'skills') score += 30;
+    if (intent.intent === 'education' && chunk.category === 'education') score += 30;
+    if (intent.intent === 'contact' && chunk.category === 'personal') score += 30;
+    if (intent.intent === 'general') score += 5; // Small bonus for all in general queries
+    
+    // Keyword matching
+    for (const keyword of chunk.keywords) {
+      if (q.includes(keyword)) {
+        score += 15;
+        // Extra boost for exact important matches
+        if (keyword.length > 5) score += 5;
+      }
+    }
+    
+    // Title matching
+    if (chunk.title.toLowerCase().split(' ').some(word => q.includes(word) && word.length > 3)) {
+      score += 20;
+    }
+    
+    // Content snippet matching (check if query words appear in content)
+    const queryWords = q.split(/\s+/).filter(w => w.length > 3);
+    const contentLower = chunk.content.toLowerCase();
+    for (const word of queryWords) {
+      if (contentLower.includes(word)) score += 3;
+    }
+    
+    if (score > 0) {
+      results.push({ ...chunk, score });
+    }
+  }
+  
+  // Sort by score descending
+  results.sort((a, b) => b.score - a.score);
+  
+  // Return top chunks
+  return results.slice(0, maxChunks);
+}
+
+// ============ SYSTEM PROMPT BUILDER ============
+function buildSystemPrompt(mode, retrievedChunks, intent) {
+  const toneInstructions = {
+    professional: 'Be professional, concise, and highlight relevant qualifications.',
+    friendly: 'Be warm and approachable while remaining informative.',
+    casual: 'Be relaxed and conversational, like talking to a friend.',
+    funny: 'Add humor and wit while still being helpful and informative.'
+  };
+
+  const contextSection = retrievedChunks.length > 0
+    ? `\n\nRETRIEVED CONTEXT (use ONLY this information to answer):\n${retrievedChunks.map(c => `--- ${c.title} ---\n${c.content}`).join('\n\n')}`
+    : '';
+
+  return `You are Azoni-GPT, an AI assistant representing Charlton Smith, a software engineer in Seattle. Answer questions about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton.
+
+TONE: ${toneInstructions[mode] || toneInstructions.professional}
+
+CRITICAL RULES - YOU MUST FOLLOW THESE:
+1. ONLY use information from the RETRIEVED CONTEXT below. Do not make up details.
+2. If the context doesn't contain specific information about what the user is asking, say "I don't have detailed information about that in my knowledge base" and suggest they contact Charlton directly.
+3. NEVER invent dates, job titles, company names, or responsibilities that aren't in the context.
+4. NEVER fabricate project details, technologies, or achievements.
+5. If you're unsure, say so. It's better to be honest than to hallucinate.
+${contextSection}
+
+BASIC INFO (always available):
+- Name: Charlton Smith
+- Location: Seattle, WA
+- Email: charltonuw@gmail.com
+- Experience: 7+ years software engineering
+
+If asked about something not in the context, acknowledge the limitation and offer to help with what you do know.`;
+}
+
+// ============ MAIN HANDLER ============
+exports.handler = async (event, context) => {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -66,43 +418,29 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
-
   try {
-    const { messages, mode = 'professional', model: requestedModel, sessionId } = JSON.parse(event.body);
+    const { messages, mode, model: requestedModel } = JSON.parse(event.body);
+    
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
 
-    // Get user's latest message
-    const userMessage = messages[messages.length - 1]?.content || '';
-
-    // Try RAG if Firebase is available
-    let systemPrompt;
-    let ragInfo = null;
+    // Get the latest user message for intent detection
+    const latestUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
     
-    const ragEnabled = initFirebase();
+    // Detect intent
+    const intent = detectIntent(latestUserMessage);
     
-    if (ragEnabled && OPENAI_API_KEY) {
-      try {
-        const ragResult = await getRAGContext(userMessage, mode, messages.length);
-        systemPrompt = ragResult.systemPrompt;
-        ragInfo = ragResult.ragInfo;
-      } catch (ragError) {
-        console.error('RAG error, falling back to static prompt:', ragError.message);
-        systemPrompt = buildStaticSystemPrompt(mode);
-      }
-    } else {
-      systemPrompt = buildStaticSystemPrompt(mode);
-    }
+    // Retrieve relevant chunks
+    const retrievedChunks = retrieveChunks(latestUserMessage, intent);
+    
+    // Build system prompt with context
+    const systemPrompt = buildSystemPrompt(mode, retrievedChunks, intent);
 
-    // Call LLM via OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${process.env.REACT_APP_OPENROUTER_API_KEY}`,
         'HTTP-Referer': 'https://azoni.ai',
         'X-Title': 'Azoni Portfolio Chat'
       },
@@ -112,7 +450,7 @@ exports.handler = async (event) => {
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        max_tokens: 1024,
+        max_tokens: 1000,
         temperature: mode === 'funny' ? 0.9 : 0.7
       })
     });
@@ -124,30 +462,14 @@ exports.handler = async (event) => {
       return {
         statusCode: response.status,
         headers,
-        body: JSON.stringify({ error: data.error?.message || 'LLM API error' })
+        body: JSON.stringify({ error: data.error?.message || 'API error' })
       };
     }
 
-    // Calculate costs
     const usage = data.usage || {};
     const inputCost = (usage.prompt_tokens || 0) / 1000 * pricing.input;
     const outputCost = (usage.completion_tokens || 0) / 1000 * pricing.output;
-    const embeddingCost = ragInfo?.embeddingCost || 0;
-    const totalCost = inputCost + outputCost + embeddingCost;
-
-    // Log to Firebase if available (async, don't wait)
-    if (db) {
-      logChat({
-        sessionId,
-        userMessage,
-        assistantMessage: data.choices?.[0]?.message?.content,
-        model,
-        mode,
-        ragEnabled: !!ragInfo,
-        usage,
-        costs: { input: inputCost, output: outputCost, embedding: embeddingCost, total: totalCost }
-      }).catch(console.error);
-    }
+    const totalCost = inputCost + outputCost;
 
     return {
       statusCode: 200,
@@ -157,359 +479,36 @@ exports.handler = async (event) => {
         model,
         modelName: pricing.name,
         provider: pricing.provider,
-        _rag: ragInfo || { enabled: false },
+        // Include RAG debug info
+        rag: {
+          intent: intent.intent,
+          confidence: intent.confidence,
+          reason: intent.reason,
+          chunksRetrieved: retrievedChunks.map(c => ({
+            id: c.id,
+            title: c.title,
+            category: c.category,
+            score: c.score
+          }))
+        },
         usage: {
           ...usage,
+          model,
+          modelName: pricing.name,
+          provider: pricing.provider,
           inputCost: inputCost.toFixed(6),
           outputCost: outputCost.toFixed(6),
-          embeddingCost: embeddingCost.toFixed(6),
           totalCost: totalCost.toFixed(6)
         }
       })
     };
 
   } catch (error) {
-    console.error('Chat function error:', error);
+    console.error('Function error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal server error', details: error.message })
+      body: JSON.stringify({ error: 'Internal server error' })
     };
   }
 };
-
-// ===== RAG FUNCTIONS =====
-
-function cosineSimilarity(a, b) {
-  if (!a || !b || a.length !== b.length) return 0;
-  let dotProduct = 0, normA = 0, normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-async function getEmbedding(text) {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: text.slice(0, 8000)
-    })
-  });
-
-  const data = await response.json();
-  if (data.error) throw new Error(data.error.message);
-
-  return {
-    embedding: data.data[0].embedding,
-    tokens: data.usage.total_tokens
-  };
-}
-
-async function getRAGContext(query, mode, messageCount) {
-  const RAG_COLLECTION = 'rag_knowledge_base';
-  
-  // Detect intent
-  const intent = detectIntent(query);
-  const { topK, categories } = intent.settings;
-  
-  // Get query embedding
-  const { embedding: queryEmbedding, tokens } = await getEmbedding(query);
-  const embeddingCost = tokens / 1000000 * 0.02;
-  
-  // Fetch and rank chunks
-  const snapshot = await db.collection(RAG_COLLECTION).get();
-  
-  let results = snapshot.docs
-    .filter(doc => {
-      const data = doc.data();
-      if (!data.embedding) return false;
-      if (categories && !categories.includes(data.category)) return false;
-      return true;
-    })
-    .map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        category: data.category,
-        content: data.content,
-        similarity: cosineSimilarity(queryEmbedding, data.embedding),
-        tokenEstimate: data.tokenEstimate
-      };
-    })
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, topK);
-  
-  // Fallback to all categories if no results
-  if (results.length === 0 && categories) {
-    results = snapshot.docs
-      .filter(doc => doc.data().embedding)
-      .map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title,
-          category: data.category,
-          content: data.content,
-          similarity: cosineSimilarity(queryEmbedding, data.embedding),
-          tokenEstimate: data.tokenEstimate
-        };
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, topK);
-  }
-  
-  // Build system prompt with RAG context
-  const systemPrompt = buildRAGSystemPrompt(mode, intent, results, messageCount);
-  
-  return {
-    systemPrompt,
-    ragInfo: {
-      enabled: true,
-      intent: intent.intent,
-      intentConfidence: intent.confidence,
-      chunksRetrieved: results.length,
-      topChunks: results.slice(0, 3).map(c => ({
-        title: c.title,
-        category: c.category,
-        similarity: c.similarity.toFixed(3)
-      })),
-      embeddingCost
-    }
-  };
-}
-
-function detectIntent(message) {
-  const lower = message.toLowerCase();
-  
-  const intents = {
-    job_analysis: {
-      keywords: ['responsibilities', 'requirements', 'qualifications', 'experience required', 'we are looking', 'ideal candidate', 'job description', 'role:', 'about the role', 'years of experience'],
-      lengthThreshold: 400,
-      topK: 12,
-      categories: null
-    },
-    behavioral: {
-      keywords: ['tell me about a time', 'describe a situation', 'give an example', 'how did you handle', 'what happened when', 'challenge you faced', 'difficult situation', 'conflict', 'mistake', 'failure', 'missed deadline', 'under pressure', 'disagreed with', 'critical feedback', 'went wrong'],
-      topK: 6,
-      categories: ['faq', 'experience']
-    },
-    contact: {
-      keywords: ['email', 'phone', 'contact', 'linkedin', 'github', 'reach', 'get in touch'],
-      topK: 2,
-      categories: ['bio']
-    },
-    project_specific: {
-      keywords: ['embedroute', 'row crew', 'rowcrew', 'bench only', 'benchonly', 'old ways', 'oldways', 'tcgdoku', 'dumarket', 'azoni.ai', 'dustbunny', 'oli fitness'],
-      topK: 4,
-      categories: ['project']
-    },
-    projects: {
-      keywords: ['project', 'built', 'portfolio', 'app', 'shipped', 'work on', 'created', 'developed', 'building'],
-      topK: 8,
-      categories: ['project', 'experience']
-    },
-    experience: {
-      keywords: ['work history', 'previous job', 'capital one', 't-mobile', 'tmobile', 'career', 'worked at'],
-      topK: 6,
-      categories: ['experience', 'bio']
-    },
-    skills: {
-      keywords: ['skill', 'tech', 'stack', 'language', 'framework', 'know', 'proficient', 'python', 'react', 'javascript', 'typescript', 'ai', 'ml', 'machine learning', 'llm', 'rag', 'embedding', 'database', 'aws', 'frontend', 'backend', 'api', 'node', 'firebase', 'openai', 'claude', 'gpt'],
-      topK: 6,
-      categories: ['skill']
-    },
-    hire: {
-      keywords: ['hire', 'why should', 'strength', 'weakness', 'good at', 'best at', 'stand out', 'different'],
-      topK: 6,
-      categories: ['bio', 'faq']
-    }
-  };
-
-  // Check job analysis first
-  if (message.length > intents.job_analysis.lengthThreshold ||
-      intents.job_analysis.keywords.some(kw => lower.includes(kw))) {
-    return {
-      intent: 'job_analysis',
-      confidence: 'high',
-      settings: intents.job_analysis
-    };
-  }
-
-  // Check skills BEFORE experience - so "experience with Python" → skills
-  const skillMatches = intents.skills.keywords.filter(kw => lower.includes(kw));
-  if (skillMatches.length > 0) {
-    return {
-      intent: 'skills',
-      confidence: skillMatches.length > 2 ? 'high' : 'medium',
-      matchedKeywords: skillMatches,
-      settings: intents.skills
-    };
-  }
-
-  // Check behavioral BEFORE other intents - catches interview questions
-  const behavioralMatches = intents.behavioral.keywords.filter(kw => lower.includes(kw));
-  if (behavioralMatches.length > 0) {
-    return {
-      intent: 'behavioral',
-      confidence: behavioralMatches.length > 1 ? 'high' : 'medium',
-      matchedKeywords: behavioralMatches,
-      settings: intents.behavioral
-    };
-  }
-
-  // Check other intents
-  for (const [intent, config] of Object.entries(intents)) {
-    if (intent === 'job_analysis' || intent === 'skills' || intent === 'behavioral') continue;
-    const matches = config.keywords.filter(kw => lower.includes(kw));
-    if (matches.length > 0) {
-      return {
-        intent,
-        confidence: matches.length > 2 ? 'high' : 'medium',
-        matchedKeywords: matches,
-        settings: config
-      };
-    }
-  }
-
-  return {
-    intent: 'general',
-    confidence: 'low',
-    settings: { topK: 5, categories: null }
-  };
-}
-
-function buildRAGSystemPrompt(mode, intent, chunks, messageCount) {
-  const tones = {
-    professional: 'Be professional and concise. Highlight relevant qualifications clearly.',
-    friendly: 'Be warm and approachable while remaining informative.',
-    casual: 'Be relaxed and conversational, like talking to a colleague.',
-    funny: 'Add humor and personality while still being helpful and accurate.'
-  };
-
-  const contextBlocks = chunks.map(c => {
-    const similarityNote = c.similarity > 0 ? ` [relevance: ${(c.similarity * 100).toFixed(0)}%]` : '';
-    return `### ${c.title} (${c.category})${similarityNote}\n${c.content}`;
-  }).join('\n\n');
-
-  let prompt = `You are Azoni-GPT, an AI assistant representing Charlton Smith, a software engineer based in Seattle. Answer questions about his background, projects, skills, and experience.
-
-TONE: ${tones[mode] || tones.professional}
-
-RULES:
-1. Use ONLY the information in CONTEXT below. Do not invent or assume details.
-2. If the context doesn't fully answer the question, just answer what you can - don't say "the context doesn't provide" or mention limitations. Keep it natural.
-3. Refer to Charlton in third person unless asked to roleplay.
-4. Be concise and conversational. Sound like a helpful person, not a search engine.
-5. Include specific numbers, dates, project names, and URLs when available.
-6. DO NOT use markdown formatting (no **, no ##, no \`code\`, no bullet points with -). Write in plain conversational text.
-
-DETECTED INTENT: ${intent.intent} (confidence: ${intent.confidence})
-
----
-CONTEXT:
-${contextBlocks}
----
-`;
-
-  if (intent.intent === 'job_analysis') {
-    prompt += `
-JOB DESCRIPTION ANALYSIS MODE:
-Provide a detailed fit analysis covering:
-1. Matching Requirements - Requirements Charlton meets with evidence
-2. Strong Points - His unique strengths for this role  
-3. Potential Gaps - Honestly note areas with less experience
-4. Fit Assessment - Strong/Good/Moderate Fit with reasoning
-
-Use plain text with line breaks between sections. No markdown.
-`;
-  }
-
-  if (messageCount > 2) {
-    prompt += `\nThis is message ${messageCount}. Build on previous context naturally.`;
-  }
-
-  return prompt;
-}
-
-// ===== STATIC FALLBACK PROMPT =====
-function buildStaticSystemPrompt(mode) {
-  const toneInstructions = {
-    professional: 'Be professional, concise, and highlight relevant qualifications.',
-    friendly: 'Be warm and approachable while remaining informative.',
-    casual: 'Be relaxed and conversational, like talking to a friend.',
-    funny: 'Add humor and wit while still being helpful and informative.'
-  };
-
-  return `You are Azoni-GPT, an AI assistant that represents Charlton Smith, a software engineer. Your job is to answer questions about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton unless asked to roleplay as him.
-
-TONE: ${toneInstructions[mode] || toneInstructions.professional}
-
-CHARLTON'S PROFILE:
-- Name: Charlton Smith
-- Location: Seattle, WA
-- Education: M.S. Software Engineering (Colorado Technical University, 2021), B.S. Computer Science (University of Washington Tacoma, 2017, Graduated with Honors)
-- Experience: 7+ years as a software engineer
-
-CURRENT FOCUS:
-- LLM agents and AI-powered applications
-- Tools for web3, crypto, and fintech
-- Full-stack development with React and FastAPI
-
-SKILLS:
-Languages: Python, JavaScript, Java, SQL, C#
-AI/ML: OpenAI APIs (GPT-4), Claude API, LLM Agents, RAG, LangChain, Prompt Engineering
-Frontend: React, Vite, HTML, CSS, Mobile-First Responsive Design
-Backend: Node.js, FastAPI, Django, REST APIs, Microservices
-Cloud: AWS (Lambda, EC2, S3), Docker, CI/CD, Netlify, Render
-Databases: PostgreSQL, MongoDB, Redis, Firebase, SQLite
-
-WORK EXPERIENCE:
-- Senior Software Engineer at Capital One (Nov 2022 - Nov 2023): Led automated testing pipelines using AWS Lambda, S3, CloudWatch. Built Python microservices. Mentored junior engineers.
-- Software Engineer II at T-Mobile (Jun 2018 - Apr 2022): Built automation platform reducing workload by 80%. Designed Python/Django backend with microservices. Led Angular frontend development.
-- Computer Science Instructor at Nucamp (2018): Taught full-stack development to career-transition students.
-- Co-founder at OLI Fitness (2016-2018): Built computer vision fitness tracking with Kinect SDK. Published at ACM CHI 2017.
-
-CURRENT PROJECTS:
-- EmbedRoute: Unified embedding API gateway (Next.js, Supabase, Vercel)
-- Old Ways Today: Full-stack AI chatbot helping families find non-toxic products.
-- Row Crew: AI fitness app using Claude's multimodal API to extract workout metrics from photos.
-- Bench Only: AI strength training PWA with GPT-4o-mini coach.
-- Dustbunny (2021-2022): NFT bidding system across 50 machines, 2,500+ requests/minute.
-- azoni.ai: This portfolio with AI assistant.
-
-NOTABLE ACHIEVEMENTS:
-- Published extended abstract at ACM CHI 2017 on computer vision for fitness
-- 1st Place at T-Mobile Big Data Hackathon
-- Co-founded OLI Fitness startup, regional finalist at Princeton Tiger Launch
-- Head Organizer, Global AI Hackathon Seattle 2017
-
-FOR RECRUITERS:
-If someone pastes a job description, analyze how Charlton's experience matches the requirements and make a compelling case for why he'd be a good fit.
-
-FORMATTING:
-Do NOT use markdown formatting (no **, no ##, no \`code\`, no bullet points with - or *). Write in plain conversational text.
-
-Keep responses concise and natural - sound like a helpful person, not a database. If you don't know something specific about Charlton, just say you're not sure rather than being robotic about it.`;
-}
-
-// ===== LOGGING =====
-async function logChat(data) {
-  if (!db) return;
-  try {
-    await db.collection('chat_logs').add({
-      ...data,
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    });
-  } catch (error) {
-    console.error('Failed to log chat:', error);
-  }
-}
