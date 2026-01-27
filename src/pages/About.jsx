@@ -7,86 +7,36 @@ const About = () => {
 
   return (
     <Layout>
-      <section className="section" style={{ paddingTop: '120px' }}>
-        <div className="container" style={{ maxWidth: '800px' }}>
-          <h1 style={{ marginBottom: 'var(--space-lg)' }}>About Me</h1>
-          
+      <section className="about-page">
+        <div className="container about-container">
           {loading ? (
-            <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
+            <div className="about-loading">Loading...</div>
           ) : (
             <>
-              {/* Tagline */}
-              {profile?.tagline && (
-                <p style={{ 
-                  fontSize: '1.25rem', 
-                  color: 'var(--accent-primary)',
-                  marginBottom: 'var(--space-xl)'
-                }}>
-                  {profile.tagline}
-                </p>
-              )}
+              {/* Header */}
+              <header className="about-header">
+                <h1>About Me</h1>
+                {profile?.tagline && (
+                  <p className="about-tagline">{profile.tagline}</p>
+                )}
+              </header>
 
-              {/* About Me */}
+              {/* Bio */}
               {profile?.aboutMe && (
-                <div style={{ marginBottom: 'var(--space-xl)' }}>
+                <div className="about-bio">
                   {profile.aboutMe.split('\n\n').map((paragraph, i) => (
-                    <p key={i} style={{ 
-                      marginBottom: 'var(--space-md)',
-                      lineHeight: '1.8',
-                      color: 'var(--text-secondary)'
-                    }}>
-                      {paragraph}
-                    </p>
+                    <p key={i}>{paragraph}</p>
                   ))}
-                </div>
-              )}
-
-              {/* Current Work */}
-              {profile?.currentWork && (
-                <div style={{ marginBottom: 'var(--space-xl)' }}>
-                  <h2 style={{ 
-                    fontSize: '1.25rem', 
-                    marginBottom: 'var(--space-md)' 
-                  }}>
-                    Currently Working On
-                  </h2>
-                  <p style={{ 
-                    color: 'var(--text-secondary)',
-                    lineHeight: '1.8'
-                  }}>
-                    {profile.currentWork}
-                  </p>
                 </div>
               )}
 
               {/* Skills */}
               {profile?.skills?.length > 0 && (
-                <div style={{ marginBottom: 'var(--space-xl)' }}>
-                  <h2 style={{ 
-                    fontSize: '1.25rem', 
-                    marginBottom: 'var(--space-md)' 
-                  }}>
-                    Skills
-                  </h2>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
-                    gap: 'var(--space-sm)' 
-                  }}>
+                <div className="about-section">
+                  <h2>Skills</h2>
+                  <div className="about-skills">
                     {profile.skills.map(skill => (
-                      <span 
-                        key={skill}
-                        style={{
-                          padding: 'var(--space-xs) var(--space-sm)',
-                          background: 'var(--bg-card)',
-                          border: '1px solid var(--border-light)',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '0.9rem',
-                          color: 'var(--text-secondary)'
-                        }}
-                      >
-                        {skill}
-                      </span>
+                      <span key={skill} className="about-skill">{skill}</span>
                     ))}
                   </div>
                 </div>
@@ -94,24 +44,12 @@ const About = () => {
 
               {/* Contact */}
               {profile?.contact && (
-                <div>
-                  <h2 style={{ 
-                    fontSize: '1.25rem', 
-                    marginBottom: 'var(--space-md)' 
-                  }}>
-                    Get in Touch
-                  </h2>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: 'var(--space-sm)' 
-                  }}>
+                <div className="about-section">
+                  <h2>Get in Touch</h2>
+                  <div className="about-contact">
                     {profile.contact.email && (
-                      <a 
-                        href={`mailto:${profile.contact.email}`}
-                        style={{ color: 'var(--accent-primary)' }}
-                      >
-                        📧 {profile.contact.email}
+                      <a href={`mailto:${profile.contact.email}`}>
+                        {profile.contact.email}
                       </a>
                     )}
                     {profile.contact.linkedin && (
@@ -119,9 +57,8 @@ const About = () => {
                         href={profile.contact.linkedin.startsWith('http') ? profile.contact.linkedin : `https://${profile.contact.linkedin}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: 'var(--accent-primary)' }}
                       >
-                        💼 LinkedIn
+                        LinkedIn
                       </a>
                     )}
                     {profile.contact.github && (
@@ -129,9 +66,8 @@ const About = () => {
                         href={profile.contact.github.startsWith('http') ? profile.contact.github : `https://${profile.contact.github}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: 'var(--accent-primary)' }}
                       >
-                        🐙 GitHub
+                        GitHub
                       </a>
                     )}
                   </div>
