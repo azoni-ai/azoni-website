@@ -4761,3 +4761,152 @@ span.commit-message.private {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================
+   PROJECTS PAGE SPECIFIC STYLES
+   ============================================ */
+
+/* Chat Mode Buttons (used for project filters) */
+.chat-mode-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chat-mode-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+.chat-mode-btn.active {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: white;
+  font-weight: 600;
+}
+
+/* Project Card Styling */
+.project-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.project-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-accent);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Card Image */
+.project-card .card-image {
+  width: 100%;
+  aspect-ratio: 16/10;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-card));
+}
+
+.project-card .card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+.project-card:hover .card-image img {
+  transform: scale(1.05);
+}
+
+/* Card Title */
+.project-card .card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+/* Card Subtitle (Tagline) */
+.project-card .card-subtitle {
+  font-size: 0.9rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+  margin-bottom: var(--space-md);
+}
+
+/* Card Description */
+.project-card .card-description {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: var(--space-lg);
+  flex: 1;
+}
+
+/* Tags Container - Make sure it shows */
+.project-card .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: auto;
+}
+
+/* Individual Tags - Ensure visibility */
+.project-card .tag {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  transition: all var(--transition-fast);
+}
+
+.project-card:hover .tag {
+  background: var(--bg-elevated);
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+}
+
+/* Project Grid Improvements */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-xl);
+}
+
+@media (max-width: 768px) {
+  .project-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+  
+  .chat-mode-btn {
+    padding: var(--space-xs) var(--space-md);
+    font-size: 0.85rem;
+  }
+  
+  .project-card {
+    padding: var(--space-lg);
+  }
+  
+  .project-card .card-title {
+    font-size: 1.1rem;
+  }
+}
