@@ -173,6 +173,19 @@ const Icons = {
       <line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   ),
+  Server: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="8" rx="2"/>
+      <rect x="2" y="14" width="20" height="8" rx="2"/>
+      <circle cx="6" cy="6" r="1" fill="currentColor"/>
+      <circle cx="6" cy="18" r="1" fill="currentColor"/>
+    </svg>
+  ),
+  Fitness: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 5v14M18 5v14M3 8h3M18 8h3M3 16h3M18 16h3M6 8h12M6 16h12"/>
+    </svg>
+  ),
 };
 
 // RAG Architecture Diagram Component
@@ -186,13 +199,13 @@ const RAGArchitectureDiagram = ({ collapsed, onToggle }) => {
     );
   }
 
-  const steps = [
+  const baseSteps = [
     { icon: Icons.Query, label: 'Query', detail: 'User input' },
     { icon: Icons.Intent, label: 'Intent', detail: 'Classify type' },
-    { icon: Icons.Embedding, label: 'Embed', detail: 'OpenAI API' },
-    { icon: Icons.Database, label: 'Firestore', detail: 'Vector storage' },
-    { icon: Icons.Similarity, label: 'Similarity', detail: 'Cosine ranking' },
-    { icon: Icons.Retrieve, label: 'Retrieve', detail: 'Top-K chunks' },
+  ];
+
+  const finalSteps = [
+    { icon: Icons.Retrieve, label: 'Retrieve', detail: 'Merge context' },
     { icon: Icons.LLM, label: 'Generate', detail: 'LLM response' },
   ];
 
@@ -201,7 +214,7 @@ const RAGArchitectureDiagram = ({ collapsed, onToggle }) => {
       <div className="rag-architecture-header">
         <div className="rag-header-title">
           <span className="rag-header-icon"><Icons.Brain /></span>
-          <h3>RAG Pipeline</h3>
+          <h3>RAG + MCP Pipeline</h3>
         </div>
         <button className="rag-close-btn" onClick={onToggle} aria-label="Close">
           <Icons.Close />
@@ -209,16 +222,77 @@ const RAGArchitectureDiagram = ({ collapsed, onToggle }) => {
       </div>
       
       <div className="rag-pipeline">
-        {steps.map((step, index) => (
+        {/* Base steps: Query → Intent */}
+        {baseSteps.map((step, index) => (
           <React.Fragment key={step.label}>
-            <div className={`rag-pipeline-step ${index >= 2 && index <= 4 ? 'highlight' : ''}`}>
+            <div className="rag-pipeline-step">
               <div className="rag-step-icon">
                 <step.icon />
               </div>
               <div className="rag-step-label">{step.label}</div>
               <div className="rag-step-detail">{step.detail}</div>
             </div>
-            {index < steps.length - 1 && (
+            <div className="rag-pipeline-arrow">
+              <Icons.Arrow />
+            </div>
+          </React.Fragment>
+        ))}
+
+        {/* Branching section */}
+        <div className="rag-pipeline-branches">
+          {/* RAG Branch */}
+          <div className="rag-branch active">
+            <div className="rag-branch-label">Knowledge</div>
+            <div className="rag-branch-steps">
+              <div className="rag-pipeline-step-small">
+                <div className="rag-step-icon-small"><Icons.Embedding /></div>
+                <div className="rag-step-label-small">Embed</div>
+              </div>
+              <div className="rag-pipeline-arrow-small">→</div>
+              <div className="rag-pipeline-step-small">
+                <div className="rag-step-icon-small"><Icons.Database /></div>
+                <div className="rag-step-label-small">Firestore</div>
+              </div>
+              <div className="rag-pipeline-arrow-small">→</div>
+              <div className="rag-pipeline-step-small">
+                <div className="rag-step-icon-small"><Icons.Similarity /></div>
+                <div className="rag-step-label-small">Match</div>
+              </div>
+            </div>
+          </div>
+
+          {/* MCP Branch */}
+          <div className="rag-branch mcp-branch active">
+            <div className="rag-branch-label">Live Data</div>
+            <div className="rag-branch-steps">
+              <div className="rag-pipeline-step-small">
+                <div className="rag-step-icon-small"><Icons.Server /></div>
+                <div className="rag-step-label-small">MCP</div>
+              </div>
+              <div className="rag-pipeline-arrow-small">→</div>
+              <div className="rag-pipeline-step-small">
+                <div className="rag-step-icon-small"><Icons.Fitness /></div>
+                <div className="rag-step-label-small">Fitness</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rag-pipeline-arrow">
+          <Icons.Arrow />
+        </div>
+
+        {/* Final steps: Retrieve → Generate */}
+        {finalSteps.map((step, index) => (
+          <React.Fragment key={step.label}>
+            <div className="rag-pipeline-step">
+              <div className="rag-step-icon">
+                <step.icon />
+              </div>
+              <div className="rag-step-label">{step.label}</div>
+              <div className="rag-step-detail">{step.detail}</div>
+            </div>
+            {index < finalSteps.length - 1 && (
               <div className="rag-pipeline-arrow">
                 <Icons.Arrow />
               </div>
@@ -229,14 +303,14 @@ const RAGArchitectureDiagram = ({ collapsed, onToggle }) => {
 
       <div className="rag-architecture-footer">
         <div className="rag-tech-stack">
-          <span className="rag-tech-badge">Firebase Firestore</span>
+          <span className="rag-tech-badge">RAG</span>
+          <span className="rag-tech-badge">MCP Server</span>
           <span className="rag-tech-badge">OpenAI Embeddings</span>
-          <span className="rag-tech-badge">Cosine Similarity</span>
           <span className="rag-tech-badge">Netlify Functions</span>
         </div>
         <p className="rag-architecture-note">
-          Queries are embedded into 1,536-dimensional vectors and matched against stored knowledge chunks 
-          using cosine similarity. Relevant context is retrieved and passed to the LLM for grounded responses.
+          Intent detection routes queries to either the knowledge base (RAG) or live MCP endpoints. 
+          Fitness queries fetch real-time data from BenchPressOnly. Both paths merge into the LLM context.
         </p>
       </div>
     </div>

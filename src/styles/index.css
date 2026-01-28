@@ -3565,7 +3565,134 @@ span.commit-message.private {
   line-height: 1.6;
   opacity: 0.9;
 }
+/* RAG + MCP Branching */
+.rag-pipeline-branches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  min-width: 200px;
+}
 
+.rag-branch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.rag-branch.active {
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.12) 0%, rgba(255, 179, 71, 0.08) 100%);
+  border: 1px solid rgba(255, 122, 92, 0.25);
+}
+
+.rag-branch.inactive {
+  opacity: 0.35;
+  border: 1px solid transparent;
+}
+
+.rag-branch-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  min-width: 70px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rag-branch-steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.rag-pipeline-step-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.rag-step-icon-small {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+.rag-step-icon-small svg {
+  width: 100%;
+  height: 100%;
+}
+
+.rag-step-label-small {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.rag-pipeline-arrow-small {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  opacity: 0.5;
+}
+
+/* MCP Branch - Teal accent */
+.mcp-branch .rag-branch-label {
+  color: #4ecdc4;
+}
+
+.mcp-branch.active {
+  background: linear-gradient(135deg, rgba(78, 205, 196, 0.12) 0%, rgba(78, 205, 196, 0.05) 100%);
+  border: 1px solid rgba(78, 205, 196, 0.25);
+}
+
+.mcp-branch.active .rag-step-icon-small {
+  color: #4ecdc4;
+}
+
+.mcp-branch.active .rag-pipeline-step-small {
+  border-color: rgba(78, 205, 196, 0.3);
+}
+
+/* Active RAG branch icons */
+.rag-branch.active:not(.mcp-branch) .rag-step-icon-small {
+  color: var(--accent-primary);
+}
+
+.rag-branch.active:not(.mcp-branch) .rag-pipeline-step-small {
+  border-color: rgba(255, 122, 92, 0.3);
+}
+
+/* Mobile responsiveness for branches */
+@media (max-width: 600px) {
+  .rag-pipeline-branches {
+    min-width: 150px;
+    padding: var(--space-xs);
+  }
+  
+  .rag-branch-label {
+    font-size: 0.55rem;
+    min-width: 55px;
+  }
+  
+  .rag-step-icon-small {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .rag-step-label-small {
+    font-size: 0.5rem;
+  }
+}
 /* RAG Diagram Toggle Button */
 .rag-diagram-toggle {
   display: flex;
