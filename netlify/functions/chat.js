@@ -1,5 +1,5 @@
 // netlify/functions/chat.js
-// RAG-Enhanced Chat with Intent Detection + Anti-Hallucination
+// RAG-Enhanced Chat with Intent Detection + Anti-Hallucination + Fitness MCP
 
 // ============ MODEL CONFIGURATION ============
 const MODEL_PRICING = {
@@ -12,6 +12,20 @@ const MODEL_PRICING = {
 };
 
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
+
+// ============ MCP SERVER CONFIG ============
+const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.com';
+
+async function callMCPTool(endpoint) {
+  try {
+    const response = await fetch(`${MCP_BASE_URL}${endpoint}`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error('MCP call failed:', error);
+    return null;
+  }
+}
 
 // ============ KNOWLEDGE BASE CHUNKS ============
 // Each chunk has: id, category, title, content, keywords
@@ -186,6 +200,20 @@ Experience: 7+ years as a software engineer across multiple companies and domain
 - Multiple AI model support via OpenRouter`,
     keywords: ['azoni', 'portfolio', 'website', 'chatbot', 'this site']
   },
+  {
+    id: 'proj-benchpressonly',
+    category: 'projects',
+    title: 'BenchPressOnly Fitness App',
+    content: `BenchPressOnly - Fitness Tracking PWA
+- Progressive Web App for strength training tracking
+- Features: workout logging, goal setting, coach/athlete groups
+- Coaches can assign workouts and track athlete progress
+- Tracks sets, reps, weight, RPE, estimated 1RMs
+- Technologies: React, Firebase, Netlify Functions
+- Live at benchpressonly.com
+- Charlton uses this app to track his own training and coaches athletes`,
+    keywords: ['benchpressonly', 'bench only', 'fitness', 'workout', 'tracking', 'coaching', 'strength', 'gym']
+  },
   
   // EDUCATION CHUNKS
   {
@@ -239,6 +267,18 @@ Experience: 7+ years as a software engineer across multiple companies and domain
 function detectIntent(query) {
   const q = query.toLowerCase();
   
+  // PRIORITY 0: Fitness/BenchPressOnly queries (check first for live data)
+  const fitnessTriggers = [
+    'workout', 'workouts', 'fitness', 'gym', 'lift', 'lifting', 'bench press',
+    'squat', 'deadlift', 'training', 'coach', 'coaching', 'athlete', 'athletes',
+    'benchpressonly', 'bench only', 'exercise', 'pr', 'personal record', 'max',
+    '1rm', 'one rep max', 'goals', 'strength', 'how much can', 'how strong',
+    'discipline', 'consistent', 'streak'
+  ];
+  if (fitnessTriggers.some(t => q.includes(t))) {
+    return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_keyword' };
+  }
+  
   // PRIORITY 1: Company name triggers → experience
   const companyTriggers = [
     'capital one', 'capitalone', 
@@ -278,7 +318,6 @@ function detectIntent(query) {
     'prediction market',
     'nft',
     'discord bot', 'twitter bot',
-    'bench only', 'benchonly',
     'embed route', 'embedroute'
   ];
   if (projectTriggers.some(t => q.includes(t))) {
@@ -335,6 +374,7 @@ function retrieveChunks(query, intent, maxChunks = 5) {
     if (intent.intent === 'skills' && chunk.category === 'skills') score += 30;
     if (intent.intent === 'education' && chunk.category === 'education') score += 30;
     if (intent.intent === 'contact' && chunk.category === 'personal') score += 30;
+    if (intent.intent === 'fitness' && chunk.id === 'proj-benchpressonly') score += 30;
     if (intent.intent === 'general') score += 5; // Small bonus for all in general queries
     
     // Keyword matching
@@ -370,8 +410,71 @@ function retrieveChunks(query, intent, maxChunks = 5) {
   return results.slice(0, maxChunks);
 }
 
+// ============ FITNESS DATA RETRIEVAL ============
+async function getFitnessContext(query) {
+  const q = query.toLowerCase();
+  const context = [];
+  const toolsCalled = [];
+  
+  // Determine which endpoints to call based on query
+  const isCoachQuery = q.includes('coach') || q.includes('athlete') || q.includes('train');
+  const isMaxQuery = q.includes('max') || q.includes('pr') || q.includes('1rm') || 
+                     q.includes('strongest') || q.includes('best lift') || q.includes('how much') ||
+                     q.includes('bench') || q.includes('squat') || q.includes('deadlift');
+  const isGoalQuery = q.includes('goal');
+  const isWorkoutQuery = q.includes('workout') || q.includes('training') || q.includes('session') ||
+                         q.includes('discipline') || q.includes('consistent');
+  
+  // Default username
+  const username = 'azoni';
+  
+  try {
+    if (isCoachQuery) {
+      const summary = await callMCPTool(`/benchpressonly/coach/${username}`);
+      if (summary && !summary.error) {
+        context.push({ title: 'Coaching Overview', data: summary });
+        toolsCalled.push('get_coach_summary');
+      }
+      
+      const athletes = await callMCPTool(`/benchpressonly/coach/${username}/athletes`);
+      if (athletes && !athletes.error) {
+        context.push({ title: 'Athlete Progress', data: athletes });
+        toolsCalled.push('get_athlete_progress');
+      }
+    }
+    
+    if (isMaxQuery) {
+      const maxes = await callMCPTool(`/benchpressonly/maxes/${username}`);
+      if (maxes && !maxes.error) {
+        context.push({ title: 'Personal Records', data: maxes });
+        toolsCalled.push('get_max_lifts');
+      }
+    }
+    
+    if (isGoalQuery) {
+      const goals = await callMCPTool(`/benchpressonly/goals/${username}`);
+      if (goals && !goals.error) {
+        context.push({ title: 'Fitness Goals', data: goals });
+        toolsCalled.push('get_goals');
+      }
+    }
+    
+    if (isWorkoutQuery || context.length === 0) {
+      const workouts = await callMCPTool(`/benchpressonly/workouts/${username}`);
+      if (workouts && !workouts.error) {
+        context.push({ title: 'Recent Workouts', data: workouts });
+        toolsCalled.push('get_recent_workouts');
+      }
+    }
+  } catch (error) {
+    console.error('Fitness context error:', error);
+  }
+  
+  return { context, toolsCalled };
+}
+
 // ============ SYSTEM PROMPT BUILDER ============
-function buildSystemPrompt(mode, retrievedChunks, intent) {
+function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = []) {
   const toneInstructions = {
     professional: 'Be professional, concise, and highlight relevant qualifications.',
     friendly: 'Be warm and approachable while remaining informative.',
@@ -383,17 +486,24 @@ function buildSystemPrompt(mode, retrievedChunks, intent) {
     ? `\n\nRETRIEVED CONTEXT (use ONLY this information to answer):\n${retrievedChunks.map(c => `--- ${c.title} ---\n${c.content}`).join('\n\n')}`
     : '';
 
+  const fitnessSection = fitnessData.length > 0
+    ? `\n\nLIVE FITNESS DATA (from BenchPressOnly app - use these real numbers):\n${fitnessData.map(f => `--- ${f.title} ---\n${JSON.stringify(f.data, null, 2)}`).join('\n\n')}`
+    : '';
+
   return `You are Azoni-GPT, an AI assistant representing Charlton Smith, a software engineer in Seattle. Answer questions about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton.
 
 TONE: ${toneInstructions[mode] || toneInstructions.professional}
 
 CRITICAL RULES - YOU MUST FOLLOW THESE:
-1. ONLY use information from the RETRIEVED CONTEXT below. Do not make up details.
+1. ONLY use information from the RETRIEVED CONTEXT and LIVE FITNESS DATA below. Do not make up details.
 2. If the context doesn't contain specific information about what the user is asking, say "I don't have detailed information about that in my knowledge base" and suggest they contact Charlton directly.
 3. NEVER invent dates, job titles, company names, or responsibilities that aren't in the context.
 4. NEVER fabricate project details, technologies, or achievements.
 5. If you're unsure, say so. It's better to be honest than to hallucinate.
+6. For fitness questions, use the LIVE FITNESS DATA to give specific, real numbers. This data is pulled in real-time from Charlton's BenchPressOnly app.
+7. When discussing fitness data, mention that this is live data from his actual training log.
 ${contextSection}
+${fitnessSection}
 
 BASIC INFO (always available):
 - Name: Charlton Smith
@@ -435,8 +545,17 @@ exports.handler = async (event, context) => {
     // Retrieve relevant chunks
     const retrievedChunks = retrieveChunks(latestUserMessage, intent);
     
+    // Fetch fitness data if relevant
+    let fitnessContext = [];
+    let fitnessToolsCalled = [];
+    if (intent.intent === 'fitness') {
+      const fitnessResult = await getFitnessContext(latestUserMessage);
+      fitnessContext = fitnessResult.context;
+      fitnessToolsCalled = fitnessResult.toolsCalled;
+    }
+    
     // Build system prompt with context
-    const systemPrompt = buildSystemPrompt(mode, retrievedChunks, intent);
+    const systemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext);
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -474,7 +593,6 @@ exports.handler = async (event, context) => {
     const totalCost = inputCost + outputCost;
 
     // Format RAG data for frontend display
-    // Convert score to similarity (0-1 range, capped at 1.0)
     const maxScore = Math.max(...retrievedChunks.map(c => c.score), 1);
     const topChunks = retrievedChunks.map(c => ({
       id: c.id,
@@ -491,7 +609,7 @@ exports.handler = async (event, context) => {
         model,
         modelName: pricing.name,
         provider: pricing.provider,
-        // Include RAG debug info (underscore prefix for frontend)
+        // RAG debug info
         _rag: {
           enabled: true,
           intent: intent.intent,
@@ -499,6 +617,13 @@ exports.handler = async (event, context) => {
           reason: intent.reason,
           chunksRetrieved: retrievedChunks.length,
           topChunks: topChunks
+        },
+        // Fitness/MCP debug info
+        _fitness: {
+          enabled: fitnessContext.length > 0,
+          source: 'azoni-mcp (BenchPressOnly)',
+          toolsCalled: fitnessToolsCalled,
+          dataPoints: fitnessContext.map(f => f.title)
         },
         usage: {
           ...usage,
