@@ -269,11 +269,26 @@ function detectIntent(query) {
   
   // PRIORITY 0: Fitness/BenchPressOnly queries (check first for live data)
   const fitnessTriggers = [
-    'workout', 'workouts', 'fitness', 'gym', 'lift', 'lifting', 'bench press', 'bench',
-    'squat', 'deadlift', 'training', 'coach', 'coaching', 'athlete', 'athletes',
-    'benchpressonly', 'bench only', 'exercise', 'pr', 'personal record', 'max',
-    '1rm', 'one rep max', 'goals', 'strength', 'how much can', 'how strong',
-    'discipline', 'consistent', 'streak', 'weight', 'weights', 'strong'
+    // Workouts
+    'workout', 'workouts', 'training', 'session', 'sessions', 'routine',
+    // Gym/fitness general
+    'fitness', 'gym', 'exercise', 'exercises',
+    // Lifting
+    'lift', 'lifting', 'lifts', 'bench', 'bench press', 'squat', 'deadlift', 'overhead press',
+    // Strength/PRs
+    'pr', 'personal record', 'max', '1rm', 'one rep max', 'strongest', 'strength', 'strong', 'how much can', 'how much does',
+    // Coaching (synonyms)
+    'coach', 'coaching', 'trainer', 'training clients', 'athlete', 'athletes', 'clients', 'trains',
+    // App specific
+    'benchpressonly', 'bench only', 'benchonly',
+    // Goals
+    'goals', 'goal', 'target', 'targets',
+    // Consistency
+    'discipline', 'consistent', 'consistency', 'streak', 'dedication', 'committed',
+    // Weight
+    'weight', 'weights', 'heavy', 'heavier', 'pounds', 'lbs',
+    // Reps/sets
+    'reps', 'sets', 'volume'
   ];
   if (fitnessTriggers.some(t => q.includes(t))) {
     return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_keyword' };
@@ -417,7 +432,8 @@ async function getFitnessContext(query) {
   const toolsCalled = [];
   
   // Determine which endpoints to call based on query
-  const isCoachQuery = q.includes('coach') || q.includes('athlete') || q.includes('train');
+  const isCoachQuery = q.includes('coach') || q.includes('trainer') || q.includes('athlete') || 
+                     q.includes('clients') || q.includes('trains') || q.includes('training clients');
   const isMaxQuery = q.includes('max') || q.includes('pr') || q.includes('1rm') || 
                      q.includes('strongest') || q.includes('best lift') || q.includes('how much') ||
                      q.includes('bench') || q.includes('squat') || q.includes('deadlift');
