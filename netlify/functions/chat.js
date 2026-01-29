@@ -267,32 +267,9 @@ Experience: 7+ years as a software engineer across multiple companies and domain
 function detectIntent(query) {
   const q = query.toLowerCase();
   
-  // PRIORITY 0: Fitness/BenchPressOnly queries (check first for live data)
-  const fitnessTriggers = [
-    // Workouts
-    'workout', 'workouts', 'training', 'session', 'sessions', 'routine',
-    // Gym/fitness general
-    'fitness', 'gym', 'exercise', 'exercises',
-    // Lifting
-    'lift', 'lifting', 'lifts', 'bench', 'bench press', 'squat', 'deadlift', 'overhead press',
-    // Strength/PRs
-    'pr', 'personal record', 'max', '1rm', 'one rep max', 'strongest', 'strength', 'strong', 'how much can', 'how much does',
-    // Coaching (synonyms)
-    'coach', 'coaching', 'trainer', 'training clients', 'athlete', 'athletes', 'clients', 'trains',
-    // App specific
-    'benchpressonly', 'bench only', 'benchonly',
-    // Goals
-    'goals', 'goal', 'target', 'targets',
-    // Consistency
-    'discipline', 'consistent', 'consistency', 'streak', 'dedication', 'committed',
-    // Weight
-    'weight', 'weights', 'heavy', 'heavier', 'pounds', 'lbs',
-    // Reps/sets
-    'reps', 'sets', 'volume'
-  ];
-  if (fitnessTriggers.some(t => q.includes(t))) {
-    return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_keyword' };
-  }
+  // PRIORITY 0: Explicit NON-fitness qualifiers (check first)
+  const nonFitnessQualifiers = ['career', 'job', 'work', 'professional', 'life', 'personal', 'future'];
+  const hasNonFitnessQualifier = nonFitnessQualifiers.some(t => q.includes(t));
   
   // PRIORITY 1: Company name triggers → experience
   const companyTriggers = [
@@ -345,7 +322,43 @@ function detectIntent(query) {
     return { intent: 'education', confidence: 'HIGH', reason: 'education_keyword' };
   }
   
-  // PRIORITY 5: Skill-specific queries
+  // PRIORITY 5: Fitness - only if NOT qualified by non-fitness words
+  if (!hasNonFitnessQualifier) {
+    // Strong fitness triggers (always trigger fitness)
+    const strongFitnessTriggers = [
+      'workout', 'workouts', 'gym', 'lifting', 'bench press', 'bench', 'squat', 'deadlift',
+      'coach', 'coaching', 'trainer', 'athlete', 'athletes',
+      'benchpressonly', 'bench only', 'benchonly',
+      'pr ', 'prs', 'personal record', '1rm', 'one rep max',
+      'streak', 'consistency', 'reps', 'sets', 'volume',
+      'how much does he bench', 'how much can he lift', 'how strong',
+      'bmi', 'body stats'
+    ];
+    
+    if (strongFitnessTriggers.some(t => q.includes(t))) {
+      return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_keyword' };
+    }
+    
+    // Weak fitness triggers - need additional fitness context
+    const weakFitnessTriggers = ['goal', 'goals', 'target', 'weight', 'weigh', 'height', 'tall', 'max', 'strong', 'strength'];
+    const fitnessContextWords = ['fitness', 'gym', 'lift', 'training', 'workout', 'exercise', 'bench', 'squat', 'deadlift', 'muscle', 'gains'];
+    
+    const hasWeakTrigger = weakFitnessTriggers.some(t => q.includes(t));
+    const hasFitnessContext = fitnessContextWords.some(t => q.includes(t));
+    
+    // "fitness goals" → fitness, "goals" alone → general
+    if (hasWeakTrigger && hasFitnessContext) {
+      return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_context' };
+    }
+    
+    // Special case: body-related queries without career context are likely fitness
+    const bodyQueries = ['how much do you weigh', 'how tall', 'what is your weight', 'what is charlton\'s weight', 'how much does charlton weigh'];
+    if (bodyQueries.some(t => q.includes(t))) {
+      return { intent: 'fitness', confidence: 'MEDIUM', reason: 'body_query' };
+    }
+  }
+  
+  // PRIORITY 6: Skill-specific queries
   const skillsPatterns = [
     /what (languages?|technologies?|tools?|frameworks?)/,
     /can (he|charlton) (use|code|program|work with)/,
@@ -358,13 +371,13 @@ function detectIntent(query) {
     return { intent: 'skills', confidence: 'MEDIUM', reason: 'skills_pattern' };
   }
   
-  // PRIORITY 6: Contact/hiring
+  // PRIORITY 7: Contact/hiring
   const contactTriggers = ['contact', 'email', 'hire', 'hiring', 'reach', 'linkedin', 'github', 'resume'];
   if (contactTriggers.some(t => q.includes(t))) {
     return { intent: 'contact', confidence: 'HIGH', reason: 'contact_keyword' };
   }
   
-  // PRIORITY 7: General about/background
+  // PRIORITY 8: General about/background
   const generalTriggers = ['who is', 'tell me about', 'background', 'about charlton', 'introduce'];
   if (generalTriggers.some(t => q.includes(t))) {
     return { intent: 'general', confidence: 'MEDIUM', reason: 'general_about' };
