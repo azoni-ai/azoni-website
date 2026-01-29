@@ -431,18 +431,40 @@ async function getFitnessContext(query) {
   const context = [];
   const toolsCalled = [];
   
-  // Determine which endpoints to call based on query
+  const username = 'azoni';
+  
+  // Coaching queries
   const isCoachQuery = q.includes('coach') || q.includes('trainer') || q.includes('athlete') || 
-                     q.includes('clients') || q.includes('trains') || q.includes('training clients');
+                       q.includes('clients') || q.includes('trains') || q.includes('training clients');
+  
+  // Max/PR queries
   const isMaxQuery = q.includes('max') || q.includes('pr') || q.includes('1rm') || 
                      q.includes('strongest') || q.includes('best lift') || q.includes('how much') ||
                      q.includes('bench') || q.includes('squat') || q.includes('deadlift');
-  const isGoalQuery = q.includes('goal');
-  const isWorkoutQuery = q.includes('workout') || q.includes('training') || q.includes('session') ||
-                         q.includes('discipline') || q.includes('consistent');
   
-  // Default username
-  const username = 'azoni';
+  // Goal queries
+  const isGoalQuery = q.includes('goal') || q.includes('target');
+  
+  // Workout queries
+  const isWorkoutQuery = q.includes('workout') || q.includes('session') || q.includes('routine');
+  
+  // Streak/consistency queries
+  const isStreakQuery = q.includes('streak') || q.includes('consistent') || q.includes('discipline') || 
+                        q.includes('dedicated') || q.includes('commitment');
+  
+  // Volume queries
+  const isVolumeQuery = q.includes('volume') || q.includes('sets') || q.includes('reps') || q.includes('tonnage');
+  
+  // Exercise queries
+  const isExerciseQuery = q.includes('exercise') || q.includes('favorite') || q.includes('most trained');
+  
+  // Body/profile queries
+  const isBodyQuery = q.includes('weigh') || q.includes('weight') || q.includes('tall') || q.includes('height') || 
+                      q.includes('bmi') || q.includes('body');
+  
+  // Profile queries
+  const isProfileQuery = q.includes('profile') || q.includes('about') || q.includes('who is') || 
+                         q.includes('member') || q.includes('how long');
   
   try {
     if (isCoachQuery) {
@@ -472,6 +494,52 @@ async function getFitnessContext(query) {
       if (goals && !goals.error) {
         context.push({ title: 'Fitness Goals', data: goals });
         toolsCalled.push('get_goals');
+      }
+    }
+    
+    if (isStreakQuery) {
+      const streak = await callMCPTool(`/benchpressonly/streak/${username}`);
+      if (streak && !streak.error) {
+        context.push({ title: 'Workout Streak', data: streak });
+        toolsCalled.push('get_streak');
+      }
+      
+      const consistency = await callMCPTool(`/benchpressonly/consistency/${username}`);
+      if (consistency && !consistency.error) {
+        context.push({ title: 'Training Consistency', data: consistency });
+        toolsCalled.push('get_consistency');
+      }
+    }
+    
+    if (isVolumeQuery) {
+      const volume = await callMCPTool(`/benchpressonly/volume/${username}`);
+      if (volume && !volume.error) {
+        context.push({ title: 'Training Volume', data: volume });
+        toolsCalled.push('get_training_volume');
+      }
+    }
+    
+    if (isExerciseQuery) {
+      const exercises = await callMCPTool(`/benchpressonly/exercises/${username}`);
+      if (exercises && !exercises.error) {
+        context.push({ title: 'Top Exercises', data: exercises });
+        toolsCalled.push('get_top_exercises');
+      }
+    }
+    
+    if (isBodyQuery) {
+      const body = await callMCPTool(`/benchpressonly/body/${username}`);
+      if (body && !body.error) {
+        context.push({ title: 'Body Stats', data: body });
+        toolsCalled.push('get_body_stats');
+      }
+    }
+    
+    if (isProfileQuery) {
+      const profile = await callMCPTool(`/benchpressonly/profile/${username}`);
+      if (profile && !profile.error) {
+        context.push({ title: 'Fitness Profile', data: profile });
+        toolsCalled.push('get_user_profile');
       }
     }
     
