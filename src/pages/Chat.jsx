@@ -316,7 +316,25 @@ const RAGArchitectureDiagram = ({ collapsed, onToggle }) => {
     </div>
   );
 };
-
+// Add this component near your chat message display
+const SourceBadge = ({ rag, fitness }) => {
+  if (!rag && !fitness) return null;
+  
+  return (
+    <div className="source-badges">
+      {rag?.chunksRetrieved > 0 && (
+        <span className="source-badge rag-badge">
+          <Icons.Database /> RAG ({rag.chunksRetrieved} chunks)
+        </span>
+      )}
+      {fitness?.enabled && (
+        <span className="source-badge mcp-badge">
+          <Icons.Fitness /> MCP ({fitness.toolsCalled?.join(', ')})
+        </span>
+      )}
+    </div>
+  );
+};
 // RAG Stats Component (per-message)
 const RAGStats = ({ rag, usage }) => {
   const [expanded, setExpanded] = useState(false);
@@ -333,6 +351,7 @@ const RAGStats = ({ rag, usage }) => {
   };
 
   return (
+    
     <div className="rag-stats">
       <button 
         className="rag-stats-toggle"
@@ -517,8 +536,11 @@ const Chat = () => {
               >
                 {message.content}
               </div>
-              {message.role === 'assistant' && message.rag && (
-                <RAGStats rag={message.rag} usage={message.usage} />
+              {message.role === 'assistant' && (
+                <>
+                  <SourceBadge rag={message.rag} fitness={message.fitness} />
+                  {message.rag && <RAGStats rag={message.rag} usage={message.usage} />}
+                </>
               )}
             </div>
           ))}

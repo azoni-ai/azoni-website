@@ -103,13 +103,15 @@ export const useChat = (initialMode = 'professional') => {
       if (data.choices?.[0]) {
         const assistantContent = data.choices[0].message.content;
         
-        // Extract RAG metadata from response
+        // Extract RAG and MCP metadata from response
         const ragData = data._rag || null;
+        const fitnessData = data._fitness || null;
         
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: assistantContent,
           rag: ragData,
+          fitness: fitnessData,
           usage: data.usage
         }]);
 
@@ -123,6 +125,7 @@ export const useChat = (initialMode = 'professional') => {
           modelName: data.modelName || model,
           usage: data.usage || null,
           rag: ragData,
+          fitness: fitnessData,  // Add this line
           timestamp: serverTimestamp()
         }).catch(err => console.error('Error logging chat:', err));
 

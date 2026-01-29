@@ -5178,3 +5178,37 @@ span.commit-message.private {
     gap: var(--space-md);
   }
 }
+/* Source badges on responses */
+.source-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.source-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.rag-badge {
+  background: rgba(255, 122, 92, 0.15);
+  border: 1px solid rgba(255, 122, 92, 0.3);
+  color: #ff7a5c;
+}
+
+.mcp-badge {
+  background: rgba(78, 205, 196, 0.15);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  color: #4ecdc4;
+}
