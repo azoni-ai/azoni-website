@@ -36,7 +36,9 @@ export const useChat = (initialMode = 'professional') => {
   useEffect(() => {
     setMessages([{
       role: 'assistant',
-      content: `Hi! I'm an AI trained on Charlton's background. Ask me anything, or paste a job description for fit analysis.`,
+      content: `Hi! I'm an AI trained on Charlton's background. Ask me anything, or paste a job description for fit analysis.
+
+NEW: Ask about fitness — "How much does Charlton bench?" or "How is Charlton as a coach?" pulls live data from BenchPressOnly via MCP.`,
       rag: null // No RAG for initial message
     }]);
   }, []);

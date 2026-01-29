@@ -269,11 +269,11 @@ function detectIntent(query) {
   
   // PRIORITY 0: Fitness/BenchPressOnly queries (check first for live data)
   const fitnessTriggers = [
-    'workout', 'workouts', 'fitness', 'gym', 'lift', 'lifting', 'bench press',
+    'workout', 'workouts', 'fitness', 'gym', 'lift', 'lifting', 'bench press', 'bench',
     'squat', 'deadlift', 'training', 'coach', 'coaching', 'athlete', 'athletes',
     'benchpressonly', 'bench only', 'exercise', 'pr', 'personal record', 'max',
     '1rm', 'one rep max', 'goals', 'strength', 'how much can', 'how strong',
-    'discipline', 'consistent', 'streak'
+    'discipline', 'consistent', 'streak', 'weight', 'weights', 'strong'
   ];
   if (fitnessTriggers.some(t => q.includes(t))) {
     return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_keyword' };
