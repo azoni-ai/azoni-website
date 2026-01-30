@@ -14,12 +14,16 @@ exports.handler = async (event, context) => {
 
   const token = process.env.GITHUB_TOKEN;
   if (!token) {
+    console.error('GITHUB_TOKEN environment variable is not set');
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ error: 'GitHub token not configured' })
     };
   }
+  
+  // Log token prefix for debugging (safe - only shows first 4 chars)
+  console.log('GitHub token configured:', token.substring(0, 4) + '...');
 
   const username = 'azoni';
 
@@ -119,7 +123,22 @@ exports.handler = async (event, context) => {
       })
     });
 
+    console.log('GitHub API response status:', response.status);
+    
     const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('GitHub API error response:', JSON.stringify(data));
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'GitHub API error',
+          status: response.status,
+          details: data.message || 'Unknown error'
+        })
+      };
+    }
 
     if (data.errors) {
       console.error('GitHub GraphQL errors:', data.errors);
@@ -206,11 +225,14 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('GitHub stats error:', error);
+    console.error('GitHub stats error:', error.message, error.stack);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to fetch GitHub stats' })
+      body: JSON.stringify({ 
+        error: 'Failed to fetch GitHub stats',
+        details: error.message 
+      })
     };
   }
 };
