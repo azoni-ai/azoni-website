@@ -27,241 +27,94 @@ async function callMCPTool(endpoint) {
   }
 }
 
-// ============ KNOWLEDGE BASE CHUNKS ============
-// Each chunk has: id, category, title, content, keywords
-const KNOWLEDGE_CHUNKS = [
-  // EXPERIENCE CHUNKS
-  {
-    id: 'exp-capital-one',
-    category: 'experience',
-    title: 'Capital One - Senior Software Engineer',
-    content: `Senior Software Engineer at Capital One (November 2022 - November 2023, Seattle WA)
-- Built automated testing pipeline that processed JSON test results stored in S3, triggered by AWS Lambda functions
-- Implemented CloudWatch monitoring and alerting for pipeline health
-- Developed Python microservices for test orchestration and reporting
-- Mentored an intern on Python best practices and AWS services
-- Position ended due to company-wide layoffs affecting the team
-- Technologies: Python, AWS Lambda, S3, CloudWatch, microservices architecture`,
-    keywords: ['capital one', 'senior software engineer', 'aws', 'lambda', 's3', 'cloudwatch', 'python', 'testing', 'pipeline', '2022', '2023', 'layoff', 'mentor', 'intern']
-  },
-  {
-    id: 'exp-tmobile',
-    category: 'experience',
-    title: 'T-Mobile - Software Engineer II',
-    content: `Software Engineer II at T-Mobile (June 2018 - April 2022, Bellevue WA)
-- Built internal automation platform that reduced manual workload by 80%
-- Designed and implemented Python/Django backend with microservices architecture
-- Led Angular frontend development for automation dashboard
-- Created REST APIs consumed by multiple internal teams
-- Won 1st Place at T-Mobile Big Data Hackathon
-- Collaborated with cross-functional teams on enterprise solutions
-- Technologies: Python, Django, Angular, REST APIs, microservices, PostgreSQL`,
-    keywords: ['t-mobile', 'software engineer', 'automation', 'python', 'django', 'angular', 'hackathon', '2018', '2019', '2020', '2021', '2022', 'bellevue']
-  },
-  {
-    id: 'exp-slalom',
-    category: 'experience',
-    title: 'Slalom Consulting',
-    content: `Consulted at Slalom on enterprise software projects. Worked with clients on various technology solutions including cloud migrations and custom software development. Gained experience in consulting practices and client communication.`,
-    keywords: ['slalom', 'consulting', 'consultant', 'enterprise']
-  },
-  {
-    id: 'exp-nucamp',
-    category: 'experience',
-    title: 'Nucamp - Computer Science Instructor',
-    content: `Computer Science Instructor at Nucamp Coding Bootcamp (2018)
-- Taught full-stack web development to career-transition students
-- Covered JavaScript, React, Node.js, MongoDB
-- Helped students build portfolio projects
-- Provided mentorship and career guidance`,
-    keywords: ['nucamp', 'instructor', 'teacher', 'teaching', 'bootcamp', 'education', '2018']
-  },
-  {
-    id: 'exp-oli',
-    category: 'experience',
-    title: 'OLI Fitness - Co-founder',
-    content: `Co-founder at OLI Fitness (2016-2018)
-- Built computer vision fitness tracking system using Microsoft Kinect SDK
-- Developed algorithms to analyze exercise form in real-time
-- Published extended abstract at ACM CHI 2017 conference
-- Regional finalist at Princeton Tiger Launch startup competition
-- Technologies: C#, Kinect SDK, computer vision, Unity`,
-    keywords: ['oli', 'oli fitness', 'startup', 'cofounder', 'kinect', 'computer vision', 'chi', 'acm', 'princeton', '2016', '2017', '2018', 'fitness']
-  },
+// ============ FIREBASE ADMIN SETUP ============
+let db = null;
+let admin = null;
+let firebaseInitError = null;
+
+function initFirebase() {
+  if (db) return true;
+  if (firebaseInitError) return false;
   
-  // SKILLS CHUNKS
-  {
-    id: 'skills-overview',
-    category: 'skills',
-    title: 'Technical Skills Overview',
-    content: `Charlton's Core Technical Skills:
-Programming Languages: Python (primary), JavaScript, TypeScript, Java, SQL, C#
-AI/ML: OpenAI APIs (GPT-4), Claude API, LLM Agents, RAG systems, LangChain, Prompt Engineering, Vector Embeddings
-Experience: 7+ years as a software engineer across multiple companies and domains`,
-    keywords: ['skills', 'languages', 'python', 'javascript', 'java', 'programming', 'technical']
-  },
-  {
-    id: 'skills-frontend',
-    category: 'skills',
-    title: 'Frontend Development Skills',
-    content: `Frontend Skills:
-- React (primary framework), Vite for build tooling
-- HTML5, CSS3, responsive design, mobile-first approach
-- State management, hooks, component architecture
-- UI/UX sensibilities, accessibility considerations`,
-    keywords: ['frontend', 'react', 'html', 'css', 'ui', 'ux', 'vite', 'responsive']
-  },
-  {
-    id: 'skills-backend',
-    category: 'skills',
-    title: 'Backend and Infrastructure',
-    content: `Backend & Infrastructure Skills:
-- Python: FastAPI, Django, Flask
-- Node.js, Express
-- REST API design, microservices architecture
-- Cloud: AWS (Lambda, EC2, S3, CloudWatch), Docker, CI/CD
-- Deployment: Netlify, Render, Vercel
-- Databases: PostgreSQL, MongoDB, Redis, Firebase, SQLite`,
-    keywords: ['backend', 'api', 'aws', 'docker', 'database', 'postgresql', 'mongodb', 'fastapi', 'django', 'node']
-  },
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
   
-  // PROJECTS CHUNKS
-  {
-    id: 'proj-oldways',
-    category: 'projects',
-    title: 'Old Ways Today Project',
-    content: `Old Ways Today - Full-stack AI Chatbot Platform
-- AI-powered chatbot helping families find non-toxic, traditional products
-- Built with React frontend, FastAPI backend, PostgreSQL database
-- Integrated OpenAI API for intelligent product recommendations
-- Features: rate limiting, token tracking, blog CMS with admin panel
-- Implements RAG (Retrieval Augmented Generation) for accurate responses
-- Live at oldwaystoday.com`,
-    keywords: ['old ways', 'oldways', 'chatbot', 'ai', 'products', 'non-toxic', 'fastapi', 'react', 'postgresql']
-  },
-  {
-    id: 'proj-dumarket',
-    category: 'projects',
-    title: 'DuMarket Prediction Market',
-    content: `DuMarket - Prediction Market Platform
-- Web application for prediction markets with real money mechanics
-- CLOB (Central Limit Order Book) matching engine
-- Automated market maker for liquidity
-- Real-time P&L tracking and portfolio management
-- 18 API endpoints for trading operations
-- Technologies: React, Python, PostgreSQL`,
-    keywords: ['dumarket', 'prediction', 'market', 'trading', 'clob', 'order book', 'betting']
-  },
-  {
-    id: 'proj-bots',
-    category: 'projects',
-    title: 'LLM-Powered Bots',
-    content: `LLM-Powered Social Bots
-- Discord and Twitter bots with AI capabilities
-- Persistent memory across conversations
-- Tool integration for external actions
-- Agentic decision-making and task execution
-- Built with Python, LangChain, various LLM APIs`,
-    keywords: ['bots', 'discord', 'twitter', 'llm', 'agent', 'langchain', 'social']
-  },
-  {
-    id: 'proj-rowcrew',
-    category: 'projects',
-    title: 'Row Crew Fitness App',
-    content: `Row Crew - AI Fitness Tracking App
-- Uses Claude's multimodal API to extract workout metrics from photos
-- Users photograph their rowing machine display
-- AI extracts: distance, time, pace, strokes per minute
-- Tracks progress over time with visual charts
-- Technologies: React Native, Claude API, Firebase`,
-    keywords: ['row crew', 'rowing', 'fitness', 'workout', 'multimodal', 'claude', 'photos', 'tracking']
-  },
-  {
-    id: 'proj-dustbunny',
-    category: 'projects',
-    title: 'Dustbunny NFT System',
-    content: `Dustbunny - High-Frequency NFT Bidding System (2021-2022)
-- Automated NFT bidding across 50 machines simultaneously
-- Handled 2,500+ requests per minute at peak
-- Redis caching for performance optimization
-- Built during NFT market peak
-- Technologies: Python, Redis, Web3, async programming`,
-    keywords: ['dustbunny', 'nft', 'bidding', 'crypto', 'web3', 'redis', 'automation', '2021', '2022']
-  },
-  {
-    id: 'proj-portfolio',
-    category: 'projects',
-    title: 'azoni.ai Portfolio',
-    content: `azoni.ai - Personal Portfolio Website
-- This very website you're interacting with
-- Features AI chatbot (Azoni-GPT) with RAG capabilities
-- Built with React, Vite, deployed on Netlify
-- Firebase for data persistence
-- Multiple AI model support via OpenRouter`,
-    keywords: ['azoni', 'portfolio', 'website', 'chatbot', 'this site']
-  },
-  {
-    id: 'proj-benchpressonly',
-    category: 'projects',
-    title: 'BenchPressOnly Fitness App',
-    content: `BenchPressOnly - Fitness Tracking PWA
-- Progressive Web App for strength training tracking
-- Features: workout logging, goal setting, coach/athlete groups
-- Coaches can assign workouts and track athlete progress
-- Tracks sets, reps, weight, RPE, estimated 1RMs
-- Technologies: React, Firebase, Netlify Functions
-- Live at benchpressonly.com
-- Charlton uses this app to track his own training and coaches athletes`,
-    keywords: ['benchpressonly', 'bench only', 'fitness', 'workout', 'tracking', 'coaching', 'strength', 'gym']
-  },
-  
-  // EDUCATION CHUNKS
-  {
-    id: 'edu-masters',
-    category: 'education',
-    title: 'Masters Degree',
-    content: `M.S. Software Engineering - Colorado Technical University (2021)
-- Focus on software architecture and advanced programming
-- Completed while working full-time at T-Mobile`,
-    keywords: ['masters', 'ms', 'graduate', 'colorado', 'ctu', '2021', 'software engineering']
-  },
-  {
-    id: 'edu-bachelors',
-    category: 'education',
-    title: 'Bachelors Degree',
-    content: `B.S. Computer Science - University of Washington Tacoma (2017)
-- Graduated with Honors
-- Active in hackathons and student organizations
-- Head Organizer for Global AI Hackathon Seattle 2017`,
-    keywords: ['bachelors', 'bs', 'undergraduate', 'uw', 'washington', 'tacoma', '2017', 'honors', 'hackathon']
-  },
-  
-  // PERSONAL/CONTACT
-  {
-    id: 'personal-contact',
-    category: 'personal',
-    title: 'Contact Information',
-    content: `Contact Charlton:
-- Email: charltonuw@gmail.com
-- Location: Seattle, WA
-- LinkedIn: linkedin.com/in/charltonsmith
-- GitHub: github.com/charltonaustin (or similar)
-- Portfolio: azoni.ai`,
-    keywords: ['contact', 'email', 'linkedin', 'github', 'seattle', 'location', 'reach', 'hire']
-  },
-  {
-    id: 'personal-interests',
-    category: 'personal',
-    title: 'Interests and Background',
-    content: `About Charlton:
-- Based in Seattle, WA
-- Passionate about AI/LLM applications
-- Enjoys building tools that solve real problems
-- Interests: crypto/web3, fitness tech, prediction markets
-- Currently focused on AI agents and automation`,
-    keywords: ['about', 'interests', 'hobbies', 'background', 'seattle', 'personal']
+  if (!projectId || !clientEmail || !privateKey) {
+    firebaseInitError = 'Firebase credentials not configured';
+    console.error(firebaseInitError);
+    return false;
   }
-];
+  
+  try {
+    admin = require('firebase-admin');
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n')
+        })
+      });
+    }
+    db = admin.firestore();
+    return true;
+  } catch (error) {
+    firebaseInitError = `Firebase init failed: ${error.message}`;
+    console.error(firebaseInitError);
+    return false;
+  }
+}
+
+// ============ KNOWLEDGE BASE FROM FIRESTORE ============
+const RAG_COLLECTION = 'rag_knowledge_base';
+
+// Cache chunks in memory (refreshed every 5 minutes)
+let chunksCache = null;
+let chunksCacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getKnowledgeChunks() {
+  // Return cache if fresh
+  if (chunksCache && (Date.now() - chunksCacheTime) < CACHE_TTL) {
+    return chunksCache;
+  }
+  
+  if (!initFirebase()) {
+    console.error('Firebase not available, returning empty chunks');
+    return [];
+  }
+  
+  try {
+    const snapshot = await db.collection(RAG_COLLECTION).get();
+    const chunks = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Update cache
+    chunksCache = chunks;
+    chunksCacheTime = Date.now();
+    
+    console.log(`Loaded ${chunks.length} RAG chunks from Firestore`);
+    return chunks;
+  } catch (error) {
+    console.error('Error fetching RAG chunks:', error);
+    return chunksCache || []; // Return stale cache if available
+  }
+}
+
+// ============ FALLBACK CHUNK (used if Firestore unavailable) ============
+const FALLBACK_CHUNK = {
+  id: 'fallback-intro',
+  category: 'general',
+  title: 'About Charlton Smith',
+  content: 'Charlton Smith is a software engineer with 7+ years of experience based in Seattle. Contact: charltonuw@gmail.com',
+  keywords: ['charlton', 'about', 'contact', 'seattle']
+};
+
+// REMOVED: Old hardcoded KNOWLEDGE_CHUNKS array
+// Chunks are now fetched from Firestore collection: rag_knowledge_base
 
 // ============ INTENT DETECTION ============
 function detectIntent(query) {
@@ -388,12 +241,21 @@ function detectIntent(query) {
 }
 
 // ============ CHUNK RETRIEVAL ============
-function retrieveChunks(query, intent, maxChunks = 5) {
+async function retrieveChunks(query, intent, maxChunks = 5) {
   const q = query.toLowerCase();
   const results = [];
   
+  // Fetch chunks from Firestore
+  const chunks = await getKnowledgeChunks();
+  
+  // If no chunks available, return fallback
+  if (!chunks || chunks.length === 0) {
+    console.warn('No chunks available, using fallback');
+    return [{ ...FALLBACK_CHUNK, score: 1 }];
+  }
+  
   // Score each chunk
-  for (const chunk of KNOWLEDGE_CHUNKS) {
+  for (const chunk of chunks) {
     let score = 0;
     
     // Category match bonus
@@ -402,12 +264,13 @@ function retrieveChunks(query, intent, maxChunks = 5) {
     if (intent.intent === 'skills' && chunk.category === 'skills') score += 30;
     if (intent.intent === 'education' && chunk.category === 'education') score += 30;
     if (intent.intent === 'contact' && chunk.category === 'personal') score += 30;
-    if (intent.intent === 'fitness' && chunk.id === 'proj-benchpressonly') score += 30;
+    if (intent.intent === 'fitness' && (chunk.id === 'proj-benchpressonly' || chunk.category === 'fitness')) score += 30;
     if (intent.intent === 'general') score += 5; // Small bonus for all in general queries
     
-    // Keyword matching
-    for (const keyword of chunk.keywords) {
-      if (q.includes(keyword)) {
+    // Keyword matching (handle both 'keywords' array and 'metadata.keywords')
+    const keywords = chunk.keywords || chunk.metadata?.keywords || [];
+    for (const keyword of keywords) {
+      if (q.includes(keyword.toLowerCase())) {
         score += 15;
         // Extra boost for exact important matches
         if (keyword.length > 5) score += 5;
@@ -415,13 +278,13 @@ function retrieveChunks(query, intent, maxChunks = 5) {
     }
     
     // Title matching
-    if (chunk.title.toLowerCase().split(' ').some(word => q.includes(word) && word.length > 3)) {
+    if (chunk.title && chunk.title.toLowerCase().split(' ').some(word => q.includes(word) && word.length > 3)) {
       score += 20;
     }
     
     // Content snippet matching (check if query words appear in content)
     const queryWords = q.split(/\s+/).filter(w => w.length > 3);
-    const contentLower = chunk.content.toLowerCase();
+    const contentLower = (chunk.content || '').toLowerCase();
     for (const word of queryWords) {
       if (contentLower.includes(word)) score += 3;
     }
@@ -639,8 +502,8 @@ exports.handler = async (event, context) => {
     // Detect intent
     const intent = detectIntent(latestUserMessage);
     
-    // Retrieve relevant chunks
-    const retrievedChunks = retrieveChunks(latestUserMessage, intent);
+    // Retrieve relevant chunks from Firestore
+    const retrievedChunks = await retrieveChunks(latestUserMessage, intent);
     
     // Fetch fitness data if relevant
     let fitnessContext = [];
