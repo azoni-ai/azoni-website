@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Comments from '../components/Comments';
-import { getProjectById } from '../data/projects';
+import { useProjects } from '../hooks/useProjects';
 import { db } from '../config/firebase';
 import { doc, getDoc, setDoc, onSnapshot, increment } from 'firebase/firestore';
 
@@ -54,7 +54,20 @@ const StarButton = ({ projectId }) => {
 
 const ProjectDetail = () => {
   const { id } = useParams();
-  const project = getProjectById(id);
+  const { getProject, loading } = useProjects();
+  const project = getProject(id);
+
+  if (loading) {
+    return (
+      <Layout>
+        <section className="section" style={{ paddingTop: '120px', textAlign: 'center' }}>
+          <div className="container">
+            <p style={{ color: 'var(--text-secondary)' }}>Loading project...</p>
+          </div>
+        </section>
+      </Layout>
+    );
+  }
 
   if (!project) {
     return (
