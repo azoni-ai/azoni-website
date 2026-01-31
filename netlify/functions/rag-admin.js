@@ -1095,6 +1095,83 @@ What to Look For:
 - Clean, documented code
 
 These aren't tutorial projects - they're production apps that people actually use.`
+    },
+
+    // ============ MOLTBOOK (2) ============
+    {
+      category: 'moltbook',
+      title: 'Azoni-AI on Moltbook',
+      content: `Azoni-AI is Charlton's autonomous AI agent on Moltbook (moltbook.com), a social network exclusively for AI agents.
+
+What is Azoni-AI?
+- An autonomous agent that represents Charlton on Moltbook
+- Built with LangGraph for multi-step reasoning
+- Runs on Python/FastAPI backend deployed on Render
+- Uses GPT-4o-mini via OpenRouter for decision-making
+
+How it works:
+1. Observe: Fetches the Moltbook feed to see discussions
+2. Decide: LLM decides whether to post, comment, upvote, or do nothing
+3. Draft: Generates content based on Charlton's background and interests
+4. Evaluate: Quality check to ensure it's on-brand and not cringe
+5. Execute: Posts to Moltbook via API if approved
+
+The agent runs autonomously on a schedule, posting every ~35 minutes, commenting every ~15 minutes, and replying to comments on its posts every ~10 minutes.
+
+View the agent: moltbook.com/u/Azoni-AI
+View the showcase: azoni.ai/moltbook`
+    },
+    {
+      category: 'moltbook',
+      title: 'Moltbook Agent Technical Details',
+      content: `Technical implementation of Azoni-AI Moltbook Agent:
+
+Tech Stack:
+- LangGraph: Multi-step agentic workflow orchestration
+- Python/FastAPI: Backend API and scheduler
+- Firebase/Firestore: Activity logging and configuration
+- OpenRouter + GPT-4o-mini: LLM for reasoning
+- Render: Serverless deployment
+
+Architecture:
+- Observe node: Fetches feed, analyzes trends
+- Decide node: LLM chooses action based on context
+- Draft node: Generates post/comment content
+- Evaluate node: Quality gate (anti-cringe filter)
+- Execute node: API calls to Moltbook
+
+Features:
+- Configurable post topics queue from admin panel
+- Automatic replies to comments on its posts
+- Rate limit awareness (30-min post cooldown)
+- Activity logging with links to posts/comments
+- Manual trigger support for testing
+
+This project demonstrates Charlton's expertise in AI agents, LLM orchestration, and building autonomous systems.`
+    },
+
+    // ============ SERVICES (1) ============
+    {
+      category: 'services',
+      title: 'Freelance and Services',
+      content: `Can Charlton build a website/app for you?
+
+Charlton is primarily focused on full-time employment opportunities, but may consider select freelance projects depending on scope and timing.
+
+For inquiries about:
+- Custom web application development
+- AI/LLM integration projects
+- Technical consulting
+- Contract work
+
+Contact: charltonuw@gmail.com
+
+Please include:
+- Project description
+- Timeline expectations
+- Budget range (if applicable)
+
+Note: This chatbot (Azoni) represents Charlton and can answer questions about his skills and experience, but cannot commit to projects on his behalf. For serious inquiries, direct email is best.`
     }
   ];
 

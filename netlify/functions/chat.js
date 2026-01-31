@@ -120,7 +120,13 @@ const FALLBACK_CHUNK = {
 function detectIntent(query) {
   const q = query.toLowerCase();
   
-  // PRIORITY 0: Explicit NON-fitness qualifiers (check first)
+  // PRIORITY 0: Moltbook/Agent queries → special handling
+  const moltbookTriggers = ['moltbook', 'azoni-ai', 'azoni ai', 'autonomous agent', 'ai agent'];
+  if (moltbookTriggers.some(t => q.includes(t))) {
+    return { intent: 'moltbook', confidence: 'HIGH', reason: 'moltbook_keyword' };
+  }
+  
+  // PRIORITY 0.5: Explicit NON-fitness qualifiers (check first)
   const nonFitnessQualifiers = ['career', 'job', 'work', 'professional', 'life', 'personal', 'future'];
   const hasNonFitnessQualifier = nonFitnessQualifiers.some(t => q.includes(t));
   
@@ -230,7 +236,17 @@ function detectIntent(query) {
     return { intent: 'contact', confidence: 'HIGH', reason: 'contact_keyword' };
   }
   
-  // PRIORITY 8: General about/background
+  // PRIORITY 8: Services/freelance queries
+  const servicesTriggers = [
+    'make me a', 'build me a', 'create me a', 'can you make', 'can you build',
+    'website for me', 'app for me', 'freelance', 'available for', 'for hire',
+    'services', 'consulting', 'contract work'
+  ];
+  if (servicesTriggers.some(t => q.includes(t))) {
+    return { intent: 'services', confidence: 'HIGH', reason: 'services_request' };
+  }
+  
+  // PRIORITY 9: General about/background
   const generalTriggers = ['who is', 'tell me about', 'background', 'about charlton', 'introduce'];
   if (generalTriggers.some(t => q.includes(t))) {
     return { intent: 'general', confidence: 'MEDIUM', reason: 'general_about' };
@@ -265,6 +281,8 @@ async function retrieveChunks(query, intent, maxChunks = 5) {
     if (intent.intent === 'education' && chunk.category === 'education') score += 30;
     if (intent.intent === 'contact' && chunk.category === 'personal') score += 30;
     if (intent.intent === 'fitness' && (chunk.id === 'proj-benchpressonly' || chunk.category === 'fitness')) score += 30;
+    if (intent.intent === 'moltbook' && (chunk.category === 'moltbook' || chunk.id?.includes('moltbook'))) score += 30;
+    if (intent.intent === 'services' && (chunk.category === 'services' || chunk.category === 'personal')) score += 30;
     if (intent.intent === 'general') score += 5; // Small bonus for all in general queries
     
     // Keyword matching (handle both 'keywords' array and 'metadata.keywords')
