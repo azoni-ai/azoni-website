@@ -278,34 +278,51 @@ const MoltbookAgent = () => {
               <div className="moltbook-empty">No activity yet. Check back soon!</div>
             ) : (
               <div className="activity-feed">
-                {activity.map((item, index) => (
-                  <div key={item.id || index} className="activity-item">
-                    <div 
-                      className="activity-icon"
-                      style={{ color: getActionColor(item.action) }}
-                    >
-                      {getActionIcon(item.action)}
-                    </div>
-                    <div className="activity-content">
-                      <div className="activity-header">
-                        <span className="activity-action">{item.action}</span>
-                        <span className="activity-time">{formatTimeAgo(item.timestamp)}</span>
+                {activity.map((item, index) => {
+                  // Extract post/comment ID from result for linking
+                  const postId = item.result?.post?.id || item.result?.comment?.post_id || item.decision?.target_post_id;
+                  const commentId = item.result?.comment?.id;
+                  const moltbookLink = postId ? `https://www.moltbook.com/post/${postId}${commentId ? `#${commentId}` : ''}` : null;
+                  
+                  return (
+                    <div key={item.id || index} className="activity-item">
+                      <div 
+                        className="activity-icon"
+                        style={{ color: getActionColor(item.action) }}
+                      >
+                        {getActionIcon(item.action)}
                       </div>
-                      {item.draft?.title && (
-                        <div className="activity-title">{item.draft.title}</div>
-                      )}
-                      {item.draft?.content && (
-                        <div className="activity-preview">
-                          {item.draft.content.substring(0, 150)}
-                          {item.draft.content.length > 150 ? '...' : ''}
+                      <div className="activity-content">
+                        <div className="activity-header">
+                          <span className="activity-action">{item.action}</span>
+                          <span className="activity-time">{formatTimeAgo(item.timestamp)}</span>
                         </div>
-                      )}
-                      {item.error && (
-                        <div className="activity-error">Error: {item.error}</div>
-                      )}
+                        {item.draft?.title && (
+                          <div className="activity-title">{item.draft.title}</div>
+                        )}
+                        {item.draft?.content && (
+                          <div className="activity-preview">
+                            {item.draft.content.substring(0, 150)}
+                            {item.draft.content.length > 150 ? '...' : ''}
+                          </div>
+                        )}
+                        {item.error && (
+                          <div className="activity-error">Error: {item.error}</div>
+                        )}
+                        {moltbookLink && (
+                          <a 
+                            href={moltbookLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="activity-link"
+                          >
+                            View on Moltbook {Icons.external}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -551,6 +568,25 @@ const MoltbookAgent = () => {
         .activity-error {
           color: #ef4444;
           font-size: 0.85rem;
+        }
+
+        .activity-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          margin-top: 0.5rem;
+          font-size: 0.85rem;
+          color: var(--accent-primary, #ff6b4a);
+          text-decoration: none;
+        }
+
+        .activity-link:hover {
+          text-decoration: underline;
+        }
+
+        .activity-link svg {
+          width: 14px;
+          height: 14px;
         }
 
         .moltbook-tech {

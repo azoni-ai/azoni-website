@@ -2318,7 +2318,7 @@ const MoltbookTab = () => {
                     {post.id?.substring(0, 8)}...
                   </span>
                   <span className="moltbook-feed-submolt">m/{post.submolt || 'general'}</span>
-                  <span className="moltbook-feed-author">by {post.author || 'unknown'}</span>
+                  <span className="moltbook-feed-author">by {typeof post.author === 'object' ? (post.author?.name || post.author?.display_name || 'unknown') : (post.author || 'unknown')}</span>
                 </div>
                 <div className="moltbook-feed-title">{post.title}</div>
                 <div className="moltbook-feed-stats">👍 {post.upvotes || 0} · 💬 {post.comment_count || 0}</div>
@@ -2335,20 +2335,31 @@ const MoltbookTab = () => {
           {activity.length === 0 ? (
             <div className="moltbook-empty">No activity yet</div>
           ) : (
-            activity.slice(0, 20).map((item, i) => (
-              <div key={item.id || i} className={`moltbook-log-item ${item.error ? 'error' : ''}`}>
-                <div className="moltbook-log-header">
-                  <span className="moltbook-log-action">{item.action}</span>
-                  <span className="moltbook-log-trigger">{item.trigger}</span>
-                  <span className="moltbook-log-time">{formatTimeAgo(item.timestamp)}</span>
+            activity.slice(0, 20).map((item, i) => {
+              const postId = item.result?.post?.id || item.result?.comment?.post_id || item.decision?.target_post_id;
+              const commentId = item.result?.comment?.id;
+              const moltbookLink = postId ? `https://www.moltbook.com/post/${postId}${commentId ? `#${commentId}` : ''}` : null;
+              
+              return (
+                <div key={item.id || i} className={`moltbook-log-item ${item.error ? 'error' : ''}`}>
+                  <div className="moltbook-log-header">
+                    <span className="moltbook-log-action">{item.action}</span>
+                    <span className="moltbook-log-trigger">{item.trigger}</span>
+                    <span className="moltbook-log-time">{formatTimeAgo(item.timestamp)}</span>
+                  </div>
+                  {item.draft?.title && <div className="moltbook-log-title">{item.draft.title}</div>}
+                  {item.draft?.content && (
+                    <div className="moltbook-log-content">{item.draft.content.substring(0, 150)}...</div>
+                  )}
+                  {item.error && <div className="moltbook-log-error">{item.error}</div>}
+                  {moltbookLink && (
+                    <a href={moltbookLink} target="_blank" rel="noopener noreferrer" className="moltbook-log-link">
+                      View on Moltbook ↗
+                    </a>
+                  )}
                 </div>
-                {item.draft?.title && <div className="moltbook-log-title">{item.draft.title}</div>}
-                {item.draft?.content && (
-                  <div className="moltbook-log-content">{item.draft.content.substring(0, 150)}...</div>
-                )}
-                {item.error && <div className="moltbook-log-error">{item.error}</div>}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -2530,6 +2541,16 @@ const MoltbookTab = () => {
           color: #ef4444;
           font-size: 0.85rem;
           margin-top: 0.25rem;
+        }
+        .moltbook-log-link {
+          display: inline-block;
+          margin-top: 0.5rem;
+          font-size: 0.8rem;
+          color: var(--accent-primary, #6366f1);
+          text-decoration: none;
+        }
+        .moltbook-log-link:hover {
+          text-decoration: underline;
         }
         .moltbook-empty {
           padding: 1.5rem;
