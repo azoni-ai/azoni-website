@@ -1953,6 +1953,21 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
 // ============ MOLTBOOK TAB ============
 const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 
+// Helper to safely render any value (handles objects)
+const safeRender = (value, fallback = 'Unknown') => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'object') {
+    // Handle author objects specifically
+    if (value.name) return value.name;
+    if (value.display_name) return value.display_name;
+    if (value.id) return value.id;
+    return JSON.stringify(value);
+  }
+  return String(value);
+};
+
 const MoltbookTab = () => {
   const [status, setStatus] = useState(null);
   const [config, setConfig] = useState(null);
@@ -2182,7 +2197,7 @@ const MoltbookTab = () => {
             <div className="moltbook-status-row">
               <span>Moltbook</span>
               <span className={status?.moltbook_status === 'claimed' ? 'status-online' : ''}>
-                {status?.moltbook_status === 'claimed' ? '🟢 Connected' : '⚪ ' + (status?.moltbook_status || 'Unknown')}
+                {status?.moltbook_status === 'claimed' ? '🟢 Connected' : '⚪ ' + (typeof status?.moltbook_status === 'string' ? status.moltbook_status : 'Unknown')}
               </span>
             </div>
             <div className="moltbook-status-row">
@@ -2318,7 +2333,7 @@ const MoltbookTab = () => {
                     {post.id?.substring(0, 8)}...
                   </span>
                   <span className="moltbook-feed-submolt">m/{post.submolt || 'general'}</span>
-                  <span className="moltbook-feed-author">by {typeof post.author === 'object' ? (post.author?.name || post.author?.display_name || 'unknown') : (post.author || 'unknown')}</span>
+                  <span className="moltbook-feed-author">by {safeRender(post.author, 'unknown')}</span>
                 </div>
                 <div className="moltbook-feed-title">{post.title}</div>
                 <div className="moltbook-feed-stats">👍 {post.upvotes || 0} · 💬 {post.comment_count || 0}</div>
@@ -2336,9 +2351,12 @@ const MoltbookTab = () => {
             <div className="moltbook-empty">No activity yet</div>
           ) : (
             activity.slice(0, 20).map((item, i) => {
-              const postId = item.result?.post?.id || item.result?.comment?.post_id || item.decision?.target_post_id;
-              const commentId = item.result?.comment?.id;
-              const moltbookLink = postId ? `https://www.moltbook.com/post/${postId}${commentId ? `#${commentId}` : ''}` : null;
+              // Extract post ID from multiple possible locations
+              const postId = item.result?.post?.id 
+                || item.result?.comment?.post_id 
+                || item.result?.post_id
+                || item.decision?.target_post_id;
+              const moltbookLink = postId ? `https://www.moltbook.com/post/${postId}` : null;
               
               return (
                 <div key={item.id || i} className={`moltbook-log-item ${item.error ? 'error' : ''}`}>

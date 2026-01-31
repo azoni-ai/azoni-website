@@ -25,6 +25,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showAllCommits, setShowAllCommits] = useState(false);
+  const [moltbookStatus, setMoltbookStatus] = useState(null);
   const heroRef = useRef(null);
 
   // Fetch profile from Firestore
@@ -41,6 +42,23 @@ const Home = () => {
       }
     };
     fetchProfile();
+  }, []);
+
+  // Fetch Moltbook agent status
+  useEffect(() => {
+    const fetchMoltbookStatus = async () => {
+      try {
+        const AGENT_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
+        const res = await fetch(`${AGENT_URL}/status`);
+        if (res.ok) {
+          const data = await res.json();
+          setMoltbookStatus(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch Moltbook status:', err);
+      }
+    };
+    fetchMoltbookStatus();
   }, []);
 
   // Fetch featured projects from Firestore
@@ -208,6 +226,51 @@ const Home = () => {
         {/* CTAs - Blog & Chat */}
         <section className="cta-section">
           <div className="container">
+            {/* Moltbook Agent Banner */}
+            <Link to="/moltbook" className="moltbook-banner">
+              <div className="moltbook-banner-bg"></div>
+              <div className="moltbook-banner-content">
+                <div className="moltbook-banner-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="currentColor"/>
+                    <circle cx="20" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
+                    <circle cx="28" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
+                  </svg>
+                </div>
+                <div className="moltbook-banner-text">
+                  <div className="moltbook-banner-header">
+                    <h3>Azoni-AI Agent</h3>
+                    {moltbookStatus?.moltbook_status === 'claimed' && (
+                      <span className="moltbook-status-badge">
+                        <span className="status-dot-live"></span>
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  <p>My autonomous AI agent on Moltbook — observes, decides, and posts on its own using LangGraph</p>
+                </div>
+                <div className="moltbook-banner-stats">
+                  {moltbookStatus && (
+                    <>
+                      <div className="moltbook-stat">
+                        <span className="stat-value">{moltbookStatus.posts_today || 0}</span>
+                        <span className="stat-label">Posts Today</span>
+                      </div>
+                      <div className="moltbook-stat">
+                        <span className="stat-value">{moltbookStatus.autonomous_mode ? 'Auto' : 'Manual'}</span>
+                        <span className="stat-label">Mode</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <span className="moltbook-banner-arrow">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </span>
+              </div>
+            </Link>
+
             <div className="cta-grid">
               <Link to="/blog" className="cta-card blog-cta">
                 <div className="cta-icon">
