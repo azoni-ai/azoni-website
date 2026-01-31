@@ -1952,6 +1952,7 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
 
 // ============ MOLTBOOK TAB ============
 const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
+const MOLTBOOK_ADMIN_KEY = process.env.REACT_APP_MOLTBOOK_ADMIN_KEY || '';
 
 // Helper to safely render any value (handles objects)
 const safeRender = (value, fallback = 'Unknown') => {
@@ -1959,7 +1960,6 @@ const safeRender = (value, fallback = 'Unknown') => {
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return String(value);
   if (typeof value === 'object') {
-    // Handle author objects specifically
     if (value.name) return value.name;
     if (value.display_name) return value.display_name;
     if (value.id) return value.id;
@@ -1973,10 +1973,15 @@ const MoltbookTab = () => {
   const [config, setConfig] = useState(null);
   const [activity, setActivity] = useState([]);
   const [feed, setFeed] = useState([]);
+  const [jobHistory, setJobHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // Job intervals
+  const [intervals, setIntervals] = useState({ post: 45, comment: 10, reply: 8, upvote: 15, watcher: 5 });
+  const [savingIntervals, setSavingIntervals] = useState(false);
 
   // Manual run form
   const [runContext, setRunContext] = useState('');
@@ -1993,6 +1998,21 @@ const MoltbookTab = () => {
   // Post topics queue
   const [newTopic, setNewTopic] = useState('');
 
+  // Auth headers for write operations
+  const agentAuthHeaders = () => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (MOLTBOOK_ADMIN_KEY) headers['X-Admin-Key'] = MOLTBOOK_ADMIN_KEY;
+    return headers;
+  };
+
+  const handleAuthError = (res) => {
+    if (res.status === 401) {
+      setError('401 Unauthorized — check REACT_APP_MOLTBOOK_ADMIN_KEY in your Netlify env vars');
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -2000,22 +2020,31 @@ const MoltbookTab = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [statusRes, configRes, activityRes, feedRes] = await Promise.all([
-        fetch(`${AGENT_API_URL}/status`),
-        fetch(`${AGENT_API_URL}/config`),
-        fetch(`${AGENT_API_URL}/activity?limit=50`),
-        fetch(`${AGENT_API_URL}/feed?limit=15`)
+      const [statusRes, configRes, activityRes, feedRes, jobsRes] = await Promise.all([
+        fetch(`${AGENT_API_URL}/status`).catch(() => null),
+        fetch(`${AGENT_API_URL}/config`).catch(() => null),
+        fetch(`${AGENT_API_URL}/activity?limit=50`).catch(() => null),
+        fetch(`${AGENT_API_URL}/feed?limit=15`).catch(() => null),
+        fetch(`${AGENT_API_URL}/jobs`).catch(() => null),
       ]);
 
-      if (statusRes.ok) setStatus(await statusRes.json());
-      if (configRes.ok) setConfig(await configRes.json());
-      if (activityRes.ok) {
+      if (statusRes?.ok) setStatus(await statusRes.json());
+      if (configRes?.ok) {
+        const c = await configRes.json();
+        setConfig(c);
+        if (c.intervals) setIntervals(prev => ({ ...prev, ...c.intervals }));
+      }
+      if (activityRes?.ok) {
         const data = await activityRes.json();
         setActivity(data.activity || []);
       }
-      if (feedRes.ok) {
+      if (feedRes?.ok) {
         const data = await feedRes.json();
         setFeed(data.posts || []);
+      }
+      if (jobsRes?.ok) {
+        const data = await jobsRes.json();
+        setJobHistory(data.jobs || []);
       }
       setError(null);
     } catch (err) {
@@ -2037,10 +2066,11 @@ const MoltbookTab = () => {
       const newMode = !config?.autonomous_mode;
       const res = await fetch(`${AGENT_API_URL}/config`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentAuthHeaders(),
         body: JSON.stringify({ autonomous_mode: newMode })
       });
 
+      if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
         setConfig({ ...config, autonomous_mode: newMode });
         showSuccess(`Autonomous mode ${newMode ? 'enabled' : 'disabled'}`);
@@ -2052,15 +2082,34 @@ const MoltbookTab = () => {
     }
   };
 
+  const saveIntervals = async () => {
+    setSavingIntervals(true);
+    try {
+      const res = await fetch(`${AGENT_API_URL}/config`, {
+        method: 'PATCH',
+        headers: agentAuthHeaders(),
+        body: JSON.stringify({ intervals })
+      });
+      if (handleAuthError(res)) { setSavingIntervals(false); return; }
+      if (res.ok) showSuccess('Intervals saved & jobs rescheduled');
+      else setError('Failed to save intervals');
+    } catch (err) {
+      setError('Failed to save intervals');
+    } finally {
+      setSavingIntervals(false);
+    }
+  };
+
   const triggerManualRun = async () => {
     setActionLoading(true);
     try {
       const res = await fetch(`${AGENT_API_URL}/run/sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentAuthHeaders(),
         body: JSON.stringify({ context: runContext || null })
       });
 
+      if (handleAuthError(res)) { setActionLoading(false); return; }
       const data = await res.json();
       if (res.ok) {
         showSuccess(`Run completed: ${data.decision?.action || 'unknown'}`);
@@ -2086,7 +2135,7 @@ const MoltbookTab = () => {
     try {
       const res = await fetch(`${AGENT_API_URL}/post`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentAuthHeaders(),
         body: JSON.stringify({
           title: postTitle,
           content: postContent,
@@ -2094,6 +2143,7 @@ const MoltbookTab = () => {
         })
       });
 
+      if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
         showSuccess('Posted successfully!');
         setPostTitle('');
@@ -2120,13 +2170,14 @@ const MoltbookTab = () => {
     try {
       const res = await fetch(`${AGENT_API_URL}/comment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentAuthHeaders(),
         body: JSON.stringify({
           post_id: commentPostId,
           content: commentContent
         })
       });
 
+      if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
         showSuccess('Commented successfully!');
         setCommentPostId('');
@@ -2154,12 +2205,13 @@ const MoltbookTab = () => {
       const currentTopics = config?.post_topics || [];
       const res = await fetch(`${AGENT_API_URL}/config`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentAuthHeaders(),
         body: JSON.stringify({
           post_topics: [...currentTopics, newTopic.trim()]
         })
       });
 
+      if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
         showSuccess('Topic added!');
         setNewTopic('');
@@ -2182,10 +2234,11 @@ const MoltbookTab = () => {
       
       const res = await fetch(`${AGENT_API_URL}/config`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: agentAuthHeaders(),
         body: JSON.stringify({ post_topics: currentTopics })
       });
 
+      if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
         showSuccess('Topic removed');
         setConfig({ ...config, post_topics: currentTopics });
@@ -2213,6 +2266,8 @@ const MoltbookTab = () => {
     return <div className="admin-loading">Loading Moltbook data...</div>;
   }
 
+  const circuitBreaker = status?.circuit_breaker;
+
   return (
     <div className="moltbook-tab">
       {/* Messages */}
@@ -2232,6 +2287,9 @@ const MoltbookTab = () => {
       <div className="moltbook-header">
         <h2>🦞 Moltbook Agent Control</h2>
         <div className="moltbook-header-actions">
+          <span style={{ fontSize: '0.8rem', color: MOLTBOOK_ADMIN_KEY ? '#10b981' : '#f59e0b' }}>
+            {MOLTBOOK_ADMIN_KEY ? '🔑 Auth Key Set' : '⚠️ No Admin Key'}
+          </span>
           <a 
             href="https://www.moltbook.com/u/Azoni-AI" 
             target="_blank" 
@@ -2265,10 +2323,18 @@ const MoltbookTab = () => {
               <span>Last Run</span>
               <span>{status?.last_run_at ? formatTimeAgo(status.last_run_at) : 'Never'}</span>
             </div>
-            <div className="moltbook-status-row">
-              <span>Heartbeat</span>
-              <span>Every {config?.heartbeat_interval_hours || 4}h</span>
-            </div>
+            {circuitBreaker && (
+              <div className="moltbook-status-row">
+                <span>API Health</span>
+                <span style={{ color: circuitBreaker.is_open ? '#ef4444' : circuitBreaker.consecutive_failures > 0 ? '#f59e0b' : '#10b981' }}>
+                  {circuitBreaker.is_open
+                    ? `🔴 Down (${circuitBreaker.consecutive_failures} fails)`
+                    : circuitBreaker.consecutive_failures > 0
+                      ? `🟡 ${circuitBreaker.consecutive_failures} fail(s)`
+                      : '🟢 Healthy'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2283,6 +2349,31 @@ const MoltbookTab = () => {
             {config?.autonomous_mode ? '🤖 ON — Running Autonomously' : '👤 OFF — Manual Only'}
           </button>
         </div>
+      </div>
+
+      {/* Job Intervals */}
+      <div className="moltbook-card">
+        <h3>⏱️ Job Intervals (minutes)</h3>
+        <p className="moltbook-card-desc">Set to 0 to disable a job. Changes take effect immediately.</p>
+        <div className="moltbook-intervals-grid">
+          {Object.entries(intervals).map(([key, val]) => (
+            <div key={key} className="moltbook-interval-item">
+              <label>{key}</label>
+              <input
+                type="number" min="0" max="1440" value={val}
+                onChange={(e) => setIntervals(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))}
+                className="moltbook-input"
+                style={{ width: '80px', textAlign: 'center' }}
+              />
+              <span className="moltbook-interval-hint">
+                {val === 0 ? '⏸ off' : `every ${val}m`}
+              </span>
+            </div>
+          ))}
+        </div>
+        <button onClick={saveIntervals} className="btn btn-primary" disabled={savingIntervals} style={{ marginTop: '0.75rem' }}>
+          {savingIntervals ? 'Saving...' : 'Save Intervals'}
+        </button>
       </div>
 
       {/* Manual Run */}
@@ -2411,6 +2502,33 @@ const MoltbookTab = () => {
         </div>
       </div>
 
+      {/* Job History */}
+      {jobHistory.length > 0 && (
+        <div className="moltbook-card">
+          <h3>🔧 Job History</h3>
+          <div className="moltbook-job-history">
+            {jobHistory.slice(0, 15).map((job, i) => {
+              const statusColor = job.status === 'success' ? '#10b981'
+                : job.status === 'failed' ? '#ef4444'
+                : job.status === 'skipped' ? '#f59e0b'
+                : job.status === 'fallback_success' ? '#3b82f6' : '#6b7280';
+              return (
+                <div key={i} className="moltbook-job-item">
+                  <span className="moltbook-job-name">{job.job}</span>
+                  <span className="moltbook-job-status" style={{ color: statusColor }}>
+                    {job.status === 'fallback_success' ? '⚡ fallback' : job.status}
+                  </span>
+                  <span className="moltbook-job-detail">
+                    {job.details?.reason || job.details?.target || job.details?.title || job.details?.method || ''}
+                  </span>
+                  <span className="moltbook-job-time">{formatTimeAgo(job.timestamp)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Feed */}
       <div className="moltbook-card">
         <h3>Moltbook Feed</h3>
@@ -2425,9 +2543,9 @@ const MoltbookTab = () => {
                     className="moltbook-feed-id"
                     onClick={() => {
                       setCommentPostId(safeRender(post.id, ''));
-                      showSuccess('Post ID copied');
+                      showSuccess('Post ID copied to comment form');
                     }}
-                    title="Click to copy"
+                    title="Click to copy to comment form"
                   >
                     {safeRender(post.id, '').substring(0, 8)}...
                   </span>
@@ -2450,7 +2568,6 @@ const MoltbookTab = () => {
             <div className="moltbook-empty">No activity yet</div>
           ) : (
             activity.slice(0, 20).map((item, i) => {
-              // Extract post ID from multiple possible locations
               const postId = item.result?.post?.id 
                 || item.result?.comment?.post_id 
                 || item.result?.post_id
@@ -2501,6 +2618,7 @@ const MoltbookTab = () => {
         .moltbook-header-actions {
           display: flex;
           gap: 0.5rem;
+          align-items: center;
         }
         .moltbook-grid {
           display: grid;
@@ -2551,6 +2669,25 @@ const MoltbookTab = () => {
           background: #10b981;
           border-color: #10b981;
         }
+        .moltbook-intervals-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 0.75rem;
+        }
+        .moltbook-interval-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .moltbook-interval-item label {
+          font-size: 0.8rem;
+          text-transform: capitalize;
+          color: var(--text-secondary, #888);
+        }
+        .moltbook-interval-hint {
+          font-size: 0.7rem;
+          color: var(--text-secondary, #888);
+        }
         .moltbook-form-row {
           display: flex;
           gap: 0.75rem;
@@ -2575,6 +2712,43 @@ const MoltbookTab = () => {
         }
         .moltbook-select {
           max-width: 180px;
+        }
+        .moltbook-job-history {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          max-height: 350px;
+          overflow-y: auto;
+        }
+        .moltbook-job-item {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+          padding: 0.5rem 0.75rem;
+          background: var(--bg-primary, #0f0f1a);
+          border-radius: 6px;
+          font-size: 0.82rem;
+        }
+        .moltbook-job-name {
+          font-weight: 600;
+          min-width: 65px;
+          text-transform: capitalize;
+        }
+        .moltbook-job-status {
+          min-width: 80px;
+          font-weight: 500;
+        }
+        .moltbook-job-detail {
+          flex: 1;
+          color: var(--text-secondary, #888);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .moltbook-job-time {
+          color: var(--text-secondary, #888);
+          font-size: 0.75rem;
+          white-space: nowrap;
         }
         .moltbook-feed {
           max-height: 350px;
