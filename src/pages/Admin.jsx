@@ -2292,7 +2292,7 @@ const MoltbookTab = () => {
         <div className="moltbook-form-row">
           <input
             type="text"
-            placeholder="Optional context (e.g., 'Comment on something about AI')"
+            placeholder="Force: 'Create a new post about...' or 'Comment on...' (leave empty for auto)"
             value={runContext}
             onChange={(e) => setRunContext(e.target.value)}
             className="moltbook-input"
