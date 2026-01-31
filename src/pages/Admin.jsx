@@ -110,6 +110,12 @@ const Admin = () => {
               🧠 RAG
             </button>
             <button 
+              className={`admin-main-tab ${activeTab === 'moltbook' ? 'active' : ''}`}
+              onClick={() => setActiveTab('moltbook')}
+            >
+              🦞 Moltbook
+            </button>
+            <button 
               className={`admin-main-tab ${activeTab === 'customize' ? 'active' : ''}`}
               onClick={() => setActiveTab('customize')}
             >
@@ -121,6 +127,7 @@ const Admin = () => {
           {activeTab === 'comments' && <CommentsTab />}
           {activeTab === 'blog' && <BlogTab />}
           {activeTab === 'rag' && <RAGTab />}
+          {activeTab === 'moltbook' && <MoltbookTab />}
           {activeTab === 'customize' && <CustomizeTab />}
         </div>
       </section>
@@ -1939,6 +1946,627 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
           <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Project'}</button>
         </div>
       </form>
+    </div>
+  );
+};
+
+// ============ MOLTBOOK TAB ============
+const AGENT_API_URL = import.meta.env.VITE_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
+
+const MoltbookTab = () => {
+  const [status, setStatus] = useState(null);
+  const [config, setConfig] = useState(null);
+  const [activity, setActivity] = useState([]);
+  const [feed, setFeed] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+
+  // Manual run form
+  const [runContext, setRunContext] = useState('');
+
+  // Direct post form
+  const [postTitle, setPostTitle] = useState('');
+  const [postContent, setPostContent] = useState('');
+  const [postSubmolt, setPostSubmolt] = useState('general');
+
+  // Direct comment form
+  const [commentPostId, setCommentPostId] = useState('');
+  const [commentContent, setCommentContent] = useState('');
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [statusRes, configRes, activityRes, feedRes] = await Promise.all([
+        fetch(`${AGENT_API_URL}/status`),
+        fetch(`${AGENT_API_URL}/config`),
+        fetch(`${AGENT_API_URL}/activity?limit=50`),
+        fetch(`${AGENT_API_URL}/feed?limit=15`)
+      ]);
+
+      if (statusRes.ok) setStatus(await statusRes.json());
+      if (configRes.ok) setConfig(await configRes.json());
+      if (activityRes.ok) {
+        const data = await activityRes.json();
+        setActivity(data.activity || []);
+      }
+      if (feedRes.ok) {
+        const data = await feedRes.json();
+        setFeed(data.posts || []);
+      }
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+      setError('Unable to connect to agent API');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showSuccess = (message) => {
+    setSuccessMessage(message);
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const toggleAutonomousMode = async () => {
+    setActionLoading(true);
+    try {
+      const newMode = !config?.autonomous_mode;
+      const res = await fetch(`${AGENT_API_URL}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autonomous_mode: newMode })
+      });
+
+      if (res.ok) {
+        setConfig({ ...config, autonomous_mode: newMode });
+        showSuccess(`Autonomous mode ${newMode ? 'enabled' : 'disabled'}`);
+      }
+    } catch (err) {
+      setError('Failed to update config');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const triggerManualRun = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${AGENT_API_URL}/run/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context: runContext || null })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showSuccess(`Run completed: ${data.decision?.action || 'unknown'}`);
+        setRunContext('');
+        fetchAllData();
+      } else {
+        setError(data.detail || 'Run failed');
+      }
+    } catch (err) {
+      setError('Failed to trigger run');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const directPost = async () => {
+    if (!postTitle || !postContent) {
+      setError('Title and content required');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${AGENT_API_URL}/post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: postTitle,
+          content: postContent,
+          submolt: postSubmolt
+        })
+      });
+
+      if (res.ok) {
+        showSuccess('Posted successfully!');
+        setPostTitle('');
+        setPostContent('');
+        fetchAllData();
+      } else {
+        const data = await res.json();
+        setError(data.detail || 'Post failed');
+      }
+    } catch (err) {
+      setError('Failed to post');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const directComment = async () => {
+    if (!commentPostId || !commentContent) {
+      setError('Post ID and content required');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${AGENT_API_URL}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: commentPostId,
+          content: commentContent
+        })
+      });
+
+      if (res.ok) {
+        showSuccess('Commented successfully!');
+        setCommentPostId('');
+        setCommentContent('');
+        fetchAllData();
+      } else {
+        const data = await res.json();
+        setError(data.detail || 'Comment failed');
+      }
+    } catch (err) {
+      setError('Failed to comment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const formatTimeAgo = (timestamp) => {
+    if (!timestamp) return 'Unknown';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
+
+  if (loading) {
+    return <div className="admin-loading">Loading Moltbook data...</div>;
+  }
+
+  return (
+    <div className="moltbook-tab">
+      {/* Messages */}
+      {error && (
+        <div className="admin-alert admin-alert-error">
+          {error}
+          <button onClick={() => setError(null)}>×</button>
+        </div>
+      )}
+      {successMessage && (
+        <div className="admin-alert admin-alert-success">
+          {successMessage}
+        </div>
+      )}
+
+      {/* Header with refresh */}
+      <div className="moltbook-header">
+        <h2>🦞 Moltbook Agent Control</h2>
+        <div className="moltbook-header-actions">
+          <a 
+            href="https://www.moltbook.com/u/Azoni-AI" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-secondary"
+          >
+            View Profile ↗
+          </a>
+          <button onClick={fetchAllData} className="btn btn-secondary" disabled={actionLoading}>
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Status & Controls Grid */}
+      <div className="moltbook-grid">
+        <div className="moltbook-card">
+          <h3>Status</h3>
+          <div className="moltbook-status-list">
+            <div className="moltbook-status-row">
+              <span>Moltbook</span>
+              <span className={status?.moltbook_status === 'claimed' ? 'status-online' : ''}>
+                {status?.moltbook_status === 'claimed' ? '🟢 Connected' : '⚪ ' + (status?.moltbook_status || 'Unknown')}
+              </span>
+            </div>
+            <div className="moltbook-status-row">
+              <span>Posts Today</span>
+              <span>{status?.posts_today || 0}</span>
+            </div>
+            <div className="moltbook-status-row">
+              <span>Last Run</span>
+              <span>{status?.last_run_at ? formatTimeAgo(status.last_run_at) : 'Never'}</span>
+            </div>
+            <div className="moltbook-status-row">
+              <span>Heartbeat</span>
+              <span>Every {config?.heartbeat_interval_hours || 4}h</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="moltbook-card">
+          <h3>Autonomous Mode</h3>
+          <p className="moltbook-card-desc">When enabled, agent runs automatically on schedule</p>
+          <button
+            onClick={toggleAutonomousMode}
+            className={`moltbook-toggle ${config?.autonomous_mode ? 'active' : ''}`}
+            disabled={actionLoading}
+          >
+            {config?.autonomous_mode ? '🤖 ON — Running Autonomously' : '👤 OFF — Manual Only'}
+          </button>
+        </div>
+      </div>
+
+      {/* Manual Run */}
+      <div className="moltbook-card">
+        <h3>Manual Run</h3>
+        <p className="moltbook-card-desc">Trigger the agent to observe, decide, and engage</p>
+        <div className="moltbook-form-row">
+          <input
+            type="text"
+            placeholder="Optional context (e.g., 'Comment on something about AI')"
+            value={runContext}
+            onChange={(e) => setRunContext(e.target.value)}
+            className="moltbook-input"
+          />
+          <button
+            onClick={triggerManualRun}
+            className="btn btn-primary"
+            disabled={actionLoading}
+          >
+            {actionLoading ? 'Running...' : '▶ Run Agent'}
+          </button>
+        </div>
+      </div>
+
+      {/* Direct Post */}
+      <div className="moltbook-card">
+        <h3>Direct Post</h3>
+        <p className="moltbook-card-desc">Post directly (bypasses agent decision-making)</p>
+        <div className="moltbook-form-stack">
+          <input
+            type="text"
+            placeholder="Post title"
+            value={postTitle}
+            onChange={(e) => setPostTitle(e.target.value)}
+            className="moltbook-input"
+          />
+          <textarea
+            placeholder="Post content"
+            value={postContent}
+            onChange={(e) => setPostContent(e.target.value)}
+            className="moltbook-input moltbook-textarea"
+            rows={3}
+          />
+          <div className="moltbook-form-row">
+            <select
+              value={postSubmolt}
+              onChange={(e) => setPostSubmolt(e.target.value)}
+              className="moltbook-input moltbook-select"
+            >
+              <option value="general">m/general</option>
+              <option value="ai">m/ai</option>
+              <option value="coding">m/coding</option>
+              <option value="introductions">m/introductions</option>
+            </select>
+            <button onClick={directPost} className="btn btn-primary" disabled={actionLoading}>
+              Post
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Direct Comment */}
+      <div className="moltbook-card">
+        <h3>Direct Comment</h3>
+        <p className="moltbook-card-desc">Click a post ID from the feed below to comment on it</p>
+        <div className="moltbook-form-stack">
+          <input
+            type="text"
+            placeholder="Post ID"
+            value={commentPostId}
+            onChange={(e) => setCommentPostId(e.target.value)}
+            className="moltbook-input"
+          />
+          <textarea
+            placeholder="Comment content"
+            value={commentContent}
+            onChange={(e) => setCommentContent(e.target.value)}
+            className="moltbook-input moltbook-textarea"
+            rows={2}
+          />
+          <button onClick={directComment} className="btn btn-primary" disabled={actionLoading}>
+            Comment
+          </button>
+        </div>
+      </div>
+
+      {/* Feed */}
+      <div className="moltbook-card">
+        <h3>Moltbook Feed</h3>
+        <div className="moltbook-feed">
+          {feed.length === 0 ? (
+            <div className="moltbook-empty">No posts found</div>
+          ) : (
+            feed.map((post, i) => (
+              <div key={post.id || i} className="moltbook-feed-item">
+                <div className="moltbook-feed-meta">
+                  <span
+                    className="moltbook-feed-id"
+                    onClick={() => {
+                      setCommentPostId(post.id);
+                      showSuccess('Post ID copied');
+                    }}
+                    title="Click to copy"
+                  >
+                    {post.id?.substring(0, 8)}...
+                  </span>
+                  <span className="moltbook-feed-submolt">m/{post.submolt || 'general'}</span>
+                  <span className="moltbook-feed-author">by {post.author || 'unknown'}</span>
+                </div>
+                <div className="moltbook-feed-title">{post.title}</div>
+                <div className="moltbook-feed-stats">👍 {post.upvotes || 0} · 💬 {post.comment_count || 0}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Activity Log */}
+      <div className="moltbook-card">
+        <h3>Activity Log</h3>
+        <div className="moltbook-activity">
+          {activity.length === 0 ? (
+            <div className="moltbook-empty">No activity yet</div>
+          ) : (
+            activity.slice(0, 20).map((item, i) => (
+              <div key={item.id || i} className={`moltbook-log-item ${item.error ? 'error' : ''}`}>
+                <div className="moltbook-log-header">
+                  <span className="moltbook-log-action">{item.action}</span>
+                  <span className="moltbook-log-trigger">{item.trigger}</span>
+                  <span className="moltbook-log-time">{formatTimeAgo(item.timestamp)}</span>
+                </div>
+                {item.draft?.title && <div className="moltbook-log-title">{item.draft.title}</div>}
+                {item.draft?.content && (
+                  <div className="moltbook-log-content">{item.draft.content.substring(0, 150)}...</div>
+                )}
+                {item.error && <div className="moltbook-log-error">{item.error}</div>}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        .moltbook-tab {
+          margin-top: 1rem;
+        }
+        .moltbook-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+        .moltbook-header h2 {
+          margin: 0;
+        }
+        .moltbook-header-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .moltbook-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+        .moltbook-card {
+          background: var(--bg-secondary, #1a1a2e);
+          border-radius: 12px;
+          padding: 1.25rem;
+          margin-bottom: 1rem;
+        }
+        .moltbook-card h3 {
+          margin: 0 0 0.5rem;
+          font-size: 1.1rem;
+        }
+        .moltbook-card-desc {
+          color: var(--text-secondary, #888);
+          font-size: 0.85rem;
+          margin: 0 0 1rem;
+        }
+        .moltbook-status-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .moltbook-status-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.95rem;
+        }
+        .status-online {
+          color: #10b981;
+        }
+        .moltbook-toggle {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          border: 2px solid var(--border-color, #333);
+          background: transparent;
+          color: var(--text-primary, #fff);
+          cursor: pointer;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+        }
+        .moltbook-toggle.active {
+          background: #10b981;
+          border-color: #10b981;
+        }
+        .moltbook-form-row {
+          display: flex;
+          gap: 0.75rem;
+        }
+        .moltbook-form-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .moltbook-input {
+          flex: 1;
+          padding: 0.65rem 0.9rem;
+          border: 1px solid var(--border-color, #333);
+          border-radius: 8px;
+          background: var(--bg-primary, #0f0f1a);
+          color: var(--text-primary, #fff);
+          font-size: 0.95rem;
+        }
+        .moltbook-textarea {
+          resize: vertical;
+          font-family: inherit;
+        }
+        .moltbook-select {
+          max-width: 180px;
+        }
+        .moltbook-feed {
+          max-height: 350px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .moltbook-feed-item {
+          padding: 0.75rem;
+          background: var(--bg-primary, #0f0f1a);
+          border-radius: 8px;
+        }
+        .moltbook-feed-meta {
+          display: flex;
+          gap: 0.75rem;
+          font-size: 0.8rem;
+          color: var(--text-secondary, #888);
+          margin-bottom: 0.35rem;
+        }
+        .moltbook-feed-id {
+          font-family: monospace;
+          color: var(--accent-primary, #6366f1);
+          cursor: pointer;
+        }
+        .moltbook-feed-id:hover {
+          text-decoration: underline;
+        }
+        .moltbook-feed-title {
+          font-weight: 500;
+          margin-bottom: 0.25rem;
+        }
+        .moltbook-feed-stats {
+          font-size: 0.8rem;
+          color: var(--text-secondary, #888);
+        }
+        .moltbook-activity {
+          max-height: 400px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .moltbook-log-item {
+          padding: 0.75rem;
+          background: var(--bg-primary, #0f0f1a);
+          border-radius: 8px;
+          border-left: 3px solid var(--accent-primary, #6366f1);
+        }
+        .moltbook-log-item.error {
+          border-left-color: #ef4444;
+        }
+        .moltbook-log-header {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+          margin-bottom: 0.35rem;
+        }
+        .moltbook-log-action {
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+        .moltbook-log-trigger {
+          font-size: 0.75rem;
+          background: var(--bg-secondary, #1a1a2e);
+          padding: 0.15rem 0.4rem;
+          border-radius: 4px;
+        }
+        .moltbook-log-time {
+          font-size: 0.8rem;
+          color: var(--text-secondary, #888);
+          margin-left: auto;
+        }
+        .moltbook-log-title {
+          font-weight: 500;
+        }
+        .moltbook-log-content {
+          font-size: 0.85rem;
+          color: var(--text-secondary, #888);
+          margin-top: 0.25rem;
+        }
+        .moltbook-log-error {
+          color: #ef4444;
+          font-size: 0.85rem;
+          margin-top: 0.25rem;
+        }
+        .moltbook-empty {
+          padding: 1.5rem;
+          text-align: center;
+          color: var(--text-secondary, #888);
+        }
+        .admin-alert {
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .admin-alert-error {
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #fecaca;
+        }
+        .admin-alert-success {
+          background: #f0fdf4;
+          color: #16a34a;
+          border: 1px solid #bbf7d0;
+        }
+        .admin-alert button {
+          background: none;
+          border: none;
+          font-size: 1.25rem;
+          cursor: pointer;
+          color: inherit;
+        }
+        .admin-loading {
+          padding: 2rem;
+          text-align: center;
+          color: var(--text-secondary, #888);
+        }
+      `}</style>
     </div>
   );
 };

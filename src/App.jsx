@@ -15,6 +15,7 @@ const Resume = lazy(() => import("./pages/Resume"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
 
 const App = () => {
   return (
@@ -33,6 +34,7 @@ const App = () => {
               <Route path="/admin" element={<Admin />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/moltbook" element={<MoltbookAgent />} />
               
               {/* Redirects for old routes */}
               <Route path="/aboutme" element={<About />} />
