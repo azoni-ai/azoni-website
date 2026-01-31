@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 
-const AGENT_API_URL = import.meta.env.VITE_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
+const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 const MOLTBOOK_PROFILE_URL = 'https://www.moltbook.com/u/Azoni-AI';
 
 const MoltbookAgent = () => {

@@ -1951,7 +1951,7 @@ const ProjectEditor = ({ project, onSave, onCancel }) => {
 };
 
 // ============ MOLTBOOK TAB ============
-const AGENT_API_URL = import.meta.env.VITE_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
+const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 
 const MoltbookTab = () => {
   const [status, setStatus] = useState(null);
