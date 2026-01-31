@@ -1990,6 +1990,9 @@ const MoltbookTab = () => {
   const [commentPostId, setCommentPostId] = useState('');
   const [commentContent, setCommentContent] = useState('');
 
+  // Post topics queue
+  const [newTopic, setNewTopic] = useState('');
+
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -2135,6 +2138,60 @@ const MoltbookTab = () => {
       }
     } catch (err) {
       setError('Failed to comment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const addTopic = async () => {
+    if (!newTopic.trim()) {
+      setError('Topic cannot be empty');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const currentTopics = config?.post_topics || [];
+      const res = await fetch(`${AGENT_API_URL}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_topics: [...currentTopics, newTopic.trim()]
+        })
+      });
+
+      if (res.ok) {
+        showSuccess('Topic added!');
+        setNewTopic('');
+        setConfig({ ...config, post_topics: [...currentTopics, newTopic.trim()] });
+      } else {
+        setError('Failed to add topic');
+      }
+    } catch (err) {
+      setError('Failed to add topic');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const removeTopic = async (index) => {
+    setActionLoading(true);
+    try {
+      const currentTopics = [...(config?.post_topics || [])];
+      currentTopics.splice(index, 1);
+      
+      const res = await fetch(`${AGENT_API_URL}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_topics: currentTopics })
+      });
+
+      if (res.ok) {
+        showSuccess('Topic removed');
+        setConfig({ ...config, post_topics: currentTopics });
+      }
+    } catch (err) {
+      setError('Failed to remove topic');
     } finally {
       setActionLoading(false);
     }
@@ -2312,6 +2369,48 @@ const MoltbookTab = () => {
         </div>
       </div>
 
+      {/* Post Topics Queue */}
+      <div className="moltbook-card">
+        <h3>Post Topics Queue</h3>
+        <p className="moltbook-card-desc">
+          Topics the agent will post about (in order). When empty, uses random defaults.
+        </p>
+        <div className="moltbook-form-row" style={{ marginBottom: '1rem' }}>
+          <input
+            type="text"
+            placeholder="Add a topic (e.g., 'Share thoughts on RAG architecture')"
+            value={newTopic}
+            onChange={(e) => setNewTopic(e.target.value)}
+            className="moltbook-input"
+            onKeyDown={(e) => e.key === 'Enter' && addTopic()}
+          />
+          <button onClick={addTopic} className="btn btn-primary" disabled={actionLoading}>
+            Add
+          </button>
+        </div>
+        <div className="moltbook-topics-list">
+          {(!config?.post_topics || config.post_topics.length === 0) ? (
+            <div className="moltbook-empty" style={{ padding: '1rem' }}>
+              No topics queued. Agent will use random defaults.
+            </div>
+          ) : (
+            config.post_topics.map((topic, i) => (
+              <div key={i} className="moltbook-topic-item">
+                <span className="moltbook-topic-number">{i + 1}</span>
+                <span className="moltbook-topic-text">{safeRender(topic, '')}</span>
+                <button 
+                  className="moltbook-topic-remove"
+                  onClick={() => removeTopic(i)}
+                  disabled={actionLoading}
+                >
+                  ×
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Feed */}
       <div className="moltbook-card">
         <h3>Moltbook Feed</h3>
@@ -2325,17 +2424,17 @@ const MoltbookTab = () => {
                   <span
                     className="moltbook-feed-id"
                     onClick={() => {
-                      setCommentPostId(post.id);
+                      setCommentPostId(safeRender(post.id, ''));
                       showSuccess('Post ID copied');
                     }}
                     title="Click to copy"
                   >
-                    {post.id?.substring(0, 8)}...
+                    {safeRender(post.id, '').substring(0, 8)}...
                   </span>
-                  <span className="moltbook-feed-submolt">m/{post.submolt || 'general'}</span>
+                  <span className="moltbook-feed-submolt">m/{safeRender(post.submolt, 'general')}</span>
                   <span className="moltbook-feed-author">by {safeRender(post.author, 'unknown')}</span>
                 </div>
-                <div className="moltbook-feed-title">{post.title}</div>
+                <div className="moltbook-feed-title">{safeRender(post.title, 'Untitled')}</div>
                 <div className="moltbook-feed-stats">👍 {post.upvotes || 0} · 💬 {post.comment_count || 0}</div>
               </div>
             ))
@@ -2361,15 +2460,17 @@ const MoltbookTab = () => {
               return (
                 <div key={item.id || i} className={`moltbook-log-item ${item.error ? 'error' : ''}`}>
                   <div className="moltbook-log-header">
-                    <span className="moltbook-log-action">{item.action}</span>
-                    <span className="moltbook-log-trigger">{item.trigger}</span>
+                    <span className="moltbook-log-action">{safeRender(item.action, 'unknown')}</span>
+                    <span className="moltbook-log-trigger">{safeRender(item.trigger, '')}</span>
                     <span className="moltbook-log-time">{formatTimeAgo(item.timestamp)}</span>
                   </div>
-                  {item.draft?.title && <div className="moltbook-log-title">{item.draft.title}</div>}
+                  {item.draft?.title && <div className="moltbook-log-title">{safeRender(item.draft.title, '')}</div>}
                   {item.draft?.content && (
-                    <div className="moltbook-log-content">{item.draft.content.substring(0, 150)}...</div>
+                    <div className="moltbook-log-content">
+                      {safeRender(item.draft.content, '').substring(0, 150)}...
+                    </div>
                   )}
-                  {item.error && <div className="moltbook-log-error">{item.error}</div>}
+                  {item.error && <div className="moltbook-log-error">{safeRender(item.error, '')}</div>}
                   {moltbookLink && (
                     <a href={moltbookLink} target="_blank" rel="noopener noreferrer" className="moltbook-log-link">
                       View on Moltbook ↗
@@ -2604,6 +2705,48 @@ const MoltbookTab = () => {
           padding: 2rem;
           text-align: center;
           color: var(--text-secondary, #888);
+        }
+        .moltbook-topics-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          max-height: 250px;
+          overflow-y: auto;
+        }
+        .moltbook-topic-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.6rem 0.75rem;
+          background: var(--bg-primary, #0f0f1a);
+          border-radius: 8px;
+          border-left: 3px solid var(--accent-primary, #6366f1);
+        }
+        .moltbook-topic-number {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--accent-primary, #6366f1);
+          background: rgba(99, 102, 241, 0.1);
+          padding: 0.2rem 0.5rem;
+          border-radius: 4px;
+          min-width: 24px;
+          text-align: center;
+        }
+        .moltbook-topic-text {
+          flex: 1;
+          font-size: 0.9rem;
+        }
+        .moltbook-topic-remove {
+          background: none;
+          border: none;
+          color: var(--text-secondary, #888);
+          font-size: 1.25rem;
+          cursor: pointer;
+          padding: 0 0.25rem;
+          line-height: 1;
+        }
+        .moltbook-topic-remove:hover {
+          color: #ef4444;
         }
       `}</style>
     </div>
