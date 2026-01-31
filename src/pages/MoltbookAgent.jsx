@@ -285,15 +285,10 @@ const MoltbookAgent = () => {
                     || item.result?.comment?.post_id 
                     || item.result?.post_id
                     || item.decision?.target_post_id;
-                  const commentId = item.result?.comment?.id || item.result?.id;
                   
                   // Build link - for comments, link to the post
                   let moltbookLink = null;
-                  if (item.action === 'post' && postId) {
-                    moltbookLink = `https://www.moltbook.com/post/${postId}`;
-                  } else if (item.action === 'comment' && postId) {
-                    moltbookLink = `https://www.moltbook.com/post/${postId}`;
-                  } else if (postId) {
+                  if (postId) {
                     moltbookLink = `https://www.moltbook.com/post/${postId}`;
                   }
                   
