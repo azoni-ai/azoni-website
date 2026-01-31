@@ -12,7 +12,7 @@ const Navbar = () => {
     { path: '/projects', label: 'Projects' },
     { path: '/blog', label: 'Blog' },
     { path: '/chat', label: 'Chat' },
-    { path: '/moltbook', label: 'Agent' },
+    { path: '/moltbook', label: 'Moltbook' },
     { path: '/resume', label: 'Resume' },
   ];
 

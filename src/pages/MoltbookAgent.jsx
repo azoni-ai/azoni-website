@@ -4,6 +4,88 @@ import Layout from '../components/Layout';
 const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 const MOLTBOOK_PROFILE_URL = 'https://www.moltbook.com/u/Azoni-AI';
 
+// Custom SVG Icons
+const Icons = {
+  lobster: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="currentColor"/>
+      <circle cx="20" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
+      <circle cx="28" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
+    </svg>
+  ),
+  observe: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+  decide: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  draft: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+      <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+      <path d="M2 2l7.586 7.586"/>
+      <circle cx="11" cy="11" r="2"/>
+    </svg>
+  ),
+  evaluate: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  ),
+  execute: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  ),
+  arrow: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"/>
+      <polyline points="12 5 19 12 12 19"/>
+    </svg>
+  ),
+  comment: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  ),
+  post: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  ),
+  upvote: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+    </svg>
+  ),
+  external: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+      <polyline points="15 3 21 3 21 9"/>
+      <line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+  ),
+  status: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  )
+};
+
 const MoltbookAgent = () => {
   const [status, setStatus] = useState(null);
   const [activity, setActivity] = useState([]);
@@ -12,7 +94,6 @@ const MoltbookAgent = () => {
 
   useEffect(() => {
     fetchData();
-    // Refresh every 60 seconds
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -54,47 +135,49 @@ const MoltbookAgent = () => {
 
   const getActionIcon = (action) => {
     switch (action) {
-      case 'post': return '📝';
-      case 'comment': return '💬';
-      case 'upvote': return '👍';
-      default: return '🤖';
+      case 'post': return Icons.post;
+      case 'comment': return Icons.comment;
+      case 'upvote': return Icons.upvote;
+      default: return Icons.status;
     }
   };
 
   const getActionColor = (action) => {
     switch (action) {
-      case 'post': return 'var(--accent-primary)';
-      case 'comment': return 'var(--accent-secondary, #10b981)';
-      case 'upvote': return 'var(--accent-tertiary, #f59e0b)';
+      case 'post': return 'var(--accent-primary, #ff6b4a)';
+      case 'comment': return '#10b981';
+      case 'upvote': return '#f59e0b';
       default: return 'var(--text-secondary)';
     }
   };
 
   return (
     <Layout>
-      <section className="moltbook-agent-page">
+      <section className="moltbook-page">
         <div className="container">
           {/* Header */}
-          <header className="agent-header">
-            <div className="agent-title-row">
-              <div className="agent-avatar">🦞</div>
+          <header className="moltbook-header">
+            <div className="moltbook-title-row">
+              <div className="moltbook-avatar">
+                {Icons.lobster}
+              </div>
               <div>
                 <h1>Azoni-AI</h1>
-                <p className="agent-subtitle">Autonomous AI Agent on Moltbook</p>
+                <p className="moltbook-subtitle">Autonomous AI Agent on Moltbook</p>
               </div>
             </div>
             <a 
               href={MOLTBOOK_PROFILE_URL} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="btn btn-primary"
+              className="btn btn-primary moltbook-cta"
             >
-              View on Moltbook →
+              View on Moltbook {Icons.external}
             </a>
           </header>
 
           {/* Description */}
-          <div className="agent-description">
+          <div className="moltbook-description">
             <p>
               Azoni-AI is an autonomous agent that represents me on{' '}
               <a href="https://moltbook.com" target="_blank" rel="noopener noreferrer">Moltbook</a>,
@@ -105,24 +188,25 @@ const MoltbookAgent = () => {
           </div>
 
           {/* Status Card */}
-          <div className="agent-status-card">
+          <div className="moltbook-status-card">
             <h2>Agent Status</h2>
             {loading ? (
-              <div className="agent-loading">Loading status...</div>
+              <div className="moltbook-loading">Loading status...</div>
             ) : error ? (
-              <div className="agent-error">{error}</div>
+              <div className="moltbook-error">{error}</div>
             ) : (
-              <div className="agent-status-grid">
+              <div className="moltbook-status-grid">
                 <div className="status-item">
                   <span className="status-label">Status</span>
                   <span className={`status-value ${status?.moltbook_status === 'claimed' ? 'online' : ''}`}>
-                    {status?.moltbook_status === 'claimed' ? '🟢 Online' : '⚪ Offline'}
+                    <span className={`status-dot ${status?.moltbook_status === 'claimed' ? 'online' : ''}`}></span>
+                    {status?.moltbook_status === 'claimed' ? 'Online' : 'Offline'}
                   </span>
                 </div>
                 <div className="status-item">
                   <span className="status-label">Mode</span>
                   <span className="status-value">
-                    {status?.autonomous_mode ? '🤖 Autonomous' : '👤 Manual'}
+                    {status?.autonomous_mode ? 'Autonomous' : 'Manual'}
                   </span>
                 </div>
                 <div className="status-item">
@@ -140,43 +224,43 @@ const MoltbookAgent = () => {
           </div>
 
           {/* How It Works */}
-          <div className="agent-how-it-works">
+          <div className="moltbook-how-it-works">
             <h2>How It Works</h2>
             <div className="workflow-steps">
               <div className="workflow-step">
-                <div className="step-icon">👀</div>
+                <div className="step-icon">{Icons.observe}</div>
                 <div className="step-content">
                   <h3>Observe</h3>
                   <p>Fetches the Moltbook feed to see what other agents are discussing</p>
                 </div>
               </div>
-              <div className="workflow-arrow">→</div>
+              <div className="workflow-arrow">{Icons.arrow}</div>
               <div className="workflow-step">
-                <div className="step-icon">🤔</div>
+                <div className="step-icon">{Icons.decide}</div>
                 <div className="step-content">
                   <h3>Decide</h3>
                   <p>LLM decides: post something new, comment, upvote, or do nothing</p>
                 </div>
               </div>
-              <div className="workflow-arrow">→</div>
+              <div className="workflow-arrow">{Icons.arrow}</div>
               <div className="workflow-step">
-                <div className="step-icon">✍️</div>
+                <div className="step-icon">{Icons.draft}</div>
                 <div className="step-content">
                   <h3>Draft</h3>
                   <p>Generates content based on my background and interests</p>
                 </div>
               </div>
-              <div className="workflow-arrow">→</div>
+              <div className="workflow-arrow">{Icons.arrow}</div>
               <div className="workflow-step">
-                <div className="step-icon">✅</div>
+                <div className="step-icon">{Icons.evaluate}</div>
                 <div className="step-content">
                   <h3>Evaluate</h3>
-                  <p>Quality check to ensure it's on-brand and not cringe</p>
+                  <p>Quality check to ensure it's on-brand and authentic</p>
                 </div>
               </div>
-              <div className="workflow-arrow">→</div>
+              <div className="workflow-arrow">{Icons.arrow}</div>
               <div className="workflow-step">
-                <div className="step-icon">🚀</div>
+                <div className="step-icon">{Icons.execute}</div>
                 <div className="step-content">
                   <h3>Execute</h3>
                   <p>Posts to Moltbook via API if approved</p>
@@ -186,19 +270,19 @@ const MoltbookAgent = () => {
           </div>
 
           {/* Activity Feed */}
-          <div className="agent-activity">
+          <div className="moltbook-activity">
             <h2>Recent Activity</h2>
             {loading ? (
-              <div className="agent-loading">Loading activity...</div>
+              <div className="moltbook-loading">Loading activity...</div>
             ) : activity.length === 0 ? (
-              <div className="agent-empty">No activity yet. Check back soon!</div>
+              <div className="moltbook-empty">No activity yet. Check back soon!</div>
             ) : (
               <div className="activity-feed">
                 {activity.map((item, index) => (
                   <div key={item.id || index} className="activity-item">
                     <div 
                       className="activity-icon"
-                      style={{ backgroundColor: getActionColor(item.action) }}
+                      style={{ color: getActionColor(item.action) }}
                     >
                       {getActionIcon(item.action)}
                     </div>
@@ -227,7 +311,7 @@ const MoltbookAgent = () => {
           </div>
 
           {/* Tech Stack */}
-          <div className="agent-tech">
+          <div className="moltbook-tech">
             <h2>Built With</h2>
             <div className="tech-tags">
               <span className="tech-tag">LangGraph</span>
@@ -243,48 +327,54 @@ const MoltbookAgent = () => {
       </section>
 
       <style>{`
-        .moltbook-agent-page {
-          padding: 2rem 0 4rem;
+        .moltbook-page {
+          padding: 120px 0 4rem;
           min-height: 100vh;
         }
 
-        .agent-header {
+        .moltbook-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 2rem;
           flex-wrap: wrap;
-          gap: 1rem;
+          gap: 1.5rem;
         }
 
-        .agent-title-row {
+        .moltbook-title-row {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 1.25rem;
         }
 
-        .agent-avatar {
-          font-size: 3rem;
-          background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-          width: 70px;
-          height: 70px;
+        .moltbook-avatar {
+          color: var(--accent-primary, #ff6b4a);
+          background: rgba(255, 107, 74, 0.1);
+          width: 72px;
+          height: 72px;
           border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .agent-header h1 {
-          font-size: 2.5rem;
+        .moltbook-header h1 {
+          font-size: 2.25rem;
           margin: 0;
         }
 
-        .agent-subtitle {
+        .moltbook-subtitle {
           color: var(--text-secondary);
           margin: 0.25rem 0 0;
         }
 
-        .agent-description {
+        .moltbook-cta {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .moltbook-description {
           background: var(--bg-secondary);
           border-radius: 12px;
           padding: 1.5rem;
@@ -292,33 +382,36 @@ const MoltbookAgent = () => {
           line-height: 1.7;
         }
 
-        .agent-description a {
+        .moltbook-description a {
           color: var(--accent-primary);
         }
 
-        .agent-status-card {
+        .moltbook-status-card {
           background: var(--bg-secondary);
           border-radius: 12px;
           padding: 1.5rem;
           margin-bottom: 2rem;
         }
 
-        .agent-status-card h2 {
+        .moltbook-status-card h2,
+        .moltbook-how-it-works h2,
+        .moltbook-activity h2,
+        .moltbook-tech h2 {
           margin-top: 0;
-          margin-bottom: 1rem;
+          margin-bottom: 1.25rem;
           font-size: 1.25rem;
         }
 
-        .agent-status-grid {
+        .moltbook-status-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 1rem;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 1.5rem;
         }
 
         .status-item {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.35rem;
         }
 
         .status-label {
@@ -329,24 +422,34 @@ const MoltbookAgent = () => {
         .status-value {
           font-size: 1.1rem;
           font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: var(--text-secondary);
+        }
+
+        .status-dot.online {
+          background: #10b981;
         }
 
         .status-value.online {
           color: #10b981;
         }
 
-        .agent-how-it-works {
+        .moltbook-how-it-works {
           margin-bottom: 2rem;
-        }
-
-        .agent-how-it-works h2 {
-          margin-bottom: 1.5rem;
         }
 
         .workflow-steps {
           display: flex;
           align-items: flex-start;
-          gap: 0.5rem;
+          gap: 0.75rem;
           overflow-x: auto;
           padding-bottom: 1rem;
         }
@@ -360,8 +463,8 @@ const MoltbookAgent = () => {
         }
 
         .step-icon {
-          font-size: 1.5rem;
-          margin-bottom: 0.5rem;
+          color: var(--accent-primary, #ff6b4a);
+          margin-bottom: 0.75rem;
         }
 
         .step-content h3 {
@@ -378,17 +481,13 @@ const MoltbookAgent = () => {
 
         .workflow-arrow {
           color: var(--text-secondary);
-          font-size: 1.5rem;
           align-self: center;
           flex-shrink: 0;
+          opacity: 0.5;
         }
 
-        .agent-activity {
+        .moltbook-activity {
           margin-bottom: 2rem;
-        }
-
-        .agent-activity h2 {
-          margin-bottom: 1rem;
         }
 
         .activity-feed {
@@ -408,11 +507,11 @@ const MoltbookAgent = () => {
         .activity-icon {
           width: 40px;
           height: 40px;
+          background: var(--bg-primary);
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.25rem;
           flex-shrink: 0;
         }
 
@@ -454,12 +553,8 @@ const MoltbookAgent = () => {
           font-size: 0.85rem;
         }
 
-        .agent-tech {
+        .moltbook-tech {
           margin-bottom: 2rem;
-        }
-
-        .agent-tech h2 {
-          margin-bottom: 1rem;
         }
 
         .tech-tags {
@@ -475,22 +570,30 @@ const MoltbookAgent = () => {
           font-size: 0.9rem;
         }
 
-        .agent-loading,
-        .agent-empty,
-        .agent-error {
+        .moltbook-loading,
+        .moltbook-empty,
+        .moltbook-error {
           padding: 2rem;
           text-align: center;
           color: var(--text-secondary);
         }
 
-        .agent-error {
+        .moltbook-error {
           color: #ef4444;
         }
 
         @media (max-width: 768px) {
-          .agent-header {
+          .moltbook-page {
+            padding-top: 100px;
+          }
+
+          .moltbook-header {
             flex-direction: column;
             align-items: flex-start;
+          }
+
+          .moltbook-header h1 {
+            font-size: 1.75rem;
           }
 
           .workflow-steps {
