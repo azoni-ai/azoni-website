@@ -34,8 +34,7 @@ const db = admin.firestore();
 
 const GITHUB_USERNAME = 'azoni';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
 // ============ GITHUB: Fetch Yesterday's Commits ============
 
 async function fetchCommitsForDate(targetDate) {
