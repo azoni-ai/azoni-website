@@ -1,184 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { io } from 'socket.io-client';
 
-// ===========================================
-// CONFIG
-// ===========================================
-const SERVER_URL = process.env.REACT_APP_GAME_SERVER || 'http://localhost:3001';
+// Local imports
+import { SVG, CLASS_SVG } from './constants/icons';
+import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/config';
+import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
+// Note: hooks/useAudio.js is available for future refactoring
+import { createStyles } from './styles';
 
-// ===========================================
-// SVG ICONS
-// ===========================================
-const SVG = {
-  fire: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C8 6 4 10 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8c0-4-4-8-8-12zm0 18c-3.31 0-6-2.69-6-6 0-2 2-4 3-5 0 2 1 3 2 3s2-1 2-3c1 1 3 3 3 5 0 3.31-2.69 6-6 6z"/>
-    </svg>
-  ),
-  ice: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22z"/>
-    </svg>
-  ),
-  arcane: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-    </svg>
-  ),
-  dash: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-    </svg>
-  ),
-  play: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M8 5v14l11-7z"/>
-    </svg>
-  ),
-  help: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
-    </svg>
-  ),
-  settings: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-    </svg>
-  ),
-  heart: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-    </svg>
-  ),
-  star: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-    </svg>
-  ),
-  sword: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M6.92 5H5L14 14l-1.5 1.5L5 8v1.92l8 8L22 9l-3-3-7.08 7.08L6.92 5z"/>
-    </svg>
-  ),
-  skull: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="12" cy="12" r="10"/>
-    </svg>
-  ),
-  volume: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-    </svg>
-  ),
-  volumeMute: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-    </svg>
-  ),
-  home: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-    </svg>
-  ),
-  refresh: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-    </svg>
-  ),
-  warning: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-    </svg>
-  ),
-  controls: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M15 7.5V2H9v5.5l3 3 3-3zM7.5 9H2v6h5.5l3-3-3-3zM9 16.5V22h6v-5.5l-3-3-3 3zM16.5 9l-3 3 3 3H22V9h-5.5z"/>
-    </svg>
-  ),
-};
-
-const CLASS_SVG = {
-  pyromancer: SVG.fire,
-  cryomancer: SVG.ice,
-  arcanist: SVG.arcane,
-};
-
-// ===========================================
-// CONSTANTS
-// ===========================================
-const COLORS = {
-  // Zone tile colors [light, dark]
-  sanctuary: ['#3d7a3d', '#2d6a2d'],      // Bright green
-  meadow: ['#4a8b3d', '#3a7b2d'],         // Light green  
-  forest: ['#2d5a27', '#234d1f'],         // Dark green (original)
-  volcanic: ['#4a3232', '#3d2828'],       // Dark red/brown
-  frozen: ['#4a5a6a', '#3a4a5a'],         // Blue-gray
-  abyss: ['#1a1a2e', '#12121f'],          // Deep purple/black
-  
-  enemy: {
-    slime: '#4ade80',
-    bat: '#a855f7',
-    skeleton: '#e5e5e5',
-    ghost: '#94a3b8',
-    golem: '#78716c',
-    spider: '#1a1a1a',
-    necromancer: '#581c87',
-    fireElemental: '#f97316',
-    iceElemental: '#06b6d4',
-    boss_slime: '#22c55e',
-    boss_dragon: '#dc2626',
-  },
-};
-
-const DEFAULT_CLASSES = {
-  pyromancer: {
-    id: 'pyromancer',
-    name: 'Pyromancer',
-    color: '#ff6b35',
-    description: 'Fire master. High burst damage.',
-    dash: 'Fire Dash',
-    ultimate: 'Meteor Strike',
-  },
-  cryomancer: {
-    id: 'cryomancer',
-    name: 'Cryomancer',
-    color: '#4ecdc4',
-    description: 'Ice wizard. Crowd control specialist.',
-    dash: 'Frost Step',
-    ultimate: 'Ice Nova',
-  },
-  arcanist: {
-    id: 'arcanist',
-    name: 'Arcanist',
-    color: '#9b5de5',
-    description: 'Arcane power. Balanced with AOE.',
-    dash: 'Blink',
-    ultimate: 'Arcane Barrage',
-  },
-};
-
-const DEFAULT_SKINS = [
-  // Pyromancer
-  { id: 'pyromancer_default', class: 'pyromancer', name: 'Apprentice', color: '#ff6b35', requiredXp: 0 },
-  { id: 'pyromancer_ember', class: 'pyromancer', name: 'Ember Mage', color: '#f97316', requiredXp: 500 },
-  { id: 'pyromancer_inferno', class: 'pyromancer', name: 'Inferno Master', color: '#dc2626', requiredXp: 2000 },
-  { id: 'pyromancer_phoenix', class: 'pyromancer', name: 'Phoenix Lord', color: '#fbbf24', requiredXp: 5000 },
-  { id: 'pyromancer_shadow', class: 'pyromancer', name: 'Shadow Flame', color: '#7c3aed', requiredXp: 10000 },
-  // Cryomancer
-  { id: 'cryomancer_default', class: 'cryomancer', name: 'Apprentice', color: '#4ecdc4', requiredXp: 0 },
-  { id: 'cryomancer_frost', class: 'cryomancer', name: 'Frost Weaver', color: '#06b6d4', requiredXp: 500 },
-  { id: 'cryomancer_glacier', class: 'cryomancer', name: 'Glacier Knight', color: '#0284c7', requiredXp: 2000 },
-  { id: 'cryomancer_blizzard', class: 'cryomancer', name: 'Blizzard King', color: '#e0f2fe', requiredXp: 5000 },
-  { id: 'cryomancer_void', class: 'cryomancer', name: 'Void Ice', color: '#1e1b4b', requiredXp: 10000 },
-  // Arcanist
-  { id: 'arcanist_default', class: 'arcanist', name: 'Apprentice', color: '#9b5de5', requiredXp: 0 },
-  { id: 'arcanist_mystic', class: 'arcanist', name: 'Mystic Sage', color: '#a855f7', requiredXp: 500 },
-  { id: 'arcanist_archmage', class: 'arcanist', name: 'Archmage', color: '#7c3aed', requiredXp: 2000 },
-  { id: 'arcanist_celestial', class: 'arcanist', name: 'Celestial', color: '#fcd34d', requiredXp: 5000 },
-  { id: 'arcanist_cosmic', class: 'arcanist', name: 'Cosmic Entity', color: '#1e1b4b', requiredXp: 10000 },
-];
-
-// ===========================================
 // MAIN COMPONENT
 // ===========================================
 export default function SpellBrigade() {
@@ -205,7 +34,7 @@ export default function SpellBrigade() {
   const zoomRef = useRef(1);
   const effectsRef = useRef([]);
   const meteorWarningsRef = useRef([]);
-  const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, showZoneNames: true, showMinimap: true });
+  const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, musicEnabled: true, musicVolume: 0.3, showZoneNames: true, showMinimap: true });
 
   // State
   const [screen, setScreen] = useState('loading'); // loading, returning, title, game, dead
@@ -219,10 +48,14 @@ export default function SpellBrigade() {
   const [savedPlayer, setSavedPlayer] = useState(null);
   const [deathInfo, setDeathInfo] = useState(null);
   const [levelUp, setLevelUp] = useState(null);
+  const [spellDrop, setSpellDrop] = useState(null);
+  const [bossAlert, setBossAlert] = useState(null);
   const [showSkinSelect, setShowSkinSelect] = useState(false);
   const [settings, setSettings] = useState({
     volume: 0.5,
     sfxEnabled: true,
+    musicEnabled: true,
+    musicVolume: 0.3,
     showZoneNames: true,
     showMinimap: true,
   });
@@ -231,6 +64,9 @@ export default function SpellBrigade() {
     color: '#22c55e',
     rec: 0,
   });
+  const lastZoneRef = useRef(null);
+  const musicIntervalRef = useRef(null);
+  const musicGainRef = useRef(null);
 
   // Mobile detection and touch state
   const [isMobile, setIsMobile] = useState(false);
@@ -435,6 +271,29 @@ export default function SpellBrigade() {
           osc.start(now);
           osc.stop(now + 0.35);
         },
+        itemDrop: () => {
+          // Magical chime for item drops
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.setValueAtTime(800, now + 0.1);
+          osc.frequency.setValueAtTime(1000, now + 0.2);
+          osc.frequency.setValueAtTime(1200, now + 0.3);
+          gain.gain.setValueAtTime(vol * 0.8, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        },
+        portalEnter: () => {
+          // Whoosh/warp sound for portal
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+          osc.frequency.exponentialRampToValueAtTime(200, now + 0.5);
+          gain.gain.setValueAtTime(vol * 0.6, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        },
       };
 
       if (sounds[type]) sounds[type]();
@@ -443,36 +302,170 @@ export default function SpellBrigade() {
     }
   };
 
-  // ===========================================
-  // ZONE DETECTION
-  // ===========================================
-  const getZoneAtPosition = (x, y) => {
-    const centerX = 2500, centerY = 2500;
-    const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-    
-    if (dist <= 300) return 'sanctuary';
-    if (dist <= 900) return 'meadow';
-    if (dist <= 1600) return 'forest';
-    if (dist <= 2100) return 'volcanic';
-    if (dist <= 2600) return 'frozen';
-    return 'abyss';
-  };
 
   const updateZone = (me) => {
     if (!me) return;
     const zoneName = getZoneAtPosition(me.x, me.y);
     
-    const zones = {
-      sanctuary: { name: 'Sanctuary', color: '#22c55e', rec: 0 },
-      meadow: { name: 'Peaceful Meadow', color: '#84cc16', rec: 1 },
-      forest: { name: 'Dark Forest', color: '#166534', rec: 5 },
-      volcanic: { name: 'Volcanic Wastes', color: '#dc2626', rec: 10 },
-      frozen: { name: 'Frozen Expanse', color: '#0ea5e9', rec: 15 },
-      abyss: { name: 'The Abyss', color: '#581c87', rec: 20 },
+    setCurrentZone(ZONE_INFO[zoneName] || ZONE_INFO.sanctuary);
+    
+    // Start zone music if zone changed
+    if (zoneName !== lastZoneRef.current) {
+      lastZoneRef.current = zoneName;
+      startZoneMusic(zoneName);
+    }
+  };
+
+  // ===========================================
+  // ZONE MUSIC SYSTEM - Procedural Ambient
+  // ===========================================
+  const ZONE_MUSIC_CONFIG = {
+    sanctuary: {
+      baseFreq: 220,
+      scale: [0, 4, 7, 12, 16], // Major pentatonic
+      tempo: 0.4,
+      waveType: 'sine',
+      volume: 0.12,
+    },
+    meadow: {
+      baseFreq: 262,
+      scale: [0, 2, 4, 7, 9], // Major pentatonic  
+      tempo: 0.6,
+      waveType: 'sine',
+      volume: 0.1,
+    },
+    forest: {
+      baseFreq: 196,
+      scale: [0, 3, 5, 7, 10], // Minor pentatonic
+      tempo: 0.5,
+      waveType: 'triangle',
+      volume: 0.1,
+    },
+    volcanic: {
+      baseFreq: 110,
+      scale: [0, 1, 4, 5, 7], // Phrygian-ish
+      tempo: 0.8,
+      waveType: 'sawtooth',
+      volume: 0.08,
+    },
+    frozen: {
+      baseFreq: 330,
+      scale: [0, 2, 3, 7, 8], // Minor with flat 6
+      tempo: 0.35,
+      waveType: 'sine',
+      volume: 0.1,
+    },
+    abyss: {
+      baseFreq: 82,
+      scale: [0, 1, 3, 6, 7], // Locrian-ish (dark)
+      tempo: 0.25,
+      waveType: 'sawtooth',
+      volume: 0.06,
+    },
+    crystal_caves: {
+      baseFreq: 440,
+      scale: [0, 4, 7, 11, 12], // Major 7th arpeggio
+      tempo: 0.5,
+      waveType: 'sine',
+      volume: 0.08,
+    },
+  };
+
+  const startZoneMusic = (zoneId) => {
+    // Stop existing music
+    if (musicIntervalRef.current) {
+      clearInterval(musicIntervalRef.current);
+      musicIntervalRef.current = null;
+    }
+    
+    if (!settingsRef.current?.musicEnabled) return;
+    
+    const musicConfig = ZONE_MUSIC_CONFIG[zoneId];
+    if (!musicConfig) return;
+    
+    let ctx = audioCtxRef.current;
+    if (!ctx) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        ctx = new AudioContext();
+        audioCtxRef.current = ctx;
+      } catch (e) { return; }
+    }
+    
+    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state !== 'running') return;
+    
+    // Create master gain for music
+    if (!musicGainRef.current) {
+      musicGainRef.current = ctx.createGain();
+      musicGainRef.current.connect(ctx.destination);
+    }
+    musicGainRef.current.gain.setValueAtTime(
+      musicConfig.volume * (settingsRef.current?.musicVolume || 0.3),
+      ctx.currentTime
+    );
+    
+    let noteIndex = 0;
+    
+    const playNote = () => {
+      if (!audioCtxRef.current || audioCtxRef.current.state !== 'running') return;
+      if (!settingsRef.current?.musicEnabled) return;
+      
+      try {
+        const ctx = audioCtxRef.current;
+        const osc = ctx.createOscillator();
+        const noteGain = ctx.createGain();
+        
+        osc.connect(noteGain);
+        noteGain.connect(musicGainRef.current);
+        
+        // Pick a note from the scale with some randomness
+        const scaleNote = musicConfig.scale[noteIndex % musicConfig.scale.length];
+        const freq = musicConfig.baseFreq * Math.pow(2, scaleNote / 12);
+        
+        // Occasional octave shifts
+        const octaveShift = Math.random() < 0.15 ? (Math.random() < 0.5 ? 2 : 0.5) : 1;
+        
+        osc.type = musicConfig.waveType;
+        osc.frequency.setValueAtTime(freq * octaveShift, ctx.currentTime);
+        
+        const now = ctx.currentTime;
+        const noteDuration = 1 / musicConfig.tempo;
+        
+        // Gentle envelope
+        noteGain.gain.setValueAtTime(0.001, now);
+        noteGain.gain.exponentialRampToValueAtTime(0.5, now + 0.08);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration * 0.9);
+        
+        osc.start(now);
+        osc.stop(now + noteDuration);
+        
+        noteIndex++;
+        
+        // Skip notes sometimes for rhythm variation
+        if (Math.random() < 0.25) noteIndex++;
+      } catch (e) {
+        // Ignore music errors
+      }
     };
     
-    setCurrentZone(zones[zoneName] || zones.sanctuary);
+    // Start playing
+    const intervalMs = 1000 / musicConfig.tempo;
+    musicIntervalRef.current = setInterval(playNote, intervalMs);
+    
+    // Play first note after short delay
+    setTimeout(playNote, 100);
   };
+
+  // Stop music on unmount
+  useEffect(() => {
+    return () => {
+      if (musicIntervalRef.current) {
+        clearInterval(musicIntervalRef.current);
+      }
+    };
+  }, []);
 
   // ===========================================
   // SOCKET CONNECTION
@@ -601,6 +594,37 @@ export default function SpellBrigade() {
       }
     });
 
+    // Freeze effect from spell upgrades
+    socket.on('freeze', (data) => {
+      effectsRef.current.push({
+        type: 'freezeBurst',
+        x: data.x,
+        y: data.y,
+        startTime: Date.now(),
+        duration: 600,
+      });
+      
+      const me = playerDataRef.current;
+      if (me) {
+        const dist = Math.sqrt((data.x - me.x) ** 2 + (data.y - me.y) ** 2);
+        if (dist < 400) {
+          playSound('iceNova');
+        }
+      }
+    });
+
+    // Empowered hit effect (Mana Surge, etc.)
+    socket.on('empoweredHit', (data) => {
+      effectsRef.current.push({
+        type: 'empowered',
+        x: data.x,
+        y: data.y,
+        upgradeType: data.type,
+        startTime: Date.now(),
+        duration: 400,
+      });
+    });
+
     socket.on('meteorWarning', (data) => {
       meteorWarningsRef.current.push({
         x: data.x,
@@ -648,8 +672,27 @@ export default function SpellBrigade() {
 
     socket.on('bossSpawn', (data) => {
       playSound('bossSpawn');
-      // Could show a notification here
       console.log(`👑 Boss spawned: ${data?.name} in ${data?.zone}`);
+      
+      // Show boss spawn notification
+      const bossNames = {
+        blossom_behemoth: { name: 'Blossom Behemoth', emoji: '🌸', color: '#ec4899' },
+        ancient_treant: { name: 'Ancient Treant', emoji: '🌳', color: '#166534' },
+        magma_titan: { name: 'Magma Titan', emoji: '🌋', color: '#dc2626' },
+        frost_wyrm: { name: 'Frost Wyrm', emoji: '❄️', color: '#22d3ee' },
+        void_overlord: { name: 'Void Overlord', emoji: '🌀', color: '#7c3aed' },
+        crystal_golem: { name: 'Crystal Golem', emoji: '💎', color: '#ec4899' },
+      };
+      
+      const boss = bossNames[data?.bossType] || { name: data?.name || 'Unknown Boss', emoji: '👑', color: '#fbbf24' };
+      setBossAlert({
+        ...boss,
+        zone: data?.zone,
+        timestamp: Date.now(),
+      });
+      
+      // Auto-hide after 4 seconds
+      setTimeout(() => setBossAlert(null), 4000);
     });
 
     socket.on('bossDefeated', (data) => {
@@ -692,6 +735,50 @@ export default function SpellBrigade() {
       if (playerInfo) {
         setPlayerInfo(prev => ({ ...prev, selectedSkin: data.skinId }));
       }
+    });
+
+    // Spell drops from boss kills
+    socket.on('spellDrops', (data) => {
+      console.log('✨ Spell drops received:', data);
+      if (data.items && data.items.length > 0) {
+        setSpellDrop({
+          bossName: data.bossName,
+          items: data.items,
+          timestamp: Date.now(),
+        });
+        playSound('itemDrop');
+      }
+    });
+
+    // Portal teleportation
+    socket.on('portalUsed', (data) => {
+      console.log('🌀 Portal used:', data);
+      playSound('portalEnter');
+      
+      // Add teleport effect
+      effectsRef.current.push({
+        type: 'teleport',
+        x: data.fromX,
+        y: data.fromY,
+        color: data.color,
+        entering: false,
+        startTime: Date.now(),
+        duration: 500,
+      });
+      effectsRef.current.push({
+        type: 'teleport',
+        x: data.toX,
+        y: data.toY,
+        color: data.color,
+        entering: true,
+        startTime: Date.now() + 200,
+        duration: 500,
+      });
+    });
+
+    socket.on('portalError', (data) => {
+      console.log('Portal error:', data.message);
+      // Could show a toast notification here
     });
 
     return () => socket.disconnect();
@@ -782,10 +869,35 @@ export default function SpellBrigade() {
       
       initAudio();
       
-      // Set target to clicked world position
+      // Calculate world position of click
       const zoom = zoomRef.current || 1;
-      moveTargetRef.current.x = (e.clientX / zoom) + cameraRef.current.x;
-      moveTargetRef.current.y = (e.clientY / zoom) + cameraRef.current.y;
+      const worldX = (e.clientX / zoom) + cameraRef.current.x;
+      const worldY = (e.clientY / zoom) + cameraRef.current.y;
+      
+      // Check if clicking on a portal
+      const me = playerDataRef.current;
+      for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
+        const dx = worldX - portal.from.x;
+        const dy = worldY - portal.from.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 50) {
+          // Check if player is close enough to portal
+          const playerDist = Math.sqrt(
+            (me.x - portal.from.x) ** 2 + (me.y - portal.from.y) ** 2
+          );
+          
+          if (playerDist < 80) {
+            // Use the portal
+            socketRef.current?.emit('usePortal', { portalId });
+            return;
+          }
+        }
+      }
+      
+      // Set target to clicked world position (walk there)
+      moveTargetRef.current.x = worldX;
+      moveTargetRef.current.y = worldY;
       moveTargetRef.current.active = true;
       
       startMoveToTarget();
@@ -1192,15 +1304,17 @@ export default function SpellBrigade() {
       ctx.fillStyle = '#0f0f1a';
       ctx.fillRect(0, 0, width, height);
 
-      // Helper: get zone at world position
+      // Helper: get zone at world position (polygon-based)
       const getZone = (wx, wy) => {
-        const dist = Math.sqrt((wx - worldCenterX) ** 2 + (wy - worldCenterY) ** 2);
-        if (dist <= 300) return 'sanctuary';
-        if (dist <= 900) return 'meadow';
-        if (dist <= 1600) return 'forest';
-        if (dist <= 2100) return 'volcanic';
-        if (dist <= 2600) return 'frozen';
-        return 'abyss';
+        const priorityOrder = ['sanctuary', 'abyss', 'crystal_caves', 'forest', 'volcanic', 'frozen', 'meadow'];
+        for (const zoneId of priorityOrder) {
+          const polygon = ZONE_POLYGONS[zoneId];
+          if (polygon && pointInPolygon(wx, wy, polygon)) {
+            if (zoneId === 'meadow' && pointInPolygon(wx, wy, ZONE_POLYGONS.sanctuary)) continue;
+            return zoneId;
+          }
+        }
+        return 'meadow';
       };
 
       // Grid tiles with zone-specific colors
@@ -1495,6 +1609,157 @@ export default function SpellBrigade() {
         ctx.stroke();
       }
 
+      // ========== BUILDINGS ==========
+      const time = Date.now() / 1000;
+      for (const [id, building] of Object.entries(BUILDING_DATA)) {
+        const bx = building.x - cx;
+        const by = building.y - cy;
+        const w = building.width;
+        const h = building.height;
+        
+        // Skip if off screen
+        if (bx < -w || bx > width + w || by < -h || by > height + h) continue;
+        
+        // Building shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(bx - w/2 + 5, by - h + 5, w, h);
+        
+        // Building body
+        ctx.fillStyle = building.color;
+        ctx.fillRect(bx - w/2, by - h, w, h);
+        
+        // Building outline
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx - w/2, by - h, w, h);
+        
+        // Roof/top decoration
+        if (id === 'wizard_tower') {
+          // Spire
+          ctx.beginPath();
+          ctx.moveTo(bx, by - h - 40);
+          ctx.lineTo(bx - w/2, by - h);
+          ctx.lineTo(bx + w/2, by - h);
+          ctx.closePath();
+          ctx.fillStyle = '#7c3aed';
+          ctx.fill();
+          // Windows
+          for (let i = 0; i < 3; i++) {
+            const wy = by - h + 25 + i * 35;
+            ctx.fillStyle = (Math.sin(time * 2 + i) > 0) ? '#ffd93d' : '#aa9920';
+            ctx.fillRect(bx - 8, wy, 16, 20);
+          }
+        } else if (id === 'volcano_fortress') {
+          // Lava glow
+          const glowAlpha = 0.3 + Math.sin(time * 2) * 0.1;
+          ctx.fillStyle = `rgba(249, 115, 22, ${glowAlpha})`;
+          ctx.beginPath();
+          ctx.arc(bx, by - h/2, w * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (id === 'ice_citadel') {
+          // Ice glow
+          ctx.fillStyle = 'rgba(103, 232, 249, 0.2)';
+          ctx.beginPath();
+          ctx.arc(bx, by - h/2, w * 0.6, 0, Math.PI * 2);
+          ctx.fill();
+          // Spires
+          for (let i = 0; i < 3; i++) {
+            const sx = bx - w/3 + i * (w/3);
+            ctx.beginPath();
+            ctx.moveTo(sx, by - h - 25);
+            ctx.lineTo(sx - 12, by - h);
+            ctx.lineTo(sx + 12, by - h);
+            ctx.closePath();
+            ctx.fillStyle = '#67e8f9';
+            ctx.fill();
+          }
+        } else if (id === 'void_shrine') {
+          // Floating particles
+          for (let i = 0; i < 5; i++) {
+            const px = bx + Math.sin(time + i) * 30;
+            const py = by - h/2 + Math.cos(time * 2 + i) * 20;
+            ctx.beginPath();
+            ctx.arc(px, py, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#a855f7';
+            ctx.fill();
+          }
+        }
+        
+        // Building name
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(building.name, bx, by + 15);
+      }
+
+      // ========== PORTALS ==========
+      for (const [id, portal] of Object.entries(PORTAL_POSITIONS)) {
+        const px = portal.from.x - cx;
+        const py = portal.from.y - cy;
+        
+        // Skip if off screen
+        if (px < -80 || px > width + 80 || py < -80 || py > height + 80) continue;
+        
+        const size = 45;
+        const pulse = Math.sin(time * 3) * 0.2 + 1;
+        
+        // Outer glow
+        const glowGrad = ctx.createRadialGradient(px, py, 0, px, py, size * 1.5 * pulse);
+        glowGrad.addColorStop(0, portal.color + '60');
+        glowGrad.addColorStop(0.6, portal.color + '20');
+        glowGrad.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(px, py, size * 1.5 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = glowGrad;
+        ctx.fill();
+        
+        // Portal ring
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.strokeStyle = portal.color;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        
+        // Inner swirl
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(time * 2);
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(angle) * 15, Math.sin(angle) * 15);
+          ctx.quadraticCurveTo(
+            Math.cos(angle + 0.5) * 30,
+            Math.sin(angle + 0.5) * 30,
+            Math.cos(angle + 1) * 35,
+            Math.sin(angle + 1) * 35
+          );
+          ctx.strokeStyle = portal.color + '80';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        ctx.restore();
+        
+        // Center icon
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(portal.icon, px, py);
+        
+        // Portal name
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(portal.name, px, py - size - 8);
+        
+        // Level requirement
+        if (portal.level > 0) {
+          ctx.font = '10px Arial';
+          ctx.fillStyle = me && me.level >= portal.level ? '#4ade80' : '#ef4444';
+          ctx.fillText(`Lv ${portal.level}+`, px, py + size + 15);
+        }
+      }
+
       // Enemies
       for (const enemy of enemies || []) {
         const sx = enemy.x - cx;
@@ -1517,7 +1782,7 @@ export default function SpellBrigade() {
           const bossType = enemy.type;
           const time = Date.now() / 1000;
           
-          if (bossType === 'boss_meadow') {
+          if (bossType === 'boss_meadow' || bossType === 'blossom_behemoth') {
             // Blossom Behemoth - Flower monster
             const petalCount = 8;
             const petalRadius = 35;
@@ -1555,7 +1820,7 @@ export default function SpellBrigade() {
             ctx.lineWidth = 3;
             ctx.stroke();
           }
-          else if (bossType === 'boss_forest') {
+          else if (bossType === 'boss_forest' || bossType === 'ancient_treant') {
             // Ancient Treant - Tree creature
             // Trunk
             ctx.fillStyle = '#78350f';
@@ -1588,7 +1853,7 @@ export default function SpellBrigade() {
             ctx.fill();
             ctx.shadowBlur = 0;
           }
-          else if (bossType === 'boss_volcanic') {
+          else if (bossType === 'boss_volcanic' || bossType === 'magma_titan') {
             // Magma Titan - Lava golem
             // Body chunks
             ctx.fillStyle = '#44403c';
@@ -1639,7 +1904,7 @@ export default function SpellBrigade() {
             ctx.closePath();
             ctx.fill();
           }
-          else if (bossType === 'boss_frozen') {
+          else if (bossType === 'boss_frozen' || bossType === 'frost_wyrm') {
             // Frost Wyrm - Ice dragon/serpent
             // Body segments
             for (let i = 3; i >= 0; i--) {
@@ -1682,7 +1947,7 @@ export default function SpellBrigade() {
             ctx.fill();
             ctx.shadowBlur = 0;
           }
-          else if (bossType === 'boss_abyss') {
+          else if (bossType === 'boss_abyss' || bossType === 'void_overlord') {
             // Void Overlord - Cosmic horror
             // Tentacles
             ctx.strokeStyle = '#581c87';
@@ -1731,6 +1996,75 @@ export default function SpellBrigade() {
               ctx.arc(runeX, runeY, 6, 0, Math.PI * 2);
               ctx.stroke();
             }
+          }
+          else if (bossType === 'crystal_golem' || bossType === 'boss_crystal') {
+            // Crystal Golem - Crystalline construct
+            const time = Date.now() / 1000;
+            
+            // Crystal body - geometric shape
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 45 - bounce); // Top
+            ctx.lineTo(sx + 30, sy - 15 - bounce); // Right upper
+            ctx.lineTo(sx + 25, sy + 25 - bounce); // Right lower
+            ctx.lineTo(sx, sy + 35 - bounce); // Bottom
+            ctx.lineTo(sx - 25, sy + 25 - bounce); // Left lower  
+            ctx.lineTo(sx - 30, sy - 15 - bounce); // Left upper
+            ctx.closePath();
+            
+            // Crystal gradient fill
+            const crystalGrad = ctx.createLinearGradient(sx - 30, sy - 45, sx + 30, sy + 35);
+            crystalGrad.addColorStop(0, '#f0abfc');
+            crystalGrad.addColorStop(0.5, '#ec4899');
+            crystalGrad.addColorStop(1, '#be185d');
+            ctx.fillStyle = crystalGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Inner crystal facets
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 30 - bounce);
+            ctx.lineTo(sx + 15, sy - bounce);
+            ctx.lineTo(sx, sy + 20 - bounce);
+            ctx.lineTo(sx - 15, sy - bounce);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fill();
+            
+            // Floating crystal shards
+            for (let i = 0; i < 6; i++) {
+              const angle = time * 1.5 + (i / 6) * Math.PI * 2;
+              const dist = 45 + Math.sin(time * 2 + i) * 8;
+              const shardX = sx + Math.cos(angle) * dist;
+              const shardY = sy - bounce + Math.sin(angle) * dist * 0.5;
+              
+              ctx.save();
+              ctx.translate(shardX, shardY);
+              ctx.rotate(angle + time);
+              ctx.beginPath();
+              ctx.moveTo(0, -8);
+              ctx.lineTo(4, 0);
+              ctx.lineTo(0, 8);
+              ctx.lineTo(-4, 0);
+              ctx.closePath();
+              ctx.fillStyle = '#f472b6';
+              ctx.fill();
+              ctx.restore();
+            }
+            
+            // Glowing core
+            const pulseAlpha = 0.5 + Math.sin(time * 3) * 0.3;
+            ctx.beginPath();
+            ctx.arc(sx, sy - 5 - bounce, 12, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulseAlpha})`;
+            ctx.fill();
+            
+            // Eye
+            ctx.beginPath();
+            ctx.arc(sx, sy - 5 - bounce, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#ec4899';
+            ctx.fill();
           }
           else {
             // Default boss (fallback)
@@ -1810,13 +2144,53 @@ export default function SpellBrigade() {
           }
         }
 
-        // Frozen indicator
+        // Frozen indicator - Enhanced ice encasement
         if (enemy.isFrozen) {
+          const time = Date.now() / 1000;
+          const radius = isBoss ? 50 : 22;
+          
+          // Ice shell
           ctx.beginPath();
-          ctx.arc(sx, sy, 22, 0, Math.PI * 2);
-          ctx.strokeStyle = '#87ceeb';
+          ctx.arc(sx, sy, radius + 5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(103, 232, 249, 0.3)';
+          ctx.fill();
+          ctx.strokeStyle = '#22d3ee';
           ctx.lineWidth = 3;
           ctx.stroke();
+          
+          // Ice crystals around enemy
+          const crystalCount = isBoss ? 8 : 5;
+          for (let i = 0; i < crystalCount; i++) {
+            const angle = (i / crystalCount) * Math.PI * 2 + time * 0.5;
+            const cx = sx + Math.cos(angle) * (radius + 8);
+            const cy = sy + Math.sin(angle) * (radius + 8);
+            
+            // Crystal shape
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(angle + Math.PI / 2);
+            ctx.beginPath();
+            ctx.moveTo(0, -6);
+            ctx.lineTo(3, 0);
+            ctx.lineTo(0, 6);
+            ctx.lineTo(-3, 0);
+            ctx.closePath();
+            ctx.fillStyle = '#67e8f9';
+            ctx.fill();
+            ctx.restore();
+          }
+          
+          // Frost particles
+          for (let i = 0; i < 4; i++) {
+            const pAngle = time * 2 + i * Math.PI / 2;
+            const pDist = radius + 12 + Math.sin(time * 3 + i) * 3;
+            const px = sx + Math.cos(pAngle) * pDist;
+            const py = sy + Math.sin(pAngle) * pDist;
+            ctx.beginPath();
+            ctx.arc(px, py, 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+          }
         }
       }
 
@@ -2236,6 +2610,13 @@ export default function SpellBrigade() {
             magma_titan: ['#f97316', '#dc2626', '#fbbf24'],
             frost_wyrm: ['#22d3ee', '#67e8f9', '#fff'],
             void_overlord: ['#7c3aed', '#581c87', '#c084fc'],
+            crystal_golem: ['#ec4899', '#f0abfc', '#fff'],
+            boss_meadow: ['#ec4899', '#f472b6', '#22c55e'],
+            boss_forest: ['#166534', '#84cc16', '#a16207'],
+            boss_volcanic: ['#f97316', '#dc2626', '#fbbf24'],
+            boss_frozen: ['#22d3ee', '#67e8f9', '#fff'],
+            boss_abyss: ['#7c3aed', '#581c87', '#c084fc'],
+            boss_crystal: ['#ec4899', '#f0abfc', '#fff'],
           };
           const colors = bossColors[ef.bossType] || ['#fbbf24', '#f97316', '#fff'];
           
@@ -2301,6 +2682,139 @@ export default function SpellBrigade() {
             ctx.fillText('💀', ex, ey - skullProgress * 30);
             ctx.globalAlpha = 1;
           }
+        } else if (ef.type === 'teleport') {
+          // Portal teleportation effect
+          const tx = ef.x - cx;
+          const ty = ef.y - cy;
+          const color = ef.color || '#a855f7';
+          
+          // Shrinking/expanding ring based on entering/exiting
+          const ringRadius = ef.entering 
+            ? 80 * progress 
+            : 80 * (1 - progress);
+          
+          // Multiple rings
+          for (let i = 0; i < 3; i++) {
+            const ringOffset = i * 0.15;
+            const radius = ef.entering
+              ? ringRadius * (0.5 + i * 0.25)
+              : ringRadius * (1 - i * 0.15);
+            
+            if (radius > 0) {
+              ctx.beginPath();
+              ctx.arc(tx, ty, radius, 0, Math.PI * 2);
+              ctx.strokeStyle = color;
+              ctx.globalAlpha = alpha * (1 - i * 0.2);
+              ctx.lineWidth = 4 - i;
+              ctx.stroke();
+            }
+          }
+          ctx.globalAlpha = 1;
+          
+          // Spiraling particles
+          const particleCount = 10;
+          for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2 + progress * Math.PI * 3;
+            const dist = ef.entering
+              ? ringRadius * (1 - progress * 0.3)
+              : ringRadius * progress;
+            
+            const px = tx + Math.cos(angle) * dist;
+            const py = ty + Math.sin(angle) * dist;
+            
+            ctx.beginPath();
+            ctx.arc(px, py, 3 * alpha, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+        } else if (ef.type === 'freezeBurst') {
+          // Freeze burst effect from Permafrost upgrade
+          const fx = ef.x - cx;
+          const fy = ef.y - cy;
+          
+          // Expanding ice ring
+          const ringRadius = 30 * progress + 10;
+          ctx.beginPath();
+          ctx.arc(fx, fy, ringRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = '#67e8f9';
+          ctx.globalAlpha = alpha;
+          ctx.lineWidth = 4 * alpha;
+          ctx.stroke();
+          
+          // Ice crystals bursting outward
+          const crystalCount = 8;
+          for (let i = 0; i < crystalCount; i++) {
+            const angle = (i / crystalCount) * Math.PI * 2;
+            const dist = 20 + progress * 40;
+            const crx = fx + Math.cos(angle) * dist;
+            const cry = fy + Math.sin(angle) * dist;
+            
+            ctx.save();
+            ctx.translate(crx, cry);
+            ctx.rotate(angle + Math.PI / 2);
+            ctx.beginPath();
+            ctx.moveTo(0, -6 * alpha);
+            ctx.lineTo(3, 0);
+            ctx.lineTo(0, 6 * alpha);
+            ctx.lineTo(-3, 0);
+            ctx.closePath();
+            ctx.fillStyle = '#22d3ee';
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+            ctx.restore();
+          }
+          
+          // Central flash
+          if (progress < 0.3) {
+            const flashAlpha = (0.3 - progress) / 0.3;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 25, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha * 0.6})`;
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+        } else if (ef.type === 'empowered') {
+          // Empowered hit effect (Mana Surge triple damage)
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          
+          // Star burst effect
+          const rays = 6;
+          for (let i = 0; i < rays; i++) {
+            const angle = (i / rays) * Math.PI * 2 + progress * Math.PI;
+            const innerR = 10;
+            const outerR = 30 + progress * 20;
+            
+            ctx.beginPath();
+            ctx.moveTo(ex + Math.cos(angle) * innerR, ey + Math.sin(angle) * innerR);
+            ctx.lineTo(ex + Math.cos(angle) * outerR, ey + Math.sin(angle) * outerR);
+            ctx.strokeStyle = '#c084fc';
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = 3 * alpha;
+            ctx.stroke();
+          }
+          
+          // Central glow
+          const glowGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, 25);
+          glowGrad.addColorStop(0, `rgba(192, 132, 252, ${alpha * 0.8})`);
+          glowGrad.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(ex, ey, 25, 0, Math.PI * 2);
+          ctx.fillStyle = glowGrad;
+          ctx.fill();
+          
+          // "3x" text
+          if (progress < 0.6) {
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffd93d';
+            ctx.globalAlpha = alpha;
+            ctx.fillText('3x', ex, ey - 20 - progress * 20);
+          }
+          ctx.globalAlpha = 1;
         }
 
         return true;
@@ -2312,28 +2826,43 @@ export default function SpellBrigade() {
         const mmCtx = mm.getContext('2d');
         const mmW = mm.width;
         const mmH = mm.height;
-        const scale = mmW / world.width;
+        const scale = mmW / WORLD_WIDTH;
 
         mmCtx.fillStyle = '#1a1a2e';
         mmCtx.fillRect(0, 0, mmW, mmH);
 
-        const mcx = 2500 * scale;
-        const mcy = 2500 * scale;
-
-        // Zone rings (updated for new sizes)
-        const rings = [
-          { r: 300, c: '#22c55e' },
-          { r: 900, c: '#84cc16' },
-          { r: 1600, c: '#166534' },
-          { r: 2100, c: '#dc2626' },
-          { r: 2600, c: '#0ea5e9' },
-        ];
-        for (const ring of rings) {
+        // Draw zone polygons
+        const zoneColors = {
+          sanctuary: '#22c55e',
+          meadow: '#84cc16',
+          forest: '#166534',
+          volcanic: '#dc2626',
+          frozen: '#0ea5e9',
+          abyss: '#581c87',
+          crystal_caves: '#ec4899',
+        };
+        
+        for (const [zoneId, polygon] of Object.entries(ZONE_POLYGONS)) {
+          if (!polygon || polygon.length < 3) continue;
           mmCtx.beginPath();
-          mmCtx.arc(mcx, mcy, ring.r * scale, 0, Math.PI * 2);
-          mmCtx.strokeStyle = ring.c + '60';
+          mmCtx.moveTo(polygon[0].x * scale, polygon[0].y * scale);
+          for (let i = 1; i < polygon.length; i++) {
+            mmCtx.lineTo(polygon[i].x * scale, polygon[i].y * scale);
+          }
+          mmCtx.closePath();
+          mmCtx.fillStyle = (zoneColors[zoneId] || '#333') + '30';
+          mmCtx.fill();
+          mmCtx.strokeStyle = (zoneColors[zoneId] || '#333') + '80';
           mmCtx.lineWidth = 1;
           mmCtx.stroke();
+        }
+        
+        // Draw portals on minimap
+        for (const portal of Object.values(PORTAL_POSITIONS)) {
+          mmCtx.beginPath();
+          mmCtx.arc(portal.from.x * scale, portal.from.y * scale, 3, 0, Math.PI * 2);
+          mmCtx.fillStyle = portal.color;
+          mmCtx.fill();
         }
 
         // Enemies on minimap
@@ -2436,783 +2965,8 @@ export default function SpellBrigade() {
     setSelectedSkin(skinId);
   };
 
-  // ===========================================
-  // STYLES
-  // ===========================================
-  const styles = {
-    container: {
-      position: 'relative',
-      width: '100%',
-      height: '100vh',
-      background: '#0f0f1a',
-      overflow: 'hidden',
-      fontFamily: "'Segoe UI', system-ui, sans-serif",
-      color: '#fff',
-      touchAction: 'none', // Prevent mobile browser gestures
-      userSelect: 'none',
-    },
-    canvas: {
-      display: 'block',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-    },
-    minimap: {
-      position: 'absolute',
-      bottom: isMobile ? 220 : 20,
-      right: isMobile ? 10 : 20,
-      border: '2px solid rgba(255,255,255,0.15)',
-      borderRadius: 12,
-      display: settings.showMinimap && screen === 'game' ? 'block' : 'none',
-    },
-    overlay: {
-      position: 'absolute',
-      inset: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(180deg, #0f0f1a, #1a1a2e)',
-      zIndex: 100,
-      transition: 'opacity 0.3s',
-    },
-    hidden: {
-      opacity: 0,
-      pointerEvents: 'none',
-    },
-    title: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: isMobile ? 10 : 15,
-      marginBottom: 8,
-    },
-    titleText: {
-      fontSize: isMobile ? '2rem' : '3rem',
-      background: 'linear-gradient(135deg, #ffd93d, #ff6b35)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-    },
-    subtitle: {
-      color: '#666',
-      marginBottom: isMobile ? '1rem' : '2rem',
-      letterSpacing: 2,
-      textTransform: 'uppercase',
-      fontSize: isMobile ? '.8rem' : '1rem',
-    },
-    tabs: {
-      display: 'flex',
-      gap: isMobile ? 4 : 8,
-      marginBottom: isMobile ? 15 : 25,
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-    },
-    tab: (active) => ({
-      padding: isMobile ? '8px 16px' : '12px 28px',
-      background: active ? 'linear-gradient(135deg, #ffd93d, #ff6b35)' : 'transparent',
-      border: active ? 'none' : '2px solid #2a2a3e',
-      color: active ? '#000' : '#888',
-      fontSize: isMobile ? '.8rem' : '.95rem',
-      cursor: 'pointer',
-      borderRadius: 25,
-      display: 'flex',
-      alignItems: 'center',
-      gap: isMobile ? 4 : 8,
-      fontWeight: active ? 600 : 400,
-    }),
-    tabIcon: {
-      width: isMobile ? 14 : 18,
-      height: isMobile ? 14 : 18,
-    },
-    content: {
-      width: '100%',
-      maxWidth: 900,
-      padding: isMobile ? 10 : 20,
-      overflowY: 'auto',
-      maxHeight: isMobile ? '60vh' : 'auto',
-    },
-    input: {
-      padding: isMobile ? '10px 16px' : '14px 20px',
-      fontSize: isMobile ? '.9rem' : '1rem',
-      background: 'rgba(255,255,255,0.05)',
-      border: '2px solid #2a2a3e',
-      borderRadius: 12,
-      color: '#fff',
-      width: isMobile ? 220 : 280,
-      textAlign: 'center',
-      outline: 'none',
-    },
-    classSelect: {
-      display: 'flex',
-      gap: isMobile ? 10 : 20,
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      margin: isMobile ? '15px 0' : '25px 0',
-    },
-    classCard: (selected, color) => ({
-      width: isMobile ? 150 : 200,
-      padding: isMobile ? '15px 12px' : '25px 20px',
-      background: 'rgba(255,255,255,0.03)',
-      border: `2px solid ${selected ? color : '#2a2a3e'}`,
-      borderRadius: 16,
-      cursor: 'pointer',
-      textAlign: 'center',
-      transition: 'all 0.25s',
-      boxShadow: selected ? `0 0 30px ${color}30` : 'none',
-    }),
-    classIcon: (color) => ({
-      width: isMobile ? 50 : 70,
-      height: isMobile ? 50 : 70,
-      margin: '0 auto 10px',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: color,
-      background: color + '20',
-    }),
-    classIconSvg: {
-      width: isMobile ? 26 : 36,
-      height: isMobile ? 26 : 36,
-    },
-    btn: {
-      padding: isMobile ? '12px 30px' : '16px 45px',
-      fontSize: isMobile ? '1rem' : '1.1rem',
-      fontWeight: 600,
-      border: 0,
-      borderRadius: 12,
-      cursor: 'pointer',
-      marginTop: isMobile ? 15 : 25,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      background: 'linear-gradient(135deg, #ffd93d, #ff6b35)',
-      color: '#000',
-    },
-    btnIcon: {
-      width: isMobile ? 18 : 22,
-      height: isMobile ? 18 : 22,
-    },
-    // HUD styles
-    hud: {
-      position: 'absolute',
-      top: 20,
-      left: 20,
-      zIndex: 50,
-    },
-    hudPanel: {
-      background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(10px)',
-      padding: 18,
-      borderRadius: 16,
-      minWidth: 200,
-      border: '1px solid rgba(255,255,255,0.1)',
-    },
-    playerHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 14,
-      paddingBottom: 14,
-      borderBottom: '1px solid rgba(255,255,255,0.1)',
-    },
-    avatar: (color) => ({
-      width: 46,
-      height: 46,
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: color + '25',
-      color: color,
-    }),
-    avatarIcon: {
-      width: 26,
-      height: 26,
-    },
-    statBar: {
-      marginBottom: 10,
-    },
-    statLabel: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      fontSize: '.75rem',
-      marginBottom: 4,
-      color: '#999',
-    },
-    statIcon: {
-      width: 14,
-      height: 14,
-      marginRight: 5,
-    },
-    barBg: {
-      height: 8,
-      background: 'rgba(255,255,255,0.1)',
-      borderRadius: 4,
-      overflow: 'hidden',
-    },
-    barFill: (pct, color) => ({
-      height: '100%',
-      width: `${pct}%`,
-      background: color,
-      borderRadius: 4,
-      transition: 'width 0.3s',
-    }),
-    statsRow: {
-      display: 'flex',
-      gap: 16,
-      fontSize: '.8rem',
-      color: '#888',
-      marginTop: 12,
-    },
-    statItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 5,
-    },
-    // Zone indicator
-    zoneIndicator: {
-      position: 'absolute',
-      top: 20,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(10px)',
-      padding: '10px 22px',
-      borderRadius: 25,
-      fontSize: '.9rem',
-      zIndex: 50,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      border: '1px solid rgba(255,255,255,0.1)',
-    },
-    zoneIcon: (color) => ({
-      width: 20,
-      height: 20,
-      color: color,
-    }),
-    zoneWarning: {
-      color: '#f97316',
-      fontSize: '.75rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 5,
-    },
-    // Volume control
-    volumeControl: {
-      position: 'absolute',
-      top: 20,
-      right: 20,
-      zIndex: 50,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(10px)',
-      padding: '8px 14px',
-      borderRadius: 25,
-      border: '1px solid rgba(255,255,255,0.1)',
-    },
-    volumeBtn: {
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: 4,
-      display: 'flex',
-      color: '#888',
-    },
-    volumeIcon: {
-      width: 20,
-      height: 20,
-    },
-    volumeSlider: {
-      width: 70,
-    },
-    // Level up popup
-    levelUpPopup: {
-      position: 'absolute',
-      top: isMobile ? 60 : 80,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(5px)',
-      padding: isMobile ? '12px 25px' : '15px 35px',
-      borderRadius: 15,
-      border: '2px solid rgba(255,215,61,0.5)',
-      textAlign: 'center',
-      zIndex: 55,
-      pointerEvents: 'none', // Don't block clicks/touches
-    },
-    // Controls hint
-    controlsHint: {
-      position: 'absolute',
-      bottom: 20,
-      left: 20,
-      background: 'rgba(0,0,0,0.7)',
-      padding: '8px 14px',
-      borderRadius: 8,
-      fontSize: '.75rem',
-      color: '#666',
-      zIndex: 50,
-    },
-    // Connection status
-    connection: (connected) => ({
-      position: 'absolute',
-      top: isMobile ? 45 : 70,
-      right: isMobile ? 'auto' : 20,
-      left: isMobile ? '50%' : 'auto',
-      transform: isMobile ? 'translateX(-50%)' : 'none',
-      padding: '4px 10px',
-      borderRadius: 15,
-      fontSize: '.7rem',
-      zIndex: 50,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 5,
-      background: 'rgba(0,0,0,0.6)',
-      color: connected ? '#4ade80' : '#f87171',
-    }),
-    connDot: {
-      width: 8,
-      height: 8,
-      borderRadius: '50%',
-      background: 'currentColor',
-    },
-    // Tutorial styles
-    tutorial: {
-      maxWidth: 700,
-      textAlign: 'left',
-      padding: isMobile ? '0 10px' : 0,
-    },
-    tutorialSection: {
-      marginBottom: isMobile ? 20 : 28,
-    },
-    tutorialTitle: {
-      color: '#ffd93d',
-      marginBottom: isMobile ? 8 : 12,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      fontSize: isMobile ? '.95rem' : '1.1rem',
-    },
-    tutorialIcon: {
-      width: isMobile ? 18 : 22,
-      height: isMobile ? 18 : 22,
-    },
-    tutorialText: {
-      color: '#999',
-      lineHeight: 1.7,
-      fontSize: isMobile ? '.85rem' : '1rem',
-    },
-    key: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minWidth: isMobile ? 28 : 32,
-      padding: isMobile ? '3px 8px' : '4px 10px',
-      background: '#2a2a3e',
-      borderRadius: 6,
-      fontFamily: 'monospace',
-      fontSize: isMobile ? '.75rem' : '.85rem',
-      color: '#fff',
-      marginRight: 8,
-    },
-    zoneList: {
-      display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-      gap: isMobile ? 8 : 12,
-      marginTop: 15,
-    },
-    zoneItem: (color) => ({
-      padding: isMobile ? 10 : 14,
-      background: 'rgba(255,255,255,0.03)',
-      borderRadius: 10,
-      borderLeft: `4px solid ${color}`,
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: isMobile ? 8 : 12,
-    }),
-    zoneItemIcon: {
-      width: isMobile ? 20 : 24,
-      height: isMobile ? 20 : 24,
-      flexShrink: 0,
-    },
-    // Settings styles
-    settingsContent: {
-      maxWidth: 380,
-      padding: isMobile ? '0 10px' : 0,
-    },
-    settingRow: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: isMobile ? 12 : 16,
-      background: 'rgba(255,255,255,0.03)',
-      borderRadius: 12,
-      marginBottom: isMobile ? 8 : 12,
-    },
-    settingLabel: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      fontSize: isMobile ? '.85rem' : '.95rem',
-    },
-    settingIcon: {
-      width: 20,
-      height: 20,
-      opacity: 0.7,
-    },
-    toggle: (on) => ({
-      width: 48,
-      height: 26,
-      background: on ? '#4ade80' : '#2a2a3e',
-      borderRadius: 13,
-      position: 'relative',
-      cursor: 'pointer',
-      transition: 'background 0.2s',
-    }),
-    toggleKnob: (on) => ({
-      position: 'absolute',
-      width: 20,
-      height: 20,
-      background: '#fff',
-      borderRadius: '50%',
-      top: 3,
-      left: on ? 25 : 3,
-      transition: 'left 0.2s',
-    }),
-    // Death screen styles
-    deathStats: {
-      display: 'flex',
-      gap: 30,
-      margin: '25px 0',
-    },
-    deathStat: {
-      textAlign: 'center',
-    },
-    deathValue: {
-      fontSize: '2rem',
-      fontWeight: 700,
-      color: '#ffd93d',
-    },
-    deathLabel: {
-      fontSize: '.8rem',
-      color: '#888',
-      marginTop: 5,
-    },
-    // Mobile touch controls
-    touchControls: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 200,
-      pointerEvents: 'none',
-      zIndex: 60,
-    },
-    joystickArea: {
-      position: 'absolute',
-      bottom: 30,
-      left: 30,
-      width: 120,
-      height: 120,
-      pointerEvents: 'auto',
-      touchAction: 'none',
-    },
-    joystickBase: {
-      width: 120,
-      height: 120,
-      borderRadius: '50%',
-      background: 'rgba(255,255,255,0.1)',
-      border: '3px solid rgba(255,255,255,0.3)',
-      position: 'relative',
-    },
-    joystickKnob: {
-      width: 50,
-      height: 50,
-      borderRadius: '50%',
-      background: 'rgba(255,255,255,0.5)',
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      transition: 'none',
-    },
-    actionButtons: {
-      position: 'absolute',
-      bottom: 30,
-      right: 30,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 15,
-      pointerEvents: 'auto',
-    },
-    actionButton: (color) => ({
-      width: 70,
-      height: 70,
-      borderRadius: '50%',
-      background: `linear-gradient(135deg, ${color}, ${color}aa)`,
-      border: '3px solid rgba(255,255,255,0.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#fff',
-      fontSize: '0.75rem',
-      fontWeight: 'bold',
-      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-      cursor: 'pointer',
-      touchAction: 'manipulation',
-      userSelect: 'none',
-    }),
-    actionButtonIcon: {
-      width: 28,
-      height: 28,
-    },
-    // Mobile-specific style overrides
-    mobileHud: {
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      zIndex: 50,
-    },
-    mobileHudPanel: {
-      background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(10px)',
-      padding: 10,
-      borderRadius: 12,
-      minWidth: 140,
-      border: '1px solid rgba(255,255,255,0.1)',
-    },
-    mobilePlayerHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 8,
-      paddingBottom: 8,
-      borderBottom: '1px solid rgba(255,255,255,0.1)',
-    },
-    mobileAvatar: (color) => ({
-      width: 32,
-      height: 32,
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: color + '25',
-      color: color,
-    }),
-    mobileAvatarIcon: {
-      width: 18,
-      height: 18,
-    },
-    mobileZoneIndicator: {
-      position: 'absolute',
-      top: 10,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(10px)',
-      padding: '6px 14px',
-      borderRadius: 20,
-      fontSize: '.75rem',
-      zIndex: 50,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      border: '1px solid rgba(255,255,255,0.1)',
-    },
-    // Returning player screen
-    returningCard: {
-      background: 'rgba(255,255,255,0.03)',
-      border: '2px solid #2a2a3e',
-      borderRadius: 20,
-      padding: isMobile ? 20 : 30,
-      maxWidth: 400,
-      width: '90%',
-      textAlign: 'center',
-    },
-    returningAvatar: (color) => ({
-      width: isMobile ? 80 : 100,
-      height: isMobile ? 80 : 100,
-      borderRadius: '50%',
-      margin: '0 auto 20px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: color + '25',
-      color: color,
-      border: `3px solid ${color}`,
-    }),
-    returningAvatarIcon: {
-      width: isMobile ? 45 : 55,
-      height: isMobile ? 45 : 55,
-    },
-    returningName: {
-      fontSize: isMobile ? '1.5rem' : '1.8rem',
-      fontWeight: 700,
-      marginBottom: 5,
-    },
-    returningStats: {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: isMobile ? 20 : 30,
-      margin: '20px 0',
-      flexWrap: 'wrap',
-    },
-    returningStat: {
-      textAlign: 'center',
-    },
-    returningStatValue: {
-      fontSize: isMobile ? '1.3rem' : '1.5rem',
-      fontWeight: 700,
-      color: '#ffd93d',
-    },
-    returningStatLabel: {
-      fontSize: '.75rem',
-      color: '#888',
-      marginTop: 4,
-    },
-    returningButtons: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 12,
-      marginTop: 25,
-    },
-    secondaryBtn: {
-      padding: isMobile ? '10px 20px' : '12px 30px',
-      fontSize: isMobile ? '.9rem' : '1rem',
-      fontWeight: 500,
-      border: '2px solid #2a2a3e',
-      borderRadius: 12,
-      cursor: 'pointer',
-      background: 'transparent',
-      color: '#888',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    // Skin selector
-    skinSelector: {
-      marginTop: 20,
-      padding: 15,
-      background: 'rgba(0,0,0,0.3)',
-      borderRadius: 12,
-    },
-    skinSelectorTitle: {
-      fontSize: '.85rem',
-      color: '#888',
-      marginBottom: 12,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-    },
-    skinGrid: {
-      display: 'flex',
-      gap: 10,
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-    },
-    skinOption: (selected, color, locked) => ({
-      width: isMobile ? 50 : 60,
-      height: isMobile ? 50 : 60,
-      borderRadius: 12,
-      background: locked ? 'rgba(255,255,255,0.02)' : color + '20',
-      border: `2px solid ${selected ? color : locked ? '#1a1a2e' : '#2a2a3e'}`,
-      cursor: locked ? 'not-allowed' : 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      opacity: locked ? 0.4 : 1,
-      position: 'relative',
-      transition: 'all 0.2s',
-    }),
-    skinOptionInner: (color) => ({
-      width: isMobile ? 30 : 36,
-      height: isMobile ? 30 : 36,
-      borderRadius: '50%',
-      background: color,
-    }),
-    skinLock: {
-      position: 'absolute',
-      bottom: -5,
-      right: -5,
-      background: '#1a1a2e',
-      borderRadius: '50%',
-      width: 18,
-      height: 18,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '10px',
-    },
-    skinTooltip: {
-      position: 'absolute',
-      bottom: '100%',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'rgba(0,0,0,0.95)',
-      padding: '6px 10px',
-      borderRadius: 6,
-      fontSize: '.7rem',
-      whiteSpace: 'nowrap',
-      marginBottom: 5,
-      pointerEvents: 'none',
-    },
-    // In-game skin modal
-    modal: {
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: 'rgba(15,15,26,0.98)',
-      border: '2px solid #2a2a3e',
-      borderRadius: 20,
-      padding: isMobile ? 20 : 30,
-      zIndex: 200,
-      maxWidth: 400,
-      width: '90%',
-    },
-    modalBackdrop: {
-      position: 'absolute',
-      inset: 0,
-      background: 'rgba(0,0,0,0.7)',
-      zIndex: 199,
-    },
-    modalTitle: {
-      fontSize: '1.3rem',
-      fontWeight: 600,
-      marginBottom: 20,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-    },
-    modalClose: {
-      position: 'absolute',
-      top: 15,
-      right: 15,
-      background: 'none',
-      border: 'none',
-      color: '#888',
-      cursor: 'pointer',
-      fontSize: '1.5rem',
-    },
-    // Loading screen
-    loadingText: {
-      color: '#888',
-      fontSize: '1.1rem',
-    },
-    spinner: {
-      width: 40,
-      height: 40,
-      border: '3px solid #2a2a3e',
-      borderTopColor: '#ffd93d',
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite',
-      marginBottom: 20,
-    },
-  };
+  // Styles (generated from createStyles factory)
+  const styles = useMemo(() => createStyles(isMobile, settings, screen), [isMobile, settings, screen]);
 
   // ===========================================
   // RENDER
@@ -3236,7 +2990,21 @@ export default function SpellBrigade() {
 
       {/* Loading Screen */}
       <div style={{ ...styles.overlay, ...(screen !== 'loading' ? styles.hidden : {}) }}>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes dropIn { 
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          }
+          @keyframes slideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+          }
+          @keyframes pulse { 
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+          }
+        `}</style>
         <div style={styles.spinner} />
         <p style={styles.loadingText}>Connecting to server...</p>
       </div>
@@ -3501,6 +3269,29 @@ export default function SpellBrigade() {
 
             <div style={styles.settingRow}>
               <label style={styles.settingLabel}>
+                <span style={styles.settingIcon}>🎵</span> Zone Music
+              </label>
+              <div
+                style={styles.toggle(settings.musicEnabled)}
+                onClick={() => {
+                  setSettings(s => {
+                    const newEnabled = !s.musicEnabled;
+                    if (!newEnabled && musicIntervalRef.current) {
+                      clearInterval(musicIntervalRef.current);
+                      musicIntervalRef.current = null;
+                    } else if (newEnabled && lastZoneRef.current) {
+                      setTimeout(() => startZoneMusic(lastZoneRef.current), 100);
+                    }
+                    return { ...s, musicEnabled: newEnabled };
+                  });
+                }}
+              >
+                <div style={styles.toggleKnob(settings.musicEnabled)} />
+              </div>
+            </div>
+
+            <div style={styles.settingRow}>
+              <label style={styles.settingLabel}>
                 <span style={styles.settingIcon}>{SVG.home}</span> Zone Names
               </label>
               <div
@@ -3710,9 +3501,11 @@ export default function SpellBrigade() {
           {/* Volume Control - Desktop only */}
           {!isMobile && (
             <div style={styles.volumeControl}>
+              {/* SFX */}
               <button
                 style={styles.volumeBtn}
                 onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
+                title="Sound Effects"
               >
                 <span style={styles.volumeIcon}>
                   {settings.sfxEnabled ? SVG.volume : SVG.volumeMute}
@@ -3725,6 +3518,41 @@ export default function SpellBrigade() {
                 value={settings.volume * 100}
                 onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
                 style={styles.volumeSlider}
+                title="SFX Volume"
+              />
+              {/* Music */}
+              <button
+                style={{ ...styles.volumeBtn, marginLeft: 10 }}
+                onClick={() => {
+                  setSettings(s => ({ ...s, musicEnabled: !s.musicEnabled }));
+                  if (!settings.musicEnabled) {
+                    startZoneMusic(lastZoneRef.current || 'sanctuary');
+                  } else if (musicIntervalRef.current) {
+                    clearInterval(musicIntervalRef.current);
+                    musicIntervalRef.current = null;
+                  }
+                }}
+                title="Music"
+              >
+                <span style={styles.volumeIcon}>
+                  {settings.musicEnabled ? '🎵' : '🔇'}
+                </span>
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={settings.musicVolume * 100}
+                onChange={(e) => {
+                  const vol = e.target.value / 100;
+                  setSettings(s => ({ ...s, musicVolume: vol }));
+                  if (musicGainRef.current && audioCtxRef.current) {
+                    const config = ZONE_MUSIC_CONFIG[lastZoneRef.current] || ZONE_MUSIC_CONFIG.sanctuary;
+                    musicGainRef.current.gain.setValueAtTime(config.volume * vol, audioCtxRef.current.currentTime);
+                  }
+                }}
+                style={{ ...styles.volumeSlider, width: 60 }}
+                title="Music Volume"
               />
             </div>
           )}
@@ -3821,6 +3649,116 @@ export default function SpellBrigade() {
             <span style={{ width: 20, height: 20 }}>{SVG.star}</span>
             Level {levelUp}!
           </span>
+        </div>
+      )}
+
+      {/* Boss Spawn Alert */}
+      {bossAlert && (
+        <div style={{
+          position: 'fixed',
+          top: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: `linear-gradient(135deg, ${bossAlert.color}20, rgba(0,0,0,0.9))`,
+          backdropFilter: 'blur(10px)',
+          padding: isMobile ? '15px 25px' : '20px 40px',
+          borderRadius: 15,
+          zIndex: 900,
+          border: `2px solid ${bossAlert.color}`,
+          textAlign: 'center',
+          animation: 'slideDown 0.4s ease-out',
+          boxShadow: `0 0 30px ${bossAlert.color}40`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 15, justifyContent: 'center' }}>
+            <span style={{ fontSize: isMobile ? '1.8rem' : '2.5rem' }}>{bossAlert.emoji}</span>
+            <div>
+              <div style={{ 
+                color: bossAlert.color, 
+                fontSize: isMobile ? '1.1rem' : '1.4rem', 
+                fontWeight: 700,
+                textShadow: `0 0 10px ${bossAlert.color}80`,
+              }}>
+                {bossAlert.name} Awakens!
+              </div>
+              <div style={{ color: '#888', fontSize: '0.8rem', marginTop: 4 }}>
+                A powerful boss has appeared in {bossAlert.zone?.replace('_', ' ')}
+              </div>
+            </div>
+            <span style={{ fontSize: isMobile ? '1.8rem' : '2.5rem' }}>{bossAlert.emoji}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Spell Drop Notification */}
+      {spellDrop && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0,0,0,0.95)',
+          backdropFilter: 'blur(20px)',
+          padding: isMobile ? '20px' : '30px',
+          borderRadius: 20,
+          zIndex: 1000,
+          minWidth: isMobile ? '280px' : '350px',
+          maxWidth: '90vw',
+          border: '2px solid #ffd93d',
+          textAlign: 'center',
+          animation: 'dropIn 0.3s ease-out',
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: 10 }}>✨</div>
+          <h2 style={{ color: '#ffd93d', margin: '0 0 15px', fontSize: isMobile ? '1.1rem' : '1.3rem' }}>
+            Spell Upgrade!
+          </h2>
+          <p style={{ color: '#888', margin: '0 0 20px', fontSize: '0.85rem' }}>
+            From {spellDrop.bossName}
+          </p>
+          {spellDrop.items.map((item, idx) => {
+            const rarityColors = {
+              common: '#9ca3af',
+              uncommon: '#22c55e',
+              rare: '#3b82f6',
+              epic: '#a855f7',
+              legendary: '#f97316',
+            };
+            const color = rarityColors[item.rarity] || '#fff';
+            return (
+              <div key={idx} style={{
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 12,
+                padding: 15,
+                marginBottom: idx < spellDrop.items.length - 1 ? 10 : 0,
+                border: `1px solid ${color}40`,
+              }}>
+                <div style={{ color, fontSize: '1.1rem', fontWeight: 600, marginBottom: 5 }}>
+                  {item.name}
+                </div>
+                <div style={{ color: color, fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: 8 }}>
+                  {item.rarity} {item.isAlternate ? '• Alternate Spell' : '• Upgrade'}
+                </div>
+                <div style={{ color: '#ccc', fontSize: '0.85rem' }}>
+                  {item.description}
+                </div>
+              </div>
+            );
+          })}
+          <button
+            onClick={() => setSpellDrop(null)}
+            style={{
+              marginTop: 20,
+              padding: '12px 30px',
+              background: 'linear-gradient(135deg, #ffd93d, #ff6b35)',
+              border: 'none',
+              borderRadius: 25,
+              color: '#000',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Awesome!
+          </button>
         </div>
       )}
 
