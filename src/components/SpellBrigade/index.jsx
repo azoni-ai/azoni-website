@@ -896,6 +896,11 @@ export default function SpellBrigade() {
       }
       
       // Set target to clicked world position (walk there)
+      // Only if not using WASD
+      const usingKeyboard = inputRef.current.up || inputRef.current.down || 
+                           inputRef.current.left || inputRef.current.right;
+      if (usingKeyboard) return;
+      
       moveTargetRef.current.x = worldX;
       moveTargetRef.current.y = worldY;
       moveTargetRef.current.active = true;
@@ -3434,6 +3439,35 @@ export default function SpellBrigade() {
                   <span style={{ width: 14, height: 14 }}>{SVG.star}</span>
                   Change Skin
                 </button>
+
+                {/* Controls Panel */}
+                <div style={{
+                  marginTop: 15,
+                  paddingTop: 12,
+                  borderTop: '1px solid rgba(255,255,255,0.1)',
+                }}>
+                  <div style={{ fontSize: '.7rem', color: '#666', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    Controls
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: '#888' }}>Move</span>
+                      <span style={{ color: '#fff' }}>WASD / Click</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: '#888' }}>Attack</span>
+                      <span style={{ color: '#4ade80' }}>Auto</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: classes[playerInfo.class]?.color || '#888' }}>Dash</span>
+                      <span style={{ color: '#fff' }}>Space</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: '#ffd93d' }}>Ultimate</span>
+                      <span style={{ color: '#fff' }}>Q</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -3586,12 +3620,14 @@ export default function SpellBrigade() {
                   onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
                 >
                   <span style={styles.actionButtonIcon}>{SVG.warning}</span>
+                  <span style={{ fontSize: '0.6rem', marginTop: 2 }}>ULT</span>
                 </button>
                 <button
                   style={styles.actionButton('#4ecdc4')}
                   onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
                 >
                   <span style={styles.actionButtonIcon}>{SVG.dash}</span>
+                  <span style={{ fontSize: '0.6rem', marginTop: 2 }}>DASH</span>
                 </button>
               </div>
             </div>

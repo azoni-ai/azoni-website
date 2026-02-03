@@ -514,6 +514,7 @@ export const createStyles = (isMobile, settings, screen) => ({
       background: `linear-gradient(135deg, ${color}, ${color}aa)`,
       border: '3px solid rgba(255,255,255,0.4)',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       color: '#fff',
@@ -525,8 +526,8 @@ export const createStyles = (isMobile, settings, screen) => ({
       userSelect: 'none',
     }),
     actionButtonIcon: {
-      width: 28,
-      height: 28,
+      width: 24,
+      height: 24,
     },
     // Mobile-specific style overrides
     mobileHud: {
