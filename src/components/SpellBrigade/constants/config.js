@@ -72,4 +72,4 @@ export const DEFAULT_SKINS = [
 ];
 
 // Server URL - set REACT_APP_GAME_SERVER in your .env file
-export const SERVER_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_GAME_SERVER) || 'http://localhost:3001';
+export const SERVER_URL = process.env.REACT_APP_GAME_SERVER || 'http://localhost:3001';
