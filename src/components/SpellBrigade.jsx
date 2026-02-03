@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
 // ===========================================
@@ -287,6 +287,7 @@ export default function SpellBrigade() {
     }, 500);
 
     return () => socket.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ===========================================
