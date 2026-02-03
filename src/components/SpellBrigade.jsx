@@ -107,8 +107,14 @@ const CLASS_SVG = {
 // CONSTANTS
 // ===========================================
 const COLORS = {
-  grass1: '#2d5a27',
-  grass2: '#234d1f',
+  // Zone tile colors [light, dark]
+  sanctuary: ['#3d7a3d', '#2d6a2d'],      // Bright green
+  meadow: ['#4a8b3d', '#3a7b2d'],         // Light green  
+  forest: ['#2d5a27', '#234d1f'],         // Dark green (original)
+  volcanic: ['#4a3232', '#3d2828'],       // Dark red/brown
+  frozen: ['#4a5a6a', '#3a4a5a'],         // Blue-gray
+  abyss: ['#1a1a2e', '#12121f'],          // Deep purple/black
+  
   enemy: {
     slime: '#4ade80',
     bat: '#a855f7',
@@ -190,12 +196,13 @@ export default function SpellBrigade() {
     xpOrbs: [],
     particles: [],
     damageNumbers: [],
-    world: { width: 4000, height: 4000 },
+    world: { width: 5000, height: 5000 },
   });
   const cameraRef = useRef({ x: 0, y: 0 });
   const screenShakeRef = useRef({ x: 0, y: 0, intensity: 0 });
   const inputRef = useRef({ up: false, down: false, left: false, right: false });
   const mouseRef = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
   const effectsRef = useRef([]);
   const meteorWarningsRef = useRef([]);
   const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, showZoneNames: true, showMinimap: true });
@@ -370,26 +377,32 @@ export default function SpellBrigade() {
   // ===========================================
   // ZONE DETECTION
   // ===========================================
+  const getZoneAtPosition = (x, y) => {
+    const centerX = 2500, centerY = 2500;
+    const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+    
+    if (dist <= 300) return 'sanctuary';
+    if (dist <= 900) return 'meadow';
+    if (dist <= 1600) return 'forest';
+    if (dist <= 2100) return 'volcanic';
+    if (dist <= 2600) return 'frozen';
+    return 'abyss';
+  };
+
   const updateZone = (me) => {
     if (!me) return;
-    const dist = Math.sqrt((me.x - 2000) ** 2 + (me.y - 2000) ** 2);
-    let zone = { name: 'Sanctuary', color: '#22c55e', rec: 0 };
-
-    if (dist <= 250) {
-      zone = { name: 'Sanctuary', color: '#22c55e', rec: 0 };
-    } else if (dist <= 800) {
-      zone = { name: 'Peaceful Meadow', color: '#84cc16', rec: 1 };
-    } else if (dist <= 1400) {
-      zone = { name: 'Dark Forest', color: '#166534', rec: 5 };
-    } else if (dist <= 1800) {
-      zone = { name: 'Volcanic Wastes', color: '#dc2626', rec: 10 };
-    } else if (dist <= 2200) {
-      zone = { name: 'Frozen Expanse', color: '#0ea5e9', rec: 15 };
-    } else {
-      zone = { name: 'The Abyss', color: '#581c87', rec: 20 };
-    }
-
-    setCurrentZone(zone);
+    const zoneName = getZoneAtPosition(me.x, me.y);
+    
+    const zones = {
+      sanctuary: { name: 'Sanctuary', color: '#22c55e', rec: 0 },
+      meadow: { name: 'Peaceful Meadow', color: '#84cc16', rec: 1 },
+      forest: { name: 'Dark Forest', color: '#166534', rec: 5 },
+      volcanic: { name: 'Volcanic Wastes', color: '#dc2626', rec: 10 },
+      frozen: { name: 'Frozen Expanse', color: '#0ea5e9', rec: 15 },
+      abyss: { name: 'The Abyss', color: '#581c87', rec: 20 },
+    };
+    
+    setCurrentZone(zones[zoneName] || zones.sanctuary);
   };
 
   // ===========================================
@@ -573,18 +586,20 @@ export default function SpellBrigade() {
       // Dash
       if (e.code === 'Space' && socketRef.current && playerIdRef.current) {
         e.preventDefault();
+        const zoom = zoomRef.current || 1;
         socketRef.current.emit('dash', {
-          targetX: mouseRef.current.x + cameraRef.current.x,
-          targetY: mouseRef.current.y + cameraRef.current.y,
+          targetX: (mouseRef.current.x / zoom) + cameraRef.current.x,
+          targetY: (mouseRef.current.y / zoom) + cameraRef.current.y,
         });
         playSound('dash');
       }
 
       // Ultimate
       if (e.code === 'KeyQ' && socketRef.current && playerIdRef.current) {
+        const zoom = zoomRef.current || 1;
         socketRef.current.emit('ultimate', {
-          targetX: mouseRef.current.x + cameraRef.current.x,
-          targetY: mouseRef.current.y + cameraRef.current.y,
+          targetX: (mouseRef.current.x / zoom) + cameraRef.current.x,
+          targetY: (mouseRef.current.y / zoom) + cameraRef.current.y,
         });
       }
     };
@@ -760,11 +775,19 @@ export default function SpellBrigade() {
     const lerp = (a, b, t) => a + (b - a) * t;
 
     const render = () => {
-      const { width, height } = canvas;
       const { world, players, enemies, projectiles, xpOrbs, particles, damageNumbers } = gameStateRef.current;
       const me = players?.find(p => p.id === playerIdRef.current);
       const cam = cameraRef.current;
       const shake = screenShakeRef.current;
+
+      // Mobile zoom - zoom out to see more of the world
+      const isMobileView = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const zoom = isMobileView ? 0.6 : 1; // 60% zoom on mobile = see ~67% more
+      zoomRef.current = zoom;
+      
+      // Virtual dimensions (what we "see" in world space)
+      const width = canvas.width / zoom;
+      const height = canvas.height / zoom;
 
       // Camera follow player
       if (me) {
@@ -788,52 +811,283 @@ export default function SpellBrigade() {
       const cx = cam.x + shake.x;
       const cy = cam.y + shake.y;
 
+      // Apply zoom transform
+      ctx.setTransform(zoom, 0, 0, zoom, 0, 0);
+
+      // World center (for zone calculations)
+      const worldCenterX = 2500;
+      const worldCenterY = 2500;
+
       // Clear background
       ctx.fillStyle = '#0f0f1a';
       ctx.fillRect(0, 0, width, height);
 
-      // Zone rings
-      const centerX = 2000 - cx;
-      const centerY = 2000 - cy;
-      const zones = [
-        { r: 2200, c: '#581c87' },
-        { r: 1800, c: '#0ea5e9' },
-        { r: 1400, c: '#dc2626' },
-        { r: 800, c: '#166534' },
-        { r: 250, c: '#84cc16' },
-      ];
-      for (const z of zones) {
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, z.r, 0, Math.PI * 2);
-        ctx.fillStyle = z.c + '12';
-        ctx.fill();
-      }
+      // Helper: get zone at world position
+      const getZone = (wx, wy) => {
+        const dist = Math.sqrt((wx - worldCenterX) ** 2 + (wy - worldCenterY) ** 2);
+        if (dist <= 300) return 'sanctuary';
+        if (dist <= 900) return 'meadow';
+        if (dist <= 1600) return 'forest';
+        if (dist <= 2100) return 'volcanic';
+        if (dist <= 2600) return 'frozen';
+        return 'abyss';
+      };
 
-      // Grid tiles
+      // Grid tiles with zone-specific colors
       const tileSize = 64;
       const startX = Math.floor(cx / tileSize) * tileSize;
       const startY = Math.floor(cy / tileSize) * tileSize;
+      
       for (let x = startX; x < cx + width + tileSize; x += tileSize) {
         for (let y = startY; y < cy + height + tileSize; y += tileSize) {
-          ctx.fillStyle = ((x / tileSize) + (y / tileSize)) % 2 === 0 ? COLORS.grass1 : COLORS.grass2;
+          const zone = getZone(x + tileSize/2, y + tileSize/2);
+          const colors = COLORS[zone] || COLORS.forest;
+          const isLight = ((x / tileSize) + (y / tileSize)) % 2 === 0;
+          ctx.fillStyle = isLight ? colors[0] : colors[1];
           ctx.fillRect(x - cx, y - cy, tileSize, tileSize);
         }
       }
 
-      // Sanctuary
+      // Zone decorations (seeded random based on position for consistency)
+      const seededRandom = (x, y, seed = 0) => {
+        const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+        return n - Math.floor(n);
+      };
+
+      // Draw decorations for visible area
+      for (let x = startX; x < cx + width + tileSize; x += tileSize) {
+        for (let y = startY; y < cy + height + tileSize; y += tileSize) {
+          const zone = getZone(x + tileSize/2, y + tileSize/2);
+          const rand = seededRandom(x, y);
+          const screenX = x - cx + tileSize/2;
+          const screenY = y - cy + tileSize/2;
+          
+          // Only draw some tiles have decorations (20% chance)
+          if (rand > 0.2) continue;
+          
+          const decorRand = seededRandom(x, y, 1);
+          
+          if (zone === 'sanctuary') {
+            // Flowers
+            ctx.fillStyle = decorRand > 0.5 ? '#fcd34d' : '#f472b6';
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, 2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (zone === 'meadow') {
+            // Bushes and small flowers
+            if (decorRand > 0.6) {
+              // Bush
+              ctx.fillStyle = '#22c55e';
+              ctx.beginPath();
+              ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#16a34a';
+              ctx.beginPath();
+              ctx.arc(screenX - 3, screenY - 2, 5, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              // Grass tuft
+              ctx.strokeStyle = '#4ade80';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(screenX - 4, screenY + 5);
+              ctx.lineTo(screenX - 2, screenY - 5);
+              ctx.moveTo(screenX, screenY + 5);
+              ctx.lineTo(screenX, screenY - 7);
+              ctx.moveTo(screenX + 4, screenY + 5);
+              ctx.lineTo(screenX + 2, screenY - 5);
+              ctx.stroke();
+            }
+          } else if (zone === 'forest') {
+            // Trees and mushrooms
+            if (decorRand > 0.5) {
+              // Tree
+              ctx.fillStyle = '#4a2c17';
+              ctx.fillRect(screenX - 4, screenY - 5, 8, 20);
+              ctx.fillStyle = '#166534';
+              ctx.beginPath();
+              ctx.moveTo(screenX, screenY - 25);
+              ctx.lineTo(screenX - 15, screenY - 5);
+              ctx.lineTo(screenX + 15, screenY - 5);
+              ctx.closePath();
+              ctx.fill();
+              ctx.fillStyle = '#14532d';
+              ctx.beginPath();
+              ctx.moveTo(screenX, screenY - 35);
+              ctx.lineTo(screenX - 12, screenY - 18);
+              ctx.lineTo(screenX + 12, screenY - 18);
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              // Mushroom
+              ctx.fillStyle = '#fef3c7';
+              ctx.fillRect(screenX - 2, screenY, 4, 8);
+              ctx.fillStyle = decorRand > 0.25 ? '#ef4444' : '#a855f7';
+              ctx.beginPath();
+              ctx.arc(screenX, screenY, 7, Math.PI, 0);
+              ctx.fill();
+              ctx.fillStyle = '#fff';
+              ctx.beginPath();
+              ctx.arc(screenX - 3, screenY - 2, 2, 0, Math.PI * 2);
+              ctx.arc(screenX + 2, screenY - 3, 1.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else if (zone === 'volcanic') {
+            // Lava pools, rocks, embers
+            if (decorRand > 0.6) {
+              // Lava pool
+              ctx.fillStyle = '#dc2626';
+              ctx.beginPath();
+              ctx.ellipse(screenX, screenY, 12, 8, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#f97316';
+              ctx.beginPath();
+              ctx.ellipse(screenX, screenY, 8, 5, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#fbbf24';
+              ctx.beginPath();
+              ctx.ellipse(screenX, screenY, 4, 2, 0, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (decorRand > 0.3) {
+              // Rock
+              ctx.fillStyle = '#44403c';
+              ctx.beginPath();
+              ctx.moveTo(screenX - 8, screenY + 5);
+              ctx.lineTo(screenX - 5, screenY - 8);
+              ctx.lineTo(screenX + 3, screenY - 6);
+              ctx.lineTo(screenX + 8, screenY + 5);
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              // Ember particles
+              ctx.fillStyle = '#f97316';
+              ctx.beginPath();
+              ctx.arc(screenX + Math.sin(Date.now()/500 + x) * 3, screenY - 5, 3, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else if (zone === 'frozen') {
+            // Ice crystals, snow piles
+            if (decorRand > 0.5) {
+              // Ice crystal
+              ctx.fillStyle = '#bfdbfe';
+              ctx.beginPath();
+              ctx.moveTo(screenX, screenY - 15);
+              ctx.lineTo(screenX - 6, screenY + 5);
+              ctx.lineTo(screenX + 6, screenY + 5);
+              ctx.closePath();
+              ctx.fill();
+              ctx.fillStyle = '#93c5fd';
+              ctx.beginPath();
+              ctx.moveTo(screenX, screenY - 15);
+              ctx.lineTo(screenX, screenY + 5);
+              ctx.lineTo(screenX + 6, screenY + 5);
+              ctx.closePath();
+              ctx.fill();
+              ctx.strokeStyle = '#dbeafe';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            } else {
+              // Snow pile
+              ctx.fillStyle = '#f1f5f9';
+              ctx.beginPath();
+              ctx.ellipse(screenX, screenY, 10, 5, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#e2e8f0';
+              ctx.beginPath();
+              ctx.ellipse(screenX - 5, screenY - 2, 6, 4, -0.3, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else if (zone === 'abyss') {
+            // Void crystals, floating runes
+            if (decorRand > 0.6) {
+              // Void crystal
+              ctx.fillStyle = '#581c87';
+              ctx.beginPath();
+              ctx.moveTo(screenX, screenY - 18);
+              ctx.lineTo(screenX - 8, screenY + 6);
+              ctx.lineTo(screenX + 8, screenY + 6);
+              ctx.closePath();
+              ctx.fill();
+              ctx.fillStyle = '#7c3aed';
+              ctx.beginPath();
+              ctx.moveTo(screenX, screenY - 18);
+              ctx.lineTo(screenX, screenY + 6);
+              ctx.lineTo(screenX + 8, screenY + 6);
+              ctx.closePath();
+              ctx.fill();
+              // Glow
+              ctx.shadowColor = '#a855f7';
+              ctx.shadowBlur = 10;
+              ctx.fillStyle = '#c084fc';
+              ctx.beginPath();
+              ctx.arc(screenX, screenY - 5, 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.shadowBlur = 0;
+            } else {
+              // Floating rune
+              const floatY = Math.sin(Date.now()/800 + x + y) * 3;
+              ctx.strokeStyle = '#a855f7';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(screenX, screenY + floatY, 8, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(screenX - 4, screenY + floatY);
+              ctx.lineTo(screenX + 4, screenY + floatY);
+              ctx.moveTo(screenX, screenY - 4 + floatY);
+              ctx.lineTo(screenX, screenY + 4 + floatY);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      // Zone transition rings (subtle gradient borders)
+      const centerX = worldCenterX - cx;
+      const centerY = worldCenterY - cy;
+      const zoneRings = [
+        { r: 2600, c: '#581c87' },
+        { r: 2100, c: '#0ea5e9' },
+        { r: 1600, c: '#dc2626' },
+        { r: 900, c: '#166534' },
+        { r: 300, c: '#84cc16' },
+      ];
+      for (const z of zoneRings) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, z.r, 0, Math.PI * 2);
+        ctx.strokeStyle = z.c + '40';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+      }
+
+      // Sanctuary (glowing safe zone)
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 250, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(34,197,94,0.15)';
+      ctx.arc(centerX, centerY, 300, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(34,197,94,0.1)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(34,197,94,0.5)';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([10, 5]);
+      ctx.strokeStyle = 'rgba(34,197,94,0.6)';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([15, 8]);
       ctx.stroke();
       ctx.setLineDash([]);
+      
+      // Sanctuary center marker
+      ctx.fillStyle = 'rgba(34,197,94,0.3)';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 50, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#22c55e';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⛨ SANCTUARY', centerX, centerY + 5);
 
       // World border
       ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 6;
       ctx.setLineDash([20, 10]);
       ctx.strokeRect(-cx, -cy, world.width, world.height);
       ctx.setLineDash([]);
@@ -1143,16 +1397,16 @@ export default function SpellBrigade() {
         mmCtx.fillStyle = '#1a1a2e';
         mmCtx.fillRect(0, 0, mmW, mmH);
 
-        const mcx = 2000 * scale;
-        const mcy = 2000 * scale;
+        const mcx = 2500 * scale;
+        const mcy = 2500 * scale;
 
-        // Zone rings
+        // Zone rings (updated for new sizes)
         const rings = [
-          { r: 250, c: '#22c55e' },
-          { r: 800, c: '#84cc16' },
-          { r: 1400, c: '#166534' },
-          { r: 1800, c: '#dc2626' },
-          { r: 2200, c: '#0ea5e9' },
+          { r: 300, c: '#22c55e' },
+          { r: 900, c: '#84cc16' },
+          { r: 1600, c: '#166534' },
+          { r: 2100, c: '#dc2626' },
+          { r: 2600, c: '#0ea5e9' },
         ];
         for (const ring of rings) {
           mmCtx.beginPath();
@@ -1179,6 +1433,9 @@ export default function SpellBrigade() {
           mmCtx.fill();
         }
       }
+
+      // Reset transform for next frame
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
 
       animationId = requestAnimationFrame(render);
     };
@@ -1256,14 +1513,6 @@ export default function SpellBrigade() {
       socketRef.current?.emit('changeSkin', { skinId });
     }
     setSelectedSkin(skinId);
-  };
-
-  const getSkinsForClass = (classId) => {
-    return Object.values(skins).filter(s => s.class === classId);
-  };
-
-  const getUnlockedSkins = (classId, totalXp = 0) => {
-    return getSkinsForClass(classId).filter(s => s.requiredXp <= totalXp);
   };
 
   // ===========================================
