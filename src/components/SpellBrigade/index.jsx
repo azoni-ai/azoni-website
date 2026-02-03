@@ -1611,7 +1611,7 @@ export default function SpellBrigade() {
 
       // ========== BUILDINGS ==========
       const time = Date.now() / 1000;
-      for (const [, building] of Object.entries(BUILDING_DATA)) {
+      for (const [id, building] of Object.entries(BUILDING_DATA)) {
         const bx = building.x - cx;
         const by = building.y - cy;
         const w = building.width;
