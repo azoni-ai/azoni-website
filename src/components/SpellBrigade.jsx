@@ -1350,7 +1350,7 @@ export default function SpellBrigade() {
         if (sx < -60 || sx > width + 60 || sy < -60 || sy > height + 60) continue;
 
         const isBoss = enemy.isBoss;
-        const bounce = enemy.isFrozen ? 0 : Math.sin((enemy.animFrame || 0) * Math.PI / 2) * 2;
+        const bounce = enemy.isFrozen ? 0 : Math.sin((enemy.animFrame || 0) * Math.PI / 2) * 0.8;
         const color = COLORS.enemy[enemy.type] || '#ff0000';
         const size = isBoss ? 2 : 1;
 
@@ -1360,49 +1360,302 @@ export default function SpellBrigade() {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.fill();
 
-        // Body
-        ctx.beginPath();
-        ctx.arc(sx, sy - bounce, (14 + (isBoss ? 20 : 0)) * size, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Eyes
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(sx - 4 * size, sy - 4 * size - bounce, 3 * size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(sx + 4 * size, sy - 4 * size - bounce, 3 * size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(sx - 4 * size, sy - 4 * size - bounce, 1.5 * size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(sx + 4 * size, sy - 4 * size - bounce, 1.5 * size, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Health bar
-        if (enemy.health < enemy.maxHealth || isBoss) {
-          const hbW = isBoss ? 60 : 28;
-          const hbY = sy - (isBoss ? 50 : 30);
-          ctx.fillStyle = 'rgba(0,0,0,0.5)';
-          ctx.fillRect(sx - hbW / 2 - 1, hbY - 1, hbW + 2, isBoss ? 8 : 6);
-          ctx.fillStyle = '#1a1a2e';
-          ctx.fillRect(sx - hbW / 2, hbY, hbW, isBoss ? 6 : 4);
-          ctx.fillStyle = isBoss ? '#fbbf24' : '#ef4444';
-          ctx.fillRect(sx - hbW / 2, hbY, hbW * enemy.health / enemy.maxHealth, isBoss ? 6 : 4);
-        }
-
-        // Boss label
+        // ========== BOSS UNIQUE DESIGNS ==========
         if (isBoss) {
+          const bossType = enemy.type;
+          const time = Date.now() / 1000;
+          
+          if (bossType === 'boss_meadow') {
+            // Blossom Behemoth - Flower monster
+            const petalCount = 8;
+            const petalRadius = 35;
+            // Petals
+            for (let i = 0; i < petalCount; i++) {
+              const angle = (i / petalCount) * Math.PI * 2 + time * 0.5;
+              const px = sx + Math.cos(angle) * petalRadius;
+              const py = sy - bounce + Math.sin(angle) * petalRadius * 0.6;
+              ctx.beginPath();
+              ctx.ellipse(px, py, 18, 12, angle, 0, Math.PI * 2);
+              ctx.fillStyle = '#f472b6';
+              ctx.fill();
+              ctx.strokeStyle = '#db2777';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+            // Center body
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, 28, 0, Math.PI * 2);
+            ctx.fillStyle = '#84cc16';
+            ctx.fill();
+            ctx.strokeStyle = '#65a30d';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            // Face
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(sx - 8, sy - 5 - bounce, 4, 0, Math.PI * 2);
+            ctx.arc(sx + 8, sy - 5 - bounce, 4, 0, Math.PI * 2);
+            ctx.fill();
+            // Smile
+            ctx.beginPath();
+            ctx.arc(sx, sy + 5 - bounce, 10, 0.1 * Math.PI, 0.9 * Math.PI);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+          else if (bossType === 'boss_forest') {
+            // Ancient Treant - Tree creature
+            // Trunk
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(sx - 15, sy - 20 - bounce, 30, 50);
+            // Bark texture
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+              ctx.beginPath();
+              ctx.moveTo(sx - 10 + i * 7, sy - 15 - bounce);
+              ctx.lineTo(sx - 10 + i * 7, sy + 25 - bounce);
+              ctx.stroke();
+            }
+            // Canopy
+            ctx.fillStyle = '#166534';
+            ctx.beginPath();
+            ctx.arc(sx, sy - 35 - bounce, 35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(sx - 25, sy - 20 - bounce, 25, 0, Math.PI * 2);
+            ctx.arc(sx + 25, sy - 20 - bounce, 25, 0, Math.PI * 2);
+            ctx.fill();
+            // Eyes (glowing)
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(sx - 12, sy - 5 - bounce, 5, 0, Math.PI * 2);
+            ctx.arc(sx + 12, sy - 5 - bounce, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          else if (bossType === 'boss_volcanic') {
+            // Magma Titan - Lava golem
+            // Body chunks
+            ctx.fillStyle = '#44403c';
+            ctx.beginPath();
+            ctx.moveTo(sx - 35, sy + 20 - bounce);
+            ctx.lineTo(sx - 25, sy - 40 - bounce);
+            ctx.lineTo(sx + 25, sy - 40 - bounce);
+            ctx.lineTo(sx + 35, sy + 20 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            // Lava cracks
+            ctx.strokeStyle = '#f97316';
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 8;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(sx - 20, sy + 15 - bounce);
+            ctx.lineTo(sx - 10, sy - 20 - bounce);
+            ctx.lineTo(sx + 5, sy - bounce);
+            ctx.lineTo(sx + 15, sy - 30 - bounce);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(sx + 20, sy + 10 - bounce);
+            ctx.lineTo(sx + 5, sy - 15 - bounce);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            // Eyes (molten)
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(sx - 12, sy - 20 - bounce, 6, 0, Math.PI * 2);
+            ctx.arc(sx + 12, sy - 20 - bounce, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Horns
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.moveTo(sx - 20, sy - 35 - bounce);
+            ctx.lineTo(sx - 30, sy - 55 - bounce);
+            ctx.lineTo(sx - 15, sy - 40 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(sx + 20, sy - 35 - bounce);
+            ctx.lineTo(sx + 30, sy - 55 - bounce);
+            ctx.lineTo(sx + 15, sy - 40 - bounce);
+            ctx.closePath();
+            ctx.fill();
+          }
+          else if (bossType === 'boss_frozen') {
+            // Frost Wyrm - Ice dragon/serpent
+            // Body segments
+            for (let i = 3; i >= 0; i--) {
+              const segX = sx - Math.sin(time * 2 + i) * 8;
+              const segY = sy + i * 15 - bounce;
+              ctx.beginPath();
+              ctx.arc(segX, segY, 18 - i * 2, 0, Math.PI * 2);
+              ctx.fillStyle = i === 0 ? '#bfdbfe' : '#93c5fd';
+              ctx.fill();
+              ctx.strokeStyle = '#3b82f6';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+            // Head
+            ctx.fillStyle = '#bfdbfe';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - 25 - bounce, 25, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Ice crown/spikes
+            ctx.fillStyle = '#dbeafe';
+            for (let i = 0; i < 5; i++) {
+              const angle = -Math.PI * 0.8 + (i / 4) * Math.PI * 0.6;
+              ctx.beginPath();
+              ctx.moveTo(sx + Math.cos(angle) * 20, sy - 25 - bounce + Math.sin(angle) * 15);
+              ctx.lineTo(sx + Math.cos(angle) * 35, sy - 25 - bounce + Math.sin(angle) * 25 - 15);
+              ctx.lineTo(sx + Math.cos(angle + 0.15) * 20, sy - 25 - bounce + Math.sin(angle + 0.15) * 15);
+              ctx.closePath();
+              ctx.fill();
+            }
+            // Eyes
+            ctx.fillStyle = '#0ea5e9';
+            ctx.shadowColor = '#0ea5e9';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(sx - 8, sy - 28 - bounce, 5, 0, Math.PI * 2);
+            ctx.arc(sx + 8, sy - 28 - bounce, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          else if (bossType === 'boss_abyss') {
+            // Void Overlord - Cosmic horror
+            // Tentacles
+            ctx.strokeStyle = '#581c87';
+            ctx.lineWidth = 8;
+            for (let i = 0; i < 6; i++) {
+              const angle = (i / 6) * Math.PI * 2 + time * 0.3;
+              const len = 45 + Math.sin(time * 2 + i) * 10;
+              ctx.beginPath();
+              ctx.moveTo(sx, sy - bounce);
+              const midX = sx + Math.cos(angle) * len * 0.5;
+              const midY = sy - bounce + Math.sin(angle) * len * 0.5 + Math.sin(time * 3 + i) * 10;
+              const endX = sx + Math.cos(angle) * len;
+              const endY = sy - bounce + Math.sin(angle) * len * 0.7;
+              ctx.quadraticCurveTo(midX, midY, endX, endY);
+              ctx.stroke();
+            }
+            // Main body
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, 30, 0, Math.PI * 2);
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fill();
+            ctx.strokeStyle = '#7c3aed';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            // Eye (singular, cosmic)
+            const eyeGlow = 0.5 + Math.sin(time * 4) * 0.3;
+            ctx.fillStyle = `rgba(168, 85, 247, ${eyeGlow})`;
+            ctx.shadowColor = '#a855f7';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(sx, sy - 5 - bounce, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - 5 - bounce, 5, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Floating runes
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+              const runeAngle = time + (i / 3) * Math.PI * 2;
+              const runeX = sx + Math.cos(runeAngle) * 50;
+              const runeY = sy - bounce + Math.sin(runeAngle) * 30;
+              ctx.beginPath();
+              ctx.arc(runeX, runeY, 6, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+          else {
+            // Default boss (fallback)
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, 34, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Eyes
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(sx - 8, sy - 8 - bounce, 6, 0, Math.PI * 2);
+            ctx.arc(sx + 8, sy - 8 - bounce, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(sx - 8, sy - 8 - bounce, 3, 0, Math.PI * 2);
+            ctx.arc(sx + 8, sy - 8 - bounce, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Boss health bar (all bosses)
+          const hbW = 60;
+          const hbY = sy - 70;
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(sx - hbW / 2 - 2, hbY - 2, hbW + 4, 10);
+          ctx.fillStyle = '#1a1a2e';
+          ctx.fillRect(sx - hbW / 2, hbY, hbW, 6);
           ctx.fillStyle = '#fbbf24';
-          ctx.font = 'bold 12px sans-serif';
+          ctx.fillRect(sx - hbW / 2, hbY, hbW * enemy.health / enemy.maxHealth, 6);
+          
+          // Boss name
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = 'bold 11px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('BOSS', sx, sy - 60);
+          ctx.fillText(enemy.name || 'BOSS', sx, hbY - 5);
+        }
+        // ========== REGULAR ENEMIES ==========
+        else {
+          // Body
+          ctx.beginPath();
+          ctx.arc(sx, sy - bounce, 14, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Eyes
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(sx - 4, sy - 4 - bounce, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(sx + 4, sy - 4 - bounce, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.arc(sx - 4, sy - 4 - bounce, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(sx + 4, sy - 4 - bounce, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Health bar (only if damaged)
+          if (enemy.health < enemy.maxHealth) {
+            const hbW = 28;
+            const hbY = sy - 30;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(sx - hbW / 2 - 1, hbY - 1, hbW + 2, 6);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(sx - hbW / 2, hbY, hbW, 4);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(sx - hbW / 2, hbY, hbW * enemy.health / enemy.maxHealth, 4);
+          }
         }
 
         // Frozen indicator
