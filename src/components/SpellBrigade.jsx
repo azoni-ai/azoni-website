@@ -264,53 +264,51 @@ export default function SpellBrigade() {
   const audioReadyRef = useRef(false);
   
   const initAudio = () => {
-    if (audioReadyRef.current) return; // Already unlocked
-    
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
       
-      // Create context if needed
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext();
       }
       
       const ctx = audioCtxRef.current;
       
-      // Resume synchronously (required for iOS)
+      // Always try to resume - must be called synchronously during user gesture
       if (ctx.state === 'suspended') {
         ctx.resume();
       }
       
-      // Play a tiny beep to unlock - must happen during user gesture
-      // Don't check state - just try to play
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.05);
-      
-      audioReadyRef.current = true;
-      setAudioUnlocked(true);
-      console.log('🔊 Audio unlocked');
+      // Check if we can play
+      if (ctx.state === 'running' && !audioReadyRef.current) {
+        audioReadyRef.current = true;
+        setAudioUnlocked(true);
+        console.log('🔊 Audio unlocked');
+      }
     } catch (e) {
-      console.log('Audio error:', e);
+      console.log('Audio init error:', e);
     }
   };
   
-  // Listen for ANY user interaction to unlock audio
+  // Also add a statechange listener to detect when audio becomes available
   useEffect(() => {
-    const unlock = (e) => {
-      if (!audioReadyRef.current) {
-        initAudio();
-      }
-    };
+    const unlock = () => initAudio();
     const events = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
     events.forEach(ev => document.addEventListener(ev, unlock, { passive: true, capture: true }));
-    return () => events.forEach(ev => document.removeEventListener(ev, unlock, { capture: true }));
+    
+    // Poll for audio context state changes
+    const checkAudio = setInterval(() => {
+      if (audioCtxRef.current?.state === 'running' && !audioReadyRef.current) {
+        audioReadyRef.current = true;
+        setAudioUnlocked(true);
+        console.log('🔊 Audio ready (poll)');
+      }
+    }, 500);
+    
+    return () => {
+      events.forEach(ev => document.removeEventListener(ev, unlock, { capture: true }));
+      clearInterval(checkAudio);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -319,26 +317,22 @@ export default function SpellBrigade() {
     if (!s.sfxEnabled || s.volume === 0) return;
     
     let ctx = audioCtxRef.current;
-    
-    // Create context if needed
     if (!ctx) {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         ctx = new AudioContext();
         audioCtxRef.current = ctx;
-      } catch (e) {
-        return;
-      }
+      } catch (e) { return; }
     }
     
-    // Try to resume if suspended (this will queue the sound)
+    // Try to resume, but don't wait - attempt to play regardless
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
     
-    // Don't wait for 'running' state - just try to play
-    // On mobile, sounds will be queued and play once context resumes
+    // Try to play even if state isn't 'running' yet
+    // iOS sometimes allows queued sounds
 
     try {
       const osc = ctx.createOscillator();
@@ -778,20 +772,31 @@ export default function SpellBrigade() {
     };
 
     const handleKeyDown = (e) => {
-      initAudio();
-      
-      // Keyboard input cancels click-to-move
-      stopMoveToTarget();
-
+      // Only process WASD and special keys
       const dir = keyMap[e.code];
-      if (dir && !inputRef.current[dir]) {
-        inputRef.current[dir] = true;
-        socketRef.current?.emit('input', inputRef.current);
+      
+      if (dir) {
+        // Cancel click-to-move on first WASD press
+        if (moveTargetRef.current.active) {
+          moveTargetRef.current.active = false;
+          if (moveUpdateInterval) {
+            clearInterval(moveUpdateInterval);
+            moveUpdateInterval = null;
+          }
+        }
+        
+        // Update input immediately
+        if (!inputRef.current[dir]) {
+          inputRef.current[dir] = true;
+          socketRef.current?.emit('input', inputRef.current);
+        }
+        return;
       }
 
-      // Dash
+      // Dash (Space)
       if (e.code === 'Space' && socketRef.current && playerIdRef.current) {
         e.preventDefault();
+        initAudio();
         const zoom = zoomRef.current || 1;
         socketRef.current.emit('dash', {
           targetX: (mouseRef.current.x / zoom) + cameraRef.current.x,
@@ -800,8 +805,9 @@ export default function SpellBrigade() {
         playSound('dash');
       }
 
-      // Ultimate
+      // Ultimate (Q)
       if (e.code === 'KeyQ' && socketRef.current && playerIdRef.current) {
+        initAudio();
         const zoom = zoomRef.current || 1;
         socketRef.current.emit('ultimate', {
           targetX: (mouseRef.current.x / zoom) + cameraRef.current.x,
@@ -3715,23 +3721,53 @@ export default function SpellBrigade() {
       {/* Audio unlock indicator for mobile */}
       {isMobile && !audioUnlocked && screen === 'game' && (
         <div 
-          onClick={initAudio}
-          onTouchStart={initAudio}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            // Create and play sound directly during touch event
+            try {
+              const AudioContext = window.AudioContext || window.webkitAudioContext;
+              if (!audioCtxRef.current) {
+                audioCtxRef.current = new AudioContext();
+              }
+              const ctx = audioCtxRef.current;
+              if (ctx.state === 'suspended') ctx.resume();
+              
+              // Play a sound immediately
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              gain.gain.setValueAtTime(0.3, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.2);
+              
+              audioReadyRef.current = true;
+              setAudioUnlocked(true);
+              console.log('🔊 Audio unlocked via button');
+            } catch (err) {
+              console.log('Audio button error:', err);
+            }
+          }}
           style={{
             position: 'absolute',
             top: 10,
             right: 10,
-            background: 'rgba(255,150,0,0.9)',
+            background: 'rgba(255,150,0,0.95)',
             color: '#000',
-            padding: '8px 12px',
-            borderRadius: 8,
-            fontSize: '12px',
+            padding: '14px 18px',
+            borderRadius: 10,
+            fontSize: '16px',
             fontWeight: 'bold',
             cursor: 'pointer',
-            zIndex: 100,
+            zIndex: 1000,
+            touchAction: 'manipulation',
+            userSelect: 'none',
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
-          🔇 Tap for sound
+          🔊 TAP FOR SOUND
         </div>
       )}
     </div>
