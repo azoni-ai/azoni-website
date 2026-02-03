@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
@@ -26,7 +26,26 @@ const Home = () => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showAllCommits, setShowAllCommits] = useState(false);
   const [moltbookStatus, setMoltbookStatus] = useState(null);
+  const [latestBlog, setLatestBlog] = useState(null);
   const heroRef = useRef(null);
+
+  // Fetch latest blog post
+  useEffect(() => {
+    const fetchLatestBlog = async () => {
+      try {
+        const blogRef = collection(db, 'blogPosts');
+        const q = query(blogRef, where('published', '==', true), orderBy('publishedAt', 'desc'), limit(1));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const doc = snapshot.docs[0];
+          setLatestBlog({ id: doc.id, ...doc.data() });
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest blog:', err);
+      }
+    };
+    fetchLatestBlog();
+  }, []);
 
   // Fetch profile from Firestore
   useEffect(() => {
@@ -223,55 +242,205 @@ const Home = () => {
           </section>
         )}
 
-        {/* CTAs - Banners & Cards */}
-        <section className="cta-section">
+        {/* AI Ecosystem Section */}
+        <section className="ai-ecosystem-section">
           <div className="container">
-            {/* Moltbook Agent Banner */}
-            <Link to="/moltbook" className="moltbook-banner">
-              <div className="moltbook-banner-bg"></div>
-              <div className="moltbook-banner-content">
-                <div className="moltbook-banner-icon">
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="currentColor"/>
-                    <circle cx="20" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
-                    <circle cx="28" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
-                  </svg>
-                </div>
-                <div className="moltbook-banner-text">
-                  <div className="moltbook-banner-header">
-                    <h3>Azoni-AI Agent</h3>
-                    {moltbookStatus?.moltbook_status === 'claimed' && (
-                      <span className="moltbook-status-badge">
-                        <span className="status-dot-live"></span>
-                        Live
-                      </span>
+            <div className="ecosystem-header">
+              <div className="ecosystem-badge">
+                <span className="pulse-dot"></span>
+                Powered by AI
+              </div>
+              <h2>This Site Runs Itself</h2>
+              <p>An interconnected ecosystem of AI agents that observe, create, and maintain this portfolio autonomously</p>
+            </div>
+
+            <div className="ecosystem-grid">
+              {/* Autonomous Agent */}
+              <Link to="/moltbook" className="ecosystem-card agent-card">
+                <div className="card-glow agent-glow"></div>
+                <div className="ecosystem-card-header">
+                  <div className="ecosystem-icon">
+                    <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+                      <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="currentColor"/>
+                      <circle cx="20" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
+                      <circle cx="28" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
+                    </svg>
+                  </div>
+                  <div className="ecosystem-status">
+                    {moltbookStatus?.autonomous_mode && (
+                      <span className="status-live"><span className="pulse-dot"></span>Autonomous</span>
                     )}
                   </div>
-                  <p>My autonomous AI agent on Moltbook — observes, decides, and posts on its own using LangGraph</p>
                 </div>
-                <div className="moltbook-banner-stats">
-                  {moltbookStatus && (
-                    <>
-                      <div className="moltbook-stat">
-                        <span className="stat-value">{moltbookStatus.posts_today || 0}</span>
-                        <span className="stat-label">Posts Today</span>
-                      </div>
-                      <div className="moltbook-stat">
-                        <span className="stat-value">{moltbookStatus.autonomous_mode ? 'Auto' : 'Manual'}</span>
-                        <span className="stat-label">Mode</span>
-                      </div>
-                    </>
-                  )}
+                <h3>AI Social Agent</h3>
+                <p>LangGraph-powered agent that browses, thinks, and posts to social platforms independently</p>
+                <div className="ecosystem-stats">
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">{moltbookStatus?.posts_today || 0}</span>
+                    <span className="eco-stat-label">posts today</span>
+                  </div>
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">{moltbookStatus?.total_actions || '∞'}</span>
+                    <span className="eco-stat-label">actions</span>
+                  </div>
                 </div>
-                <span className="moltbook-banner-arrow">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </div>
-            </Link>
+                <span className="ecosystem-arrow">→</span>
+              </Link>
 
-            {/* Spell Brigade Game Banner */}
+              {/* MCP Server */}
+              <Link to="/projects/azoni-mcp" className="ecosystem-card mcp-card">
+                <div className="card-glow mcp-glow"></div>
+                <div className="ecosystem-card-header">
+                  <div className="ecosystem-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="2"/>
+                      <circle cx="16" cy="16" r="4" fill="currentColor"/>
+                      <path d="M16 4V8M16 24V28M4 16H8M24 16H28" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  <div className="ecosystem-status">
+                    <span className="status-live"><span className="pulse-dot"></span>Live</span>
+                  </div>
+                </div>
+                <h3>MCP Data Server</h3>
+                <p>Exposes live fitness data, project stats, and more to AI agents via Model Context Protocol</p>
+                <div className="ecosystem-stats">
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">REST</span>
+                    <span className="eco-stat-label">API</span>
+                  </div>
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">Real-time</span>
+                    <span className="eco-stat-label">data</span>
+                  </div>
+                </div>
+                <span className="ecosystem-arrow">→</span>
+              </Link>
+
+              {/* AI Blog Writer */}
+              <Link to="/blog" className="ecosystem-card blog-card">
+                <div className="card-glow blog-glow"></div>
+                <div className="ecosystem-card-header">
+                  <div className="ecosystem-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M8 4H24C25.1 4 26 4.9 26 6V26C26 27.1 25.1 28 24 28H8C6.9 28 6 27.1 6 26V6C6 4.9 6.9 4 8 4Z" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M10 10H22M10 15H22M10 20H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <circle cx="22" cy="22" r="4" fill="currentColor"/>
+                      <path d="M21 22L22.5 23.5M22.5 20.5L21 22" stroke="var(--bg-primary)" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div className="ecosystem-status">
+                    <span className="status-scheduled">⏰ Daily 9am</span>
+                  </div>
+                </div>
+                <h3>AI Blog Writer</h3>
+                <p>Reads my GitHub commits every morning and writes a dev log post automatically</p>
+                <div className="ecosystem-stats">
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">{githubStats?.today || 0}</span>
+                    <span className="eco-stat-label">commits today</span>
+                  </div>
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">Auto</span>
+                    <span className="eco-stat-label">generated</span>
+                  </div>
+                </div>
+                <span className="ecosystem-arrow">→</span>
+              </Link>
+
+              {/* RAG Chatbot */}
+              <Link to="/chat" className="ecosystem-card chat-card">
+                <div className="card-glow chat-glow"></div>
+                <div className="ecosystem-card-header">
+                  <div className="ecosystem-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M4 8C4 6.9 4.9 6 6 6H26C27.1 6 28 6.9 28 8V20C28 21.1 27.1 22 26 22H20L16 26L12 22H6C4.9 22 4 21.1 4 20V8Z" stroke="currentColor" strokeWidth="2"/>
+                      <circle cx="10" cy="14" r="1.5" fill="currentColor"/>
+                      <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
+                      <circle cx="22" cy="14" r="1.5" fill="currentColor"/>
+                    </svg>
+                  </div>
+                  <div className="ecosystem-status">
+                    <span className="status-live"><span className="pulse-dot"></span>Ready</span>
+                  </div>
+                </div>
+                <h3>RAG Chatbot</h3>
+                <p>Ask about my work, skills, or paste a job description for AI-powered fit analysis</p>
+                <div className="ecosystem-stats">
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">RAG</span>
+                    <span className="eco-stat-label">powered</span>
+                  </div>
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">MCP</span>
+                    <span className="eco-stat-label">connected</span>
+                  </div>
+                </div>
+                <span className="ecosystem-arrow">→</span>
+              </Link>
+            </div>
+
+            {/* Connection Lines Visual */}
+            <div className="ecosystem-connections">
+              <svg className="connection-svg" viewBox="0 0 800 60" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#ff7a5c" stopOpacity="0.6"/>
+                    <stop offset="50%" stopColor="#20d9d2" stopOpacity="0.8"/>
+                    <stop offset="100%" stopColor="#ff7a5c" stopOpacity="0.6"/>
+                  </linearGradient>
+                </defs>
+                <path d="M100,30 Q200,10 300,30 T500,30 T700,30" stroke="url(#lineGrad)" strokeWidth="2" fill="none" strokeDasharray="8,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="24" dur="2s" repeatCount="indefinite"/>
+                </path>
+              </svg>
+              <span className="connection-label">All systems share data via Firebase + MCP</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Latest Blog Post Banner */}
+        {latestBlog && (
+          <section className="latest-blog-section">
+            <div className="container">
+              <Link to={`/blog/${latestBlog.slug || latestBlog.id}`} className="latest-blog-banner">
+                <div className="blog-banner-bg"></div>
+                <div className="blog-banner-content">
+                  <div className="blog-banner-meta">
+                    {latestBlog.autoGenerated && (
+                      <span className="ai-generated-badge">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/>
+                        </svg>
+                        AI Generated
+                      </span>
+                    )}
+                    <span className="blog-date">
+                      {latestBlog.publishedAt?.toDate ? 
+                        latestBlog.publishedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) :
+                        new Date(latestBlog.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      }
+                    </span>
+                  </div>
+                  <h3 className="blog-banner-title">{latestBlog.title}</h3>
+                  <p className="blog-banner-excerpt">{latestBlog.excerpt || latestBlog.description}</p>
+                  <div className="blog-banner-footer">
+                    <div className="blog-tags">
+                      {latestBlog.tags?.slice(0, 3).map(tag => (
+                        <span key={tag} className="blog-tag">{tag}</span>
+                      ))}
+                    </div>
+                    <span className="read-post-btn">Read Post →</span>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {/* Spell Brigade Game Banner */}
+        <section className="cta-section">
+          <div className="container">
             <a href="/game" target="_blank" rel="noopener noreferrer" className="game-banner">
               <div className="game-banner-bg"></div>
               <div className="game-banner-content">
@@ -299,39 +468,6 @@ const Home = () => {
                 <span className="game-banner-btn">Play Now</span>
               </div>
             </a>
-
-            <div className="cta-grid">
-              <Link to="/blog" className="cta-card blog-cta">
-                <div className="cta-icon">
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 4H26V28H6V4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M10 10H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M10 15H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M10 20H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <div className="cta-text">
-                  <h3>Building in Public</h3>
-                  <p>Technical breakdowns of my projects, lessons learned, and AI integrations</p>
-                </div>
-                <span className="cta-btn">Read Blog</span>
-              </Link>
-
-              <Link to="/chat" className="cta-card chat-cta">
-                <div className="cta-icon">
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 8C4 6.89543 4.89543 6 6 6H26C27.1046 6 28 6.89543 28 8V20C28 21.1046 27.1046 22 26 22H20L16 26L12 22H6C4.89543 22 4 21.1046 4 20V8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M9 12L12 15L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M15 18H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <div className="cta-text">
-                  <h3>Chat with my AI</h3>
-                  <p>Ask questions about my work or paste a job description for fit analysis</p>
-                </div>
-                <span className="cta-btn">Start Chat</span>
-              </Link>
-            </div>
           </div>
         </section>
 

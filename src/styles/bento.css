@@ -592,7 +592,384 @@ a.commit-repo:hover {
 
 /* CTA Section */
 .cta-section {
-  padding: 0 0 var(--space-3xl);
+  padding: 0 0 var(--space-2xl);
+}
+
+/* ============ AI ECOSYSTEM SECTION ============ */
+.ai-ecosystem-section {
+  padding: var(--space-2xl) 0;
+}
+
+.ecosystem-header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.ecosystem-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.15), rgba(32, 217, 210, 0.15));
+  border: 1px solid rgba(255, 122, 92, 0.3);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-primary);
+  margin-bottom: var(--space-md);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.ecosystem-header h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ecosystem-header p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.ecosystem-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.ecosystem-card {
+  position: relative;
+  padding: var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.ecosystem-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-light);
+}
+
+.card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.ecosystem-card:hover .card-glow {
+  opacity: 1;
+}
+
+.agent-glow { background: radial-gradient(ellipse at top, rgba(255, 122, 92, 0.2), transparent 70%); }
+.mcp-glow { background: radial-gradient(ellipse at top, rgba(32, 217, 210, 0.2), transparent 70%); }
+.blog-glow { background: radial-gradient(ellipse at top, rgba(155, 93, 229, 0.2), transparent 70%); }
+.chat-glow { background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.2), transparent 70%); }
+
+.ecosystem-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+  position: relative;
+  z-index: 1;
+}
+
+.ecosystem-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  color: var(--accent-primary);
+}
+
+.agent-card .ecosystem-icon { color: #ff7a5c; }
+.mcp-card .ecosystem-icon { color: #20d9d2; }
+.blog-card .ecosystem-icon { color: #9b5de5; }
+.chat-card .ecosystem-icon { color: #3b82f6; }
+
+.ecosystem-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4ade80;
+  padding: 3px 10px;
+  background: rgba(74, 222, 128, 0.1);
+  border-radius: 20px;
+}
+
+.status-scheduled {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9b5de5;
+  padding: 3px 10px;
+  background: rgba(155, 93, 229, 0.1);
+  border-radius: 20px;
+}
+
+.ecosystem-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  position: relative;
+  z-index: 1;
+}
+
+.ecosystem-card p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-md);
+  position: relative;
+  z-index: 1;
+}
+
+.ecosystem-stats {
+  display: flex;
+  gap: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  position: relative;
+  z-index: 1;
+}
+
+.eco-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.eco-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.eco-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ecosystem-arrow {
+  position: absolute;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.ecosystem-card:hover .ecosystem-arrow {
+  color: var(--accent-primary);
+  transform: translateX(4px);
+}
+
+/* Connection Lines */
+.ecosystem-connections {
+  text-align: center;
+  padding: var(--space-md) 0;
+}
+
+.connection-svg {
+  width: 100%;
+  max-width: 800px;
+  height: 40px;
+  margin-bottom: var(--space-sm);
+}
+
+.connection-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ============ LATEST BLOG SECTION ============ */
+.latest-blog-section {
+  padding: 0 0 var(--space-2xl);
+}
+
+.latest-blog-banner {
+  display: block;
+  position: relative;
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, rgba(155, 93, 229, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(155, 93, 229, 0.25);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.latest-blog-banner:hover {
+  border-color: rgba(155, 93, 229, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(155, 93, 229, 0.15);
+}
+
+.blog-banner-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 90% 10%, rgba(155, 93, 229, 0.15), transparent 50%);
+  pointer-events: none;
+}
+
+.blog-banner-content {
+  position: relative;
+  z-index: 1;
+}
+
+.blog-banner-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.ai-generated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9b5de5;
+  padding: 4px 12px;
+  background: rgba(155, 93, 229, 0.15);
+  border: 1px solid rgba(155, 93, 229, 0.3);
+  border-radius: 20px;
+}
+
+.ai-generated-badge svg {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.blog-date {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.blog-banner-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  line-height: 1.3;
+}
+
+.blog-banner-excerpt {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-lg);
+  max-width: 800px;
+}
+
+.blog-banner-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.blog-tags {
+  display: flex;
+  gap: 8px;
+}
+
+.blog-tag {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.read-post-btn {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #9b5de5;
+  transition: all 0.2s ease;
+}
+
+.latest-blog-banner:hover .read-post-btn {
+  color: #b47cff;
+  transform: translateX(4px);
+}
+
+/* ============ MOBILE RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .ecosystem-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .ecosystem-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ecosystem-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .latest-blog-banner {
+    padding: var(--space-lg);
+  }
+  
+  .blog-banner-title {
+    font-size: 1.25rem;
+  }
+  
+  .blog-banner-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
 }
 
 .cta-grid {
