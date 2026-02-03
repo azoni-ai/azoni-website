@@ -238,6 +238,7 @@ export default function SpellBrigade() {
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
+  const moveTargetRef = useRef({ x: null, y: null, active: false });
 
   // Keep settings ref in sync
   useEffect(() => {
@@ -684,71 +685,40 @@ export default function SpellBrigade() {
       ArrowRight: 'right',
     };
 
-    // Click-to-move state
-    let clickMoveActive = false;
-    let clickMoveInterval = null;
+    // Click-to-move with persistent target
+    let moveUpdateInterval = null;
 
-    const updateClickMove = () => {
-      if (!clickMoveActive || !playerDataRef.current) return;
+    const updateMoveToTarget = () => {
+      if (!moveTargetRef.current.active || !playerDataRef.current) return;
       
-      const zoom = zoomRef.current || 1;
-      const targetX = (mouseRef.current.x / zoom) + cameraRef.current.x;
-      const targetY = (mouseRef.current.y / zoom) + cameraRef.current.y;
       const me = playerDataRef.current;
-      
-      const dx = targetX - me.x;
-      const dy = targetY - me.y;
+      const dx = moveTargetRef.current.x - me.x;
+      const dy = moveTargetRef.current.y - me.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
-      // Stop if close enough to target
-      if (dist < 20) {
+      // Reached target - stop
+      if (dist < 25) {
+        moveTargetRef.current.active = false;
         inputRef.current = { up: false, down: false, left: false, right: false };
         socketRef.current?.emit('input', inputRef.current);
         return;
       }
       
-      // Calculate 8-directional movement
+      // Calculate smooth direction (not 8-directional snapping)
       const angle = Math.atan2(dy, dx);
-      const threshold = Math.PI / 8; // 22.5 degrees
-      
       const newInput = { up: false, down: false, left: false, right: false };
       
-      // Right: -22.5 to 22.5
-      if (angle > -threshold && angle < threshold) {
-        newInput.right = true;
-      }
-      // Down-right: 22.5 to 67.5
-      else if (angle >= threshold && angle < 3 * threshold) {
-        newInput.right = true;
-        newInput.down = true;
-      }
-      // Down: 67.5 to 112.5
-      else if (angle >= 3 * threshold && angle < 5 * threshold) {
-        newInput.down = true;
-      }
-      // Down-left: 112.5 to 157.5
-      else if (angle >= 5 * threshold && angle < 7 * threshold) {
-        newInput.left = true;
-        newInput.down = true;
-      }
-      // Left: 157.5 to 180 or -180 to -157.5
-      else if (angle >= 7 * threshold || angle < -7 * threshold) {
-        newInput.left = true;
-      }
-      // Up-left: -157.5 to -112.5
-      else if (angle >= -7 * threshold && angle < -5 * threshold) {
-        newInput.left = true;
-        newInput.up = true;
-      }
-      // Up: -112.5 to -67.5
-      else if (angle >= -5 * threshold && angle < -3 * threshold) {
-        newInput.up = true;
-      }
-      // Up-right: -67.5 to -22.5
-      else if (angle >= -3 * threshold && angle < -threshold) {
-        newInput.right = true;
-        newInput.up = true;
-      }
+      // Use combined directional input for smoother diagonal movement
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      
+      // Threshold for activating each direction
+      const thresh = 0.38; // ~22 degrees
+      
+      if (cosA > thresh) newInput.right = true;
+      if (cosA < -thresh) newInput.left = true;
+      if (sinA > thresh) newInput.down = true;
+      if (sinA < -thresh) newInput.up = true;
       
       // Only emit if changed
       if (JSON.stringify(newInput) !== JSON.stringify(inputRef.current)) {
@@ -757,44 +727,61 @@ export default function SpellBrigade() {
       }
     };
 
-    const handleMouseDown = (e) => {
-      // Only left click, and not on UI elements
-      if (e.button !== 0) return;
-      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-      if (!playerDataRef.current) return; // Only in game
-      
-      initAudio();
-      clickMoveActive = true;
-      
-      // Start updating movement
-      if (clickMoveInterval) clearInterval(clickMoveInterval);
-      clickMoveInterval = setInterval(updateClickMove, 50); // 20 times per second
-      updateClickMove(); // Immediate first update
+    const startMoveToTarget = () => {
+      if (!moveUpdateInterval) {
+        moveUpdateInterval = setInterval(updateMoveToTarget, 50);
+      }
+      updateMoveToTarget();
     };
 
-    const handleMouseUp = (e) => {
-      if (e.button !== 0) return;
-      clickMoveActive = false;
-      
-      if (clickMoveInterval) {
-        clearInterval(clickMoveInterval);
-        clickMoveInterval = null;
+    const stopMoveToTarget = () => {
+      moveTargetRef.current.active = false;
+      if (moveUpdateInterval) {
+        clearInterval(moveUpdateInterval);
+        moveUpdateInterval = null;
       }
-      
-      // Stop movement
       inputRef.current = { up: false, down: false, left: false, right: false };
       socketRef.current?.emit('input', inputRef.current);
+    };
+
+    const handleMouseDown = (e) => {
+      if (e.button !== 0) return;
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+      if (e.target.closest('[data-ui]')) return; // Skip UI elements
+      if (!playerDataRef.current) return;
+      
+      initAudio();
+      
+      // Set target to clicked world position
+      const zoom = zoomRef.current || 1;
+      moveTargetRef.current.x = (e.clientX / zoom) + cameraRef.current.x;
+      moveTargetRef.current.y = (e.clientY / zoom) + cameraRef.current.y;
+      moveTargetRef.current.active = true;
+      
+      startMoveToTarget();
+    };
+
+    const handleMouseMove = (e) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+      
+      // Update target while dragging (mouse held down)
+      if (e.buttons === 1 && moveTargetRef.current.active) {
+        const zoom = zoomRef.current || 1;
+        moveTargetRef.current.x = (e.clientX / zoom) + cameraRef.current.x;
+        moveTargetRef.current.y = (e.clientY / zoom) + cameraRef.current.y;
+      }
+    };
+
+    const handleMouseUp = () => {
+      // Don't stop movement on mouse up - wizard will walk to the target
+      // Movement stops when target is reached or when keyboard is used
     };
 
     const handleKeyDown = (e) => {
       initAudio();
       
-      // Keyboard input stops click-to-move
-      clickMoveActive = false;
-      if (clickMoveInterval) {
-        clearInterval(clickMoveInterval);
-        clickMoveInterval = null;
-      }
+      // Keyboard input cancels click-to-move
+      stopMoveToTarget();
 
       const dir = keyMap[e.code];
       if (dir && !inputRef.current[dir]) {
@@ -831,10 +818,6 @@ export default function SpellBrigade() {
       }
     };
 
-    const handleMouseMove = (e) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-    };
-
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
@@ -847,7 +830,7 @@ export default function SpellBrigade() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
-      if (clickMoveInterval) clearInterval(clickMoveInterval);
+      if (moveUpdateInterval) clearInterval(moveUpdateInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -857,7 +840,11 @@ export default function SpellBrigade() {
   // ===========================================
   const handleJoystickStart = (e) => {
     e.preventDefault();
-    initAudio(); // Initialize audio on first touch
+    initAudio();
+    
+    // Cancel any tap-to-move target when using joystick
+    stopTouchMoveToTarget();
+    
     const touch = e.touches[0];
     const rect = joystickBaseRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -981,59 +968,61 @@ export default function SpellBrigade() {
   };
 
   // ===========================================
-  // TOUCH-TO-MOVE (Mobile - tap/drag on screen)
+  // TOUCH-TO-MOVE (Mobile - tap to walk to location)
   // ===========================================
-  const touchMoveRef = useRef({ active: false, identifier: null });
+  const touchTargetRef = useRef({ x: null, y: null, active: false });
+  const touchMoveIntervalRef = useRef(null);
 
-  const updateTouchMove = (touchX, touchY) => {
-    if (!playerDataRef.current) return;
+  const updateTouchMoveToTarget = () => {
+    if (!touchTargetRef.current.active || !playerDataRef.current) return;
     
-    const zoom = zoomRef.current || 1;
-    const targetX = (touchX / zoom) + cameraRef.current.x;
-    const targetY = (touchY / zoom) + cameraRef.current.y;
     const me = playerDataRef.current;
-    
-    const dx = targetX - me.x;
-    const dy = targetY - me.y;
+    const dx = touchTargetRef.current.x - me.x;
+    const dy = touchTargetRef.current.y - me.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     
-    if (dist < 30) {
+    // Reached target - stop
+    if (dist < 25) {
+      touchTargetRef.current.active = false;
       inputRef.current = { up: false, down: false, left: false, right: false };
       socketRef.current?.emit('input', inputRef.current);
       return;
     }
     
+    // Calculate smooth direction
     const angle = Math.atan2(dy, dx);
-    const threshold = Math.PI / 8;
-    
     const newInput = { up: false, down: false, left: false, right: false };
     
-    if (angle > -threshold && angle < threshold) {
-      newInput.right = true;
-    } else if (angle >= threshold && angle < 3 * threshold) {
-      newInput.right = true;
-      newInput.down = true;
-    } else if (angle >= 3 * threshold && angle < 5 * threshold) {
-      newInput.down = true;
-    } else if (angle >= 5 * threshold && angle < 7 * threshold) {
-      newInput.left = true;
-      newInput.down = true;
-    } else if (angle >= 7 * threshold || angle < -7 * threshold) {
-      newInput.left = true;
-    } else if (angle >= -7 * threshold && angle < -5 * threshold) {
-      newInput.left = true;
-      newInput.up = true;
-    } else if (angle >= -5 * threshold && angle < -3 * threshold) {
-      newInput.up = true;
-    } else if (angle >= -3 * threshold && angle < -threshold) {
-      newInput.right = true;
-      newInput.up = true;
-    }
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    const thresh = 0.38;
+    
+    if (cosA > thresh) newInput.right = true;
+    if (cosA < -thresh) newInput.left = true;
+    if (sinA > thresh) newInput.down = true;
+    if (sinA < -thresh) newInput.up = true;
     
     if (JSON.stringify(newInput) !== JSON.stringify(inputRef.current)) {
       inputRef.current = newInput;
       socketRef.current?.emit('input', inputRef.current);
     }
+  };
+
+  const startTouchMoveToTarget = () => {
+    if (!touchMoveIntervalRef.current) {
+      touchMoveIntervalRef.current = setInterval(updateTouchMoveToTarget, 50);
+    }
+    updateTouchMoveToTarget();
+  };
+
+  const stopTouchMoveToTarget = () => {
+    touchTargetRef.current.active = false;
+    if (touchMoveIntervalRef.current) {
+      clearInterval(touchMoveIntervalRef.current);
+      touchMoveIntervalRef.current = null;
+    }
+    inputRef.current = { up: false, down: false, left: false, right: false };
+    socketRef.current?.emit('input', inputRef.current);
   };
 
   const isInControlArea = (x, y) => {
@@ -1055,40 +1044,44 @@ export default function SpellBrigade() {
   const handleScreenTouchStart = (e) => {
     if (!playerDataRef.current) return;
     
-    // Initialize audio on first touch (required for mobile)
     initAudio();
     
     // Find a touch that's not in control areas
     for (const touch of e.changedTouches) {
       if (!isInControlArea(touch.clientX, touch.clientY)) {
-        touchMoveRef.current = { active: true, identifier: touch.identifier };
+        // Set target to tapped world position
+        const zoom = zoomRef.current || 1;
+        touchTargetRef.current.x = (touch.clientX / zoom) + cameraRef.current.x;
+        touchTargetRef.current.y = (touch.clientY / zoom) + cameraRef.current.y;
+        touchTargetRef.current.active = true;
+        touchTargetRef.current.identifier = touch.identifier;
         
-        // Start moving immediately
-        updateTouchMove(touch.clientX, touch.clientY);
+        startTouchMoveToTarget();
         break;
       }
     }
   };
 
   const handleScreenTouchMove = (e) => {
-    if (!touchMoveRef.current.active) return;
+    if (!touchTargetRef.current.active) return;
     
+    // Update target while dragging
     for (const touch of e.changedTouches) {
-      if (touch.identifier === touchMoveRef.current.identifier) {
-        updateTouchMove(touch.clientX, touch.clientY);
+      if (touch.identifier === touchTargetRef.current.identifier) {
+        const zoom = zoomRef.current || 1;
+        touchTargetRef.current.x = (touch.clientX / zoom) + cameraRef.current.x;
+        touchTargetRef.current.y = (touch.clientY / zoom) + cameraRef.current.y;
         break;
       }
     }
   };
 
   const handleScreenTouchEnd = (e) => {
+    // Don't stop on touch end - wizard walks to target
+    // Just clear the identifier so dragging doesn't update target
     for (const touch of e.changedTouches) {
-      if (touch.identifier === touchMoveRef.current.identifier) {
-        touchMoveRef.current = { active: false, identifier: null };
-        
-        // Stop movement
-        inputRef.current = { up: false, down: false, left: false, right: false };
-        socketRef.current?.emit('input', inputRef.current);
+      if (touch.identifier === touchTargetRef.current.identifier) {
+        touchTargetRef.current.identifier = null;
         break;
       }
     }
@@ -1431,6 +1424,39 @@ export default function SpellBrigade() {
       ctx.strokeRect(-cx, -cy, world.width, world.height);
       ctx.setLineDash([]);
 
+      // Move target indicator (desktop)
+      if (moveTargetRef.current.active && !isMobileView) {
+        const tx = moveTargetRef.current.x - cx;
+        const ty = moveTargetRef.current.y - cy;
+        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+        
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(tx, ty, 15 * pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${0.6 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Inner dot
+        ctx.beginPath();
+        ctx.arc(tx, ty, 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${0.8 * pulse})`;
+        ctx.fill();
+      }
+      
+      // Touch target indicator (mobile)
+      if (touchTargetRef.current.active && isMobileView) {
+        const tx = touchTargetRef.current.x - cx;
+        const ty = touchTargetRef.current.y - cy;
+        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+        
+        ctx.beginPath();
+        ctx.arc(tx, ty, 18 * pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${0.5 * pulse})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
       // Enemies
       for (const enemy of enemies || []) {
         const sx = enemy.x - cx;
@@ -1756,26 +1782,213 @@ export default function SpellBrigade() {
         }
       }
 
-      // Projectiles
+      // Projectiles - Class-specific and level-enhanced
       for (const proj of projectiles || []) {
         const px = proj.x - cx;
         const py = proj.y - cy;
         if (px < -50 || px > width + 50 || py < -50 || py > height + 50) continue;
 
-        // Glow
-        ctx.beginPath();
-        ctx.arc(px, py, proj.radius + 10, 0, Math.PI * 2);
-        const grad = ctx.createRadialGradient(px, py, 0, px, py, proj.radius + 10);
-        grad.addColorStop(0, proj.color || '#fff');
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
-        ctx.fill();
+        const level = proj.level || 1;
+        const spellId = proj.spellId || '';
+        const ownerClass = proj.ownerClass || '';
+        const time = Date.now() / 1000;
+        
+        // Level-based enhancements
+        const sizeBonus = Math.min(level * 0.05, 0.5); // Up to 50% bigger at high levels
+        const glowBonus = Math.min(level * 0.1, 1); // More glow at higher levels
+        const baseRadius = proj.radius * (1 + sizeBonus);
+        
+        ctx.save();
+        
+        // ========== PYROMANCER SPELLS ==========
+        if (ownerClass === 'pyromancer') {
+          if (spellId === 'fireball') {
+            // Fireball - flaming sphere with trail
+            const flicker = Math.sin(time * 20 + px) * 0.2 + 1;
+            
+            // Outer glow
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius + 15 + glowBonus * 5, 0, Math.PI * 2);
+            const outerGlow = ctx.createRadialGradient(px, py, 0, px, py, baseRadius + 15);
+            outerGlow.addColorStop(0, `rgba(255,150,0,${0.3 + glowBonus * 0.2})`);
+            outerGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = outerGlow;
+            ctx.fill();
+            
+            // Fire particles around it
+            if (level >= 5) {
+              for (let i = 0; i < 3; i++) {
+                const angle = time * 5 + (i * Math.PI * 2 / 3);
+                const dist = baseRadius + 5;
+                const fx = px + Math.cos(angle) * dist;
+                const fy = py + Math.sin(angle) * dist;
+                ctx.beginPath();
+                ctx.arc(fx, fy, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff6600';
+                ctx.fill();
+              }
+            }
+            
+            // Core flame
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius * flicker, 0, Math.PI * 2);
+            const fireGrad = ctx.createRadialGradient(px, py, 0, px, py, baseRadius);
+            fireGrad.addColorStop(0, '#fff');
+            fireGrad.addColorStop(0.3, '#ffff00');
+            fireGrad.addColorStop(0.7, '#ff6600');
+            fireGrad.addColorStop(1, '#cc0000');
+            ctx.fillStyle = fireGrad;
+            ctx.fill();
+          } else if (spellId === 'flamewave') {
+            // Flame wave - larger, more dramatic
+            const wave = Math.sin(time * 10) * 0.3 + 1;
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius * wave, 0, Math.PI * 2);
+            const waveGrad = ctx.createRadialGradient(px, py, 0, px, py, baseRadius * wave);
+            waveGrad.addColorStop(0, '#ffff00');
+            waveGrad.addColorStop(0.5, '#ff6600');
+            waveGrad.addColorStop(1, 'rgba(255,0,0,0.5)');
+            ctx.fillStyle = waveGrad;
+            ctx.fill();
+          } else {
+            // Default pyro spell
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color || '#f97316';
+            ctx.fill();
+          }
+        }
+        // ========== CRYOMANCER SPELLS ==========
+        else if (ownerClass === 'cryomancer') {
+          if (spellId === 'frostbolt') {
+            // Frostbolt - icy crystal
+            const spin = time * 3;
+            
+            // Ice trail effect
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius + 12, 0, Math.PI * 2);
+            const iceGlow = ctx.createRadialGradient(px, py, 0, px, py, baseRadius + 12);
+            iceGlow.addColorStop(0, `rgba(150,220,255,${0.4 + glowBonus * 0.2})`);
+            iceGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = iceGlow;
+            ctx.fill();
+            
+            // Crystal shape (hexagon)
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = spin + (i * Math.PI / 3);
+              const x = px + Math.cos(angle) * baseRadius;
+              const y = py + Math.sin(angle) * baseRadius;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            const crystalGrad = ctx.createRadialGradient(px, py, 0, px, py, baseRadius);
+            crystalGrad.addColorStop(0, '#fff');
+            crystalGrad.addColorStop(0.5, '#a5f3fc');
+            crystalGrad.addColorStop(1, '#0891b2');
+            ctx.fillStyle = crystalGrad;
+            ctx.fill();
+            
+            // Sparkles at higher levels
+            if (level >= 5) {
+              ctx.fillStyle = '#fff';
+              for (let i = 0; i < 4; i++) {
+                const sparkAngle = time * 8 + i * Math.PI / 2;
+                const sparkDist = baseRadius + 8;
+                ctx.beginPath();
+                ctx.arc(px + Math.cos(sparkAngle) * sparkDist, py + Math.sin(sparkAngle) * sparkDist, 2, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          } else if (spellId === 'blizzard') {
+            // Blizzard - swirling ice
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#67e8f9';
+            ctx.fill();
+            // Snowflakes
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 6; i++) {
+              const angle = time * 2 + i * Math.PI / 3;
+              ctx.beginPath();
+              ctx.moveTo(px, py);
+              ctx.lineTo(px + Math.cos(angle) * baseRadius * 0.8, py + Math.sin(angle) * baseRadius * 0.8);
+              ctx.stroke();
+            }
+          } else {
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color || '#22d3ee';
+            ctx.fill();
+          }
+        }
+        // ========== ARCANIST SPELLS ==========
+        else if (ownerClass === 'arcanist') {
+          if (spellId === 'arcanemissile') {
+            // Arcane missile - magical energy with runes
+            const pulse = Math.sin(time * 15) * 0.2 + 1;
+            
+            // Outer magic glow
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius + 15, 0, Math.PI * 2);
+            const arcaneGlow = ctx.createRadialGradient(px, py, 0, px, py, baseRadius + 15);
+            arcaneGlow.addColorStop(0, `rgba(168,85,247,${0.5 + glowBonus * 0.3})`);
+            arcaneGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = arcaneGlow;
+            ctx.fill();
+            
+            // Core energy
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius * pulse, 0, Math.PI * 2);
+            const coreGrad = ctx.createRadialGradient(px, py, 0, px, py, baseRadius);
+            coreGrad.addColorStop(0, '#fff');
+            coreGrad.addColorStop(0.4, '#e879f9');
+            coreGrad.addColorStop(1, '#7c3aed');
+            ctx.fillStyle = coreGrad;
+            ctx.fill();
+            
+            // Orbiting runes at higher levels
+            if (level >= 3) {
+              const numRunes = Math.min(3, Math.floor(level / 3));
+              ctx.strokeStyle = '#c084fc';
+              ctx.lineWidth = 1.5;
+              for (let i = 0; i < numRunes; i++) {
+                const angle = time * 4 + (i * Math.PI * 2 / numRunes);
+                const rx = px + Math.cos(angle) * (baseRadius + 10);
+                const ry = py + Math.sin(angle) * (baseRadius + 10);
+                ctx.beginPath();
+                ctx.arc(rx, ry, 4, 0, Math.PI * 2);
+                ctx.stroke();
+              }
+            }
+          } else {
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color || '#a855f7';
+            ctx.fill();
+          }
+        }
+        // ========== DEFAULT/OTHER SPELLS ==========
+        else {
+          // Default glow
+          ctx.beginPath();
+          ctx.arc(px, py, baseRadius + 10, 0, Math.PI * 2);
+          const grad = ctx.createRadialGradient(px, py, 0, px, py, baseRadius + 10);
+          grad.addColorStop(0, proj.color || '#fff');
+          grad.addColorStop(1, 'transparent');
+          ctx.fillStyle = grad;
+          ctx.fill();
 
-        // Core
-        ctx.beginPath();
-        ctx.arc(px, py, proj.radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
+          // Core
+          ctx.beginPath();
+          ctx.arc(px, py, baseRadius, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+        }
+        
+        ctx.restore();
       }
 
       // XP Orbs
