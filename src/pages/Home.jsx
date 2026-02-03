@@ -169,20 +169,29 @@ const Home = () => {
           }} />
           
           <div className="container">
-            <h1 className="hero-name">{profile?.name || 'Charlton Smith'}</h1>
-            <p className="hero-title">{profile?.tagline || 'Senior Software Engineer · 7+ Years Experience'}</p>
-            
-            <div className="hero-meta">
-              <span className="meta-item">M.S. Software Engineering</span>
-              <span className="meta-dot">·</span>
-              <span className="meta-item">Previously Capital One, T-Mobile</span>
-              <span className="meta-dot">·</span>
-              <span className="meta-item">Co-founded OLI Fitness</span>
-            </div>
+            <div className="hero-top">
+              <div className="hero-intro">
+                <h1 className="hero-name">{profile?.name || 'Charlton Smith'}</h1>
+                <p className="hero-title">{profile?.tagline || 'Senior Software Engineer · 7+ Years Experience'}</p>
+                
+                <div className="hero-meta">
+                  <span className="meta-item">M.S. Software Engineering</span>
+                  <span className="meta-dot">·</span>
+                  <span className="meta-item">Previously Capital One, T-Mobile</span>
+                  <span className="meta-dot">·</span>
+                  <span className="meta-item">Co-founded OLI Fitness</span>
+                </div>
+              </div>
 
-            <p className="hero-desc">
-              {profile?.currentWork || 'Building web apps, AI tools, and side projects. Currently focused on full-stack development and shipping in public.'}
-            </p>
+              <div className="hero-ai-badge">
+                <div className="ai-badge-glow"></div>
+                <div className="ai-badge-content">
+                  <span className="ai-badge-dot"></span>
+                  <span className="ai-badge-text">Powered by AI</span>
+                </div>
+                <p className="ai-badge-subtext">This site runs itself</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -246,12 +255,8 @@ const Home = () => {
         <section className="ai-ecosystem-section">
           <div className="container">
             <div className="ecosystem-header">
-              <div className="ecosystem-badge">
-                <span className="pulse-dot"></span>
-                Powered by AI
-              </div>
-              <h2>This Site Runs Itself</h2>
-              <p>An interconnected ecosystem of AI agents that observe, create, and maintain this portfolio autonomously</p>
+              <h2>The AI Stack</h2>
+              <p>Interconnected agents that observe, create, and maintain this portfolio autonomously</p>
             </div>
 
             <div className="ecosystem-grid">
