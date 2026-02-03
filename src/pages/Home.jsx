@@ -253,46 +253,50 @@ const Home = () => {
         )}
 
         {/* AI Ecosystem Section */}
-        <section className="ai-ecosystem-section">
+        {/* Moltbook Agent Banner */}
+        <section className="moltbook-banner-section">
           <div className="container">
-            <div className="ecosystem-header">
-              <h2>The AI Stack</h2>
-              <p>Interconnected agents that observe, create, and maintain this portfolio autonomously</p>
-            </div>
-
-            <div className="ecosystem-grid">
-              {/* Autonomous Agent */}
-              <Link to="/moltbook" className="ecosystem-card agent-card">
-                <div className="card-glow agent-glow"></div>
-                <div className="ecosystem-card-header">
-                  <div className="ecosystem-icon">
-                    <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
-                      <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="currentColor"/>
-                      <circle cx="20" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
-                      <circle cx="28" cy="12" r="2" fill="var(--bg-primary, #0f0f1a)"/>
-                    </svg>
-                  </div>
-                  <div className="ecosystem-status">
+            <Link to="/moltbook" className="moltbook-banner">
+              <div className="moltbook-banner-bg"></div>
+              <div className="moltbook-banner-content">
+                <div className="moltbook-banner-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="#ff6b35"/>
+                    <circle cx="20" cy="12" r="2" fill="#0f0f1a"/>
+                    <circle cx="28" cy="12" r="2" fill="#0f0f1a"/>
+                  </svg>
+                </div>
+                <div className="moltbook-banner-text">
+                  <div className="moltbook-banner-header">
+                    <h3>AI Social Agent</h3>
                     {moltbookStatus?.autonomous_mode && (
-                      <span className="status-live"><span className="pulse-dot"></span>Autonomous</span>
+                      <span className="moltbook-status-badge">
+                        <span className="status-dot-live"></span>
+                        Autonomous
+                      </span>
                     )}
                   </div>
+                  <p>LangGraph-powered agent that browses, reasons, and posts to Moltbook independently</p>
                 </div>
-                <h3>AI Social Agent</h3>
-                <p>LangGraph-powered agent that browses, thinks, and posts to social platforms independently</p>
-                <div className="ecosystem-stats">
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">{moltbookStatus?.posts_today || 0}</span>
-                    <span className="eco-stat-label">posts today</span>
+                <div className="moltbook-banner-stats">
+                  <div className="moltbook-stat">
+                    <span className="moltbook-stat-value">{moltbookStatus?.posts_today || 0}</span>
+                    <span className="moltbook-stat-label">today</span>
                   </div>
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">{moltbookStatus?.total_actions || '∞'}</span>
-                    <span className="eco-stat-label">actions</span>
+                  <div className="moltbook-stat">
+                    <span className="moltbook-stat-value">{moltbookStatus?.total_actions || '∞'}</span>
+                    <span className="moltbook-stat-label">actions</span>
                   </div>
                 </div>
-                <span className="ecosystem-arrow">→</span>
-              </Link>
+                <span className="moltbook-banner-btn">View Agent →</span>
+              </div>
+            </Link>
+          </div>
+        </section>
 
+        <section className="ai-ecosystem-section">
+          <div className="container">
+            <div className="ecosystem-grid">
               {/* MCP Server */}
               <Link to="/projects/azoni-mcp" className="ecosystem-card mcp-card">
                 <div className="card-glow mcp-glow"></div>

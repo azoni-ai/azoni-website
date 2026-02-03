@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 // Local imports
 import { SVG, CLASS_SVG } from './constants/icons';
 import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/config';
-import { WORLD_WIDTH, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
+import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
 
@@ -882,7 +882,13 @@ export default function SpellBrigade() {
     };
 
     const handleMouseDown = (e) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0) {
+        // Right click cancels movement
+        if (e.button === 2 && clickTargetRef.current.active) {
+          stopClickMoveToTarget();
+        }
+        return;
+      }
       if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
       if (e.target.closest('[data-ui]')) return;
       if (e.target.closest('button')) return;
@@ -899,31 +905,41 @@ export default function SpellBrigade() {
       const worldX = (e.clientX / zoom) + cameraRef.current.x;
       const worldY = (e.clientY / zoom) + cameraRef.current.y;
       
-      // Check distance to player - if clicking very close, stop moving
-      const me = playerDataRef.current;
-      const dx = worldX - me.x;
-      const dy = worldY - me.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      if (dist < 30) {
-        // Clicked near self - stop moving
-        stopClickMoveToTarget();
-        return;
-      }
-      
-      // Start click-to-move
+      // Start click-to-move (hold to move)
       startClickMoveToTarget(worldX, worldY);
     };
 
     const handleMouseMove = (e) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
+      
+      // Update click target while holding mouse button
+      if (clickTargetRef.current.active && e.buttons === 1) {
+        const zoom = zoomRef.current || 1;
+        clickTargetRef.current.x = (e.clientX / zoom) + cameraRef.current.x;
+        clickTargetRef.current.y = (e.clientY / zoom) + cameraRef.current.y;
+      }
     };
 
-    const handleMouseUp = () => {
-      // Nothing needed
+    const handleMouseUp = (e) => {
+      // Stop click-to-move when releasing mouse button
+      if (e.button === 0 && clickTargetRef.current.active) {
+        stopClickMoveToTarget();
+      }
+    };
+
+    // Prevent context menu on right-click
+    const handleContextMenu = (e) => {
+      if (e.target === canvasRef.current) {
+        e.preventDefault();
+      }
     };
 
     const handleKeyDown = (e) => {
+      // Ignore input if typing in chat or any text field
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+      
       // Only process WASD and special keys
       const dir = keyMap[e.code];
       
@@ -998,6 +1014,11 @@ export default function SpellBrigade() {
     };
 
     const handleKeyUp = (e) => {
+      // Ignore if typing in chat
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+      
       const dir = keyMap[e.code];
       if (dir && inputRef.current[dir]) {
         inputRef.current[dir] = false;
@@ -1010,6 +1031,7 @@ export default function SpellBrigade() {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -1017,6 +1039,7 @@ export default function SpellBrigade() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('contextmenu', handleContextMenu);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1145,24 +1168,35 @@ export default function SpellBrigade() {
   // ===========================================
   // CLICK-TO-MOVE (Desktop - click to walk to location)
   // ===========================================
-  const clickTargetRef = useRef({ x: null, y: null, active: false });
+  const clickTargetRef = useRef({ x: null, y: null, active: false, lastX: 0, lastY: 0, stuckCount: 0 });
   const clickMoveIntervalRef = useRef(null);
 
   const updateClickMoveToTarget = () => {
     if (!clickTargetRef.current.active || !playerDataRef.current) return;
-    
-    // If any WASD key is held, don't do click-to-move
-    if (inputRef.current.up || inputRef.current.down || inputRef.current.left || inputRef.current.right) {
-      return;
-    }
     
     const me = playerDataRef.current;
     const dx = clickTargetRef.current.x - me.x;
     const dy = clickTargetRef.current.y - me.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     
+    // Check if stuck (position hasn't changed)
+    const movedX = Math.abs(me.x - clickTargetRef.current.lastX);
+    const movedY = Math.abs(me.y - clickTargetRef.current.lastY);
+    if (movedX < 2 && movedY < 2) {
+      clickTargetRef.current.stuckCount++;
+      // If stuck for 10 ticks (500ms), stop
+      if (clickTargetRef.current.stuckCount > 10) {
+        stopClickMoveToTarget();
+        return;
+      }
+    } else {
+      clickTargetRef.current.stuckCount = 0;
+    }
+    clickTargetRef.current.lastX = me.x;
+    clickTargetRef.current.lastY = me.y;
+    
     // Reached target - stop
-    if (dist < 20) {
+    if (dist < 25) {
       stopClickMoveToTarget();
       return;
     }
@@ -1194,7 +1228,15 @@ export default function SpellBrigade() {
       clickMoveIntervalRef.current = null;
     }
     
-    clickTargetRef.current = { x: worldX, y: worldY, active: true };
+    const me = playerDataRef.current;
+    clickTargetRef.current = { 
+      x: worldX, 
+      y: worldY, 
+      active: true, 
+      lastX: me?.x || 0, 
+      lastY: me?.y || 0, 
+      stuckCount: 0 
+    };
     clickMoveIntervalRef.current = setInterval(updateClickMoveToTarget, 50);
     updateClickMoveToTarget();
   };
@@ -2823,7 +2865,9 @@ export default function SpellBrigade() {
         if (px < -50 || px > width + 50 || py < -50 || py > height + 50) continue;
 
         const isMe = player.id === playerIdRef.current;
-        const classColor = (classes[player.class] || DEFAULT_CLASSES[player.class])?.color || '#fff';
+        // Use skin color if available, otherwise class color
+        const skin = DEFAULT_SKINS.find(s => s.id === player.selectedSkin);
+        const classColor = skin?.color || (classes[player.class] || DEFAULT_CLASSES[player.class])?.color || '#fff';
         const isVoidlord = player.class === 'voidlord';
         const bob = player.state === 'walk' ? Math.sin((player.animFrame || 0) * Math.PI / 2) * 2 : 0;
 
@@ -3357,15 +3401,23 @@ export default function SpellBrigade() {
         const mmCtx = mm.getContext('2d');
         const mmW = mm.width;
         const mmH = mm.height;
-        const scale = mmW / WORLD_WIDTH;
+        
+        // Scale to fit world in minimap (use the smaller scale to fit both dimensions)
+        const scaleX = mmW / WORLD_WIDTH;
+        const scaleY = mmH / WORLD_HEIGHT;
+        const scale = Math.min(scaleX, scaleY);
+        
+        // Center the map if aspect ratios don't match
+        const offsetX = (mmW - WORLD_WIDTH * scale) / 2;
+        const offsetY = (mmH - WORLD_HEIGHT * scale) / 2;
 
-        // Dark background for uncharted areas
+        // Dark background for whole minimap
         mmCtx.fillStyle = '#0f0f1a';
         mmCtx.fillRect(0, 0, mmW, mmH);
         
         // Fill world bounds with slightly lighter color
         mmCtx.fillStyle = '#1a1a2e';
-        mmCtx.fillRect(0, 0, WORLD_WIDTH * scale, 5000 * scale);
+        mmCtx.fillRect(offsetX, offsetY, WORLD_WIDTH * scale, WORLD_HEIGHT * scale);
 
         // Draw zone polygons
         const zoneColors = {
@@ -3384,12 +3436,12 @@ export default function SpellBrigade() {
           const polygon = ZONE_POLYGONS[zoneId];
           if (!polygon || polygon.length < 3) continue;
           mmCtx.beginPath();
-          mmCtx.moveTo(polygon[0].x * scale, polygon[0].y * scale);
+          mmCtx.moveTo(offsetX + polygon[0].x * scale, offsetY + polygon[0].y * scale);
           for (let i = 1; i < polygon.length; i++) {
-            mmCtx.lineTo(polygon[i].x * scale, polygon[i].y * scale);
+            mmCtx.lineTo(offsetX + polygon[i].x * scale, offsetY + polygon[i].y * scale);
           }
           mmCtx.closePath();
-          mmCtx.fillStyle = (zoneColors[zoneId] || '#333') + '40';
+          mmCtx.fillStyle = (zoneColors[zoneId] || '#333') + '60';
           mmCtx.fill();
           mmCtx.strokeStyle = (zoneColors[zoneId] || '#333') + '90';
           mmCtx.lineWidth = 1;
@@ -3399,7 +3451,7 @@ export default function SpellBrigade() {
         // Draw portals on minimap
         for (const portal of Object.values(PORTAL_POSITIONS)) {
           mmCtx.beginPath();
-          mmCtx.arc(portal.from.x * scale, portal.from.y * scale, 3, 0, Math.PI * 2);
+          mmCtx.arc(offsetX + portal.from.x * scale, offsetY + portal.from.y * scale, 3, 0, Math.PI * 2);
           mmCtx.fillStyle = portal.color;
           mmCtx.fill();
         }
@@ -3407,7 +3459,7 @@ export default function SpellBrigade() {
         // Enemies on minimap
         for (const e of enemies || []) {
           mmCtx.beginPath();
-          mmCtx.arc(e.x * scale, e.y * scale, e.isBoss ? 4 : 2, 0, Math.PI * 2);
+          mmCtx.arc(offsetX + e.x * scale, offsetY + e.y * scale, e.isBoss ? 4 : 2, 0, Math.PI * 2);
           mmCtx.fillStyle = e.isBoss ? '#fbbf24' : '#ef4444';
           mmCtx.fill();
         }
@@ -3416,7 +3468,7 @@ export default function SpellBrigade() {
         for (const p of players || []) {
           if (p.health <= 0) continue;
           mmCtx.beginPath();
-          mmCtx.arc(p.x * scale, p.y * scale, p.id === playerIdRef.current ? 4 : 3, 0, Math.PI * 2);
+          mmCtx.arc(offsetX + p.x * scale, offsetY + p.y * scale, p.id === playerIdRef.current ? 4 : 3, 0, Math.PI * 2);
           mmCtx.fillStyle = p.id === playerIdRef.current ? '#ffd93d' : '#3b82f6';
           mmCtx.fill();
         }
@@ -3502,6 +3554,7 @@ export default function SpellBrigade() {
     if (screen === 'game' && playerInfo) {
       // In-game skin change
       socketRef.current?.emit('changeSkin', { skinId });
+      setShowSkinSelect(false); // Close the modal
     }
     setSelectedSkin(skinId);
   };
@@ -4069,7 +4122,7 @@ export default function SpellBrigade() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Move</span>
-                      <span style={{ color: '#fff' }}>WASD / Click</span>
+                      <span style={{ color: '#fff' }}>WASD / Hold Click</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Attack</span>

@@ -649,6 +649,155 @@ a.commit-repo:hover {
   box-shadow: 0 4px 15px rgba(255, 217, 61, 0.3);
 }
 
+/* ============ MOLTBOOK BANNER ============ */
+.moltbook-banner-section {
+  padding: var(--space-xl) 0 0;
+}
+
+.moltbook-banner {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: var(--space-lg) var(--space-xl);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.12) 0%, rgba(255, 165, 0, 0.06) 100%);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.moltbook-banner:hover {
+  border-color: #ff6b35;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.18) 0%, rgba(255, 165, 0, 0.1) 100%);
+}
+
+.moltbook-banner-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 50%, rgba(255, 107, 53, 0.1), transparent 40%),
+              radial-gradient(circle at 90% 50%, rgba(255, 165, 0, 0.08), transparent 40%);
+  pointer-events: none;
+}
+
+.moltbook-banner-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.moltbook-banner-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 53, 0.15);
+  border-radius: var(--radius-md);
+}
+
+.moltbook-banner-text {
+  flex: 1;
+}
+
+.moltbook-banner-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.moltbook-banner-header h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.moltbook-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4ade80;
+  padding: 3px 10px;
+  background: rgba(74, 222, 128, 0.1);
+  border-radius: 20px;
+}
+
+.moltbook-banner-text p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.moltbook-banner-stats {
+  display: flex;
+  gap: var(--space-lg);
+  flex-shrink: 0;
+}
+
+.moltbook-stat {
+  text-align: center;
+}
+
+.moltbook-stat-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff6b35;
+}
+
+.moltbook-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.moltbook-banner-btn {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(135deg, #ff6b35, #ffa500);
+  color: #0f0f1a;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.moltbook-banner:hover .moltbook-banner-btn {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+@media (max-width: 768px) {
+  .moltbook-banner-content {
+    flex-wrap: wrap;
+  }
+  
+  .moltbook-banner-stats {
+    width: 100%;
+    justify-content: flex-start;
+    gap: var(--space-xl);
+    margin-top: var(--space-sm);
+  }
+  
+  .moltbook-banner-btn {
+    width: 100%;
+    text-align: center;
+    margin-top: var(--space-sm);
+  }
+}
+
 /* CTA Section */
 .cta-section {
   padding: 0 0 var(--space-2xl);
