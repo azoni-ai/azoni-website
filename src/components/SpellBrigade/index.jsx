@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { io } from 'socket.io-client';
 
 // Local imports
 import { SVG, CLASS_SVG } from './constants/icons';
 import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/config';
-import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
+import { WORLD_WIDTH, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
 
@@ -1611,7 +1611,7 @@ export default function SpellBrigade() {
 
       // ========== BUILDINGS ==========
       const time = Date.now() / 1000;
-      for (const [id, building] of Object.entries(BUILDING_DATA)) {
+      for (const [, building] of Object.entries(BUILDING_DATA)) {
         const bx = building.x - cx;
         const by = building.y - cy;
         const w = building.width;
@@ -1693,7 +1693,7 @@ export default function SpellBrigade() {
       }
 
       // ========== PORTALS ==========
-      for (const [id, portal] of Object.entries(PORTAL_POSITIONS)) {
+      for (const [, portal] of Object.entries(PORTAL_POSITIONS)) {
         const px = portal.from.x - cx;
         const py = portal.from.y - cy;
         
@@ -2695,7 +2695,6 @@ export default function SpellBrigade() {
           
           // Multiple rings
           for (let i = 0; i < 3; i++) {
-            const ringOffset = i * 0.15;
             const radius = ef.entering
               ? ringRadius * (0.5 + i * 0.25)
               : ringRadius * (1 - i * 0.15);
