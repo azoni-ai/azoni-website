@@ -653,8 +653,35 @@ export default function SpellBrigade() {
     });
 
     socket.on('bossDefeated', (data) => {
-      // Could show celebration notification
-      console.log(`💀 Boss defeated: ${data?.name}! Respawns in 5 minutes.`);
+      console.log(`💀 Boss defeated: ${data?.name}! Respawns in 30 seconds.`);
+      
+      // Epic boss death animation
+      if (data.x !== undefined && data.y !== undefined) {
+        // Main explosion
+        effectsRef.current.push({
+          type: 'bossExplosion',
+          x: data.x,
+          y: data.y,
+          bossType: data.bossType,
+          startTime: Date.now(),
+          duration: 2000,
+        });
+        
+        // Screen shake if nearby
+        const me = playerDataRef.current;
+        if (me) {
+          const dx = data.x - me.x;
+          const dy = data.y - me.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 600) {
+            screenShakeRef.current.intensity = Math.max(8, 20 * (1 - dist / 600));
+          }
+        }
+        
+        // Play epic sound
+        playSound('bossAttack');
+        setTimeout(() => playSound('levelUp'), 300);
+      }
     });
 
     socket.on('respawned', () => {
@@ -2197,6 +2224,83 @@ export default function SpellBrigade() {
           ctx.lineWidth = 20 * alpha;
           ctx.lineCap = 'round';
           ctx.stroke();
+        } else if (ef.type === 'bossExplosion') {
+          // Epic boss death animation
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          
+          // Get boss color based on type
+          const bossColors = {
+            blossom_behemoth: ['#ec4899', '#f472b6', '#22c55e'],
+            ancient_treant: ['#166534', '#84cc16', '#a16207'],
+            magma_titan: ['#f97316', '#dc2626', '#fbbf24'],
+            frost_wyrm: ['#22d3ee', '#67e8f9', '#fff'],
+            void_overlord: ['#7c3aed', '#581c87', '#c084fc'],
+          };
+          const colors = bossColors[ef.bossType] || ['#fbbf24', '#f97316', '#fff'];
+          
+          // Phase 1: Expanding rings (0-40%)
+          if (progress < 0.4) {
+            const ringProgress = progress / 0.4;
+            for (let i = 0; i < 3; i++) {
+              const ringSize = 50 + ringProgress * 200 * (i + 1);
+              const ringAlpha = (1 - ringProgress) * 0.8;
+              ctx.beginPath();
+              ctx.arc(ex, ey, ringSize, 0, Math.PI * 2);
+              ctx.strokeStyle = colors[i % colors.length];
+              ctx.globalAlpha = ringAlpha;
+              ctx.lineWidth = 8 - i * 2;
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          }
+          
+          // Phase 2: Particle explosion (20-80%)
+          if (progress > 0.1 && progress < 0.8) {
+            const particleProgress = (progress - 0.1) / 0.7;
+            const numParticles = 24;
+            for (let i = 0; i < numParticles; i++) {
+              const angle = (i / numParticles) * Math.PI * 2 + progress * 2;
+              const dist = 30 + particleProgress * 250;
+              const px = ex + Math.cos(angle) * dist;
+              const py = ey + Math.sin(angle) * dist;
+              const size = (1 - particleProgress) * 12;
+              
+              ctx.beginPath();
+              ctx.arc(px, py, size, 0, Math.PI * 2);
+              ctx.fillStyle = colors[i % colors.length];
+              ctx.globalAlpha = (1 - particleProgress) * 0.9;
+              ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+          }
+          
+          // Phase 3: Central flash (0-30%)
+          if (progress < 0.3) {
+            const flashProgress = progress / 0.3;
+            const flashSize = 80 * (1 - flashProgress * 0.5);
+            const flashGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, flashSize);
+            flashGrad.addColorStop(0, `rgba(255,255,255,${(1 - flashProgress) * 0.9})`);
+            flashGrad.addColorStop(0.3, colors[0] + Math.floor((1 - flashProgress) * 200).toString(16).padStart(2, '0'));
+            flashGrad.addColorStop(1, 'transparent');
+            ctx.beginPath();
+            ctx.arc(ex, ey, flashSize, 0, Math.PI * 2);
+            ctx.fillStyle = flashGrad;
+            ctx.fill();
+          }
+          
+          // Phase 4: Skull/icon fade (40-100%)
+          if (progress > 0.4) {
+            const skullProgress = (progress - 0.4) / 0.6;
+            const skullAlpha = Math.sin(skullProgress * Math.PI) * 0.8;
+            ctx.font = `${60 - skullProgress * 20}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.globalAlpha = skullAlpha;
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillText('💀', ex, ey - skullProgress * 30);
+            ctx.globalAlpha = 1;
+          }
         }
 
         return true;
@@ -2595,42 +2699,6 @@ export default function SpellBrigade() {
       alignItems: 'center',
       gap: 5,
     },
-    // Players online panel
-    playersOnline: {
-      position: 'absolute',
-      top: 20,
-      left: 20,
-      zIndex: 50,
-      background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(10px)',
-      padding: '8px 14px',
-      borderRadius: 12,
-      border: '1px solid rgba(255,255,255,0.1)',
-      fontSize: '.85rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-    },
-    playersOnlineDot: {
-      width: 8,
-      height: 8,
-      borderRadius: '50%',
-      background: '#22c55e',
-      boxShadow: '0 0 6px #22c55e',
-    },
-    playersOnlineMobile: {
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      zIndex: 50,
-      background: 'rgba(0,0,0,0.7)',
-      padding: '4px 10px',
-      borderRadius: 10,
-      fontSize: '.75rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-    },
     // Volume control
     volumeControl: {
       position: 'absolute',
@@ -2691,16 +2759,18 @@ export default function SpellBrigade() {
     // Connection status
     connection: (connected) => ({
       position: 'absolute',
-      top: 10,
-      left: 10,
-      padding: '5px 10px',
-      borderRadius: 6,
+      top: isMobile ? 45 : 70,
+      right: isMobile ? 'auto' : 20,
+      left: isMobile ? '50%' : 'auto',
+      transform: isMobile ? 'translateX(-50%)' : 'none',
+      padding: '4px 10px',
+      borderRadius: 15,
       fontSize: '.7rem',
-      zIndex: 100,
+      zIndex: 50,
       display: 'flex',
       alignItems: 'center',
-      gap: 6,
-      background: connected ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
+      gap: 5,
+      background: 'rgba(0,0,0,0.6)',
       color: connected ? '#4ade80' : '#f87171',
     }),
     connDot: {
@@ -3637,22 +3707,6 @@ export default function SpellBrigade() {
             </div>
           )}
 
-          {/* Players Online - Desktop */}
-          {!isMobile && (
-            <div style={styles.playersOnline}>
-              <span style={styles.playersOnlineDot} />
-              <span>{playersOnline} Online</span>
-            </div>
-          )}
-
-          {/* Players Online - Mobile */}
-          {isMobile && (
-            <div style={styles.playersOnlineMobile}>
-              <span style={{ ...styles.playersOnlineDot, width: 6, height: 6 }} />
-              <span>{playersOnline}</span>
-            </div>
-          )}
-
           {/* Volume Control - Desktop only */}
           {!isMobile && (
             <div style={styles.volumeControl}>
@@ -3770,10 +3824,10 @@ export default function SpellBrigade() {
         </div>
       )}
 
-      {/* Connection Status */}
+      {/* Connection Status - Top right below volume */}
       <div style={styles.connection(connected)}>
         <span style={styles.connDot} />
-        <span>{connected ? 'Connected' : 'Disconnected'}</span>
+        <span>{connected ? `${playersOnline} Online` : 'Offline'}</span>
       </div>
       
       {/* Audio unlock indicator for mobile */}
