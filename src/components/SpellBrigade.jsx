@@ -215,7 +215,6 @@ export default function SpellBrigade() {
   const [selectedClass, setSelectedClass] = useState('pyromancer');
   const [selectedSkin, setSelectedSkin] = useState('pyromancer_default');
   const [classes, setClasses] = useState(DEFAULT_CLASSES);
-  const [skins, setSkins] = useState({});
   const [playerInfo, setPlayerInfo] = useState(null);
   const [savedPlayer, setSavedPlayer] = useState(null);
   const [deathInfo, setDeathInfo] = useState(null);
@@ -434,11 +433,6 @@ export default function SpellBrigade() {
     socket.on('playerData', (data) => {
       if (data.player) {
         setSavedPlayer(data.player);
-        if (data.skins) {
-          const skinsObj = {};
-          data.skins.forEach(s => skinsObj[s.id] = s);
-          setSkins(prev => ({ ...prev, ...skinsObj }));
-        }
         setScreen('returning');
       } else {
         // No saved player found
@@ -454,11 +448,6 @@ export default function SpellBrigade() {
       setPlayerInfo(data.player);
       setScreen('game');
       if (data.classes) setClasses(data.classes);
-      if (data.skins) {
-        const skinsObj = {};
-        Object.values(data.skins).forEach(s => skinsObj[s.id] = s);
-        setSkins(skinsObj);
-      }
       if (data.world) gameStateRef.current.world = data.world;
     });
 
