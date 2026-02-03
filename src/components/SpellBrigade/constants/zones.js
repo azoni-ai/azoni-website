@@ -47,12 +47,12 @@ export const ZONE_INFO = {
 };
 
 export const PORTAL_POSITIONS = {
-  sanctuary_to_meadow: { from: { x: 3000, y: 2350 }, to: { x: 3000, y: 2100 }, color: '#84cc16', name: 'Meadow Path', icon: '🌸', level: 0 },
-  meadow_to_forest: { from: { x: 1900, y: 2000 }, to: { x: 1700, y: 2000 }, color: '#166534', name: 'Forest Gateway', icon: '🌲', level: 3 },
-  meadow_to_volcanic: { from: { x: 4100, y: 2000 }, to: { x: 4300, y: 2000 }, color: '#dc2626', name: 'Flame Portal', icon: '🔥', level: 8 },
-  meadow_to_frozen: { from: { x: 3000, y: 3100 }, to: { x: 3000, y: 3400 }, color: '#0ea5e9', name: 'Frozen Gate', icon: '❄️', level: 12 },
-  forest_to_abyss: { from: { x: 600, y: 1200 }, to: { x: 400, y: 800 }, color: '#581c87', name: 'Void Rift', icon: '🌀', level: 18 },
-  volcanic_to_crystal: { from: { x: 5000, y: 3100 }, to: { x: 5000, y: 3400 }, color: '#ec4899', name: 'Crystal Passage', icon: '💎', level: 6 },
+  sanctuary_to_meadow: { from: { x: 3000, y: 2350 }, to: { x: 3000, y: 1900 }, color: '#84cc16', name: 'Meadow Path', icon: '🌸', level: 0 },
+  meadow_to_forest: { from: { x: 1900, y: 2000 }, to: { x: 1400, y: 1800 }, color: '#166534', name: 'Forest Gateway', icon: '🌲', level: 3 },
+  meadow_to_volcanic: { from: { x: 4100, y: 2000 }, to: { x: 4600, y: 1800 }, color: '#dc2626', name: 'Flame Portal', icon: '🔥', level: 8 },
+  meadow_to_frozen: { from: { x: 3000, y: 3100 }, to: { x: 3000, y: 3700 }, color: '#0ea5e9', name: 'Frozen Gate', icon: '❄️', level: 12 },
+  forest_to_abyss: { from: { x: 600, y: 1200 }, to: { x: 300, y: 600 }, color: '#581c87', name: 'Void Rift', icon: '🌀', level: 18 },
+  volcanic_to_crystal: { from: { x: 5000, y: 3100 }, to: { x: 5200, y: 3700 }, color: '#ec4899', name: 'Crystal Passage', icon: '💎', level: 6 },
 };
 
 export const BUILDING_DATA = {

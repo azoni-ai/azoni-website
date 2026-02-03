@@ -51,6 +51,9 @@ export default function SpellBrigade() {
   const [spellDrop, setSpellDrop] = useState(null);
   const [bossAlert, setBossAlert] = useState(null);
   const [showSkinSelect, setShowSkinSelect] = useState(false);
+  const [nearbyBuilding, setNearbyBuilding] = useState(null);
+  const [showShop, setShowShop] = useState(false);
+  const [showEmotes, setShowEmotes] = useState(false);
   const [settings, setSettings] = useState({
     volume: 0.5,
     sfxEnabled: true,
@@ -64,6 +67,10 @@ export default function SpellBrigade() {
     color: '#22c55e',
     rec: 0,
   });
+  const [dashCooldown, setDashCooldown] = useState(0); // timestamp when ready
+  const [ultCooldown, setUltCooldown] = useState(0);   // timestamp when ready
+  const dashCooldownRef = useRef(0);
+  const ultCooldownRef = useRef(0);
   const lastZoneRef = useRef(null);
   const musicIntervalRef = useRef(null);
   const musicGainRef = useRef(null);
@@ -75,7 +82,6 @@ export default function SpellBrigade() {
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
-  const moveTargetRef = useRef({ x: null, y: null, active: false });
 
   // Keep settings ref in sync
   useEffect(() => {
@@ -527,6 +533,19 @@ export default function SpellBrigade() {
         playerDataRef.current = me;
         setPlayerInfo(prev => ({ ...prev, ...me }));
         updateZone(me);
+        
+        // Check for nearby buildings
+        let foundBuilding = null;
+        for (const [id, building] of Object.entries(BUILDING_DATA)) {
+          const dx = me.x - building.x;
+          const dy = me.y - (building.y - building.height / 2);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            foundBuilding = { id, ...building };
+            break;
+          }
+        }
+        setNearbyBuilding(foundBuilding);
       }
     });
 
@@ -781,6 +800,32 @@ export default function SpellBrigade() {
       // Could show a toast notification here
     });
 
+    // Ability cooldowns - refs for display, state triggers re-render once
+    socket.on('dashUsed', (data) => {
+      const endTime = Date.now() + data.cooldown;
+      dashCooldownRef.current = endTime;
+      setDashCooldown(endTime);
+      setTimeout(() => setDashCooldown(0), data.cooldown);
+    });
+
+    socket.on('ultimateUsed', (data) => {
+      const endTime = Date.now() + data.cooldown;
+      ultCooldownRef.current = endTime;
+      setUltCooldown(endTime);
+      setTimeout(() => setUltCooldown(0), data.cooldown);
+    });
+
+    // Shop upgrades
+    socket.on('upgradePurchased', (data) => {
+      console.log('✨ Upgrade purchased:', data.type);
+      setPlayerInfo(prev => ({ ...prev, totalXp: data.totalXp, upgrades: data.upgrades }));
+      playSound('levelUp');
+    });
+
+    socket.on('shopError', (data) => {
+      console.log('Shop error:', data.message);
+    });
+
     return () => socket.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -800,128 +845,17 @@ export default function SpellBrigade() {
       ArrowRight: 'right',
     };
 
-    // Click-to-move with persistent target
-    let moveUpdateInterval = null;
-
-    const updateMoveToTarget = () => {
-      if (!moveTargetRef.current.active || !playerDataRef.current) return;
-      
-      const me = playerDataRef.current;
-      const dx = moveTargetRef.current.x - me.x;
-      const dy = moveTargetRef.current.y - me.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      // Reached target - stop
-      if (dist < 25) {
-        moveTargetRef.current.active = false;
-        inputRef.current = { up: false, down: false, left: false, right: false };
-        socketRef.current?.emit('input', inputRef.current);
-        return;
-      }
-      
-      // Calculate smooth direction (not 8-directional snapping)
-      const angle = Math.atan2(dy, dx);
-      const newInput = { up: false, down: false, left: false, right: false };
-      
-      // Use combined directional input for smoother diagonal movement
-      const cosA = Math.cos(angle);
-      const sinA = Math.sin(angle);
-      
-      // Threshold for activating each direction
-      const thresh = 0.38; // ~22 degrees
-      
-      if (cosA > thresh) newInput.right = true;
-      if (cosA < -thresh) newInput.left = true;
-      if (sinA > thresh) newInput.down = true;
-      if (sinA < -thresh) newInput.up = true;
-      
-      // Only emit if changed
-      if (JSON.stringify(newInput) !== JSON.stringify(inputRef.current)) {
-        inputRef.current = newInput;
-        socketRef.current?.emit('input', inputRef.current);
-      }
-    };
-
-    const startMoveToTarget = () => {
-      if (!moveUpdateInterval) {
-        moveUpdateInterval = setInterval(updateMoveToTarget, 50);
-      }
-      updateMoveToTarget();
-    };
-
-    const stopMoveToTarget = (resetInput = true) => {
-      moveTargetRef.current.active = false;
-      if (moveUpdateInterval) {
-        clearInterval(moveUpdateInterval);
-        moveUpdateInterval = null;
-      }
-      if (resetInput) {
-        inputRef.current = { up: false, down: false, left: false, right: false };
-        socketRef.current?.emit('input', inputRef.current);
-      }
-    };
-
     const handleMouseDown = (e) => {
       if (e.button !== 0) return;
-      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-      if (e.target.closest('[data-ui]')) return; // Skip UI elements
-      if (!playerDataRef.current) return;
-      
       initAudio();
-      
-      // Calculate world position of click
-      const zoom = zoomRef.current || 1;
-      const worldX = (e.clientX / zoom) + cameraRef.current.x;
-      const worldY = (e.clientY / zoom) + cameraRef.current.y;
-      
-      // Check if clicking on a portal
-      const me = playerDataRef.current;
-      for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
-        const dx = worldX - portal.from.x;
-        const dy = worldY - portal.from.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        
-        if (dist < 50) {
-          // Check if player is close enough to portal
-          const playerDist = Math.sqrt(
-            (me.x - portal.from.x) ** 2 + (me.y - portal.from.y) ** 2
-          );
-          
-          if (playerDist < 80) {
-            // Use the portal
-            socketRef.current?.emit('usePortal', { portalId });
-            return;
-          }
-        }
-      }
-      
-      // Set target to clicked world position (walk there)
-      // Only if not using WASD
-      const usingKeyboard = inputRef.current.up || inputRef.current.down || 
-                           inputRef.current.left || inputRef.current.right;
-      if (usingKeyboard) return;
-      
-      moveTargetRef.current.x = worldX;
-      moveTargetRef.current.y = worldY;
-      moveTargetRef.current.active = true;
-      
-      startMoveToTarget();
     };
 
     const handleMouseMove = (e) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
-      
-      // Update target while dragging (mouse held down)
-      if (e.buttons === 1 && moveTargetRef.current.active) {
-        const zoom = zoomRef.current || 1;
-        moveTargetRef.current.x = (e.clientX / zoom) + cameraRef.current.x;
-        moveTargetRef.current.y = (e.clientY / zoom) + cameraRef.current.y;
-      }
     };
 
     const handleMouseUp = () => {
-      // Don't stop movement on mouse up - wizard will walk to the target
-      // Movement stops when target is reached or when keyboard is used
+      // Mouse up doesn't do anything now (WASD only)
     };
 
     const handleKeyDown = (e) => {
@@ -929,11 +863,6 @@ export default function SpellBrigade() {
       const dir = keyMap[e.code];
       
       if (dir) {
-        // Cancel click-to-move on first WASD press (don't reset input)
-        if (moveTargetRef.current.active) {
-          stopMoveToTarget(false);
-        }
-        
         // Update input immediately
         if (!inputRef.current[dir]) {
           inputRef.current[dir] = true;
@@ -942,19 +871,16 @@ export default function SpellBrigade() {
         return;
       }
 
-      // Dash (Space)
+      // Dash (Space) - dashes in current facing/movement direction
       if (e.code === 'Space' && socketRef.current && playerIdRef.current) {
         e.preventDefault();
         initAudio();
-        const zoom = zoomRef.current || 1;
-        socketRef.current.emit('dash', {
-          targetX: (mouseRef.current.x / zoom) + cameraRef.current.x,
-          targetY: (mouseRef.current.y / zoom) + cameraRef.current.y,
-        });
+        // Send dash without target - server will use facing direction
+        socketRef.current.emit('dash', {});
         playSound('dash');
       }
 
-      // Ultimate (Q)
+      // Ultimate (Q) - targets mouse position
       if (e.code === 'KeyQ' && socketRef.current && playerIdRef.current) {
         initAudio();
         const zoom = zoomRef.current || 1;
@@ -962,6 +888,16 @@ export default function SpellBrigade() {
           targetX: (mouseRef.current.x / zoom) + cameraRef.current.x,
           targetY: (mouseRef.current.y / zoom) + cameraRef.current.y,
         });
+      }
+
+      // Interact (E) - open shop when near building
+      if (e.code === 'KeyE') {
+        setShowShop(prev => !prev);
+      }
+
+      // Emote wheel (T)
+      if (e.code === 'KeyT') {
+        setShowEmotes(prev => !prev);
       }
     };
 
@@ -985,7 +921,6 @@ export default function SpellBrigade() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
-      if (moveUpdateInterval) clearInterval(moveUpdateInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1076,25 +1011,8 @@ export default function SpellBrigade() {
     initAudio();
     if (!socketRef.current || !playerIdRef.current) return;
     
-    // Dash toward center of screen (forward direction based on movement)
-    const me = playerDataRef.current;
-    if (!me) return;
-    
-    const input = inputRef.current;
-    let dx = 0, dy = 0;
-    if (input.up) dy -= 1;
-    if (input.down) dy += 1;
-    if (input.left) dx -= 1;
-    if (input.right) dx += 1;
-    
-    // If not moving, dash forward (up)
-    if (dx === 0 && dy === 0) dy = -1;
-    
-    const dist = 200;
-    socketRef.current.emit('dash', {
-      targetX: me.x + dx * dist,
-      targetY: me.y + dy * dist,
-    });
+    // Dash in facing direction (server handles)
+    socketRef.current.emit('dash', {});
     playSound('dash');
   };
 
@@ -1553,26 +1471,58 @@ export default function SpellBrigade() {
         ctx.stroke();
       }
 
-      // Sanctuary (glowing safe zone)
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 300, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(34,197,94,0.1)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(34,197,94,0.6)';
-      ctx.lineWidth = 4;
-      ctx.setLineDash([15, 8]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      
-      // Sanctuary center marker
-      ctx.fillStyle = 'rgba(34,197,94,0.3)';
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 50, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#22c55e';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('⛨ SANCTUARY', centerX, centerY + 5);
+      // Sanctuary (glowing safe zone with decorations)
+      const sanctuaryPoly = ZONE_POLYGONS.sanctuary;
+      if (sanctuaryPoly) {
+        const sanctTime = Date.now() / 1000;
+        
+        // Draw polygon fill
+        ctx.beginPath();
+        ctx.moveTo(sanctuaryPoly[0].x - cx, sanctuaryPoly[0].y - cy);
+        for (let i = 1; i < sanctuaryPoly.length; i++) {
+          ctx.lineTo(sanctuaryPoly[i].x - cx, sanctuaryPoly[i].y - cy);
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(34,197,94,0.15)';
+        ctx.fill();
+        
+        // Animated border
+        ctx.strokeStyle = `rgba(34,197,94,${0.5 + Math.sin(sanctTime * 2) * 0.2})`;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([15, 8]);
+        ctx.lineDashOffset = -sanctTime * 20;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineDashOffset = 0;
+        
+        // Floating sparkles inside sanctuary
+        for (let i = 0; i < 8; i++) {
+          const angle = sanctTime * 0.3 + i * (Math.PI * 2 / 8);
+          const radius = 100 + Math.sin(sanctTime + i) * 40;
+          const sx = centerX + Math.cos(angle) * radius;
+          const sy = centerY + Math.sin(angle) * radius + Math.sin(sanctTime * 2 + i) * 10;
+          const sparkleSize = 2 + Math.sin(sanctTime * 3 + i * 2) * 1;
+          
+          ctx.beginPath();
+          ctx.arc(sx, sy, sparkleSize, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(sanctTime * 4 + i) * 0.2})`;
+          ctx.fill();
+        }
+        
+        // Sanctuary label with glow
+        ctx.fillStyle = '#22c55e';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#22c55e';
+        ctx.shadowBlur = 10;
+        ctx.fillText('⛨ SANCTUARY', centerX, centerY + 5);
+        ctx.shadowBlur = 0;
+        
+        // "Safe Zone" subtitle
+        ctx.fillStyle = 'rgba(34,197,94,0.7)';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('Safe Zone • Healing', centerX, centerY + 22);
+      }
 
       // World border
       ctx.strokeStyle = '#ef4444';
@@ -1580,26 +1530,6 @@ export default function SpellBrigade() {
       ctx.setLineDash([20, 10]);
       ctx.strokeRect(-cx, -cy, world.width, world.height);
       ctx.setLineDash([]);
-
-      // Move target indicator (desktop)
-      if (moveTargetRef.current.active && !isMobileView) {
-        const tx = moveTargetRef.current.x - cx;
-        const ty = moveTargetRef.current.y - cy;
-        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
-        
-        // Outer ring
-        ctx.beginPath();
-        ctx.arc(tx, ty, 15 * pulse, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255,255,255,${0.6 * pulse})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        // Inner dot
-        ctx.beginPath();
-        ctx.arc(tx, ty, 4, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${0.8 * pulse})`;
-        ctx.fill();
-      }
       
       // Touch target indicator (mobile)
       if (touchTargetRef.current.active && isMobileView) {
@@ -2109,32 +2039,263 @@ export default function SpellBrigade() {
           ctx.textAlign = 'center';
           ctx.fillText(enemy.name || 'BOSS', sx, hbY - 5);
         }
-        // ========== REGULAR ENEMIES ==========
+        // ========== REGULAR ENEMIES (Zone-themed) ==========
         else {
-          // Body
-          ctx.beginPath();
-          ctx.arc(sx, sy - bounce, 14, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          // Eyes
-          ctx.fillStyle = '#fff';
-          ctx.beginPath();
-          ctx.arc(sx - 4, sy - 4 - bounce, 3, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(sx + 4, sy - 4 - bounce, 3, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#000';
-          ctx.beginPath();
-          ctx.arc(sx - 4, sy - 4 - bounce, 1.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(sx + 4, sy - 4 - bounce, 1.5, 0, Math.PI * 2);
-          ctx.fill();
+          const time = Date.now() / 1000;
+          const enemyType = enemy.type;
+          
+          if (enemyType === 'slime') {
+            // Bouncy slime blob
+            const squish = 1 + Math.sin(time * 5) * 0.15;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bounce + 4, 16 * squish, 12 / squish, 0, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            // Shine
+            ctx.beginPath();
+            ctx.ellipse(sx - 4, sy - 4 - bounce, 4, 3, -0.4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(sx - 4, sy - 2 - bounce, 2.5, 0, Math.PI * 2);
+            ctx.arc(sx + 4, sy - 2 - bounce, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          else if (enemyType === 'bat') {
+            // Flying bat with wings
+            const wingFlap = Math.sin(time * 15) * 0.6;
+            // Wings
+            ctx.fillStyle = color;
+            ctx.save();
+            ctx.translate(sx - 8, sy - bounce);
+            ctx.rotate(-0.3 + wingFlap);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            ctx.save();
+            ctx.translate(sx + 8, sy - bounce);
+            ctx.rotate(0.3 - wingFlap);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            // Body
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bounce, 8, 10, 0, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#ff0';
+            ctx.beginPath();
+            ctx.arc(sx - 3, sy - 3 - bounce, 2, 0, Math.PI * 2);
+            ctx.arc(sx + 3, sy - 3 - bounce, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          else if (enemyType === 'skeleton') {
+            // Skeletal warrior
+            ctx.fillStyle = color;
+            // Skull
+            ctx.beginPath();
+            ctx.arc(sx, sy - 10 - bounce, 9, 0, Math.PI * 2);
+            ctx.fill();
+            // Ribcage body
+            ctx.fillRect(sx - 6, sy - 2 - bounce, 12, 16);
+            // Eye sockets
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(sx - 3, sy - 12 - bounce, 2.5, 0, Math.PI * 2);
+            ctx.arc(sx + 3, sy - 12 - bounce, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            // Jaw
+            ctx.fillStyle = '#999';
+            ctx.fillRect(sx - 4, sy - 4 - bounce, 8, 3);
+          }
+          else if (enemyType === 'ghost') {
+            // Transparent floating ghost
+            const wobble = Math.sin(time * 3) * 3;
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(sx, sy - 8 - bounce + wobble, 12, Math.PI, 0);
+            ctx.lineTo(sx + 12, sy + 10 - bounce + wobble);
+            ctx.quadraticCurveTo(sx + 8, sy + 5, sx + 4, sy + 12);
+            ctx.quadraticCurveTo(sx, sy + 7, sx - 4, sy + 12);
+            ctx.quadraticCurveTo(sx - 8, sy + 5, sx - 12, sy + 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            // Spooky eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(sx - 4, sy - 8 - bounce + wobble, 3, 4, 0, 0, Math.PI * 2);
+            ctx.ellipse(sx + 4, sy - 8 - bounce + wobble, 3, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          else if (enemyType === 'spider') {
+            // Creepy spider with legs
+            // Legs
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+              const legAngle = -0.8 + i * 0.5 + Math.sin(time * 8 + i) * 0.2;
+              ctx.beginPath();
+              ctx.moveTo(sx - 4, sy - bounce);
+              ctx.lineTo(sx - 4 - Math.cos(legAngle) * 12, sy - bounce + Math.sin(legAngle) * 10);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(sx + 4, sy - bounce);
+              ctx.lineTo(sx + 4 + Math.cos(legAngle) * 12, sy - bounce + Math.sin(legAngle) * 10);
+              ctx.stroke();
+            }
+            // Body
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bounce, 8, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Eyes (multiple)
+            ctx.fillStyle = '#f00';
+            for (let i = 0; i < 4; i++) {
+              ctx.beginPath();
+              ctx.arc(sx - 3 + i * 2, sy - 2 - bounce, 1.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          else if (enemyType === 'golem') {
+            // Rocky golem
+            ctx.fillStyle = color;
+            // Main body - blocky
+            ctx.fillRect(sx - 14, sy - 12 - bounce, 28, 28);
+            // Head
+            ctx.fillRect(sx - 10, sy - 22 - bounce, 20, 14);
+            // Cracks
+            ctx.strokeStyle = '#57534e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(sx - 8, sy - bounce);
+            ctx.lineTo(sx - 2, sy + 12 - bounce);
+            ctx.moveTo(sx + 5, sy - 8 - bounce);
+            ctx.lineTo(sx + 10, sy + 5 - bounce);
+            ctx.stroke();
+            // Glowing eyes
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 5;
+            ctx.fillRect(sx - 7, sy - 18 - bounce, 5, 4);
+            ctx.fillRect(sx + 2, sy - 18 - bounce, 5, 4);
+            ctx.shadowBlur = 0;
+          }
+          else if (enemyType === 'fireElemental') {
+            // Flaming elemental
+            const flicker = Math.sin(time * 10) * 3;
+            // Flames
+            for (let i = 0; i < 5; i++) {
+              const flameX = sx + (i - 2) * 5;
+              const flameH = 15 + Math.sin(time * 8 + i * 2) * 5;
+              ctx.fillStyle = i % 2 ? '#ff6b35' : '#fbbf24';
+              ctx.beginPath();
+              ctx.moveTo(flameX - 4, sy + 5 - bounce);
+              ctx.quadraticCurveTo(flameX, sy - flameH - bounce + flicker, flameX + 4, sy + 5 - bounce);
+              ctx.fill();
+            }
+            // Core
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath();
+            ctx.arc(sx - 3, sy - 2 - bounce, 2, 0, Math.PI * 2);
+            ctx.arc(sx + 3, sy - 2 - bounce, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          else if (enemyType === 'iceElemental') {
+            // Frozen elemental
+            const shimmer = 0.7 + Math.sin(time * 4) * 0.2;
+            // Crystal body
+            ctx.globalAlpha = shimmer;
+            ctx.fillStyle = '#67e8f9';
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 18 - bounce);
+            ctx.lineTo(sx + 12, sy - bounce);
+            ctx.lineTo(sx + 8, sy + 12 - bounce);
+            ctx.lineTo(sx - 8, sy + 12 - bounce);
+            ctx.lineTo(sx - 12, sy - bounce);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            // Cold aura
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, 18, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(103, 232, 249, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+          else if (enemyType === 'necromancer') {
+            // Dark hooded figure
+            ctx.fillStyle = color;
+            // Robe
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 16 - bounce);
+            ctx.lineTo(sx - 10, sy + 12 - bounce);
+            ctx.lineTo(sx + 10, sy + 12 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            // Hood
+            ctx.beginPath();
+            ctx.arc(sx, sy - 12 - bounce, 8, Math.PI, 0);
+            ctx.lineTo(sx + 10, sy - 4 - bounce);
+            ctx.lineTo(sx - 10, sy - 4 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            // Glowing eyes
+            ctx.fillStyle = '#a855f7';
+            ctx.shadowColor = '#a855f7';
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(sx - 3, sy - 10 - bounce, 2, 0, Math.PI * 2);
+            ctx.arc(sx + 3, sy - 10 - bounce, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Staff
+            ctx.strokeStyle = '#78350f';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(sx + 8, sy - 8 - bounce);
+            ctx.lineTo(sx + 12, sy + 12 - bounce);
+            ctx.stroke();
+          }
+          else {
+            // Default circle enemy (fallback)
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, 14, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Eyes
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(sx - 4, sy - 4 - bounce, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(sx + 4, sy - 4 - bounce, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(sx - 4, sy - 4 - bounce, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(sx + 4, sy - 4 - bounce, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
 
           // Health bar (only if damaged)
           if (enemy.health < enemy.maxHealth) {
@@ -2510,6 +2671,96 @@ export default function SpellBrigade() {
           ctx.lineWidth = 3;
           ctx.stroke();
         }
+
+        // Healing effect when in sanctuary
+        if (player.isHealing) {
+          const healTime = Date.now() / 300;
+          
+          // Rising heal particles
+          for (let i = 0; i < 4; i++) {
+            const offset = (healTime + i * 0.5) % 2;
+            const hx = px + Math.sin(healTime * 2 + i * 1.5) * 12;
+            const hy = py - 10 - offset * 35;
+            const alpha = 1 - offset / 2;
+            
+            ctx.beginPath();
+            ctx.arc(hx, hy, 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(34, 197, 94, ${alpha})`;
+            ctx.fill();
+          }
+          
+          // Plus sign above head
+          const plusY = py - 55 - bob + Math.sin(healTime * 3) * 3;
+          ctx.fillStyle = '#22c55e';
+          ctx.fillRect(px - 5, plusY - 2, 10, 4);
+          ctx.fillRect(px - 2, plusY - 5, 4, 10);
+          
+          // Glow effect
+          ctx.beginPath();
+          ctx.arc(px, py, 35, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(34, 197, 94, ${0.1 + Math.sin(healTime * 2) * 0.05})`;
+          ctx.fill();
+        }
+
+        // Emote animation
+        if (player.emote && player.emoteStart) {
+          const emoteTime = (Date.now() - player.emoteStart) / 1000;
+          const emoteY = py - 60 - bob - Math.sin(emoteTime * 5) * 3;
+          
+          const emoteEmojis = {
+            wave: '👋',
+            dance: '💃',
+            cheer: '🎉',
+            spin: '🌀',
+            sit: '🧘',
+            laugh: '😂',
+          };
+          
+          const emoji = emoteEmojis[player.emote] || '❓';
+          
+          // Emote bubble
+          ctx.beginPath();
+          ctx.arc(px, emoteY, 18, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fill();
+          ctx.strokeStyle = '#ffd93d';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Emoji
+          ctx.font = '16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(emoji, px, emoteY);
+          ctx.textBaseline = 'alphabetic';
+          
+          // Spin animation for spin emote
+          if (player.emote === 'spin') {
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(emoteTime * 8);
+            ctx.translate(-px, -py);
+          }
+          
+          // Dance animation for dance emote (side sway)
+          if (player.emote === 'dance') {
+            const sway = Math.sin(emoteTime * 6) * 5;
+            // Already drawn player, but add sparkles
+            for (let i = 0; i < 3; i++) {
+              const sparkleAngle = emoteTime * 4 + i * 2;
+              const sparkleX = px + Math.cos(sparkleAngle) * 25;
+              const sparkleY = py + Math.sin(sparkleAngle) * 15 - 10;
+              ctx.beginPath();
+              ctx.arc(sparkleX, sparkleY, 2, 0, Math.PI * 2);
+              ctx.fillStyle = '#ffd93d';
+              ctx.fill();
+            }
+          }
+          
+          if (player.emote === 'spin') {
+            ctx.restore();
+          }
+        }
       }
 
       // Particles
@@ -2832,8 +3083,13 @@ export default function SpellBrigade() {
         const mmH = mm.height;
         const scale = mmW / WORLD_WIDTH;
 
-        mmCtx.fillStyle = '#1a1a2e';
+        // Dark background for uncharted areas
+        mmCtx.fillStyle = '#0f0f1a';
         mmCtx.fillRect(0, 0, mmW, mmH);
+        
+        // Fill world bounds with slightly lighter color
+        mmCtx.fillStyle = '#1a1a2e';
+        mmCtx.fillRect(0, 0, WORLD_WIDTH * scale, 5000 * scale);
 
         // Draw zone polygons
         const zoneColors = {
@@ -2846,7 +3102,10 @@ export default function SpellBrigade() {
           crystal_caves: '#ec4899',
         };
         
-        for (const [zoneId, polygon] of Object.entries(ZONE_POLYGONS)) {
+        // Draw zones in order (back to front)
+        const zoneOrder = ['meadow', 'forest', 'volcanic', 'frozen', 'abyss', 'crystal_caves', 'sanctuary'];
+        for (const zoneId of zoneOrder) {
+          const polygon = ZONE_POLYGONS[zoneId];
           if (!polygon || polygon.length < 3) continue;
           mmCtx.beginPath();
           mmCtx.moveTo(polygon[0].x * scale, polygon[0].y * scale);
@@ -2854,9 +3113,9 @@ export default function SpellBrigade() {
             mmCtx.lineTo(polygon[i].x * scale, polygon[i].y * scale);
           }
           mmCtx.closePath();
-          mmCtx.fillStyle = (zoneColors[zoneId] || '#333') + '30';
+          mmCtx.fillStyle = (zoneColors[zoneId] || '#333') + '40';
           mmCtx.fill();
-          mmCtx.strokeStyle = (zoneColors[zoneId] || '#333') + '80';
+          mmCtx.strokeStyle = (zoneColors[zoneId] || '#333') + '90';
           mmCtx.lineWidth = 1;
           mmCtx.stroke();
         }
@@ -3452,7 +3711,7 @@ export default function SpellBrigade() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Move</span>
-                      <span style={{ color: '#fff' }}>WASD / Click</span>
+                      <span style={{ color: '#fff' }}>WASD</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Attack</span>
@@ -3460,11 +3719,23 @@ export default function SpellBrigade() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: classes[playerInfo.class]?.color || '#888' }}>Dash</span>
-                      <span style={{ color: '#fff' }}>Space</span>
+                      <span style={{ color: dashCooldown > 0 ? '#f87171' : '#fff' }}>
+                        {dashCooldown > 0 ? 'CD' : 'Space'}
+                      </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#ffd93d' }}>Ultimate</span>
-                      <span style={{ color: '#fff' }}>Q</span>
+                      <span style={{ color: ultCooldown > 0 ? '#f87171' : '#fff' }}>
+                        {ultCooldown > 0 ? 'CD' : 'Q'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: '#a78bfa' }}>Emote</span>
+                      <span style={{ color: '#fff' }}>T</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: '#888' }}>Interact</span>
+                      <span style={{ color: '#fff' }}>E</span>
                     </div>
                   </div>
                 </div>
@@ -3615,21 +3886,86 @@ export default function SpellBrigade() {
 
               {/* Action Buttons */}
               <div style={styles.actionButtons}>
-                <button
-                  style={styles.actionButton('#ff6b35')}
-                  onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
-                >
-                  <span style={styles.actionButtonIcon}>{SVG.warning}</span>
-                  <span style={{ fontSize: '0.6rem', marginTop: 2 }}>ULT</span>
-                </button>
-                <button
-                  style={styles.actionButton('#4ecdc4')}
-                  onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
-                >
-                  <span style={styles.actionButtonIcon}>{SVG.dash}</span>
-                  <span style={{ fontSize: '0.6rem', marginTop: 2 }}>DASH</span>
-                </button>
+                {/* Ultimate Button */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    style={{
+                      ...styles.actionButton('#ff6b35'),
+                      opacity: ultCooldown > 0 ? 0.5 : 1,
+                    }}
+                    onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
+                  >
+                    <span style={styles.actionButtonIcon}>{SVG.warning}</span>
+                    <span style={{ fontSize: '0.6rem', marginTop: 2 }}>ULT</span>
+                  </button>
+                  {ultCooldown > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.6)',
+                      borderRadius: '50%',
+                      color: '#fff',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      pointerEvents: 'none',
+                    }}>
+                      ⏳
+                    </div>
+                  )}
+                </div>
+                {/* Dash Button */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    style={{
+                      ...styles.actionButton('#4ecdc4'),
+                      opacity: dashCooldown > 0 ? 0.5 : 1,
+                    }}
+                    onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
+                  >
+                    <span style={styles.actionButtonIcon}>{SVG.dash}</span>
+                    <span style={{ fontSize: '0.6rem', marginTop: 2 }}>DASH</span>
+                  </button>
+                  {dashCooldown > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.6)',
+                      borderRadius: '50%',
+                      color: '#fff',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      pointerEvents: 'none',
+                    }}>
+                      ⏳
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Emote Button */}
+              <button
+                style={{
+                  ...styles.actionButton('#ffd93d'),
+                  width: 50,
+                  height: 50,
+                  marginTop: 10,
+                }}
+                onTouchStart={(e) => { e.preventDefault(); setShowEmotes(true); }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>😊</span>
+              </button>
             </div>
           )}
         </>
@@ -3685,6 +4021,279 @@ export default function SpellBrigade() {
             Level {levelUp}!
           </span>
         </div>
+      )}
+
+      {/* Building Interaction Prompt */}
+      {nearbyBuilding && screen === 'game' && !showShop && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 180 : 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.9)',
+          backdropFilter: 'blur(10px)',
+          padding: '12px 25px',
+          borderRadius: 15,
+          zIndex: 800,
+          border: `2px solid ${nearbyBuilding.color}`,
+          textAlign: 'center',
+          cursor: 'pointer',
+        }}
+        onClick={() => setShowShop(true)}
+        >
+          <div style={{ color: nearbyBuilding.color, fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {nearbyBuilding.name}
+          </div>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
+            {isMobile ? 'Tap to interact' : 'Press E or Click to interact'}
+          </div>
+        </div>
+      )}
+
+      {/* Shop Modal */}
+      {showShop && nearbyBuilding && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowShop(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 450,
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowShop(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, color: nearbyBuilding.color }}>
+              {nearbyBuilding.name}
+            </h3>
+            
+            <div style={{ marginBottom: 20, color: '#888', fontSize: '0.85rem' }}>
+              {nearbyBuilding.type === 'tower' && "The Archmage offers powerful upgrades."}
+              {nearbyBuilding.type === 'ruins' && "Ancient power awaits those who seek it."}
+              {nearbyBuilding.type === 'fortress' && "Forge your strength in volcanic fire."}
+              {nearbyBuilding.type === 'citadel' && "Master the frozen arts."}
+              {nearbyBuilding.type === 'shrine' && "Embrace the void's power."}
+              {nearbyBuilding.type === 'sanctum' && "Crystal energy flows through you."}
+            </div>
+
+            {/* Shop Items */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Health Upgrade */}
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 12,
+                padding: 15,
+                border: '1px solid rgba(239,68,68,0.3)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ color: '#ef4444', fontWeight: 'bold' }}>❤️ Max Health +20</div>
+                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Permanently increase max health</div>
+                </div>
+                <button style={{
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 15px',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  socketRef.current?.emit('buyUpgrade', { type: 'health' });
+                  playSound('levelUp');
+                }}
+                >
+                  500 XP
+                </button>
+              </div>
+
+              {/* Damage Upgrade */}
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 12,
+                padding: 15,
+                border: '1px solid rgba(249,115,22,0.3)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ color: '#f97316', fontWeight: 'bold' }}>⚔️ Damage +5%</div>
+                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Increase spell damage</div>
+                </div>
+                <button style={{
+                  background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 15px',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  socketRef.current?.emit('buyUpgrade', { type: 'damage' });
+                  playSound('levelUp');
+                }}
+                >
+                  750 XP
+                </button>
+              </div>
+
+              {/* Speed Upgrade */}
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 12,
+                padding: 15,
+                border: '1px solid rgba(34,197,94,0.3)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ color: '#22c55e', fontWeight: 'bold' }}>👟 Speed +5%</div>
+                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Move faster</div>
+                </div>
+                <button style={{
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 15px',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  socketRef.current?.emit('buyUpgrade', { type: 'speed' });
+                  playSound('levelUp');
+                }}
+                >
+                  600 XP
+                </button>
+              </div>
+
+              {/* Cooldown Reduction */}
+              <div style={{
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 12,
+                padding: 15,
+                border: '1px solid rgba(59,130,246,0.3)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ color: '#3b82f6', fontWeight: 'bold' }}>⏱️ Cooldown -5%</div>
+                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Cast abilities more often</div>
+                </div>
+                <button style={{
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 15px',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  socketRef.current?.emit('buyUpgrade', { type: 'cooldown' });
+                  playSound('levelUp');
+                }}
+                >
+                  1000 XP
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 20, textAlign: 'center', color: '#666', fontSize: '0.8rem' }}>
+              Your XP: <span style={{ color: '#ffd93d', fontWeight: 'bold' }}>{playerInfo?.totalXp || 0}</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Emote Wheel */}
+      {showEmotes && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowEmotes(false)} />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000,
+          }}>
+            {/* Circular emote buttons */}
+            {[
+              { id: 'wave', emoji: '👋', label: 'Wave', angle: 0 },
+              { id: 'dance', emoji: '💃', label: 'Dance', angle: 60 },
+              { id: 'cheer', emoji: '🎉', label: 'Cheer', angle: 120 },
+              { id: 'spin', emoji: '🌀', label: 'Spin', angle: 180 },
+              { id: 'sit', emoji: '🧘', label: 'Sit', angle: 240 },
+              { id: 'laugh', emoji: '😂', label: 'Laugh', angle: 300 },
+            ].map((emote) => {
+              const radius = 100;
+              const rad = (emote.angle - 90) * Math.PI / 180;
+              const x = Math.cos(rad) * radius;
+              const y = Math.sin(rad) * radius;
+              return (
+                <button
+                  key={emote.id}
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.9)',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => {
+                    socketRef.current?.emit('emote', { type: emote.id });
+                    setShowEmotes(false);
+                    playSound('dash');
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1.15)`;
+                    e.target.style.borderColor = '#ffd93d';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+                    e.target.style.borderColor = 'rgba(255,255,255,0.3)';
+                  }}
+                >
+                  <span style={{ fontSize: '1.5rem' }}>{emote.emoji}</span>
+                  <span style={{ fontSize: '0.6rem', color: '#888', marginTop: 2 }}>{emote.label}</span>
+                </button>
+              );
+            })}
+            {/* Center instruction */}
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(0,0,0,0.95)',
+              borderRadius: '50%',
+              width: 70,
+              height: 70,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid rgba(255,217,61,0.5)',
+            }}>
+              <span style={{ color: '#888', fontSize: '0.7rem', textAlign: 'center' }}>Press T<br/>to close</span>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Boss Spawn Alert */}

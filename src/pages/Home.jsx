@@ -4,6 +4,7 @@ import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from '
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
+import AgentActivityFeed from '../components/AgentActivityFeed';
 import '../styles/bento.css';
 
 // Map repo names to live sites
@@ -189,7 +190,7 @@ const Home = () => {
                   <span className="ai-badge-dot"></span>
                   <span className="ai-badge-text">Powered by AI</span>
                 </div>
-                <p className="ai-badge-subtext">This site runs itself (Almost. I'm working on it.)</p>
+                <p className="ai-badge-subtext">This site runs itself</p>
               </div>
             </div>
           </div>
@@ -385,22 +386,8 @@ const Home = () => {
               </Link>
             </div>
 
-            {/* Connection Lines Visual */}
-            <div className="ecosystem-connections">
-              <svg className="connection-svg" viewBox="0 0 800 60" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ff7a5c" stopOpacity="0.6"/>
-                    <stop offset="50%" stopColor="#20d9d2" stopOpacity="0.8"/>
-                    <stop offset="100%" stopColor="#ff7a5c" stopOpacity="0.6"/>
-                  </linearGradient>
-                </defs>
-                <path d="M100,30 Q200,10 300,30 T500,30 T700,30" stroke="url(#lineGrad)" strokeWidth="2" fill="none" strokeDasharray="8,4">
-                  <animate attributeName="stroke-dashoffset" from="0" to="24" dur="2s" repeatCount="indefinite"/>
-                </path>
-              </svg>
-              <span className="connection-label">All systems share data via Firebase + MCP</span>
-            </div>
+            {/* Live Agent Activity Feed */}
+            <AgentActivityFeed maxItems={6} showReasoning={true} />
           </div>
         </section>
 

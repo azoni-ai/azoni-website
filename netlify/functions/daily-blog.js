@@ -34,7 +34,8 @@ const db = admin.firestore();
 
 const GITHUB_USERNAME = 'azoni';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
 // ============ GITHUB: Fetch Yesterday's Commits ============
 
 async function fetchCommitsForDate(targetDate) {
@@ -444,6 +445,50 @@ exports.handler = async (event, context) => {
       coverSvg,
       targetDate
     });
+
+    // 7. Log activity with reasoning
+    if (result.published) {
+      const repoNames = Object.keys(commitsByRepo);
+      const topRepo = Object.entries(commitsByRepo)
+        .sort((a, b) => b[1].commits.length - a[1].commits.length)[0];
+      
+      // Generate reasoning about focus
+      let reasoning = `Found ${totalCommits} commits across ${repoNames.length} repo${repoNames.length > 1 ? 's' : ''}: ${repoNames.join(', ')}. `;
+      
+      if (topRepo) {
+        const [repoName, repoData] = topRepo;
+        reasoning += `Most activity was in ${repoName} (${repoData.commits.length} commits), `;
+        
+        // Analyze commit patterns
+        const commitMessages = repoData.commits.map(c => c.message.toLowerCase());
+        if (commitMessages.some(m => m.includes('fix'))) {
+          reasoning += 'which included bug fixes. ';
+        } else if (commitMessages.some(m => m.includes('add') || m.includes('new'))) {
+          reasoning += 'with new features being added. ';
+        } else {
+          reasoning += 'so focused the narrative there. ';
+        }
+      }
+      
+      reasoning += `Generated title "${blogPost.title}" to capture the day's main theme.`;
+
+      await db.collection('agent_activity').add({
+        type: 'blog_generated',
+        title: 'Wrote daily dev log',
+        description: blogPost.title,
+        reasoning: reasoning,
+        metadata: {
+          id: result.id,
+          slug: result.slug,
+          totalCommits,
+          repos: repoNames
+        },
+        source: 'daily-blog',
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      console.log('[daily-blog] Logged activity to agent_activity');
+    }
 
     return {
       statusCode: 200,

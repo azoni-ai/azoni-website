@@ -18,6 +18,7 @@ import {
   getDocs,
   serverTimestamp
 } from 'firebase/firestore';
+import { createProjectChunk } from '../utils/agentActivity';
 
 const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD;
 
@@ -1745,6 +1746,15 @@ const ProjectsManager = () => {
       const projectDocId = docId || data.id;
       if (!projectDocId) { alert('Project ID is required'); return; }
       await setDoc(doc(db, 'projects', projectDocId), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+      
+      // Auto-create RAG chunk for chatbot knowledge base
+      try {
+        await createProjectChunk({ id: projectDocId, ...data });
+        console.log('[admin] Created RAG chunk for project:', projectDocId);
+      } catch (ragError) {
+        console.error('[admin] Failed to create RAG chunk:', ragError);
+      }
+
       setShowEditor(false);
       setEditingProject(null);
       await loadProjects();
