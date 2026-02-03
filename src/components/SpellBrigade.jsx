@@ -267,11 +267,28 @@ export default function SpellBrigade() {
         console.log('Audio not supported');
       }
     }
+    // Mobile browsers require resuming AudioContext after user interaction
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume().catch(() => {});
+    }
   };
 
   const playSound = (type) => {
     const s = settingsRef.current;
-    if (!s.sfxEnabled || !audioCtxRef.current || s.volume === 0) return;
+    if (!s.sfxEnabled || s.volume === 0) return;
+    
+    // Initialize audio if needed
+    if (!audioCtxRef.current) {
+      initAudio();
+    }
+    
+    // Resume if suspended (mobile fix)
+    if (audioCtxRef.current?.state === 'suspended') {
+      audioCtxRef.current.resume().catch(() => {});
+      return; // Skip this sound, next one will work
+    }
+    
+    if (!audioCtxRef.current) return;
 
     try {
       const ctx = audioCtxRef.current;
@@ -364,6 +381,15 @@ export default function SpellBrigade() {
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
           osc.start(now);
           osc.stop(now + 0.6);
+        },
+        bossAttack: () => {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+          gain.gain.setValueAtTime(vol * 1.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
         },
       };
 
@@ -530,8 +556,15 @@ export default function SpellBrigade() {
       });
     });
 
-    socket.on('bossSpawn', () => {
+    socket.on('bossSpawn', (data) => {
       playSound('bossSpawn');
+      // Could show a notification here
+      console.log(`👑 Boss spawned: ${data?.name} in ${data?.zone}`);
+    });
+
+    socket.on('bossDefeated', (data) => {
+      // Could show celebration notification
+      console.log(`💀 Boss defeated: ${data?.name}! Respawns in 5 minutes.`);
     });
 
     socket.on('respawned', () => {
@@ -563,8 +596,117 @@ export default function SpellBrigade() {
       ArrowRight: 'right',
     };
 
+    // Click-to-move state
+    let clickMoveActive = false;
+    let clickMoveInterval = null;
+
+    const updateClickMove = () => {
+      if (!clickMoveActive || !playerDataRef.current) return;
+      
+      const zoom = zoomRef.current || 1;
+      const targetX = (mouseRef.current.x / zoom) + cameraRef.current.x;
+      const targetY = (mouseRef.current.y / zoom) + cameraRef.current.y;
+      const me = playerDataRef.current;
+      
+      const dx = targetX - me.x;
+      const dy = targetY - me.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      // Stop if close enough to target
+      if (dist < 20) {
+        inputRef.current = { up: false, down: false, left: false, right: false };
+        socketRef.current?.emit('input', inputRef.current);
+        return;
+      }
+      
+      // Calculate 8-directional movement
+      const angle = Math.atan2(dy, dx);
+      const threshold = Math.PI / 8; // 22.5 degrees
+      
+      const newInput = { up: false, down: false, left: false, right: false };
+      
+      // Right: -22.5 to 22.5
+      if (angle > -threshold && angle < threshold) {
+        newInput.right = true;
+      }
+      // Down-right: 22.5 to 67.5
+      else if (angle >= threshold && angle < 3 * threshold) {
+        newInput.right = true;
+        newInput.down = true;
+      }
+      // Down: 67.5 to 112.5
+      else if (angle >= 3 * threshold && angle < 5 * threshold) {
+        newInput.down = true;
+      }
+      // Down-left: 112.5 to 157.5
+      else if (angle >= 5 * threshold && angle < 7 * threshold) {
+        newInput.left = true;
+        newInput.down = true;
+      }
+      // Left: 157.5 to 180 or -180 to -157.5
+      else if (angle >= 7 * threshold || angle < -7 * threshold) {
+        newInput.left = true;
+      }
+      // Up-left: -157.5 to -112.5
+      else if (angle >= -7 * threshold && angle < -5 * threshold) {
+        newInput.left = true;
+        newInput.up = true;
+      }
+      // Up: -112.5 to -67.5
+      else if (angle >= -5 * threshold && angle < -3 * threshold) {
+        newInput.up = true;
+      }
+      // Up-right: -67.5 to -22.5
+      else if (angle >= -3 * threshold && angle < -threshold) {
+        newInput.right = true;
+        newInput.up = true;
+      }
+      
+      // Only emit if changed
+      if (JSON.stringify(newInput) !== JSON.stringify(inputRef.current)) {
+        inputRef.current = newInput;
+        socketRef.current?.emit('input', inputRef.current);
+      }
+    };
+
+    const handleMouseDown = (e) => {
+      // Only left click, and not on UI elements
+      if (e.button !== 0) return;
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+      if (!playerDataRef.current) return; // Only in game
+      
+      initAudio();
+      clickMoveActive = true;
+      
+      // Start updating movement
+      if (clickMoveInterval) clearInterval(clickMoveInterval);
+      clickMoveInterval = setInterval(updateClickMove, 50); // 20 times per second
+      updateClickMove(); // Immediate first update
+    };
+
+    const handleMouseUp = (e) => {
+      if (e.button !== 0) return;
+      clickMoveActive = false;
+      
+      if (clickMoveInterval) {
+        clearInterval(clickMoveInterval);
+        clickMoveInterval = null;
+      }
+      
+      // Stop movement
+      inputRef.current = { up: false, down: false, left: false, right: false };
+      socketRef.current?.emit('input', inputRef.current);
+    };
+
     const handleKeyDown = (e) => {
       initAudio();
+      
+      // Keyboard input stops click-to-move
+      clickMoveActive = false;
+      if (clickMoveInterval) {
+        clearInterval(clickMoveInterval);
+        clickMoveInterval = null;
+      }
 
       const dir = keyMap[e.code];
       if (dir && !inputRef.current[dir]) {
@@ -608,11 +750,16 @@ export default function SpellBrigade() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (clickMoveInterval) clearInterval(clickMoveInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -622,6 +769,7 @@ export default function SpellBrigade() {
   // ===========================================
   const handleJoystickStart = (e) => {
     e.preventDefault();
+    initAudio(); // Initialize audio on first touch
     const touch = e.touches[0];
     const rect = joystickBaseRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -742,6 +890,120 @@ export default function SpellBrigade() {
       targetX: me.x + dx * dist,
       targetY: me.y + dy * dist,
     });
+  };
+
+  // ===========================================
+  // TOUCH-TO-MOVE (Mobile - tap/drag on screen)
+  // ===========================================
+  const touchMoveRef = useRef({ active: false, identifier: null });
+
+  const updateTouchMove = (touchX, touchY) => {
+    if (!playerDataRef.current) return;
+    
+    const zoom = zoomRef.current || 1;
+    const targetX = (touchX / zoom) + cameraRef.current.x;
+    const targetY = (touchY / zoom) + cameraRef.current.y;
+    const me = playerDataRef.current;
+    
+    const dx = targetX - me.x;
+    const dy = targetY - me.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist < 30) {
+      inputRef.current = { up: false, down: false, left: false, right: false };
+      socketRef.current?.emit('input', inputRef.current);
+      return;
+    }
+    
+    const angle = Math.atan2(dy, dx);
+    const threshold = Math.PI / 8;
+    
+    const newInput = { up: false, down: false, left: false, right: false };
+    
+    if (angle > -threshold && angle < threshold) {
+      newInput.right = true;
+    } else if (angle >= threshold && angle < 3 * threshold) {
+      newInput.right = true;
+      newInput.down = true;
+    } else if (angle >= 3 * threshold && angle < 5 * threshold) {
+      newInput.down = true;
+    } else if (angle >= 5 * threshold && angle < 7 * threshold) {
+      newInput.left = true;
+      newInput.down = true;
+    } else if (angle >= 7 * threshold || angle < -7 * threshold) {
+      newInput.left = true;
+    } else if (angle >= -7 * threshold && angle < -5 * threshold) {
+      newInput.left = true;
+      newInput.up = true;
+    } else if (angle >= -5 * threshold && angle < -3 * threshold) {
+      newInput.up = true;
+    } else if (angle >= -3 * threshold && angle < -threshold) {
+      newInput.right = true;
+      newInput.up = true;
+    }
+    
+    if (JSON.stringify(newInput) !== JSON.stringify(inputRef.current)) {
+      inputRef.current = newInput;
+      socketRef.current?.emit('input', inputRef.current);
+    }
+  };
+
+  const isInControlArea = (x, y) => {
+    // Check if touch is in joystick area (bottom-left)
+    const joystickBounds = { left: 0, right: 180, top: window.innerHeight - 230, bottom: window.innerHeight };
+    if (x >= joystickBounds.left && x <= joystickBounds.right && 
+        y >= joystickBounds.top && y <= joystickBounds.bottom) {
+      return true;
+    }
+    // Check if touch is in action buttons area (bottom-right)
+    const buttonBounds = { left: window.innerWidth - 120, right: window.innerWidth, top: window.innerHeight - 230, bottom: window.innerHeight };
+    if (x >= buttonBounds.left && x <= buttonBounds.right && 
+        y >= buttonBounds.top && y <= buttonBounds.bottom) {
+      return true;
+    }
+    return false;
+  };
+
+  const handleScreenTouchStart = (e) => {
+    if (!playerDataRef.current) return;
+    
+    // Initialize audio on first touch (required for mobile)
+    initAudio();
+    
+    // Find a touch that's not in control areas
+    for (const touch of e.changedTouches) {
+      if (!isInControlArea(touch.clientX, touch.clientY)) {
+        touchMoveRef.current = { active: true, identifier: touch.identifier };
+        
+        // Start moving immediately
+        updateTouchMove(touch.clientX, touch.clientY);
+        break;
+      }
+    }
+  };
+
+  const handleScreenTouchMove = (e) => {
+    if (!touchMoveRef.current.active) return;
+    
+    for (const touch of e.changedTouches) {
+      if (touch.identifier === touchMoveRef.current.identifier) {
+        updateTouchMove(touch.clientX, touch.clientY);
+        break;
+      }
+    }
+  };
+
+  const handleScreenTouchEnd = (e) => {
+    for (const touch of e.changedTouches) {
+      if (touch.identifier === touchMoveRef.current.identifier) {
+        touchMoveRef.current = { active: false, identifier: null };
+        
+        // Stop movement
+        inputRef.current = { up: false, down: false, left: false, right: false };
+        socketRef.current?.emit('input', inputRef.current);
+        break;
+      }
+    }
   };
 
   // ===========================================
@@ -1800,15 +2062,17 @@ export default function SpellBrigade() {
     // Level up popup
     levelUpPopup: {
       position: 'absolute',
-      top: '50%',
+      top: isMobile ? 60 : 80,
       left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: 'rgba(0,0,0,0.95)',
-      padding: '30px 50px',
-      borderRadius: 20,
-      border: '3px solid #ffd93d',
+      transform: 'translateX(-50%)',
+      background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(5px)',
+      padding: isMobile ? '12px 25px' : '15px 35px',
+      borderRadius: 15,
+      border: '2px solid rgba(255,215,61,0.5)',
       textAlign: 'center',
-      zIndex: 60,
+      zIndex: 55,
+      pointerEvents: 'none', // Don't block clicks/touches
     },
     levelUpTitle: {
       color: '#ffd93d',
@@ -2291,9 +2555,15 @@ export default function SpellBrigade() {
   // RENDER
   // ===========================================
   return (
-    <div style={styles.container} onClick={initAudio}>
+    <div style={styles.container} onClick={initAudio} onTouchStart={initAudio}>
       {/* Game Canvas */}
-      <canvas ref={canvasRef} style={styles.canvas} />
+      <canvas 
+        ref={canvasRef} 
+        style={styles.canvas} 
+        onTouchStart={isMobile ? handleScreenTouchStart : undefined}
+        onTouchMove={isMobile ? handleScreenTouchMove : undefined}
+        onTouchEnd={isMobile ? handleScreenTouchEnd : undefined}
+      />
       <canvas 
         ref={minimapRef} 
         width={isMobile ? 100 : 160} 
@@ -2880,14 +3150,13 @@ export default function SpellBrigade() {
         </>
       )}
 
-      {/* Level Up Popup */}
+      {/* Level Up Popup - Non-blocking notification */}
       {levelUp && (
         <div style={styles.levelUpPopup}>
-          <h2 style={styles.levelUpTitle}>
-            <span style={{ width: 28, height: 28 }}>{SVG.star}</span>
-            Level Up!
-          </h2>
-          <p style={{ fontSize: '1.2rem' }}>Level {levelUp}</p>
+          <span style={{ color: '#ffd93d', display: 'flex', alignItems: 'center', gap: 8, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 600 }}>
+            <span style={{ width: 20, height: 20 }}>{SVG.star}</span>
+            Level {levelUp}!
+          </span>
         </div>
       )}
 
