@@ -48,6 +48,17 @@ export const DEFAULT_CLASSES = {
     dash: 'Blink',
     ultimate: 'Arcane Barrage',
   },
+  voidlord: {
+    id: 'voidlord',
+    name: 'Void Lord',
+    color: '#1a0a2e',
+    secondaryColor: '#ff00ff',
+    description: 'Master of the void. Admin only.',
+    dash: 'Void Shift',
+    ultimate: 'Void Rift',
+    isAdmin: true,
+    hidden: true, // Don't show in normal class selection
+  },
 };
 
 export const DEFAULT_SKINS = [
@@ -69,6 +80,9 @@ export const DEFAULT_SKINS = [
   { id: 'arcanist_archmage', class: 'arcanist', name: 'Archmage', color: '#7c3aed', requiredXp: 2000 },
   { id: 'arcanist_celestial', class: 'arcanist', name: 'Celestial', color: '#fcd34d', requiredXp: 5000 },
   { id: 'arcanist_cosmic', class: 'arcanist', name: 'Cosmic Entity', color: '#1e1b4b', requiredXp: 10000 },
+  // Voidlord (Admin)
+  { id: 'voidlord_default', class: 'voidlord', name: 'Void Lord', color: '#1a0a2e', requiredXp: 0 },
+  { id: 'voidlord_ascended', class: 'voidlord', name: 'Ascended', color: '#ff00ff', requiredXp: 0 },
 ];
 
 // Server URL - set REACT_APP_GAME_SERVER in your .env file

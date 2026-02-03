@@ -69,6 +69,11 @@ export default function SpellBrigade() {
   });
   const [dashCooldown, setDashCooldown] = useState(0); // timestamp when ready
   const [ultCooldown, setUltCooldown] = useState(0);   // timestamp when ready
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [showChat, setShowChat] = useState(true);
+  const [adminKey, setAdminKey] = useState('');
+  const chatContainerRef = useRef(null);
   const dashCooldownRef = useRef(0);
   const ultCooldownRef = useRef(0);
   const lastZoneRef = useRef(null);
@@ -830,6 +835,25 @@ export default function SpellBrigade() {
 
     socket.on('shopError', (data) => {
       console.log('Shop error:', data.message);
+    });
+
+    // Chat messages
+    socket.on('chatMessage', (msg) => {
+      setChatMessages(prev => {
+        const updated = [...prev, msg];
+        if (updated.length > 50) updated.shift();
+        return updated;
+      });
+      // Auto-scroll chat
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+      }, 50);
+    });
+
+    socket.on('chatHistory', (history) => {
+      setChatMessages(history || []);
     });
 
     return () => {
@@ -2800,55 +2824,111 @@ export default function SpellBrigade() {
 
         const isMe = player.id === playerIdRef.current;
         const classColor = (classes[player.class] || DEFAULT_CLASSES[player.class])?.color || '#fff';
+        const isVoidlord = player.class === 'voidlord';
         const bob = player.state === 'walk' ? Math.sin((player.animFrame || 0) * Math.PI / 2) * 2 : 0;
+
+        // Voidlord special aura
+        if (isVoidlord) {
+          const time = Date.now() / 1000;
+          const pulseSize = 35 + Math.sin(time * 3) * 8;
+          
+          // Void aura
+          const gradient = ctx.createRadialGradient(px, py, 0, px, py, pulseSize);
+          gradient.addColorStop(0, 'rgba(255,0,255,0.3)');
+          gradient.addColorStop(0.5, 'rgba(26,10,46,0.2)');
+          gradient.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(px, py, pulseSize, 0, Math.PI * 2);
+          ctx.fillStyle = gradient;
+          ctx.fill();
+          
+          // Orbiting void particles
+          for (let i = 0; i < 4; i++) {
+            const angle = time * 2 + (i * Math.PI / 2);
+            const orbitX = px + Math.cos(angle) * 25;
+            const orbitY = py + Math.sin(angle) * 15 - 10;
+            ctx.beginPath();
+            ctx.arc(orbitX, orbitY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff00ff';
+            ctx.fill();
+          }
+        }
 
         // Shadow
         ctx.beginPath();
-        ctx.ellipse(px, py + 12, 16, 8, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.ellipse(px, py + 12, isVoidlord ? 20 : 16, isVoidlord ? 10 : 8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = isVoidlord ? 'rgba(255,0,255,0.4)' : 'rgba(0,0,0,0.3)';
         ctx.fill();
 
         // Robe
-        ctx.fillStyle = classColor;
+        ctx.fillStyle = isVoidlord ? '#1a0a2e' : classColor;
         ctx.beginPath();
         ctx.moveTo(px, py - 12 - bob);
         ctx.lineTo(px - 14, py + 14);
         ctx.lineTo(px + 14, py + 14);
         ctx.closePath();
         ctx.fill();
+        
+        // Voidlord robe glow edge
+        if (isVoidlord) {
+          ctx.strokeStyle = '#ff00ff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
 
         // Head
         ctx.beginPath();
         ctx.arc(px, py - 18 - bob, 11, 0, Math.PI * 2);
-        ctx.fillStyle = '#fcd5ce';
+        ctx.fillStyle = isVoidlord ? '#2d1b4e' : '#fcd5ce';
         ctx.fill();
 
         // Hat
-        ctx.fillStyle = classColor;
+        ctx.fillStyle = isVoidlord ? '#1a0a2e' : classColor;
         ctx.beginPath();
         ctx.moveTo(px, py - 42 - bob);
         ctx.lineTo(px - 16, py - 16 - bob);
         ctx.lineTo(px + 16, py - 16 - bob);
         ctx.closePath();
         ctx.fill();
+        
+        // Voidlord hat glow
+        if (isVoidlord) {
+          ctx.strokeStyle = '#ff00ff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
 
         // Eyes
-        ctx.fillStyle = '#333';
+        ctx.fillStyle = isVoidlord ? '#ff00ff' : '#333';
         ctx.beginPath();
-        ctx.arc(px - 3, py - 19 - bob, 2, 0, Math.PI * 2);
+        ctx.arc(px - 3, py - 19 - bob, isVoidlord ? 3 : 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(px + 3, py - 19 - bob, 2, 0, Math.PI * 2);
+        ctx.arc(px + 3, py - 19 - bob, isVoidlord ? 3 : 2, 0, Math.PI * 2);
         ctx.fill();
 
         // Name & level
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(player.name, px, py + 28);
-        ctx.fillStyle = '#ffd93d';
-        ctx.font = '10px sans-serif';
-        ctx.fillText('Lv.' + player.level, px, py + 40);
+        if (isVoidlord) {
+          // Void lord special name with glow
+          ctx.shadowColor = '#ff00ff';
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = '#ff00ff';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('👑 ' + player.name, px, py + 28);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#ff00ff';
+          ctx.font = '10px sans-serif';
+          ctx.fillText('VOID LORD', px, py + 40);
+        } else {
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(player.name, px, py + 28);
+          ctx.fillStyle = '#ffd93d';
+          ctx.font = '10px sans-serif';
+          ctx.fillText('Lv.' + player.level, px, py + 40);
+        }
 
         // Health bar
         if (!isMe || player.health < player.maxHealth) {
@@ -2856,7 +2936,7 @@ export default function SpellBrigade() {
           ctx.fillRect(px - 19, py - 51 - bob, 38, 7);
           ctx.fillStyle = '#1a1a2e';
           ctx.fillRect(px - 18, py - 50 - bob, 36, 5);
-          ctx.fillStyle = '#ef4444';
+          ctx.fillStyle = isVoidlord ? '#ff00ff' : '#ef4444';
           ctx.fillRect(px - 18, py - 50 - bob, 36 * player.health / player.maxHealth, 5);
         }
 
@@ -2864,7 +2944,7 @@ export default function SpellBrigade() {
         if (isMe) {
           ctx.beginPath();
           ctx.arc(px, py, 28, 0, Math.PI * 2);
-          ctx.strokeStyle = classColor + '50';
+          ctx.strokeStyle = (isVoidlord ? '#ff00ff' : classColor) + '50';
           ctx.lineWidth = 3;
           ctx.stroke();
         }
@@ -2941,6 +3021,7 @@ export default function SpellBrigade() {
           
           // Dance animation for dance emote (side sway)
           if (player.emote === 'dance') {
+            const sway = Math.sin(emoteTime * 6) * 5;
             // Already drawn player, but add sparkles
             for (let i = 0; i < 3; i++) {
               const sparkleAngle = emoteTime * 4 + i * 2;
@@ -3383,6 +3464,7 @@ export default function SpellBrigade() {
       playerName: savedPlayer.name,
       playerClass: savedPlayer.class,
       selectedSkin: savedPlayer.selectedSkin,
+      adminKey: adminKey,
     });
   };
 
@@ -3404,6 +3486,7 @@ export default function SpellBrigade() {
       playerName: name,
       playerClass: selectedClass,
       selectedSkin: selectedSkin,
+      adminKey: adminKey, // For voidlord access
     });
   };
 
@@ -3558,29 +3641,74 @@ export default function SpellBrigade() {
             />
 
             <div style={styles.classSelect}>
-              {Object.entries(classes).map(([id, c]) => (
+              {Object.entries(classes)
+                .filter(([id, c]) => !c.hidden || adminKey === 'azoni-voidlord-2026')
+                .map(([id, c]) => (
                 <div
                   key={id}
-                  style={styles.classCard(selectedClass === id, c.color)}
+                  style={{
+                    ...styles.classCard(selectedClass === id, c.color),
+                    ...(c.isAdmin ? {
+                      background: `linear-gradient(135deg, ${c.color}40, #ff00ff20)`,
+                      border: `2px solid ${c.secondaryColor || c.color}`,
+                      boxShadow: `0 0 20px ${c.secondaryColor || c.color}40`,
+                    } : {}),
+                  }}
                   onClick={() => handleClassChange(id)}
                 >
-                  <div style={styles.classIcon(c.color)}>
+                  <div style={styles.classIcon(c.secondaryColor || c.color)}>
                     <span style={styles.classIconSvg}>{CLASS_SVG[id] || SVG.arcane}</span>
                   </div>
-                  <h3 style={{ color: c.color, marginBottom: 8, fontSize: isMobile ? '.95rem' : '1.1rem' }}>{c.name}</h3>
+                  {c.isAdmin && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: 8, 
+                      right: 8, 
+                      fontSize: '.6rem', 
+                      background: '#ff00ff',
+                      color: '#000',
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      fontWeight: 'bold',
+                    }}>ADMIN</div>
+                  )}
+                  <h3 style={{ color: c.secondaryColor || c.color, marginBottom: 8, fontSize: isMobile ? '.95rem' : '1.1rem' }}>{c.name}</h3>
                   <p style={{ fontSize: isMobile ? '.7rem' : '.8rem', color: '#888', lineHeight: 1.5 }}>{c.description}</p>
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #2a2a3e' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.7rem', color: '#666', marginBottom: 4 }}>
-                      <span style={{ color: c.color, width: 12, height: 12 }}>{SVG.dash}</span>
+                      <span style={{ color: c.secondaryColor || c.color, width: 12, height: 12 }}>{SVG.dash}</span>
                       {c.dash || 'Dash'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.7rem', color: '#666' }}>
-                      <span style={{ color: c.color, width: 12, height: 12 }}>{SVG.warning}</span>
+                      <span style={{ color: c.secondaryColor || c.color, width: 12, height: 12 }}>{SVG.warning}</span>
                       {c.ultimate || 'Ultimate'}
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* Secret Admin Key Input */}
+            <div style={{ marginTop: 15 }}>
+              <input
+                style={{
+                  ...styles.input,
+                  fontSize: '0.7rem',
+                  padding: '8px 12px',
+                  background: adminKey ? 'rgba(255,0,255,0.1)' : 'rgba(255,255,255,0.03)',
+                  borderColor: adminKey ? '#ff00ff' : 'rgba(255,255,255,0.1)',
+                }}
+                type="password"
+                placeholder="Admin key (optional)"
+                value={adminKey}
+                onChange={(e) => {
+                  setAdminKey(e.target.value);
+                  if (e.target.value === 'azoni-voidlord-2026') {
+                    setSelectedClass('voidlord');
+                    setSelectedSkin('voidlord_default');
+                  }
+                }}
+              />
             </div>
 
             {/* Skin Preview */}
@@ -4553,6 +4681,131 @@ export default function SpellBrigade() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Chat Box */}
+      {screen === 'game' && showChat && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 120 : 20,
+          left: 20,
+          width: isMobile ? 250 : 320,
+          maxHeight: 200,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(5px)',
+          borderRadius: 10,
+          border: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 100,
+          overflow: 'hidden',
+        }}>
+          {/* Chat header */}
+          <div style={{
+            padding: '6px 12px',
+            background: 'rgba(255,255,255,0.05)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>Chat</span>
+            <button 
+              onClick={() => setShowChat(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+              }}
+            >✕</button>
+          </div>
+          
+          {/* Messages */}
+          <div 
+            ref={chatContainerRef}
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '8px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              maxHeight: 120,
+            }}
+          >
+            {chatMessages.map((msg) => (
+              <div key={msg.id} style={{ fontSize: '0.75rem', lineHeight: 1.3 }}>
+                {msg.type === 'system' ? (
+                  <span style={{ color: '#888', fontStyle: 'italic' }}>{msg.text}</span>
+                ) : (
+                  <>
+                    <span style={{ 
+                      color: classes[msg.playerClass]?.color || '#fff',
+                      fontWeight: 600,
+                    }}>
+                      {msg.playerName}:
+                    </span>
+                    <span style={{ color: '#ccc', marginLeft: 6 }}>{msg.text}</span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          {/* Input */}
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (chatInput.trim()) {
+                socketRef.current?.emit('chat', chatInput.trim());
+                setChatInput('');
+              }
+            }}
+            style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Press Enter to chat..."
+              maxLength={200}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: 'none',
+                color: '#fff',
+                fontSize: '0.75rem',
+                outline: 'none',
+              }}
+            />
+          </form>
+        </div>
+      )}
+      
+      {/* Chat toggle button (when hidden) */}
+      {screen === 'game' && !showChat && (
+        <button
+          onClick={() => setShowChat(true)}
+          style={{
+            position: 'fixed',
+            bottom: isMobile ? 120 : 20,
+            left: 20,
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: 'rgba(0,0,0,0.7)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+        >💬</button>
       )}
 
       {/* Boss Spawn Alert */}
