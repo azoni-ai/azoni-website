@@ -201,10 +201,29 @@ export default function SpellBrigade() {
     rec: 0,
   });
 
+  // Mobile detection and touch state
+  const [isMobile, setIsMobile] = useState(false);
+  const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
+  const joystickBaseRef = useRef(null);
+  const joystickKnobRef = useRef(null);
+
   // Keep settings ref in sync
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        || window.innerWidth < 768
+        || ('ontouchstart' in window);
+      setIsMobile(mobile);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // ===========================================
   // AUDIO SYSTEM
@@ -533,6 +552,133 @@ export default function SpellBrigade() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ===========================================
+  // TOUCH CONTROLS (Mobile)
+  // ===========================================
+  const handleJoystickStart = (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = joystickBaseRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    joystickRef.current = {
+      active: true,
+      startX: rect.left + rect.width / 2,
+      startY: rect.top + rect.height / 2,
+      currentX: touch.clientX,
+      currentY: touch.clientY,
+    };
+    updateJoystickInput();
+  };
+
+  const handleJoystickMove = (e) => {
+    if (!joystickRef.current.active) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    joystickRef.current.currentX = touch.clientX;
+    joystickRef.current.currentY = touch.clientY;
+    updateJoystickInput();
+    updateJoystickVisual();
+  };
+
+  const handleJoystickEnd = () => {
+    joystickRef.current.active = false;
+    inputRef.current = { up: false, down: false, left: false, right: false };
+    socketRef.current?.emit('input', inputRef.current);
+    updateJoystickVisual();
+  };
+
+  const updateJoystickInput = () => {
+    const js = joystickRef.current;
+    const dx = js.currentX - js.startX;
+    const dy = js.currentY - js.startY;
+    const deadzone = 15;
+    
+    const newInput = {
+      up: dy < -deadzone,
+      down: dy > deadzone,
+      left: dx < -deadzone,
+      right: dx > deadzone,
+    };
+    
+    if (JSON.stringify(newInput) !== JSON.stringify(inputRef.current)) {
+      inputRef.current = newInput;
+      socketRef.current?.emit('input', inputRef.current);
+    }
+  };
+
+  const updateJoystickVisual = () => {
+    if (!joystickKnobRef.current) return;
+    const js = joystickRef.current;
+    
+    if (!js.active) {
+      joystickKnobRef.current.style.transform = 'translate(-50%, -50%)';
+      return;
+    }
+    
+    let dx = js.currentX - js.startX;
+    let dy = js.currentY - js.startY;
+    const maxDist = 40;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist > maxDist) {
+      dx = (dx / dist) * maxDist;
+      dy = (dy / dist) * maxDist;
+    }
+    
+    joystickKnobRef.current.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  };
+
+  const handleDashButton = () => {
+    initAudio();
+    if (!socketRef.current || !playerIdRef.current) return;
+    
+    // Dash toward center of screen (forward direction based on movement)
+    const me = playerDataRef.current;
+    if (!me) return;
+    
+    const input = inputRef.current;
+    let dx = 0, dy = 0;
+    if (input.up) dy -= 1;
+    if (input.down) dy += 1;
+    if (input.left) dx -= 1;
+    if (input.right) dx += 1;
+    
+    // If not moving, dash forward (up)
+    if (dx === 0 && dy === 0) dy = -1;
+    
+    const dist = 200;
+    socketRef.current.emit('dash', {
+      targetX: me.x + dx * dist,
+      targetY: me.y + dy * dist,
+    });
+    playSound('dash');
+  };
+
+  const handleUltimateButton = () => {
+    initAudio();
+    if (!socketRef.current || !playerIdRef.current) return;
+    
+    const me = playerDataRef.current;
+    if (!me) return;
+    
+    // Cast ultimate in movement direction or forward
+    const input = inputRef.current;
+    let dx = 0, dy = 0;
+    if (input.up) dy -= 1;
+    if (input.down) dy += 1;
+    if (input.left) dx -= 1;
+    if (input.right) dx += 1;
+    
+    if (dx === 0 && dy === 0) dy = -1;
+    
+    const dist = 150;
+    socketRef.current.emit('ultimate', {
+      targetX: me.x + dx * dist,
+      targetY: me.y + dy * dist,
+    });
+  };
 
   // ===========================================
   // GAME RENDER LOOP
@@ -1018,6 +1164,8 @@ export default function SpellBrigade() {
       overflow: 'hidden',
       fontFamily: "'Segoe UI', system-ui, sans-serif",
       color: '#fff',
+      touchAction: 'none', // Prevent mobile browser gestures
+      userSelect: 'none',
     },
     canvas: {
       display: 'block',
@@ -1027,8 +1175,8 @@ export default function SpellBrigade() {
     },
     minimap: {
       position: 'absolute',
-      bottom: 20,
-      right: 20,
+      bottom: isMobile ? 220 : 20,
+      right: isMobile ? 10 : 20,
       border: '2px solid rgba(255,255,255,0.15)',
       borderRadius: 12,
       display: settings.showMinimap && screen === 'game' ? 'block' : 'none',
@@ -1051,69 +1199,74 @@ export default function SpellBrigade() {
     title: {
       display: 'flex',
       alignItems: 'center',
-      gap: 15,
+      gap: isMobile ? 10 : 15,
       marginBottom: 8,
     },
     titleText: {
-      fontSize: '3rem',
+      fontSize: isMobile ? '2rem' : '3rem',
       background: 'linear-gradient(135deg, #ffd93d, #ff6b35)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
     },
     subtitle: {
       color: '#666',
-      marginBottom: '2rem',
+      marginBottom: isMobile ? '1rem' : '2rem',
       letterSpacing: 2,
       textTransform: 'uppercase',
+      fontSize: isMobile ? '.8rem' : '1rem',
     },
     tabs: {
       display: 'flex',
-      gap: 8,
-      marginBottom: 25,
+      gap: isMobile ? 4 : 8,
+      marginBottom: isMobile ? 15 : 25,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
     },
     tab: (active) => ({
-      padding: '12px 28px',
+      padding: isMobile ? '8px 16px' : '12px 28px',
       background: active ? 'linear-gradient(135deg, #ffd93d, #ff6b35)' : 'transparent',
       border: active ? 'none' : '2px solid #2a2a3e',
       color: active ? '#000' : '#888',
-      fontSize: '.95rem',
+      fontSize: isMobile ? '.8rem' : '.95rem',
       cursor: 'pointer',
       borderRadius: 25,
       display: 'flex',
       alignItems: 'center',
-      gap: 8,
+      gap: isMobile ? 4 : 8,
       fontWeight: active ? 600 : 400,
     }),
     tabIcon: {
-      width: 18,
-      height: 18,
+      width: isMobile ? 14 : 18,
+      height: isMobile ? 14 : 18,
     },
     content: {
       width: '100%',
       maxWidth: 900,
-      padding: 20,
+      padding: isMobile ? 10 : 20,
+      overflowY: 'auto',
+      maxHeight: isMobile ? '60vh' : 'auto',
     },
     input: {
-      padding: '14px 20px',
-      fontSize: '1rem',
+      padding: isMobile ? '10px 16px' : '14px 20px',
+      fontSize: isMobile ? '.9rem' : '1rem',
       background: 'rgba(255,255,255,0.05)',
       border: '2px solid #2a2a3e',
       borderRadius: 12,
       color: '#fff',
-      width: 280,
+      width: isMobile ? 220 : 280,
       textAlign: 'center',
       outline: 'none',
     },
     classSelect: {
       display: 'flex',
-      gap: 20,
+      gap: isMobile ? 10 : 20,
       flexWrap: 'wrap',
       justifyContent: 'center',
-      margin: '25px 0',
+      margin: isMobile ? '15px 0' : '25px 0',
     },
     classCard: (selected, color) => ({
-      width: 200,
-      padding: '25px 20px',
+      width: isMobile ? 150 : 200,
+      padding: isMobile ? '15px 12px' : '25px 20px',
       background: 'rgba(255,255,255,0.03)',
       border: `2px solid ${selected ? color : '#2a2a3e'}`,
       borderRadius: 16,
@@ -1123,9 +1276,9 @@ export default function SpellBrigade() {
       boxShadow: selected ? `0 0 30px ${color}30` : 'none',
     }),
     classIcon: (color) => ({
-      width: 70,
-      height: 70,
-      margin: '0 auto 15px',
+      width: isMobile ? 50 : 70,
+      height: isMobile ? 50 : 70,
+      margin: '0 auto 10px',
       borderRadius: '50%',
       display: 'flex',
       alignItems: 'center',
@@ -1134,17 +1287,17 @@ export default function SpellBrigade() {
       background: color + '20',
     }),
     classIconSvg: {
-      width: 36,
-      height: 36,
+      width: isMobile ? 26 : 36,
+      height: isMobile ? 26 : 36,
     },
     btn: {
-      padding: '16px 45px',
-      fontSize: '1.1rem',
+      padding: isMobile ? '12px 30px' : '16px 45px',
+      fontSize: isMobile ? '1rem' : '1.1rem',
       fontWeight: 600,
       border: 0,
       borderRadius: 12,
       cursor: 'pointer',
-      marginTop: 25,
+      marginTop: isMobile ? 15 : 25,
       display: 'flex',
       alignItems: 'center',
       gap: 10,
@@ -1152,8 +1305,8 @@ export default function SpellBrigade() {
       color: '#000',
     },
     btnIcon: {
-      width: 22,
-      height: 22,
+      width: isMobile ? 18 : 22,
+      height: isMobile ? 18 : 22,
     },
     // HUD styles
     hud: {
@@ -1351,77 +1504,80 @@ export default function SpellBrigade() {
     tutorial: {
       maxWidth: 700,
       textAlign: 'left',
+      padding: isMobile ? '0 10px' : 0,
     },
     tutorialSection: {
-      marginBottom: 28,
+      marginBottom: isMobile ? 20 : 28,
     },
     tutorialTitle: {
       color: '#ffd93d',
-      marginBottom: 12,
+      marginBottom: isMobile ? 8 : 12,
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      fontSize: '1.1rem',
+      fontSize: isMobile ? '.95rem' : '1.1rem',
     },
     tutorialIcon: {
-      width: 22,
-      height: 22,
+      width: isMobile ? 18 : 22,
+      height: isMobile ? 18 : 22,
     },
     tutorialText: {
       color: '#999',
       lineHeight: 1.7,
+      fontSize: isMobile ? '.85rem' : '1rem',
     },
     key: {
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      minWidth: 32,
-      padding: '4px 10px',
+      minWidth: isMobile ? 28 : 32,
+      padding: isMobile ? '3px 8px' : '4px 10px',
       background: '#2a2a3e',
       borderRadius: 6,
       fontFamily: 'monospace',
-      fontSize: '.85rem',
+      fontSize: isMobile ? '.75rem' : '.85rem',
       color: '#fff',
       marginRight: 8,
     },
     zoneList: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: 12,
+      gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+      gap: isMobile ? 8 : 12,
       marginTop: 15,
     },
     zoneItem: (color) => ({
-      padding: 14,
+      padding: isMobile ? 10 : 14,
       background: 'rgba(255,255,255,0.03)',
       borderRadius: 10,
       borderLeft: `4px solid ${color}`,
       display: 'flex',
       alignItems: 'flex-start',
-      gap: 12,
+      gap: isMobile ? 8 : 12,
     }),
     zoneItemIcon: {
-      width: 24,
-      height: 24,
+      width: isMobile ? 20 : 24,
+      height: isMobile ? 20 : 24,
       flexShrink: 0,
     },
     // Settings styles
     settingsContent: {
       maxWidth: 380,
+      padding: isMobile ? '0 10px' : 0,
     },
     settingRow: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: 16,
+      padding: isMobile ? 12 : 16,
       background: 'rgba(255,255,255,0.03)',
       borderRadius: 12,
-      marginBottom: 12,
+      marginBottom: isMobile ? 8 : 12,
     },
     settingLabel: {
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      fontSize: '.95rem',
+      fontSize: isMobile ? '.85rem' : '.95rem',
     },
     settingIcon: {
       width: 20,
@@ -1466,6 +1622,127 @@ export default function SpellBrigade() {
       color: '#888',
       marginTop: 5,
     },
+    // Mobile touch controls
+    touchControls: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 200,
+      pointerEvents: 'none',
+      zIndex: 60,
+    },
+    joystickArea: {
+      position: 'absolute',
+      bottom: 30,
+      left: 30,
+      width: 120,
+      height: 120,
+      pointerEvents: 'auto',
+      touchAction: 'none',
+    },
+    joystickBase: {
+      width: 120,
+      height: 120,
+      borderRadius: '50%',
+      background: 'rgba(255,255,255,0.1)',
+      border: '3px solid rgba(255,255,255,0.3)',
+      position: 'relative',
+    },
+    joystickKnob: {
+      width: 50,
+      height: 50,
+      borderRadius: '50%',
+      background: 'rgba(255,255,255,0.5)',
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      transition: 'none',
+    },
+    actionButtons: {
+      position: 'absolute',
+      bottom: 30,
+      right: 30,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 15,
+      pointerEvents: 'auto',
+    },
+    actionButton: (color) => ({
+      width: 70,
+      height: 70,
+      borderRadius: '50%',
+      background: `linear-gradient(135deg, ${color}, ${color}aa)`,
+      border: '3px solid rgba(255,255,255,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#fff',
+      fontSize: '0.75rem',
+      fontWeight: 'bold',
+      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+      cursor: 'pointer',
+      touchAction: 'manipulation',
+      userSelect: 'none',
+    }),
+    actionButtonIcon: {
+      width: 28,
+      height: 28,
+    },
+    // Mobile-specific style overrides
+    mobileHud: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      zIndex: 50,
+    },
+    mobileHudPanel: {
+      background: 'rgba(0,0,0,0.85)',
+      backdropFilter: 'blur(10px)',
+      padding: 10,
+      borderRadius: 12,
+      minWidth: 140,
+      border: '1px solid rgba(255,255,255,0.1)',
+    },
+    mobilePlayerHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 8,
+      paddingBottom: 8,
+      borderBottom: '1px solid rgba(255,255,255,0.1)',
+    },
+    mobileAvatar: (color) => ({
+      width: 32,
+      height: 32,
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: color + '25',
+      color: color,
+    }),
+    mobileAvatarIcon: {
+      width: 18,
+      height: 18,
+    },
+    mobileZoneIndicator: {
+      position: 'absolute',
+      top: 10,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'rgba(0,0,0,0.85)',
+      backdropFilter: 'blur(10px)',
+      padding: '6px 14px',
+      borderRadius: 20,
+      fontSize: '.75rem',
+      zIndex: 50,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      border: '1px solid rgba(255,255,255,0.1)',
+    },
   };
 
   // ===========================================
@@ -1475,13 +1752,18 @@ export default function SpellBrigade() {
     <div style={styles.container} onClick={initAudio}>
       {/* Game Canvas */}
       <canvas ref={canvasRef} style={styles.canvas} />
-      <canvas ref={minimapRef} width={160} height={160} style={styles.minimap} />
+      <canvas 
+        ref={minimapRef} 
+        width={isMobile ? 100 : 160} 
+        height={isMobile ? 100 : 160} 
+        style={styles.minimap} 
+      />
 
       {/* Title Screen */}
       <div style={{ ...styles.overlay, ...(screen !== 'title' ? styles.hidden : {}) }}>
         {/* Logo & Title */}
         <div style={styles.title}>
-          <svg width="48" height="48" viewBox="0 0 48 48">
+          <svg width={isMobile ? 36 : 48} height={isMobile ? 36 : 48} viewBox="0 0 48 48">
             <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
             <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
           </svg>
@@ -1709,74 +1991,113 @@ export default function SpellBrigade() {
       {/* Game HUD */}
       {screen === 'game' && playerInfo && (
         <>
-          {/* Stats Panel */}
-          <div style={styles.hud}>
-            <div style={styles.hudPanel}>
-              <div style={styles.playerHeader}>
-                <div style={styles.avatar(classes[playerInfo.class]?.color || '#fff')}>
-                  <span style={styles.avatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
+          {/* Stats Panel - Desktop */}
+          {!isMobile && (
+            <div style={styles.hud}>
+              <div style={styles.hudPanel}>
+                <div style={styles.playerHeader}>
+                  <div style={styles.avatar(classes[playerInfo.class]?.color || '#fff')}>
+                    <span style={styles.avatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 600 }}>{playerInfo.name}</div>
+                    <div style={{ fontSize: '.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                      <span style={{ width: 14, height: 14, color: '#ffd93d' }}>{SVG.star}</span>
+                      {playerInfo.rank?.title || 'Novice'} • Lv {playerInfo.level}
+                    </div>
+                  </div>
                 </div>
+
+                {/* HP Bar */}
+                <div style={styles.statBar}>
+                  <div style={styles.statLabel}>
+                    <span style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ ...styles.statIcon, color: '#ef4444' }}>{SVG.heart}</span> HP
+                    </span>
+                    <span>{Math.floor(playerInfo.health)}/{playerInfo.maxHealth}</span>
+                  </div>
+                  <div style={styles.barBg}>
+                    <div style={styles.barFill(
+                      playerInfo.health / playerInfo.maxHealth * 100,
+                      'linear-gradient(90deg, #ef4444, #f87171)'
+                    )} />
+                  </div>
+                </div>
+
+                {/* XP Bar */}
+                <div style={styles.statBar}>
+                  <div style={styles.statLabel}>
+                    <span style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ ...styles.statIcon, color: '#3b82f6' }}>{SVG.star}</span> XP
+                    </span>
+                    <span>{playerInfo.xp}/{playerInfo.xpToLevel || 100}</span>
+                  </div>
+                  <div style={styles.barBg}>
+                    <div style={styles.barFill(
+                      playerInfo.xp / (playerInfo.xpToLevel || 100) * 100,
+                      'linear-gradient(90deg, #3b82f6, #8b5cf6)'
+                    )} />
+                  </div>
+                </div>
+
+                {/* Stats Row */}
+                <div style={styles.statsRow}>
+                  <span style={styles.statItem}>
+                    <span style={{ ...styles.statIcon, color: '#fbbf24' }}>{SVG.sword}</span>
+                    {playerInfo.kills || 0}
+                  </span>
+                  <span style={styles.statItem}>
+                    <span style={{ ...styles.statIcon, color: '#888' }}>{SVG.skull}</span>
+                    {playerInfo.deaths || 0}
+                  </span>
+                  <span style={styles.statItem}>
+                    <span style={{ ...styles.statIcon, color: '#a855f7' }}>{SVG.star}</span>
+                    {playerInfo.totalXp || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Stats Panel - Mobile (Compact) */}
+          {isMobile && (
+            <div style={styles.mobileHud}>
+              <div style={styles.mobileHudPanel}>
+                <div style={styles.mobilePlayerHeader}>
+                  <div style={styles.mobileAvatar(classes[playerInfo.class]?.color || '#fff')}>
+                    <span style={styles.mobileAvatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '.85rem', fontWeight: 600 }}>{playerInfo.name}</div>
+                    <div style={{ fontSize: '.65rem', color: '#888' }}>Lv {playerInfo.level}</div>
+                  </div>
+                </div>
+
+                {/* Compact HP Bar */}
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ ...styles.barBg, height: 6 }}>
+                    <div style={styles.barFill(
+                      playerInfo.health / playerInfo.maxHealth * 100,
+                      'linear-gradient(90deg, #ef4444, #f87171)'
+                    )} />
+                  </div>
+                </div>
+
+                {/* Compact XP Bar */}
                 <div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 600 }}>{playerInfo.name}</div>
-                  <div style={{ fontSize: '.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-                    <span style={{ width: 14, height: 14, color: '#ffd93d' }}>{SVG.star}</span>
-                    {playerInfo.rank?.title || 'Novice'} • Lv {playerInfo.level}
+                  <div style={{ ...styles.barBg, height: 6 }}>
+                    <div style={styles.barFill(
+                      playerInfo.xp / (playerInfo.xpToLevel || 100) * 100,
+                      'linear-gradient(90deg, #3b82f6, #8b5cf6)'
+                    )} />
                   </div>
                 </div>
               </div>
-
-              {/* HP Bar */}
-              <div style={styles.statBar}>
-                <div style={styles.statLabel}>
-                  <span style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ ...styles.statIcon, color: '#ef4444' }}>{SVG.heart}</span> HP
-                  </span>
-                  <span>{Math.floor(playerInfo.health)}/{playerInfo.maxHealth}</span>
-                </div>
-                <div style={styles.barBg}>
-                  <div style={styles.barFill(
-                    playerInfo.health / playerInfo.maxHealth * 100,
-                    'linear-gradient(90deg, #ef4444, #f87171)'
-                  )} />
-                </div>
-              </div>
-
-              {/* XP Bar */}
-              <div style={styles.statBar}>
-                <div style={styles.statLabel}>
-                  <span style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ ...styles.statIcon, color: '#3b82f6' }}>{SVG.star}</span> XP
-                  </span>
-                  <span>{playerInfo.xp}/{playerInfo.xpToLevel || 100}</span>
-                </div>
-                <div style={styles.barBg}>
-                  <div style={styles.barFill(
-                    playerInfo.xp / (playerInfo.xpToLevel || 100) * 100,
-                    'linear-gradient(90deg, #3b82f6, #8b5cf6)'
-                  )} />
-                </div>
-              </div>
-
-              {/* Stats Row */}
-              <div style={styles.statsRow}>
-                <span style={styles.statItem}>
-                  <span style={{ ...styles.statIcon, color: '#fbbf24' }}>{SVG.sword}</span>
-                  {playerInfo.kills || 0}
-                </span>
-                <span style={styles.statItem}>
-                  <span style={{ ...styles.statIcon, color: '#888' }}>{SVG.skull}</span>
-                  {playerInfo.deaths || 0}
-                </span>
-                <span style={styles.statItem}>
-                  <span style={{ ...styles.statIcon, color: '#a855f7' }}>{SVG.star}</span>
-                  {playerInfo.totalXp || 0}
-                </span>
-              </div>
             </div>
-          </div>
+          )}
 
-          {/* Zone Indicator */}
-          {settings.showZoneNames && (
+          {/* Zone Indicator - Desktop */}
+          {settings.showZoneNames && !isMobile && (
             <div style={styles.zoneIndicator}>
               <span style={styles.zoneIcon(currentZone.color)}>{SVG.home}</span>
               <span>{currentZone.name}</span>
@@ -1789,30 +2110,76 @@ export default function SpellBrigade() {
             </div>
           )}
 
-          {/* Volume Control */}
-          <div style={styles.volumeControl}>
-            <button
-              style={styles.volumeBtn}
-              onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
-            >
-              <span style={styles.volumeIcon}>
-                {settings.sfxEnabled ? SVG.volume : SVG.volumeMute}
-              </span>
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={settings.volume * 100}
-              onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
-              style={styles.volumeSlider}
-            />
-          </div>
+          {/* Zone Indicator - Mobile (Compact) */}
+          {settings.showZoneNames && isMobile && (
+            <div style={styles.mobileZoneIndicator}>
+              <span style={{ ...styles.zoneIcon(currentZone.color), width: 14, height: 14 }}>{SVG.home}</span>
+              <span>{currentZone.name}</span>
+            </div>
+          )}
 
-          {/* Controls Hint */}
-          <div style={styles.controlsHint}>
-            WASD move • SPACE dash • Q ultimate
-          </div>
+          {/* Volume Control - Desktop only */}
+          {!isMobile && (
+            <div style={styles.volumeControl}>
+              <button
+                style={styles.volumeBtn}
+                onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
+              >
+                <span style={styles.volumeIcon}>
+                  {settings.sfxEnabled ? SVG.volume : SVG.volumeMute}
+                </span>
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={settings.volume * 100}
+                onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
+                style={styles.volumeSlider}
+              />
+            </div>
+          )}
+
+          {/* Controls Hint - Desktop only */}
+          {!isMobile && (
+            <div style={styles.controlsHint}>
+              WASD move • SPACE dash • Q ultimate
+            </div>
+          )}
+
+          {/* Mobile Touch Controls */}
+          {isMobile && (
+            <div style={styles.touchControls}>
+              {/* Virtual Joystick */}
+              <div
+                style={styles.joystickArea}
+                onTouchStart={handleJoystickStart}
+                onTouchMove={handleJoystickMove}
+                onTouchEnd={handleJoystickEnd}
+                onTouchCancel={handleJoystickEnd}
+              >
+                <div style={styles.joystickBase} ref={joystickBaseRef}>
+                  <div style={styles.joystickKnob} ref={joystickKnobRef} />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={styles.actionButtons}>
+                <button
+                  style={styles.actionButton('#ff6b35')}
+                  onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
+                >
+                  <span style={styles.actionButtonIcon}>{SVG.warning}</span>
+                </button>
+                <button
+                  style={styles.actionButton('#4ecdc4')}
+                  onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
+                >
+                  <span style={styles.actionButtonIcon}>{SVG.dash}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
