@@ -235,6 +235,7 @@ export default function SpellBrigade() {
   // Mobile detection and touch state
   const [isMobile, setIsMobile] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [playersOnline, setPlayersOnline] = useState(0);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
@@ -522,6 +523,12 @@ export default function SpellBrigade() {
 
     socket.on('gameState', (state) => {
       gameStateRef.current = { ...gameStateRef.current, ...state };
+      
+      // Update players online count
+      if (state.players) {
+        setPlayersOnline(state.players.length);
+      }
+      
       const me = state.players?.find(p => p.id === playerIdRef.current);
       if (me) {
         playerDataRef.current = me;
@@ -2590,6 +2597,42 @@ export default function SpellBrigade() {
       alignItems: 'center',
       gap: 5,
     },
+    // Players online panel
+    playersOnline: {
+      position: 'absolute',
+      top: 20,
+      left: 20,
+      zIndex: 50,
+      background: 'rgba(0,0,0,0.85)',
+      backdropFilter: 'blur(10px)',
+      padding: '8px 14px',
+      borderRadius: 12,
+      border: '1px solid rgba(255,255,255,0.1)',
+      fontSize: '.85rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+    },
+    playersOnlineDot: {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: '#22c55e',
+      boxShadow: '0 0 6px #22c55e',
+    },
+    playersOnlineMobile: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      zIndex: 50,
+      background: 'rgba(0,0,0,0.7)',
+      padding: '4px 10px',
+      borderRadius: 10,
+      fontSize: '.75rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+    },
     // Volume control
     volumeControl: {
       position: 'absolute',
@@ -3291,9 +3334,10 @@ export default function SpellBrigade() {
               </h3>
               <p style={styles.tutorialText}>
                 <span style={styles.key}>WASD</span> Move wizard<br/>
+                <span style={styles.key}>Click</span> Click to walk to location<br/>
                 <span style={styles.key}>SPACE</span> Dash ability<br/>
                 <span style={styles.key}>Q</span> Ultimate ability<br/>
-                Spells auto-cast at nearby enemies
+                <span style={{ fontSize: '0.8em', color: '#888' }}>Spells auto-cast at nearby enemies</span>
               </p>
             </div>
 
@@ -3595,6 +3639,22 @@ export default function SpellBrigade() {
             </div>
           )}
 
+          {/* Players Online - Desktop */}
+          {!isMobile && (
+            <div style={styles.playersOnline}>
+              <span style={styles.playersOnlineDot} />
+              <span>{playersOnline} Online</span>
+            </div>
+          )}
+
+          {/* Players Online - Mobile */}
+          {isMobile && (
+            <div style={styles.playersOnlineMobile}>
+              <span style={{ ...styles.playersOnlineDot, width: 6, height: 6 }} />
+              <span>{playersOnline}</span>
+            </div>
+          )}
+
           {/* Volume Control - Desktop only */}
           {!isMobile && (
             <div style={styles.volumeControl}>
@@ -3620,7 +3680,7 @@ export default function SpellBrigade() {
           {/* Controls Hint - Desktop only */}
           {!isMobile && (
             <div style={styles.controlsHint}>
-              WASD move • SPACE dash • Q ultimate
+              WASD or Click to move • SPACE dash • Q ultimate
             </div>
           )}
 
