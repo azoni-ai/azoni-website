@@ -558,6 +558,12 @@ export default function SpellBrigade() {
     socket.on('died', (data) => {
       setDeathInfo(data);
       setScreen('dead');
+      // Stop any click-to-move
+      clickTargetRef.current.active = false;
+      if (clickMoveIntervalRef.current) {
+        clearInterval(clickMoveIntervalRef.current);
+        clickMoveIntervalRef.current = null;
+      }
     });
 
     socket.on('damaged', (data) => {
@@ -826,7 +832,13 @@ export default function SpellBrigade() {
       console.log('Shop error:', data.message);
     });
 
-    return () => socket.disconnect();
+    return () => {
+      socket.disconnect();
+      // Clean up intervals
+      if (clickMoveIntervalRef.current) {
+        clearInterval(clickMoveIntervalRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -847,7 +859,36 @@ export default function SpellBrigade() {
 
     const handleMouseDown = (e) => {
       if (e.button !== 0) return;
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
+      if (e.target.closest('[data-ui]')) return;
+      if (e.target.closest('button')) return;
+      
+      // Check if clicking on any UI overlay (not the canvas)
+      if (e.target !== canvasRef.current) return;
+      
+      if (!playerDataRef.current) return;
+      
       initAudio();
+      
+      // Calculate world position of click
+      const zoom = zoomRef.current || 1;
+      const worldX = (e.clientX / zoom) + cameraRef.current.x;
+      const worldY = (e.clientY / zoom) + cameraRef.current.y;
+      
+      // Check distance to player - if clicking very close, stop moving
+      const me = playerDataRef.current;
+      const dx = worldX - me.x;
+      const dy = worldY - me.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < 30) {
+        // Clicked near self - stop moving
+        stopClickMoveToTarget();
+        return;
+      }
+      
+      // Start click-to-move
+      startClickMoveToTarget(worldX, worldY);
     };
 
     const handleMouseMove = (e) => {
@@ -855,7 +896,7 @@ export default function SpellBrigade() {
     };
 
     const handleMouseUp = () => {
-      // Mouse up doesn't do anything now (WASD only)
+      // Nothing needed
     };
 
     const handleKeyDown = (e) => {
@@ -863,6 +904,15 @@ export default function SpellBrigade() {
       const dir = keyMap[e.code];
       
       if (dir) {
+        // Cancel click-to-move when using WASD
+        if (clickTargetRef.current.active) {
+          clickTargetRef.current.active = false;
+          if (clickMoveIntervalRef.current) {
+            clearInterval(clickMoveIntervalRef.current);
+            clickMoveIntervalRef.current = null;
+          }
+        }
+        
         // Update input immediately
         if (!inputRef.current[dir]) {
           inputRef.current[dir] = true;
@@ -898,6 +948,28 @@ export default function SpellBrigade() {
       // Emote wheel (T)
       if (e.code === 'KeyT') {
         setShowEmotes(prev => !prev);
+      }
+
+      // ESC - prompt for main menu (modals close via backdrop click)
+      if (e.code === 'Escape' && playerIdRef.current) {
+        // Close any open modals first
+        setShowEmotes(false);
+        setShowShop(false);
+        setShowSkinSelect(false);
+        
+        // Prompt for main menu
+        setTimeout(() => {
+          if (window.confirm('Return to main menu? Your progress is saved.')) {
+            const player = playerDataRef.current;
+            if (player) {
+              setSavedPlayer({
+                ...player,
+                rank: player.rank || { title: 'Novice' },
+              });
+            }
+            setScreen('returning');
+          }
+        }, 50);
       }
     };
 
@@ -1045,6 +1117,85 @@ export default function SpellBrigade() {
   // ===========================================
   const touchTargetRef = useRef({ x: null, y: null, active: false });
   const touchMoveIntervalRef = useRef(null);
+
+  // ===========================================
+  // CLICK-TO-MOVE (Desktop - click to walk to location)
+  // ===========================================
+  const clickTargetRef = useRef({ x: null, y: null, active: false });
+  const clickMoveIntervalRef = useRef(null);
+
+  const updateClickMoveToTarget = () => {
+    if (!clickTargetRef.current.active || !playerDataRef.current) return;
+    
+    // If any WASD key is held, don't do click-to-move
+    if (inputRef.current.up || inputRef.current.down || inputRef.current.left || inputRef.current.right) {
+      return;
+    }
+    
+    const me = playerDataRef.current;
+    const dx = clickTargetRef.current.x - me.x;
+    const dy = clickTargetRef.current.y - me.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Reached target - stop
+    if (dist < 20) {
+      stopClickMoveToTarget();
+      return;
+    }
+    
+    // Calculate direction
+    const angle = Math.atan2(dy, dx);
+    const newInput = { up: false, down: false, left: false, right: false };
+    
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    const thresh = 0.38;
+    
+    if (cosA > thresh) newInput.right = true;
+    if (cosA < -thresh) newInput.left = true;
+    if (sinA > thresh) newInput.down = true;
+    if (sinA < -thresh) newInput.up = true;
+    
+    // Only send if changed
+    if (JSON.stringify(newInput) !== JSON.stringify(inputRef.current)) {
+      inputRef.current = newInput;
+      socketRef.current?.emit('input', inputRef.current);
+    }
+  };
+
+  const startClickMoveToTarget = (worldX, worldY) => {
+    // Clear any existing interval first
+    if (clickMoveIntervalRef.current) {
+      clearInterval(clickMoveIntervalRef.current);
+      clickMoveIntervalRef.current = null;
+    }
+    
+    clickTargetRef.current = { x: worldX, y: worldY, active: true };
+    clickMoveIntervalRef.current = setInterval(updateClickMoveToTarget, 50);
+    updateClickMoveToTarget();
+  };
+
+  const stopClickMoveToTarget = () => {
+    clickTargetRef.current.active = false;
+    if (clickMoveIntervalRef.current) {
+      clearInterval(clickMoveIntervalRef.current);
+      clickMoveIntervalRef.current = null;
+    }
+    // Clear movement input (player will stop moving)
+    inputRef.current = { up: false, down: false, left: false, right: false };
+    socketRef.current?.emit('input', inputRef.current);
+  };
+
+  // Stop click-to-move when leaving game screen
+  useEffect(() => {
+    if (screen !== 'game') {
+      clickTargetRef.current.active = false;
+      if (clickMoveIntervalRef.current) {
+        clearInterval(clickMoveIntervalRef.current);
+        clickMoveIntervalRef.current = null;
+      }
+    }
+  }, [screen]);
 
   const updateTouchMoveToTarget = () => {
     if (!touchTargetRef.current.active || !playerDataRef.current) return;
@@ -1541,6 +1692,52 @@ export default function SpellBrigade() {
         ctx.arc(tx, ty, 18 * pulse, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(255,255,255,${0.5 * pulse})`;
         ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // Click target indicator (desktop)
+      if (clickTargetRef.current.active && !isMobileView && playerDataRef.current) {
+        const tx = clickTargetRef.current.x - cx;
+        const ty = clickTargetRef.current.y - cy;
+        const px = playerDataRef.current.x - cx;
+        const py = playerDataRef.current.y - cy;
+        const pulse = Math.sin(Date.now() / 150) * 0.3 + 0.7;
+        
+        // Line from player to target
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(tx, ty);
+        ctx.strokeStyle = `rgba(255,215,61,${0.2})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 8]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(tx, ty, 20 * pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,215,61,${0.6 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Inner dot
+        ctx.beginPath();
+        ctx.arc(tx, ty, 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,215,61,${0.8})`;
+        ctx.fill();
+        
+        // Cross hairs
+        ctx.strokeStyle = `rgba(255,215,61,${0.4 * pulse})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(tx - 12, ty);
+        ctx.lineTo(tx - 6, ty);
+        ctx.moveTo(tx + 6, ty);
+        ctx.lineTo(tx + 12, ty);
+        ctx.moveTo(tx, ty - 12);
+        ctx.lineTo(tx, ty - 6);
+        ctx.moveTo(tx, ty + 6);
+        ctx.lineTo(tx, ty + 12);
         ctx.stroke();
       }
 
@@ -3576,6 +3773,41 @@ export default function SpellBrigade() {
                 <div style={styles.toggleKnob(settings.showMinimap)} />
               </div>
             </div>
+
+            {/* Main Menu Button */}
+            <button
+              style={{
+                width: '100%',
+                marginTop: 20,
+                padding: '12px 16px',
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: 8,
+                color: '#ef4444',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+              onClick={() => {
+                if (window.confirm('Return to main menu? Your progress is saved.')) {
+                  // Update savedPlayer with current progress so Continue works
+                  if (playerInfo) {
+                    setSavedPlayer({
+                      ...playerInfo,
+                      rank: playerInfo.rank || { title: 'Novice' },
+                    });
+                  }
+                  setScreen('returning');
+                }
+              }}
+            >
+              <span style={{ width: 16, height: 16 }}>{SVG.home}</span>
+              Main Menu
+            </button>
           </div>
         )}
       </div>
@@ -3711,7 +3943,7 @@ export default function SpellBrigade() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Move</span>
-                      <span style={{ color: '#fff' }}>WASD</span>
+                      <span style={{ color: '#fff' }}>WASD / Click</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Attack</span>
@@ -3736,6 +3968,10 @@ export default function SpellBrigade() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Interact</span>
                       <span style={{ color: '#fff' }}>E</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: '#ef4444' }}>Menu</span>
+                      <span style={{ color: '#fff' }}>Esc</span>
                     </div>
                   </div>
                 </div>
@@ -3965,6 +4201,30 @@ export default function SpellBrigade() {
                 onTouchStart={(e) => { e.preventDefault(); setShowEmotes(true); }}
               >
                 <span style={{ fontSize: '1.2rem' }}>😊</span>
+              </button>
+
+              {/* Menu Button */}
+              <button
+                style={{
+                  ...styles.actionButton('#ef4444'),
+                  width: 50,
+                  height: 50,
+                  marginTop: 10,
+                }}
+                onTouchStart={(e) => { 
+                  e.preventDefault(); 
+                  if (window.confirm('Return to main menu?')) {
+                    if (playerInfo) {
+                      setSavedPlayer({
+                        ...playerInfo,
+                        rank: playerInfo.rank || { title: 'Novice' },
+                      });
+                    }
+                    setScreen('returning');
+                  }
+                }}
+              >
+                <span style={{ fontSize: '1rem' }}>🏠</span>
               </button>
             </div>
           )}
