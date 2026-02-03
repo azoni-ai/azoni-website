@@ -326,6 +326,270 @@ a.commit-repo:hover {
   border-radius: var(--radius-sm);
 }
 
+/* Moltbook Agent Banner */
+.moltbook-banner {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: var(--space-lg) var(--space-xl);
+  margin-bottom: var(--space-lg);
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.12) 0%, rgba(255, 179, 71, 0.06) 100%);
+  border: 1px solid rgba(255, 122, 92, 0.25);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.moltbook-banner:hover {
+  border-color: var(--accent-primary);
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.18) 0%, rgba(255, 179, 71, 0.1) 100%);
+}
+
+.moltbook-banner-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 50%, rgba(255, 122, 92, 0.1), transparent 60%);
+  pointer-events: none;
+}
+
+.moltbook-banner-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.moltbook-banner-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 122, 92, 0.15);
+  border-radius: var(--radius-md);
+  color: var(--accent-primary);
+}
+
+.moltbook-banner-text {
+  flex: 1;
+}
+
+.moltbook-banner-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.moltbook-banner-header h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.moltbook-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4ade80;
+  padding: 3px 10px;
+  background: rgba(74, 222, 128, 0.1);
+  border-radius: 20px;
+}
+
+.status-dot-live {
+  width: 6px;
+  height: 6px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.moltbook-banner-text p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.moltbook-banner-stats {
+  display: flex;
+  gap: var(--space-xl);
+  flex-shrink: 0;
+}
+
+.moltbook-stat {
+  text-align: center;
+}
+
+.moltbook-stat .stat-value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.moltbook-stat .stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.moltbook-banner-arrow {
+  flex-shrink: 0;
+  color: var(--accent-primary);
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.moltbook-banner:hover .moltbook-banner-arrow {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+/* Spell Brigade Game Banner */
+.game-banner {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: var(--space-lg) var(--space-xl);
+  margin-bottom: var(--space-lg);
+  background: linear-gradient(135deg, rgba(155, 93, 229, 0.12) 0%, rgba(255, 217, 61, 0.06) 100%);
+  border: 1px solid rgba(155, 93, 229, 0.25);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.game-banner:hover {
+  border-color: #ffd93d;
+  background: linear-gradient(135deg, rgba(155, 93, 229, 0.18) 0%, rgba(255, 217, 61, 0.1) 100%);
+}
+
+.game-banner-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(155, 93, 229, 0.1), transparent 50%),
+              radial-gradient(circle at 80% 50%, rgba(255, 217, 61, 0.08), transparent 50%);
+  pointer-events: none;
+}
+
+.game-banner-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.game-banner-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 217, 61, 0.15);
+  border-radius: var(--radius-md);
+}
+
+.game-banner-text {
+  flex: 1;
+}
+
+.game-banner-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.game-banner-header h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.game-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4ade80;
+  padding: 3px 10px;
+  background: rgba(74, 222, 128, 0.1);
+  border-radius: 20px;
+}
+
+.game-banner-text p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.game-banner-classes {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.class-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.class-dot.pyro {
+  background: #ff6b35;
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
+}
+
+.class-dot.cryo {
+  background: #4ecdc4;
+  box-shadow: 0 0 8px rgba(78, 205, 196, 0.5);
+}
+
+.class-dot.arcane {
+  background: #9b5de5;
+  box-shadow: 0 0 8px rgba(155, 93, 229, 0.5);
+}
+
+.game-banner-btn {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(135deg, #ffd93d, #ff6b35);
+  color: #0f0f1a;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.game-banner:hover .game-banner-btn {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 217, 61, 0.3);
+}
+
 /* CTA Section */
 .cta-section {
   padding: 0 0 var(--space-3xl);
@@ -476,178 +740,58 @@ a.commit-repo:hover {
     width: 100%;
     text-align: center;
   }
-}
-/* ===== MOLTBOOK BANNER ===== */
-.moltbook-banner {
-  display: block;
-  position: relative;
-  background: linear-gradient(135deg, rgba(255, 107, 74, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid rgba(255, 107, 74, 0.2);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  text-decoration: none;
-  color: inherit;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.moltbook-banner:hover {
-  border-color: rgba(255, 107, 74, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(255, 107, 74, 0.15);
-}
-
-.moltbook-banner-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 20% 50%, rgba(255, 107, 74, 0.15) 0%, transparent 50%),
-              radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-.moltbook-banner-content {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.moltbook-banner-icon {
-  flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  background: rgba(255, 107, 74, 0.15);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-primary, #ff6b4a);
-}
-
-.moltbook-banner-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.moltbook-banner-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.35rem;
-}
-
-.moltbook-banner-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.moltbook-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.status-dot-live {
-  width: 6px;
-  height: 6px;
-  background: #10b981;
-  border-radius: 50%;
-  animation: pulse-live 2s infinite;
-}
-
-@keyframes pulse-live {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.moltbook-banner-text p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.moltbook-banner-stats {
-  display: flex;
-  gap: 1.5rem;
-  flex-shrink: 0;
-}
-
-.moltbook-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.moltbook-stat .stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.moltbook-stat .stat-label {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.moltbook-banner-arrow {
-  flex-shrink: 0;
-  color: var(--accent-primary, #ff6b4a);
-  opacity: 0.6;
-  transition: all 0.3s ease;
-}
-
-.moltbook-banner:hover .moltbook-banner-arrow {
-  opacity: 1;
-  transform: translateX(4px);
-}
-
-@media (max-width: 768px) {
-  .moltbook-banner-content {
+  
+  /* Mobile banner styles */
+  .moltbook-banner,
+  .game-banner {
+    padding: var(--space-md);
+  }
+  
+  .moltbook-banner-content,
+  .game-banner-content {
     flex-wrap: wrap;
+    gap: var(--space-md);
   }
   
-  .moltbook-banner-icon {
-    width: 52px;
-    height: 52px;
+  .moltbook-banner-icon,
+  .game-banner-icon {
+    width: 48px;
+    height: 48px;
   }
   
-  .moltbook-banner-icon svg {
-    width: 32px;
-    height: 32px;
+  .moltbook-banner-text,
+  .game-banner-text {
+    flex: 1 1 60%;
   }
   
-  .moltbook-banner-text {
-    flex: 1 1 calc(100% - 70px);
+  .moltbook-banner-header h3,
+  .game-banner-header h3 {
+    font-size: 1rem;
+  }
+  
+  .moltbook-banner-text p,
+  .game-banner-text p {
+    font-size: 0.8rem;
   }
   
   .moltbook-banner-stats {
-    width: 100%;
-    justify-content: flex-start;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
+    flex: 1 1 100%;
+    justify-content: center;
+    padding-top: var(--space-sm);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .moltbook-banner-arrow {
-    position: absolute;
-    top: 1.5rem;
-    right: 1rem;
+    display: none;
+  }
+  
+  .game-banner-classes {
+    order: 3;
+  }
+  
+  .game-banner-btn {
+    flex: 1 1 100%;
+    text-align: center;
+    margin-top: var(--space-sm);
   }
 }

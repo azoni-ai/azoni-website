@@ -151,6 +151,27 @@ const DEFAULT_CLASSES = {
   },
 };
 
+const DEFAULT_SKINS = [
+  // Pyromancer
+  { id: 'pyromancer_default', class: 'pyromancer', name: 'Apprentice', color: '#ff6b35', requiredXp: 0 },
+  { id: 'pyromancer_ember', class: 'pyromancer', name: 'Ember Mage', color: '#f97316', requiredXp: 500 },
+  { id: 'pyromancer_inferno', class: 'pyromancer', name: 'Inferno Master', color: '#dc2626', requiredXp: 2000 },
+  { id: 'pyromancer_phoenix', class: 'pyromancer', name: 'Phoenix Lord', color: '#fbbf24', requiredXp: 5000 },
+  { id: 'pyromancer_shadow', class: 'pyromancer', name: 'Shadow Flame', color: '#7c3aed', requiredXp: 10000 },
+  // Cryomancer
+  { id: 'cryomancer_default', class: 'cryomancer', name: 'Apprentice', color: '#4ecdc4', requiredXp: 0 },
+  { id: 'cryomancer_frost', class: 'cryomancer', name: 'Frost Weaver', color: '#06b6d4', requiredXp: 500 },
+  { id: 'cryomancer_glacier', class: 'cryomancer', name: 'Glacier Knight', color: '#0284c7', requiredXp: 2000 },
+  { id: 'cryomancer_blizzard', class: 'cryomancer', name: 'Blizzard King', color: '#e0f2fe', requiredXp: 5000 },
+  { id: 'cryomancer_void', class: 'cryomancer', name: 'Void Ice', color: '#1e1b4b', requiredXp: 10000 },
+  // Arcanist
+  { id: 'arcanist_default', class: 'arcanist', name: 'Apprentice', color: '#9b5de5', requiredXp: 0 },
+  { id: 'arcanist_mystic', class: 'arcanist', name: 'Mystic Sage', color: '#a855f7', requiredXp: 500 },
+  { id: 'arcanist_archmage', class: 'arcanist', name: 'Archmage', color: '#7c3aed', requiredXp: 2000 },
+  { id: 'arcanist_celestial', class: 'arcanist', name: 'Celestial', color: '#fcd34d', requiredXp: 5000 },
+  { id: 'arcanist_cosmic', class: 'arcanist', name: 'Cosmic Entity', color: '#1e1b4b', requiredXp: 10000 },
+];
+
 // ===========================================
 // MAIN COMPONENT
 // ===========================================
@@ -180,15 +201,19 @@ export default function SpellBrigade() {
   const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, showZoneNames: true, showMinimap: true });
 
   // State
-  const [screen, setScreen] = useState('title');
+  const [screen, setScreen] = useState('loading'); // loading, returning, title, game, dead
   const [tab, setTab] = useState('play');
   const [connected, setConnected] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [selectedClass, setSelectedClass] = useState('pyromancer');
+  const [selectedSkin, setSelectedSkin] = useState('pyromancer_default');
   const [classes, setClasses] = useState(DEFAULT_CLASSES);
+  const [skins, setSkins] = useState({});
   const [playerInfo, setPlayerInfo] = useState(null);
+  const [savedPlayer, setSavedPlayer] = useState(null);
   const [deathInfo, setDeathInfo] = useState(null);
   const [levelUp, setLevelUp] = useState(null);
+  const [showSkinSelect, setShowSkinSelect] = useState(false);
   const [settings, setSettings] = useState({
     volume: 0.5,
     sfxEnabled: true,
@@ -379,10 +404,34 @@ export default function SpellBrigade() {
 
     socket.on('connect', () => {
       setConnected(true);
+      // Check for returning player
+      const savedId = localStorage.getItem('spellBrigadePlayerId');
+      if (savedId) {
+        socket.emit('getPlayerData', { playerId: savedId });
+      } else {
+        setScreen('title');
+      }
     });
 
     socket.on('disconnect', () => {
       setConnected(false);
+    });
+
+    // Returning player data
+    socket.on('playerData', (data) => {
+      if (data.player) {
+        setSavedPlayer(data.player);
+        if (data.skins) {
+          const skinsObj = {};
+          data.skins.forEach(s => skinsObj[s.id] = s);
+          setSkins(prev => ({ ...prev, ...skinsObj }));
+        }
+        setScreen('returning');
+      } else {
+        // No saved player found
+        localStorage.removeItem('spellBrigadePlayerId');
+        setScreen('title');
+      }
     });
 
     socket.on('joined', (data) => {
@@ -392,6 +441,11 @@ export default function SpellBrigade() {
       setPlayerInfo(data.player);
       setScreen('game');
       if (data.classes) setClasses(data.classes);
+      if (data.skins) {
+        const skinsObj = {};
+        Object.values(data.skins).forEach(s => skinsObj[s.id] = s);
+        setSkins(skinsObj);
+      }
       if (data.world) gameStateRef.current.world = data.world;
     });
 
@@ -480,6 +534,12 @@ export default function SpellBrigade() {
 
     socket.on('respawned', () => {
       setScreen('game');
+    });
+
+    socket.on('skinChanged', (data) => {
+      if (playerInfo) {
+        setPlayerInfo(prev => ({ ...prev, selectedSkin: data.skinId }));
+      }
     });
 
     return () => socket.disconnect();
@@ -1135,21 +1195,75 @@ export default function SpellBrigade() {
   }, [screen, classes]);
 
   // ===========================================
+  // WIZARD NAME GENERATOR
+  // ===========================================
+  const generateWizardName = () => {
+    const prefixes = ['Shadow', 'Frost', 'Ember', 'Storm', 'Moon', 'Star', 'Crystal', 'Thunder', 'Mystic', 'Arcane', 'Void', 'Solar', 'Lunar', 'Crimson', 'Azure', 'Golden', 'Silver', 'Dark', 'Light', 'Wild'];
+    const suffixes = ['weaver', 'caller', 'binder', 'walker', 'seeker', 'keeper', 'warden', 'mage', 'sage', 'seer', 'caster', 'shaper', 'dancer', 'whisper', 'flame', 'frost', 'spark', 'bolt', 'wind', 'heart'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+    const num = Math.floor(Math.random() * 99) + 1;
+    return `${prefix}${suffix}${num}`;
+  };
+
+  // ===========================================
   // ACTIONS
   // ===========================================
+  const handleContinue = () => {
+    initAudio();
+    if (!savedPlayer) return;
+    const savedId = localStorage.getItem('spellBrigadePlayerId');
+    socketRef.current?.emit('join', {
+      playerId: savedId,
+      playerName: savedPlayer.name,
+      playerClass: savedPlayer.class,
+      selectedSkin: savedPlayer.selectedSkin,
+    });
+  };
+
+  const handleNewCharacter = () => {
+    localStorage.removeItem('spellBrigadePlayerId');
+    setSavedPlayer(null);
+    setPlayerName('');
+    setSelectedClass('pyromancer');
+    setSelectedSkin('pyromancer_default');
+    setScreen('title');
+  };
+
   const handleJoin = () => {
     initAudio();
-    const name = playerName.trim() || `Wizard${Math.floor(Math.random() * 9000) + 1000}`;
+    const name = playerName.trim() || generateWizardName();
     socketRef.current?.emit('join', {
-      playerId: localStorage.getItem('spellBrigadePlayerId'),
+      playerId: null, // New character
       playerName: name,
       playerClass: selectedClass,
-      selectedSkin: selectedClass + '_default',
+      selectedSkin: selectedSkin,
     });
   };
 
   const handleRespawn = () => {
     socketRef.current?.emit('respawn');
+  };
+
+  const handleClassChange = (classId) => {
+    setSelectedClass(classId);
+    setSelectedSkin(classId + '_default');
+  };
+
+  const handleChangeSkin = (skinId) => {
+    if (screen === 'game' && playerInfo) {
+      // In-game skin change
+      socketRef.current?.emit('changeSkin', { skinId });
+    }
+    setSelectedSkin(skinId);
+  };
+
+  const getSkinsForClass = (classId) => {
+    return Object.values(skins).filter(s => s.class === classId);
+  };
+
+  const getUnlockedSkins = (classId, totalXp = 0) => {
+    return getSkinsForClass(classId).filter(s => s.requiredXp <= totalXp);
   };
 
   // ===========================================
@@ -1743,6 +1857,196 @@ export default function SpellBrigade() {
       gap: 8,
       border: '1px solid rgba(255,255,255,0.1)',
     },
+    // Returning player screen
+    returningCard: {
+      background: 'rgba(255,255,255,0.03)',
+      border: '2px solid #2a2a3e',
+      borderRadius: 20,
+      padding: isMobile ? 20 : 30,
+      maxWidth: 400,
+      width: '90%',
+      textAlign: 'center',
+    },
+    returningAvatar: (color) => ({
+      width: isMobile ? 80 : 100,
+      height: isMobile ? 80 : 100,
+      borderRadius: '50%',
+      margin: '0 auto 20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: color + '25',
+      color: color,
+      border: `3px solid ${color}`,
+    }),
+    returningAvatarIcon: {
+      width: isMobile ? 45 : 55,
+      height: isMobile ? 45 : 55,
+    },
+    returningName: {
+      fontSize: isMobile ? '1.5rem' : '1.8rem',
+      fontWeight: 700,
+      marginBottom: 5,
+    },
+    returningStats: {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: isMobile ? 20 : 30,
+      margin: '20px 0',
+      flexWrap: 'wrap',
+    },
+    returningStat: {
+      textAlign: 'center',
+    },
+    returningStatValue: {
+      fontSize: isMobile ? '1.3rem' : '1.5rem',
+      fontWeight: 700,
+      color: '#ffd93d',
+    },
+    returningStatLabel: {
+      fontSize: '.75rem',
+      color: '#888',
+      marginTop: 4,
+    },
+    returningButtons: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+      marginTop: 25,
+    },
+    secondaryBtn: {
+      padding: isMobile ? '10px 20px' : '12px 30px',
+      fontSize: isMobile ? '.9rem' : '1rem',
+      fontWeight: 500,
+      border: '2px solid #2a2a3e',
+      borderRadius: 12,
+      cursor: 'pointer',
+      background: 'transparent',
+      color: '#888',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    // Skin selector
+    skinSelector: {
+      marginTop: 20,
+      padding: 15,
+      background: 'rgba(0,0,0,0.3)',
+      borderRadius: 12,
+    },
+    skinSelectorTitle: {
+      fontSize: '.85rem',
+      color: '#888',
+      marginBottom: 12,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+    },
+    skinGrid: {
+      display: 'flex',
+      gap: 10,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+    },
+    skinOption: (selected, color, locked) => ({
+      width: isMobile ? 50 : 60,
+      height: isMobile ? 50 : 60,
+      borderRadius: 12,
+      background: locked ? 'rgba(255,255,255,0.02)' : color + '20',
+      border: `2px solid ${selected ? color : locked ? '#1a1a2e' : '#2a2a3e'}`,
+      cursor: locked ? 'not-allowed' : 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: locked ? 0.4 : 1,
+      position: 'relative',
+      transition: 'all 0.2s',
+    }),
+    skinOptionInner: (color) => ({
+      width: isMobile ? 30 : 36,
+      height: isMobile ? 30 : 36,
+      borderRadius: '50%',
+      background: color,
+    }),
+    skinLock: {
+      position: 'absolute',
+      bottom: -5,
+      right: -5,
+      background: '#1a1a2e',
+      borderRadius: '50%',
+      width: 18,
+      height: 18,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '10px',
+    },
+    skinTooltip: {
+      position: 'absolute',
+      bottom: '100%',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'rgba(0,0,0,0.95)',
+      padding: '6px 10px',
+      borderRadius: 6,
+      fontSize: '.7rem',
+      whiteSpace: 'nowrap',
+      marginBottom: 5,
+      pointerEvents: 'none',
+    },
+    // In-game skin modal
+    modal: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: 'rgba(15,15,26,0.98)',
+      border: '2px solid #2a2a3e',
+      borderRadius: 20,
+      padding: isMobile ? 20 : 30,
+      zIndex: 200,
+      maxWidth: 400,
+      width: '90%',
+    },
+    modalBackdrop: {
+      position: 'absolute',
+      inset: 0,
+      background: 'rgba(0,0,0,0.7)',
+      zIndex: 199,
+    },
+    modalTitle: {
+      fontSize: '1.3rem',
+      fontWeight: 600,
+      marginBottom: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+    },
+    modalClose: {
+      position: 'absolute',
+      top: 15,
+      right: 15,
+      background: 'none',
+      border: 'none',
+      color: '#888',
+      cursor: 'pointer',
+      fontSize: '1.5rem',
+    },
+    // Loading screen
+    loadingText: {
+      color: '#888',
+      fontSize: '1.1rem',
+    },
+    spinner: {
+      width: 40,
+      height: 40,
+      border: '3px solid #2a2a3e',
+      borderTopColor: '#ffd93d',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      marginBottom: 20,
+    },
   };
 
   // ===========================================
@@ -1758,6 +2062,65 @@ export default function SpellBrigade() {
         height={isMobile ? 100 : 160} 
         style={styles.minimap} 
       />
+
+      {/* Loading Screen */}
+      <div style={{ ...styles.overlay, ...(screen !== 'loading' ? styles.hidden : {}) }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={styles.spinner} />
+        <p style={styles.loadingText}>Connecting to server...</p>
+      </div>
+
+      {/* Returning Player Screen */}
+      <div style={{ ...styles.overlay, ...(screen !== 'returning' ? styles.hidden : {}) }}>
+        <div style={styles.title}>
+          <svg width={isMobile ? 36 : 48} height={isMobile ? 36 : 48} viewBox="0 0 48 48">
+            <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
+            <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
+          </svg>
+          <h1 style={styles.titleText}>Spell Brigade</h1>
+        </div>
+        <p style={{ ...styles.subtitle, marginBottom: isMobile ? 20 : 30 }}>Welcome back!</p>
+
+        {savedPlayer && (
+          <div style={styles.returningCard}>
+            <div style={styles.returningAvatar(classes[savedPlayer.class]?.color || '#fff')}>
+              <span style={styles.returningAvatarIcon}>
+                {CLASS_SVG[savedPlayer.class] || SVG.arcane}
+              </span>
+            </div>
+            <div style={styles.returningName}>{savedPlayer.name}</div>
+            <div style={{ color: '#888', fontSize: '.9rem' }}>
+              {classes[savedPlayer.class]?.name || savedPlayer.class} • {savedPlayer.rank?.title || 'Novice'}
+            </div>
+
+            <div style={styles.returningStats}>
+              <div style={styles.returningStat}>
+                <div style={styles.returningStatValue}>{savedPlayer.level || 1}</div>
+                <div style={styles.returningStatLabel}>Level</div>
+              </div>
+              <div style={styles.returningStat}>
+                <div style={styles.returningStatValue}>{savedPlayer.totalXp || 0}</div>
+                <div style={styles.returningStatLabel}>Total XP</div>
+              </div>
+              <div style={styles.returningStat}>
+                <div style={styles.returningStatValue}>{savedPlayer.kills || 0}</div>
+                <div style={styles.returningStatLabel}>Kills</div>
+              </div>
+            </div>
+
+            <div style={styles.returningButtons}>
+              <button style={styles.btn} onClick={handleContinue}>
+                <span style={styles.btnIcon}>{SVG.play}</span>
+                Continue Playing
+              </button>
+              <button style={styles.secondaryBtn} onClick={handleNewCharacter}>
+                <span style={{ width: 18, height: 18 }}>{SVG.refresh}</span>
+                New Character
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Title Screen */}
       <div style={{ ...styles.overlay, ...(screen !== 'title' ? styles.hidden : {}) }}>
@@ -1790,8 +2153,8 @@ export default function SpellBrigade() {
             <input
               style={styles.input}
               type="text"
-              placeholder="Enter wizard name"
-              maxLength={16}
+              placeholder="Enter wizard name (or leave blank)"
+              maxLength={20}
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
             />
@@ -1801,25 +2164,56 @@ export default function SpellBrigade() {
                 <div
                   key={id}
                   style={styles.classCard(selectedClass === id, c.color)}
-                  onClick={() => setSelectedClass(id)}
+                  onClick={() => handleClassChange(id)}
                 >
                   <div style={styles.classIcon(c.color)}>
                     <span style={styles.classIconSvg}>{CLASS_SVG[id] || SVG.arcane}</span>
                   </div>
-                  <h3 style={{ color: c.color, marginBottom: 8 }}>{c.name}</h3>
-                  <p style={{ fontSize: '.8rem', color: '#888', lineHeight: 1.5 }}>{c.description}</p>
-                  <div style={{ marginTop: 15, paddingTop: 15, borderTop: '1px solid #2a2a3e' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.75rem', color: '#666', marginBottom: 6 }}>
-                      <span style={{ color: c.color, width: 14, height: 14 }}>{SVG.dash}</span>
+                  <h3 style={{ color: c.color, marginBottom: 8, fontSize: isMobile ? '.95rem' : '1.1rem' }}>{c.name}</h3>
+                  <p style={{ fontSize: isMobile ? '.7rem' : '.8rem', color: '#888', lineHeight: 1.5 }}>{c.description}</p>
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #2a2a3e' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.7rem', color: '#666', marginBottom: 4 }}>
+                      <span style={{ color: c.color, width: 12, height: 12 }}>{SVG.dash}</span>
                       {c.dash || 'Dash'}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.75rem', color: '#666' }}>
-                      <span style={{ color: c.color, width: 14, height: 14 }}>{SVG.warning}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.7rem', color: '#666' }}>
+                      <span style={{ color: c.color, width: 12, height: 12 }}>{SVG.warning}</span>
                       {c.ultimate || 'Ultimate'}
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Skin Preview */}
+            <div style={styles.skinSelector}>
+              <div style={styles.skinSelectorTitle}>
+                <span style={{ width: 16, height: 16 }}>{SVG.star}</span>
+                Choose Your Style
+              </div>
+              <div style={styles.skinGrid}>
+                {/* Show default skin + any unlocked ones for new character */}
+                {DEFAULT_SKINS.filter(s => s.class === selectedClass).map(skin => {
+                  const isSelected = selectedSkin === skin.id;
+                  const isLocked = skin.requiredXp > 0; // For new characters, only default is unlocked
+                  return (
+                    <div
+                      key={skin.id}
+                      style={styles.skinOption(isSelected, skin.color, isLocked)}
+                      onClick={() => !isLocked && setSelectedSkin(skin.id)}
+                      title={skin.name}
+                    >
+                      <div style={styles.skinOptionInner(skin.color)} />
+                      {isLocked && (
+                        <div style={styles.skinLock}>🔒</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: '.7rem', color: '#666', marginTop: 10, textAlign: 'center' }}>
+                Earn XP to unlock more skins!
+              </p>
             </div>
 
             <button style={styles.btn} onClick={handleJoin}>
@@ -2055,6 +2449,29 @@ export default function SpellBrigade() {
                     {playerInfo.totalXp || 0}
                   </span>
                 </div>
+
+                {/* Skin Change Button */}
+                <button
+                  style={{
+                    marginTop: 12,
+                    padding: '8px 12px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid #2a2a3e',
+                    borderRadius: 8,
+                    color: '#888',
+                    fontSize: '.75rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    width: '100%',
+                    justifyContent: 'center',
+                  }}
+                  onClick={() => setShowSkinSelect(true)}
+                >
+                  <span style={{ width: 14, height: 14 }}>{SVG.star}</span>
+                  Change Skin
+                </button>
               </div>
             </div>
           )}
@@ -2180,6 +2597,48 @@ export default function SpellBrigade() {
               </div>
             </div>
           )}
+        </>
+      )}
+
+      {/* In-Game Skin Selector Modal */}
+      {showSkinSelect && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowSkinSelect(false)} />
+          <div style={styles.modal}>
+            <button style={styles.modalClose} onClick={() => setShowSkinSelect(false)}>×</button>
+            <h3 style={styles.modalTitle}>
+              <span style={{ width: 24, height: 24, color: '#ffd93d' }}>{SVG.star}</span>
+              Select Skin
+            </h3>
+            <div style={styles.skinGrid}>
+              {DEFAULT_SKINS.filter(s => s.class === playerInfo?.class).map(skin => {
+                const isSelected = playerInfo?.selectedSkin === skin.id;
+                const isUnlocked = (playerInfo?.totalXp || 0) >= skin.requiredXp;
+                return (
+                  <div
+                    key={skin.id}
+                    style={{
+                      ...styles.skinOption(isSelected, skin.color, !isUnlocked),
+                      width: 70,
+                      height: 70,
+                      flexDirection: 'column',
+                      padding: 5,
+                    }}
+                    onClick={() => isUnlocked && handleChangeSkin(skin.id)}
+                  >
+                    <div style={{ ...styles.skinOptionInner(skin.color), width: 36, height: 36 }} />
+                    <span style={{ fontSize: '.6rem', color: '#888', marginTop: 4 }}>{skin.name}</span>
+                    {!isUnlocked && (
+                      <div style={styles.skinLock}>🔒</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: '.75rem', color: '#666', marginTop: 15, textAlign: 'center' }}>
+              {playerInfo?.totalXp || 0} XP earned • Unlock more by playing!
+            </p>
+          </div>
         </>
       )}
 

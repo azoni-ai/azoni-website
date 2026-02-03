@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f1a"/>
+      <stop offset="50%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#0f0f1a"/>
+    </linearGradient>
+    
+    <!-- Title gradient -->
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd93d"/>
+      <stop offset="100%" style="stop-color:#ff6b35"/>
+    </linearGradient>
+    
+    <!-- Glow filters -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Zone ring gradients -->
+    <radialGradient id="zoneGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#581c87;stop-opacity:0.3"/>
+      <stop offset="30%" style="stop-color:#0ea5e9;stop-opacity:0.2"/>
+      <stop offset="60%" style="stop-color:#dc2626;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0.1"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  
+  <!-- Subtle grid pattern -->
+  <g opacity="0.03">
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="32" height="32" fill="#2d5a27"/>
+      <rect x="32" width="32" height="32" fill="#234d1f"/>
+      <rect y="32" width="32" height="32" fill="#234d1f"/>
+      <rect x="32" y="32" width="32" height="32" fill="#2d5a27"/>
+    </pattern>
+    <rect width="1200" height="400" fill="url(#grid)"/>
+  </g>
+  
+  <!-- Zone rings (background) -->
+  <ellipse cx="600" cy="450" rx="500" ry="300" fill="url(#zoneGlow)" opacity="0.5"/>
+  
+  <!-- Decorative zone arcs -->
+  <g opacity="0.15">
+    <ellipse cx="600" cy="380" rx="550" ry="180" fill="none" stroke="#581c87" stroke-width="2" stroke-dasharray="20,10"/>
+    <ellipse cx="600" cy="380" rx="450" ry="150" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="15,10"/>
+    <ellipse cx="600" cy="380" rx="350" ry="120" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="10,8"/>
+    <ellipse cx="600" cy="380" rx="250" ry="90" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="8,6"/>
+  </g>
+  
+  <!-- Floating particles / magic orbs -->
+  <g filter="url(#softGlow)">
+    <!-- XP orbs -->
+    <circle cx="150" cy="100" r="6" fill="#3b82f6" opacity="0.8"/>
+    <circle cx="180" cy="150" r="4" fill="#3b82f6" opacity="0.6"/>
+    <circle cx="1050" cy="120" r="5" fill="#3b82f6" opacity="0.7"/>
+    <circle cx="1020" cy="180" r="4" fill="#3b82f6" opacity="0.5"/>
+    <circle cx="350" cy="80" r="3" fill="#3b82f6" opacity="0.6"/>
+    <circle cx="850" cy="90" r="4" fill="#3b82f6" opacity="0.7"/>
+    
+    <!-- Fire particles -->
+    <circle cx="280" cy="200" r="4" fill="#ff6b35" opacity="0.7"/>
+    <circle cx="300" cy="170" r="3" fill="#ffd93d" opacity="0.6"/>
+    
+    <!-- Ice particles -->
+    <circle cx="920" cy="200" r="4" fill="#4ecdc4" opacity="0.7"/>
+    <circle cx="900" cy="160" r="3" fill="#87ceeb" opacity="0.6"/>
+    
+    <!-- Arcane particles -->
+    <circle cx="600" cy="80" r="5" fill="#9b5de5" opacity="0.7"/>
+    <circle cx="580" cy="110" r="3" fill="#c084fc" opacity="0.5"/>
+  </g>
+  
+  <!-- Stars background -->
+  <g fill="#fff" opacity="0.4">
+    <circle cx="100" cy="50" r="1.5"/>
+    <circle cx="200" cy="80" r="1"/>
+    <circle cx="320" cy="40" r="1.5"/>
+    <circle cx="450" cy="60" r="1"/>
+    <circle cx="550" cy="35" r="1.5"/>
+    <circle cx="700" cy="55" r="1"/>
+    <circle cx="800" cy="30" r="1.5"/>
+    <circle cx="900" cy="70" r="1"/>
+    <circle cx="1000" cy="45" r="1.5"/>
+    <circle cx="1100" cy="65" r="1"/>
+    <circle cx="80" cy="320" r="1"/>
+    <circle cx="250" cy="350" r="1.5"/>
+    <circle cx="950" cy="340" r="1"/>
+    <circle cx="1120" cy="300" r="1.5"/>
+  </g>
+  
+  <!-- PYROMANCER WIZARD (Left) -->
+  <g transform="translate(220, 240)">
+    <!-- Shadow -->
+    <ellipse cx="0" cy="70" rx="35" ry="15" fill="rgba(0,0,0,0.3)"/>
+    
+    <!-- Robe -->
+    <path d="M0 -10 L-30 70 L30 70 Z" fill="#ff6b35"/>
+    
+    <!-- Head -->
+    <circle cx="0" cy="-30" r="22" fill="#fcd5ce"/>
+    
+    <!-- Hat -->
+    <path d="M0 -85 L-35 -15 L35 -15 Z" fill="#ff6b35"/>
+    
+    <!-- Eyes -->
+    <circle cx="-6" cy="-32" r="4" fill="#333"/>
+    <circle cx="6" cy="-32" r="4" fill="#333"/>
+    
+    <!-- Fire effect around -->
+    <g filter="url(#glow)" opacity="0.8">
+      <circle cx="-40" cy="-20" r="8" fill="#ff6b35"/>
+      <circle cx="-50" cy="10" r="6" fill="#ffd93d"/>
+      <circle cx="45" cy="-10" r="7" fill="#ff6b35"/>
+      <circle cx="40" cy="20" r="5" fill="#ffd93d"/>
+    </g>
+    
+    <!-- Class label -->
+    <text x="0" y="100" text-anchor="middle" fill="#ff6b35" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Pyromancer</text>
+  </g>
+  
+  <!-- ARCANIST WIZARD (Center) -->
+  <g transform="translate(600, 220)">
+    <!-- Shadow -->
+    <ellipse cx="0" cy="90" rx="45" ry="18" fill="rgba(0,0,0,0.3)"/>
+    
+    <!-- Robe (larger, center focus) -->
+    <path d="M0 -5 L-40 90 L40 90 Z" fill="#9b5de5"/>
+    
+    <!-- Head -->
+    <circle cx="0" cy="-35" r="28" fill="#fcd5ce"/>
+    
+    <!-- Hat (taller) -->
+    <path d="M0 -110 L-45 -15 L45 -15 Z" fill="#9b5de5"/>
+    
+    <!-- Eyes -->
+    <circle cx="-8" cy="-38" r="5" fill="#333"/>
+    <circle cx="8" cy="-38" r="5" fill="#333"/>
+    
+    <!-- Arcane orb in hand -->
+    <g filter="url(#glow)">
+      <circle cx="0" cy="40" r="20" fill="#9b5de5" opacity="0.8"/>
+      <circle cx="0" cy="40" r="12" fill="#c084fc"/>
+      <circle cx="0" cy="40" r="6" fill="#fff" opacity="0.8"/>
+    </g>
+    
+    <!-- Arcane particles -->
+    <g filter="url(#softGlow)" opacity="0.7">
+      <circle cx="-55" cy="-30" r="6" fill="#9b5de5"/>
+      <circle cx="60" cy="-20" r="7" fill="#c084fc"/>
+      <circle cx="-50" cy="30" r="5" fill="#9b5de5"/>
+      <circle cx="55" cy="20" r="6" fill="#c084fc"/>
+    </g>
+    
+    <!-- Class label -->
+    <text x="0" y="125" text-anchor="middle" fill="#9b5de5" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Arcanist</text>
+  </g>
+  
+  <!-- CRYOMANCER WIZARD (Right) -->
+  <g transform="translate(980, 240)">
+    <!-- Shadow -->
+    <ellipse cx="0" cy="70" rx="35" ry="15" fill="rgba(0,0,0,0.3)"/>
+    
+    <!-- Robe -->
+    <path d="M0 -10 L-30 70 L30 70 Z" fill="#4ecdc4"/>
+    
+    <!-- Head -->
+    <circle cx="0" cy="-30" r="22" fill="#fcd5ce"/>
+    
+    <!-- Hat -->
+    <path d="M0 -85 L-35 -15 L35 -15 Z" fill="#4ecdc4"/>
+    
+    <!-- Eyes -->
+    <circle cx="-6" cy="-32" r="4" fill="#333"/>
+    <circle cx="6" cy="-32" r="4" fill="#333"/>
+    
+    <!-- Ice crystals around -->
+    <g filter="url(#glow)" opacity="0.8">
+      <polygon points="-45,-25 -40,-10 -50,-10" fill="#87ceeb"/>
+      <polygon points="-50,15 -45,30 -55,30" fill="#4ecdc4"/>
+      <polygon points="50,-15 45,0 55,0" fill="#87ceeb"/>
+      <polygon points="45,25 40,40 50,40" fill="#4ecdc4"/>
+    </g>
+    
+    <!-- Class label -->
+    <text x="0" y="100" text-anchor="middle" fill="#4ecdc4" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Cryomancer</text>
+  </g>
+  
+  <!-- Game Logo / Star -->
+  <g transform="translate(600, 60)" filter="url(#glow)">
+    <path d="M0 -25 L5 -8 L22 -8 L8 3 L13 20 L0 10 L-13 20 L-8 3 L-22 -8 L-5 -8 Z" fill="#ffd93d"/>
+    <circle cx="0" cy="0" r="8" fill="#ff6b35"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="600" y="160" text-anchor="middle" fill="url(#titleGrad)" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="bold" filter="url(#glow)">Spell Brigade</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="190" text-anchor="middle" fill="#666" font-family="system-ui, sans-serif" font-size="16" letter-spacing="3" text-transform="uppercase">Survive the Magical Wilderness</text>
+  
+  <!-- Decorative bottom line -->
+  <line x1="400" y1="380" x2="800" y2="380" stroke="url(#titleGrad)" stroke-width="2" opacity="0.3"/>
+  
+  <!-- Enemy silhouettes in background -->
+  <g opacity="0.15">
+    <!-- Slimes -->
+    <circle cx="100" cy="280" r="18" fill="#4ade80"/>
+    <circle cx="1100" cy="300" r="15" fill="#4ade80"/>
+    
+    <!-- Bats -->
+    <ellipse cx="170" cy="180" rx="12" ry="8" fill="#a855f7"/>
+    <ellipse cx="1030" cy="160" rx="10" ry="6" fill="#a855f7"/>
+  </g>
+  
+  <!-- Projectile trails -->
+  <g opacity="0.4">
+    <line x1="280" y1="250" x2="320" y2="230" stroke="#ff6b35" stroke-width="4" stroke-linecap="round"/>
+    <line x1="920" y1="260" x2="880" y2="240" stroke="#4ecdc4" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

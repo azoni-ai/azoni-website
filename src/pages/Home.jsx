@@ -223,7 +223,7 @@ const Home = () => {
           </section>
         )}
 
-        {/* CTAs - Blog & Chat */}
+        {/* CTAs - Banners & Cards */}
         <section className="cta-section">
           <div className="container">
             {/* Moltbook Agent Banner */}
@@ -270,6 +270,35 @@ const Home = () => {
                 </span>
               </div>
             </Link>
+
+            {/* Spell Brigade Game Banner */}
+            <a href="/game" target="_blank" rel="noopener noreferrer" className="game-banner">
+              <div className="game-banner-bg"></div>
+              <div className="game-banner-content">
+                <div className="game-banner-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
+                    <circle cx="24" cy="22" r="6" fill="#ff6b35"/>
+                  </svg>
+                </div>
+                <div className="game-banner-text">
+                  <div className="game-banner-header">
+                    <h3>Spell Brigade</h3>
+                    <span className="game-status-badge">
+                      <span className="status-dot-live"></span>
+                      Playable
+                    </span>
+                  </div>
+                  <p>Multiplayer wizard survival — choose your class, explore dangerous zones, defeat enemies</p>
+                </div>
+                <div className="game-banner-classes">
+                  <span className="class-dot pyro" title="Pyromancer"></span>
+                  <span className="class-dot cryo" title="Cryomancer"></span>
+                  <span className="class-dot arcane" title="Arcanist"></span>
+                </div>
+                <span className="game-banner-btn">Play Now</span>
+              </div>
+            </a>
 
             <div className="cta-grid">
               <Link to="/blog" className="cta-card blog-cta">
