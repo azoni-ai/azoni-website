@@ -735,14 +735,16 @@ export default function SpellBrigade() {
       updateMoveToTarget();
     };
 
-    const stopMoveToTarget = () => {
+    const stopMoveToTarget = (resetInput = true) => {
       moveTargetRef.current.active = false;
       if (moveUpdateInterval) {
         clearInterval(moveUpdateInterval);
         moveUpdateInterval = null;
       }
-      inputRef.current = { up: false, down: false, left: false, right: false };
-      socketRef.current?.emit('input', inputRef.current);
+      if (resetInput) {
+        inputRef.current = { up: false, down: false, left: false, right: false };
+        socketRef.current?.emit('input', inputRef.current);
+      }
     };
 
     const handleMouseDown = (e) => {
@@ -783,13 +785,9 @@ export default function SpellBrigade() {
       const dir = keyMap[e.code];
       
       if (dir) {
-        // Cancel click-to-move on first WASD press
+        // Cancel click-to-move on first WASD press (don't reset input)
         if (moveTargetRef.current.active) {
-          moveTargetRef.current.active = false;
-          if (moveUpdateInterval) {
-            clearInterval(moveUpdateInterval);
-            moveUpdateInterval = null;
-          }
+          stopMoveToTarget(false);
         }
         
         // Update input immediately
