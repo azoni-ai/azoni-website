@@ -4,6 +4,7 @@ import { AppProvider } from "./context/AppContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Loading from "./components/Loading";
 import ScrollToTop from "./components/ScrollToTop";
+import SpellBrigade from "./components/SpellBrigade";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -35,7 +36,7 @@ const App = () => {
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/moltbook" element={<MoltbookAgent />} />
-              
+              <Route path="/game" element={<SpellBrigade />} />
               {/* Redirects for old routes */}
               <Route path="/aboutme" element={<About />} />
               
