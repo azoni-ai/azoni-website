@@ -189,7 +189,7 @@ const Home = () => {
                   <span className="ai-badge-dot"></span>
                   <span className="ai-badge-text">Powered by AI</span>
                 </div>
-                <p className="ai-badge-subtext">This site runs itself</p>
+                <p className="ai-badge-subtext">This site runs itself (Almost. I'm working on it.)</p>
               </div>
             </div>
           </div>
