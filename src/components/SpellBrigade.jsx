@@ -234,6 +234,7 @@ export default function SpellBrigade() {
 
   // Mobile detection and touch state
   const [isMobile, setIsMobile] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
@@ -257,47 +258,94 @@ export default function SpellBrigade() {
   }, []);
 
   // ===========================================
-  // AUDIO SYSTEM
+  // AUDIO SYSTEM (Mobile-compatible)
   // ===========================================
+  const audioReadyRef = useRef(false);
+  
   const initAudio = () => {
-    if (!audioCtxRef.current) {
-      try {
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (e) {
-        console.log('Audio not supported');
+    if (audioReadyRef.current) return; // Already unlocked
+    
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      
+      // Create context if needed
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext();
       }
-    }
-    // Mobile browsers require resuming AudioContext after user interaction
-    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume().catch(() => {});
+      
+      const ctx = audioCtxRef.current;
+      
+      // Resume synchronously (required for iOS)
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      // Play a tiny beep to unlock - must happen during user gesture
+      // Don't check state - just try to play
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.05);
+      
+      audioReadyRef.current = true;
+      setAudioUnlocked(true);
+      console.log('🔊 Audio unlocked');
+    } catch (e) {
+      console.log('Audio error:', e);
     }
   };
+  
+  // Listen for ANY user interaction to unlock audio
+  useEffect(() => {
+    const unlock = (e) => {
+      if (!audioReadyRef.current) {
+        initAudio();
+      }
+    };
+    const events = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+    events.forEach(ev => document.addEventListener(ev, unlock, { passive: true, capture: true }));
+    return () => events.forEach(ev => document.removeEventListener(ev, unlock, { capture: true }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const playSound = (type) => {
     const s = settingsRef.current;
     if (!s.sfxEnabled || s.volume === 0) return;
     
-    // Initialize audio if needed
-    if (!audioCtxRef.current) {
-      initAudio();
+    let ctx = audioCtxRef.current;
+    
+    // Create context if needed
+    if (!ctx) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        ctx = new AudioContext();
+        audioCtxRef.current = ctx;
+      } catch (e) {
+        return;
+      }
     }
     
-    // Resume if suspended (mobile fix)
-    if (audioCtxRef.current?.state === 'suspended') {
-      audioCtxRef.current.resume().catch(() => {});
-      return; // Skip this sound, next one will work
+    // Try to resume if suspended (this will queue the sound)
+    if (ctx.state === 'suspended') {
+      ctx.resume();
     }
     
-    if (!audioCtxRef.current) return;
+    // Don't wait for 'running' state - just try to play
+    // On mobile, sounds will be queued and play once context resumes
 
     try {
-      const ctx = audioCtxRef.current;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
       const now = ctx.currentTime;
-      const vol = s.volume * 0.12;
+      const vol = s.volume * 0.25;
 
       const sounds = {
         spell: () => {
@@ -504,7 +552,23 @@ export default function SpellBrigade() {
     });
 
     socket.on('sound', (data) => {
-      playSound(data.type);
+      // Play sounds from server with distance attenuation
+      if (data.x !== undefined && data.y !== undefined) {
+        const me = playerDataRef.current;
+        if (me) {
+          const dx = data.x - me.x;
+          const dy = data.y - me.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          // Only play if within hearing range (600 units)
+          if (dist < 600) {
+            playSound(data.type);
+          }
+        }
+      } else {
+        // No position - play regardless
+        playSound(data.type);
+      }
     });
 
     socket.on('explosion', (data) => {
@@ -517,8 +581,22 @@ export default function SpellBrigade() {
         startTime: Date.now(),
         duration: 500,
       });
-      playSound('meteor');
-      screenShakeRef.current.intensity = 12;
+      
+      // Only shake screen if explosion is near the player
+      const me = playerDataRef.current;
+      if (me) {
+        const dx = data.x - me.x;
+        const dy = data.y - me.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxShakeDist = 400; // Only shake within this range
+        
+        if (dist < maxShakeDist) {
+          // Scale shake intensity by distance (closer = stronger)
+          const intensity = Math.max(2, 12 * (1 - dist / maxShakeDist));
+          screenShakeRef.current.intensity = intensity;
+          playSound('meteor');
+        }
+      }
     });
 
     socket.on('meteorWarning', (data) => {
@@ -540,7 +618,17 @@ export default function SpellBrigade() {
         startTime: Date.now(),
         duration: 400,
       });
-      playSound('iceNova');
+      
+      // Only play sound if near player
+      const me = playerDataRef.current;
+      if (me) {
+        const dx = data.x - me.x;
+        const dy = data.y - me.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 500) {
+          playSound('iceNova');
+        }
+      }
     });
 
     socket.on('dashTrail', (data) => {
@@ -1983,6 +2071,7 @@ export default function SpellBrigade() {
   };
 
   const handleNewCharacter = () => {
+    initAudio();
     localStorage.removeItem('spellBrigadePlayerId');
     setSavedPlayer(null);
     setPlayerName('');
@@ -2326,15 +2415,6 @@ export default function SpellBrigade() {
       textAlign: 'center',
       zIndex: 55,
       pointerEvents: 'none', // Don't block clicks/touches
-    },
-    levelUpTitle: {
-      color: '#ffd93d',
-      fontSize: '1.6rem',
-      marginBottom: 8,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
     },
     // Controls hint
     controlsHint: {
@@ -3418,6 +3498,29 @@ export default function SpellBrigade() {
         <span style={styles.connDot} />
         <span>{connected ? 'Connected' : 'Disconnected'}</span>
       </div>
+      
+      {/* Audio unlock indicator for mobile */}
+      {isMobile && !audioUnlocked && screen === 'game' && (
+        <div 
+          onClick={initAudio}
+          onTouchStart={initAudio}
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            background: 'rgba(255,150,0,0.9)',
+            color: '#000',
+            padding: '8px 12px',
+            borderRadius: 8,
+            fontSize: '12px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            zIndex: 100,
+          }}
+        >
+          🔇 Tap for sound
+        </div>
+      )}
     </div>
   );
 }
