@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 // Local imports
 import { SVG, CLASS_SVG } from './constants/icons';
 import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/config';
-import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
+import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, SANCTUARY_FEATURES, pointInPolygon, getZoneAtPosition } from './constants/zones';
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
 
@@ -96,21 +96,75 @@ export default function SpellBrigade() {
   // eslint-disable-next-line no-unused-vars
   const [invincible, setInvincible] = useState(false); // Admin invincibility toggle
   const [questComplete, setQuestComplete] = useState(null);
-  const [showQuest, setShowQuest] = useState(false);
   const [npcDialogue, setNpcDialogue] = useState(null); // Current NPC dialogue
   const [nearbyNpc, setNearbyNpc] = useState(null); // NPC player can interact with
   const [inDungeon, setInDungeon] = useState(false); // In dungeon mode
+  const inDungeonRef = useRef(false); // Ref version for render loop
   const [dungeonVictoryPortal, setDungeonVictoryPortal] = useState(null); // Portal after dragon death
+  const dungeonVictoryPortalRef = useRef(null); // Ref version for render loop
   // eslint-disable-next-line no-unused-vars
   const [dungeonProgress, setDungeonProgress] = useState(0);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
+  
+  // Auth state
+  const [authState, setAuthState] = useState({
+    isAuthenticated: false,
+    isGuest: false,
+    user: null,
+    sessionToken: null,
+  });
+  const [authScreen, setAuthScreen] = useState('main'); // main, login, signup
+  const [authError, setAuthError] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  
+  // Boss death banner
+  const [bossDeathBanner, setBossDeathBanner] = useState(null);
+  
+  // Quest log
+  const [questLog, setQuestLog] = useState({
+    allBosses: { 
+      id: 'allBosses',
+      name: 'Champion of the Realm', 
+      description: 'Defeat all 6 zone bosses to prove your worth.',
+      active: true, 
+      progress: {}, 
+      completed: false,
+      reward: { xp: 5000, title: 'Champion' },
+      bosses: ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'],
+    },
+    dragonSlayer: { 
+      id: 'dragonSlayer',
+      name: 'Dragon Slayer', 
+      description: 'Enter the Dragon\'s Gauntlet and slay the Infernal Dragon.',
+      active: false, 
+      completed: false,
+      reward: { xp: 10000, title: 'Dragon Slayer' },
+    },
+  });
+  const [showQuestLog, setShowQuestLog] = useState(false);
+  
+  // In-game settings modal
+  const [showInGameSettings, setShowInGameSettings] = useState(false);
+  
+  // Mobile ultimate aiming mode
+  const [ultAimMode, setUltAimMode] = useState(false);
+  const ultAimModeRef = useRef(false);
 
   // Keep settings ref in sync
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  // Keep dungeon refs in sync for render loop
+  useEffect(() => {
+    inDungeonRef.current = inDungeon;
+  }, [inDungeon]);
+  
+  useEffect(() => {
+    dungeonVictoryPortalRef.current = dungeonVictoryPortal;
+  }, [dungeonVictoryPortal]);
 
   // Mobile detection
   useEffect(() => {
@@ -557,11 +611,57 @@ export default function SpellBrigade() {
     socket.on('connect', () => {
       setConnected(true);
       // Check for returning player
-      const savedId = localStorage.getItem('spellBrigadePlayerId');
-      if (savedId) {
-        socket.emit('getPlayerData', { playerId: savedId });
+      // Check for saved session first
+      const savedSession = localStorage.getItem('spellBrigadeSession');
+      if (savedSession) {
+        try {
+          const { token, isGuest } = JSON.parse(savedSession);
+          // Validate session with server
+          fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/validate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken: token }),
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.valid) {
+                setAuthState({ 
+                  isAuthenticated: true, 
+                  isGuest: data.isGuest || isGuest, 
+                  user: data.user || null, 
+                  sessionToken: token 
+                });
+                // Check for saved character
+                const savedId = localStorage.getItem('spellBrigadePlayerId');
+                if (savedId) {
+                  socket.emit('getPlayerData', { playerId: savedId });
+                } else if (data.user?.characters?.length > 0) {
+                  setSavedPlayer(data.user.characters[0]);
+                  setScreen('returning');
+                } else {
+                  setScreen('title');
+                }
+              } else {
+                // Invalid session, go to auth
+                localStorage.removeItem('spellBrigadeSession');
+                setScreen('auth');
+              }
+            })
+            .catch(() => {
+              // On error, just proceed with local character check
+              const savedId = localStorage.getItem('spellBrigadePlayerId');
+              if (savedId) {
+                socket.emit('getPlayerData', { playerId: savedId });
+              } else {
+                setScreen('auth');
+              }
+            });
+        } catch {
+          setScreen('auth');
+        }
       } else {
-        setScreen('title');
+        // No session, go to auth screen
+        setScreen('auth');
       }
     });
 
@@ -595,7 +695,13 @@ export default function SpellBrigade() {
       } else {
         // No saved player found
         localStorage.removeItem('spellBrigadePlayerId');
-        setScreen('title');
+        // Check if we have auth session
+        const savedSession = localStorage.getItem('spellBrigadeSession');
+        if (savedSession) {
+          setScreen('title');
+        } else {
+          setScreen('auth');
+        }
       }
     });
 
@@ -611,6 +717,21 @@ export default function SpellBrigade() {
       // Reset input state on join to prevent stuck movement
       inputRef.current = { up: false, down: false, left: false, right: false };
       socket.emit('input', inputRef.current);
+      
+      // Link character to account if logged in
+      const savedSession = localStorage.getItem('spellBrigadeSession');
+      if (savedSession) {
+        try {
+          const { token, isGuest } = JSON.parse(savedSession);
+          if (!isGuest && token) {
+            fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/link-character`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionToken: token, characterId: data.playerId }),
+            }).catch(() => {}); // Ignore errors
+          }
+        } catch {}
+      }
     });
 
     socket.on('gameState', (state) => {
@@ -628,8 +749,9 @@ export default function SpellBrigade() {
         setPlayerInfo(prev => ({ ...prev, ...me }));
         updateZone(me);
         
-        // Sync dungeon state from server
-        if (me.inDungeon !== inDungeon) {
+        // Sync dungeon state from server (update ref immediately for render loop)
+        if (me.inDungeon !== inDungeonRef.current) {
+          inDungeonRef.current = me.inDungeon || false;
           setInDungeon(me.inDungeon || false);
         }
         
@@ -892,13 +1014,29 @@ export default function SpellBrigade() {
       // Massive screen shake
       screenShakeRef.current = { intensity: 30, duration: 2000, startTime: Date.now() };
       playSound('bossExplosion');
-      // Store victory portal location
-      setDungeonVictoryPortal({ x: data.x, y: data.y - 100, active: true });
+      // Store victory portal location (update ref immediately for render loop)
+      const victoryPortal = { x: data.x, y: data.y - 100, active: true };
+      dungeonVictoryPortalRef.current = victoryPortal;
+      setDungeonVictoryPortal(victoryPortal);
     });
     
     socket.on('dragonSlayerReward', (data) => {
       console.log(`🏆 Dragonslayer reward: ${data.xp} XP, Title: ${data.title}`);
       // Could show a special UI here
+    });
+    
+    // Dragon awakens when player enters lair
+    socket.on('dragonAwakens', (data) => {
+      console.log('🐉 THE DRAGON AWAKENS!');
+      effectsRef.current.push({
+        type: 'dragonAwakens',
+        x: data.x,
+        y: data.y,
+        startTime: Date.now(),
+        duration: 3000,
+      });
+      screenShakeRef.current = { intensity: 20, duration: 2000, startTime: Date.now() };
+      playSound('bossSpawn');
     });
     
     // Mini-boss events
@@ -974,7 +1112,41 @@ export default function SpellBrigade() {
     });
 
     socket.on('bossDefeated', (data) => {
-      console.log(`💀 Boss defeated: ${data?.name}! Respawns in 30 seconds.`);
+      console.log(`Boss defeated: ${data?.name} by ${data?.killerName}!`);
+      
+      // Show death banner (not respawn)
+      setBossDeathBanner({
+        name: data.name,
+        zone: data.zone,
+        bossType: data.bossType,
+        killerName: data.killerName,
+        dropsCount: data.dropsCount,
+      });
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => setBossDeathBanner(null), 5000);
+      
+      // Update quest progress
+      if (data.zone && data.bossType) {
+        setQuestLog(prev => {
+          const updated = { ...prev };
+          if (updated.allBosses && !updated.allBosses.completed) {
+            updated.allBosses = {
+              ...updated.allBosses,
+              progress: {
+                ...updated.allBosses.progress,
+                [data.zone]: true,
+              },
+            };
+            // Check if all bosses defeated
+            const defeatedCount = Object.keys(updated.allBosses.progress).length;
+            if (defeatedCount >= 6) {
+              updated.allBosses.completed = true;
+            }
+          }
+          return updated;
+        });
+      }
       
       // Epic boss death animation
       if (data.x !== undefined && data.y !== undefined) {
@@ -1185,15 +1357,25 @@ export default function SpellBrigade() {
     // Dungeon events
     socket.on('enteredDungeon', (data) => {
       console.log('⚔️ Entered dungeon!', data);
+      inDungeonRef.current = true; // Update ref immediately for render loop
       setInDungeon(true);
       setDungeonProgress(0);
+      // Reset camera to dungeon start position
+      cameraRef.current = { x: data.x - 400, y: data.y - 300 };
       playSound('portalEnter');
     });
 
     socket.on('exitedDungeon', (data) => {
       console.log('🏠 Exited dungeon');
+      inDungeonRef.current = false; // Update ref immediately for render loop
       setInDungeon(false);
+      // Reset camera to exit position
+      if (data.x && data.y) {
+        cameraRef.current = { x: data.x - 400, y: data.y - 300 };
+      }
       setDungeonProgress(0);
+      dungeonVictoryPortalRef.current = null; // Clear ref immediately
+      setDungeonVictoryPortal(null); // Clear victory portal
       playSound('portalEnter');
     });
 
@@ -1652,7 +1834,15 @@ export default function SpellBrigade() {
     const me = playerDataRef.current;
     if (!me) return;
     
-    // Cast ultimate in movement direction or forward
+    // On mobile, enter aim mode instead of immediately firing
+    if (isMobile) {
+      if (ultCooldown > 0) return; // Don't enter aim mode if on cooldown
+      setUltAimMode(true);
+      ultAimModeRef.current = true;
+      return;
+    }
+    
+    // Desktop: Cast ultimate in movement direction or forward
     const input = inputRef.current;
     let dx = 0, dy = 0;
     if (input.up) dy -= 1;
@@ -1667,6 +1857,20 @@ export default function SpellBrigade() {
       targetX: me.x + dx * dist,
       targetY: me.y + dy * dist,
     });
+  };
+
+  // Fire ultimate at target position (used by mobile aim mode)
+  const fireUltimateAt = (targetX, targetY) => {
+    if (!socketRef.current || !playerIdRef.current) return;
+    socketRef.current.emit('ultimate', { targetX, targetY });
+    setUltAimMode(false);
+    ultAimModeRef.current = false;
+  };
+
+  // Cancel ultimate aim mode
+  const cancelUltAim = () => {
+    setUltAimMode(false);
+    ultAimModeRef.current = false;
   };
 
   // ===========================================
@@ -1748,6 +1952,18 @@ export default function SpellBrigade() {
     
     initAudio();
     
+    // If in ultimate aim mode, fire at tap location
+    if (ultAimModeRef.current) {
+      const touch = e.changedTouches[0];
+      if (touch && !isInControlArea(touch.clientX, touch.clientY)) {
+        const zoom = zoomRef.current || 1;
+        const targetX = (touch.clientX / zoom) + cameraRef.current.x;
+        const targetY = (touch.clientY / zoom) + cameraRef.current.y;
+        fireUltimateAt(targetX, targetY);
+        return;
+      }
+    }
+    
     // Find a touch that's not in control areas
     for (const touch of e.changedTouches) {
       if (!isInControlArea(touch.clientX, touch.clientY)) {
@@ -1828,8 +2044,16 @@ export default function SpellBrigade() {
       if (me) {
         cam.x = lerp(cam.x, me.x - width / 2, 0.15);
         cam.y = lerp(cam.y, me.y - height / 2, 0.15);
-        cam.x = Math.max(0, Math.min(world.width - width, cam.x));
-        cam.y = Math.max(0, Math.min(world.height - height, cam.y));
+        
+        // Different bounds for dungeon vs world
+        if (inDungeonRef.current) {
+          // Dungeon bounds: 800 wide, 3200 tall
+          cam.x = Math.max(0, Math.min(800 - width, cam.x));
+          cam.y = Math.max(0, Math.min(3200 - height, cam.y));
+        } else {
+          cam.x = Math.max(0, Math.min(world.width - width, cam.x));
+          cam.y = Math.max(0, Math.min(world.height - height, cam.y));
+        }
       }
 
       // Screen shake
@@ -1878,7 +2102,7 @@ export default function SpellBrigade() {
       };
 
       // ========== DUNGEON RENDERING ==========
-      if (inDungeon) {
+      if (inDungeonRef.current) {
         const time = Date.now() / 1000;
         
         // Dungeon layout constants
@@ -2263,9 +2487,9 @@ export default function SpellBrigade() {
         }
         
         // Victory portal (after dragon defeat)
-        if (dungeonVictoryPortal && dungeonVictoryPortal.active) {
-          const vpX = dungeonVictoryPortal.x - cx;
-          const vpY = dungeonVictoryPortal.y - cy;
+        if (dungeonVictoryPortalRef.current && dungeonVictoryPortalRef.current.active) {
+          const vpX = dungeonVictoryPortalRef.current.x - cx;
+          const vpY = dungeonVictoryPortalRef.current.y - cy;
           
           if (vpY > -150 && vpY < height + 150) {
             const portalPulse = 0.8 + Math.sin(time * 4) * 0.2;
@@ -2374,7 +2598,7 @@ export default function SpellBrigade() {
       }
 
       // Zone decorations (seeded random based on position for consistency) - SKIP IN DUNGEON
-      if (!inDungeon) {
+      if (!inDungeonRef.current) {
         const tileSize = 64;
         const startX = Math.floor(cx / tileSize) * tileSize;
         const startY = Math.floor(cy / tileSize) * tileSize;
@@ -2392,8 +2616,8 @@ export default function SpellBrigade() {
             const screenX = x - cx + tileSize/2;
             const screenY = y - cy + tileSize/2;
             
-            // Only draw some tiles have decorations (20% chance)
-            if (rand > 0.2) continue;
+            // Only draw some tiles have decorations (25% chance for more variety)
+            if (rand > 0.25) continue;
             
             const decorRand = seededRandom(x, y, 1);
             
@@ -2572,13 +2796,67 @@ export default function SpellBrigade() {
                 ctx.lineTo(screenX, screenY + 4 + floatY);
                 ctx.stroke();
               }
+            } else if (zone === 'crystal_caves') {
+              // Crystal formations and gem clusters
+              if (decorRand > 0.5) {
+                // Large crystal cluster
+                const colors = ['#ec4899', '#f472b6', '#a855f7', '#c084fc'];
+                const crystalColor = colors[Math.floor(decorRand * 4)];
+                // Main crystal
+                ctx.fillStyle = crystalColor;
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 20);
+                ctx.lineTo(screenX - 6, screenY + 5);
+                ctx.lineTo(screenX + 6, screenY + 5);
+                ctx.closePath();
+                ctx.fill();
+                // Highlight
+                ctx.fillStyle = '#fdf4ff';
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 20);
+                ctx.lineTo(screenX - 2, screenY);
+                ctx.lineTo(screenX + 3, screenY + 5);
+                ctx.lineTo(screenX + 6, screenY + 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                // Side crystal
+                ctx.fillStyle = '#d946ef';
+                ctx.beginPath();
+                ctx.moveTo(screenX + 8, screenY - 10);
+                ctx.lineTo(screenX + 4, screenY + 5);
+                ctx.lineTo(screenX + 12, screenY + 5);
+                ctx.closePath();
+                ctx.fill();
+                // Sparkle
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = 0.8 + Math.sin(Date.now()/300 + x) * 0.2;
+                ctx.beginPath();
+                ctx.arc(screenX - 1, screenY - 12, 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+              } else {
+                // Small gem
+                ctx.fillStyle = decorRand > 0.25 ? '#ec4899' : '#a855f7';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 8);
+                ctx.lineTo(screenX - 5, screenY);
+                ctx.lineTo(screenX, screenY + 5);
+                ctx.lineTo(screenX + 5, screenY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#fdf4ff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+              }
             }
           }
         }
       } // End of if (!inDungeon) for decorations
 
       // Skip zone-specific visuals when in dungeon
-      if (!inDungeon) {
+      if (!inDungeonRef.current) {
         // Zone transition rings (subtle gradient borders)
         const centerX = worldCenterX - cx;
         const centerY = worldCenterY - cy;
@@ -2652,7 +2930,7 @@ export default function SpellBrigade() {
       } // End of if (!inDungeon) for zone visuals
 
       // World border (or dungeon walls in dungeon)
-      if (!inDungeon) {
+      if (!inDungeonRef.current) {
         ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 6;
         ctx.setLineDash([20, 10]);
@@ -2674,18 +2952,18 @@ export default function SpellBrigade() {
       }
 
       // ========== SANCTUARY HEALING ZONE VISUAL ========== (skip in dungeon)
-      if (!inDungeon) {
-        const sanctuaryCenter = { x: 3000, y: 2500 };
+      if (!inDungeonRef.current) {
+        const sanctuaryCenter = { x: 3500, y: 3000 }; // Updated for new layout
         const scx = sanctuaryCenter.x - cx;
         const scy = sanctuaryCenter.y - cy;
-        const healRadius = 320; // Slightly smaller than polygon
+        const healRadius = 380; // Match new sanctuary size
         const time = Date.now() / 1000;
         
         // Only render if on screen
         if (scx > -healRadius - 100 && scx < width + healRadius + 100 && 
             scy > -healRadius - 100 && scy < height + healRadius + 100) {
           
-          // Outer healing circle glow
+          // Outer sanctuary circle glow
           const glowPulse = 0.15 + Math.sin(time * 2) * 0.05;
           const gradient = ctx.createRadialGradient(scx, scy, healRadius * 0.5, scx, scy, healRadius);
           gradient.addColorStop(0, 'transparent');
@@ -2696,7 +2974,7 @@ export default function SpellBrigade() {
           ctx.arc(scx, scy, healRadius, 0, Math.PI * 2);
           ctx.fill();
           
-          // Healing circle border
+          // Sanctuary border
           ctx.strokeStyle = `rgba(34, 197, 94, ${0.3 + Math.sin(time * 3) * 0.1})`;
           ctx.lineWidth = 3;
           ctx.setLineDash([15, 10]);
@@ -2705,7 +2983,74 @@ export default function SpellBrigade() {
           ctx.stroke();
           ctx.setLineDash([]);
           
-          // Floating healing particles
+          // ========== HEALING FOUNTAIN (center) ==========
+          const fountainRadius = 80;
+          const fountainGlow = ctx.createRadialGradient(scx, scy, 0, scx, scy, fountainRadius * 1.5);
+          fountainGlow.addColorStop(0, `rgba(74, 222, 128, ${0.4 + Math.sin(time * 4) * 0.1})`);
+          fountainGlow.addColorStop(0.5, `rgba(34, 197, 94, ${0.2 + Math.sin(time * 3) * 0.05})`);
+          fountainGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = fountainGlow;
+          ctx.beginPath();
+          ctx.arc(scx, scy, fountainRadius * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Fountain base (stone)
+          ctx.fillStyle = '#44403c';
+          ctx.beginPath();
+          ctx.ellipse(scx, scy + 20, 70, 25, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#57534e';
+          ctx.beginPath();
+          ctx.ellipse(scx, scy + 10, 55, 20, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Water pool
+          ctx.fillStyle = `rgba(74, 222, 128, ${0.6 + Math.sin(time * 2) * 0.1})`;
+          ctx.beginPath();
+          ctx.ellipse(scx, scy + 5, 45, 15, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Water spout (center)
+          ctx.fillStyle = '#44403c';
+          ctx.beginPath();
+          ctx.ellipse(scx, scy - 10, 12, 30, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Water jet shooting up
+          for (let i = 0; i < 5; i++) {
+            const jetHeight = 40 + i * 8;
+            const jetX = scx + Math.sin(time * 6 + i * 0.5) * 3;
+            const jetY = scy - 30 - jetHeight * (0.8 + Math.sin(time * 4 + i) * 0.2);
+            const jetAlpha = 0.7 - i * 0.1;
+            ctx.fillStyle = `rgba(134, 239, 172, ${jetAlpha})`;
+            ctx.beginPath();
+            ctx.arc(jetX, jetY, 6 - i, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Water droplets falling
+          for (let i = 0; i < 8; i++) {
+            const angle = (time * 2 + i * Math.PI / 4) % (Math.PI * 2);
+            const dropTime = (time * 3 + i) % 1;
+            const dropX = scx + Math.cos(angle) * 20 + Math.sin(time * 5 + i) * 5;
+            const dropY = scy - 60 + dropTime * 80;
+            const dropAlpha = 1 - dropTime;
+            ctx.fillStyle = `rgba(134, 239, 172, ${dropAlpha * 0.6})`;
+            ctx.beginPath();
+            ctx.arc(dropX, dropY, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Fountain label
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = `rgba(74, 222, 128, ${0.8 + Math.sin(time * 3) * 0.2})`;
+          ctx.textAlign = 'center';
+          ctx.fillText('💧 HEALING FOUNTAIN 💧', scx, scy + 55);
+          ctx.font = '9px Arial';
+          ctx.fillStyle = 'rgba(134, 239, 172, 0.7)';
+          ctx.fillText('Stand here for bonus healing', scx, scy + 68);
+          
+          // Floating healing particles around sanctuary
           for (let i = 0; i < 12; i++) {
             const angle = (time * 0.3 + i * Math.PI / 6) % (Math.PI * 2);
             const dist = healRadius * 0.6 + Math.sin(time * 2 + i) * 30;
@@ -2722,16 +3067,6 @@ export default function SpellBrigade() {
           // Inner healing aura when player is healing
           const meData = players?.find(p => p.id === playerIdRef.current);
           if (meData?.isHealing) {
-            // Stronger inner glow
-            const innerGlow = ctx.createRadialGradient(scx, scy, 0, scx, scy, healRadius * 0.8);
-            innerGlow.addColorStop(0, `rgba(74, 222, 128, ${0.15 + Math.sin(time * 5) * 0.05})`);
-            innerGlow.addColorStop(0.5, `rgba(34, 197, 94, ${0.1 + Math.sin(time * 4) * 0.03})`);
-            innerGlow.addColorStop(1, 'transparent');
-            ctx.fillStyle = innerGlow;
-            ctx.beginPath();
-            ctx.arc(scx, scy, healRadius * 0.8, 0, Math.PI * 2);
-            ctx.fill();
-            
             // Rising heal particles around player
             if (me) {
               const mx = me.x - cx;
@@ -2747,19 +3082,19 @@ export default function SpellBrigade() {
             }
           }
           
-          // "Safe Zone" text
+          // "Safe Zone" text at top
           ctx.font = 'bold 14px Arial';
           ctx.fillStyle = `rgba(34, 197, 94, ${0.6 + Math.sin(time * 2) * 0.2})`;
           ctx.textAlign = 'center';
           ctx.fillText('✨ SANCTUARY ✨', scx, scy - healRadius + 25);
           ctx.font = '10px Arial';
           ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
-          ctx.fillText('Healing Zone', scx, scy - healRadius + 40);
+          ctx.fillText('Portal Hub • Safe Zone', scx, scy - healRadius + 40);
         }
       }
 
       // ========== BUILDINGS ========== (skip in dungeon)
-      if (!inDungeon) {
+      if (!inDungeonRef.current) {
         const time = Date.now() / 1000;
         for (const [id, building] of Object.entries(BUILDING_DATA)) {
         const bx = building.x - cx;
@@ -3040,12 +3375,128 @@ export default function SpellBrigade() {
             ctx.fillStyle = '#ffd93d';
             ctx.fillText('[E] Talk', nx, ny + 55);
           }
+        } else if (npc.type === 'quest_master') {
+          // Quest Master Seraphina - elegant wizard with quest scroll
+          const bobY = Math.sin(time * 2 + npc.x) * 2;
+          
+          // Glow effect
+          ctx.shadowColor = '#ffd93d';
+          ctx.shadowBlur = 15;
+          
+          // Robe (elegant dress)
+          ctx.fillStyle = '#7c3aed';
+          ctx.beginPath();
+          ctx.moveTo(nx - 14, ny + bobY - 5);
+          ctx.lineTo(nx - 16, ny + bobY + 20);
+          ctx.lineTo(nx + 16, ny + bobY + 20);
+          ctx.lineTo(nx + 14, ny + bobY - 5);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Robe details (gold trim)
+          ctx.strokeStyle = '#ffd93d';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(nx - 14, ny + bobY - 5);
+          ctx.lineTo(nx - 16, ny + bobY + 20);
+          ctx.moveTo(nx + 14, ny + bobY - 5);
+          ctx.lineTo(nx + 16, ny + bobY + 20);
+          ctx.stroke();
+          
+          ctx.shadowBlur = 0;
+          
+          // Body
+          ctx.fillStyle = '#f5d0fe';
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + bobY - 10, 10, 12, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Head
+          ctx.fillStyle = '#fde68a';
+          ctx.beginPath();
+          ctx.arc(nx, ny + bobY - 22, 10, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Hair (flowing golden)
+          ctx.fillStyle = '#fcd34d';
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + bobY - 28, 12, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(nx - 8, ny + bobY - 18, 4, 12, 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(nx + 8, ny + bobY - 18, 4, 12, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Eyes
+          ctx.fillStyle = '#7c3aed';
+          ctx.beginPath();
+          ctx.arc(nx - 4, ny + bobY - 24, 2, 0, Math.PI * 2);
+          ctx.arc(nx + 4, ny + bobY - 24, 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Crown/tiara
+          ctx.fillStyle = '#ffd93d';
+          ctx.beginPath();
+          ctx.moveTo(nx - 8, ny + bobY - 32);
+          ctx.lineTo(nx - 6, ny + bobY - 38);
+          ctx.lineTo(nx - 2, ny + bobY - 34);
+          ctx.lineTo(nx, ny + bobY - 40);
+          ctx.lineTo(nx + 2, ny + bobY - 34);
+          ctx.lineTo(nx + 6, ny + bobY - 38);
+          ctx.lineTo(nx + 8, ny + bobY - 32);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Quest scroll (held in hand)
+          ctx.fillStyle = '#fef3c7';
+          ctx.fillRect(nx + 12, ny + bobY - 15, 8, 18);
+          ctx.strokeStyle = '#92400e';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(nx + 12, ny + bobY - 15, 8, 18);
+          // Scroll lines
+          ctx.strokeStyle = '#78716c';
+          ctx.beginPath();
+          ctx.moveTo(nx + 14, ny + bobY - 10);
+          ctx.lineTo(nx + 18, ny + bobY - 10);
+          ctx.moveTo(nx + 14, ny + bobY - 5);
+          ctx.lineTo(nx + 18, ny + bobY - 5);
+          ctx.moveTo(nx + 14, ny + bobY);
+          ctx.lineTo(nx + 18, ny + bobY);
+          ctx.stroke();
+          
+          // Floating quest marker
+          const questFloat = Math.sin(time * 3) * 4;
+          ctx.fillStyle = '#ffd93d';
+          ctx.shadowColor = '#ffd93d';
+          ctx.shadowBlur = 10;
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('!', nx, ny + bobY - 50 + questFloat);
+          ctx.shadowBlur = 0;
+          
+          // Name
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = '#ffd93d';
+          ctx.textAlign = 'center';
+          ctx.fillText('Quest Master', nx, ny + 30);
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#c084fc';
+          ctx.fillText('Seraphina', nx, ny + 42);
+          
+          // Interaction hint
+          if (nearbyNpc?.id === npc.id) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillText('[E] Accept Quest', nx, ny + 55);
+          }
         }
       }
       } // End of if (!inDungeon) for buildings/campfire/NPCs
 
       // ========== PORTALS ========== (skip in dungeon)
-      if (!inDungeon) {
+      if (!inDungeonRef.current) {
         for (const [, portal] of Object.entries(PORTAL_POSITIONS)) {
         const px = portal.from.x - cx;
         const py = portal.from.y - cy;
@@ -3420,6 +3871,350 @@ export default function SpellBrigade() {
             ctx.arc(sx, sy - 5 - bounce, 6, 0, Math.PI * 2);
             ctx.fillStyle = '#ec4899';
             ctx.fill();
+          }
+          else if (bossType === 'boss_dragon') {
+            // ========== MASSIVE INFERNAL DRAGON BOSS (4x size) ==========
+            const dragonRadius = enemy.radius || 160;
+            const scale = dragonRadius / 40; // Scale factor (was 40, now 160 = 4x)
+            const wingFlap = Math.sin(time * 2.5) * 0.4;
+            const breathe = Math.sin(time * 1.5) * 5 * scale;
+            const bodyBob = Math.sin(time * 2) * 3 * scale;
+            
+            // Massive fire aura glow
+            const auraGrad = ctx.createRadialGradient(sx, sy - bodyBob, dragonRadius * 0.2, sx, sy - bodyBob, dragonRadius * 2);
+            auraGrad.addColorStop(0, 'rgba(255, 100, 0, 0.5)');
+            auraGrad.addColorStop(0.3, 'rgba(249, 115, 22, 0.3)');
+            auraGrad.addColorStop(0.6, 'rgba(220, 38, 38, 0.15)');
+            auraGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = auraGrad;
+            ctx.beginPath();
+            ctx.arc(sx, sy - bodyBob, dragonRadius * 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Pulsing ground fire effect
+            ctx.fillStyle = `rgba(255, 100, 0, ${0.1 + Math.sin(time * 4) * 0.05})`;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy + 60 * scale, dragonRadius * 1.5, 30 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // === MASSIVE WINGS (behind body) ===
+            // Left wing
+            ctx.save();
+            ctx.translate(sx - 60 * scale, sy - 30 * scale - bodyBob);
+            ctx.rotate(-0.6 + wingFlap);
+            ctx.fillStyle = '#5c0a0a';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(-50 * scale, -80 * scale, -120 * scale, -40 * scale);
+            ctx.quadraticCurveTo(-100 * scale, 0, -80 * scale, 40 * scale);
+            ctx.quadraticCurveTo(-40 * scale, 30 * scale, 0, 10 * scale);
+            ctx.closePath();
+            ctx.fill();
+            // Wing membrane with gradient
+            const wingGrad1 = ctx.createLinearGradient(-120 * scale, -40 * scale, 0, 0);
+            wingGrad1.addColorStop(0, '#7f1d1d');
+            wingGrad1.addColorStop(0.5, '#991b1b');
+            wingGrad1.addColorStop(1, '#b91c1c');
+            ctx.fillStyle = wingGrad1;
+            ctx.beginPath();
+            ctx.moveTo(-15 * scale, 5 * scale);
+            ctx.quadraticCurveTo(-60 * scale, -50 * scale, -100 * scale, -20 * scale);
+            ctx.quadraticCurveTo(-70 * scale, 10 * scale, -15 * scale, 20 * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            
+            // Right wing
+            ctx.save();
+            ctx.translate(sx + 60 * scale, sy - 30 * scale - bodyBob);
+            ctx.rotate(0.6 - wingFlap);
+            ctx.fillStyle = '#5c0a0a';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(50 * scale, -80 * scale, 120 * scale, -40 * scale);
+            ctx.quadraticCurveTo(100 * scale, 0, 80 * scale, 40 * scale);
+            ctx.quadraticCurveTo(40 * scale, 30 * scale, 0, 10 * scale);
+            ctx.closePath();
+            ctx.fill();
+            const wingGrad2 = ctx.createLinearGradient(120 * scale, -40 * scale, 0, 0);
+            wingGrad2.addColorStop(0, '#7f1d1d');
+            wingGrad2.addColorStop(0.5, '#991b1b');
+            wingGrad2.addColorStop(1, '#b91c1c');
+            ctx.fillStyle = wingGrad2;
+            ctx.beginPath();
+            ctx.moveTo(15 * scale, 5 * scale);
+            ctx.quadraticCurveTo(60 * scale, -50 * scale, 100 * scale, -20 * scale);
+            ctx.quadraticCurveTo(70 * scale, 10 * scale, 15 * scale, 20 * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            
+            // === MASSIVE TAIL ===
+            ctx.strokeStyle = '#7f1d1d';
+            ctx.lineWidth = 20 * scale;
+            ctx.lineCap = 'round';
+            const tailWave = Math.sin(time * 3);
+            ctx.beginPath();
+            ctx.moveTo(sx, sy + 50 * scale - bodyBob);
+            ctx.bezierCurveTo(
+              sx - 40 * scale, sy + 100 * scale - bodyBob + tailWave * 20,
+              sx - 100 * scale, sy + 80 * scale - bodyBob - tailWave * 30,
+              sx - 150 * scale, sy + 40 * scale - bodyBob + tailWave * 25
+            );
+            ctx.stroke();
+            // Tail tip with spikes
+            ctx.fillStyle = '#1c1917';
+            const tailEndX = sx - 150 * scale;
+            const tailEndY = sy + 40 * scale - bodyBob + tailWave * 25;
+            for (let i = 0; i < 4; i++) {
+              const spikeAngle = -0.8 + i * 0.2 + tailWave * 0.1;
+              ctx.save();
+              ctx.translate(tailEndX + i * 15 * scale, tailEndY - i * 5 * scale);
+              ctx.rotate(spikeAngle);
+              ctx.beginPath();
+              ctx.moveTo(0, -15 * scale);
+              ctx.lineTo(-8 * scale, 10 * scale);
+              ctx.lineTo(8 * scale, 10 * scale);
+              ctx.closePath();
+              ctx.fill();
+              ctx.restore();
+            }
+            
+            // === BACK LEGS ===
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath();
+            ctx.ellipse(sx - 35 * scale, sy + 30 * scale - bodyBob, 20 * scale, 35 * scale, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx + 35 * scale, sy + 30 * scale - bodyBob, 20 * scale, 35 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // === MASSIVE BODY ===
+            const bodyGrad = ctx.createRadialGradient(sx, sy - bodyBob, 0, sx, sy - bodyBob, 80 * scale);
+            bodyGrad.addColorStop(0, '#dc2626');
+            bodyGrad.addColorStop(0.5, '#b91c1c');
+            bodyGrad.addColorStop(1, '#7f1d1d');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bodyBob + breathe, 70 * scale, 55 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Belly scales
+            ctx.fillStyle = '#fbbf24';
+            for (let row = 0; row < 4; row++) {
+              for (let i = 0; i < 6; i++) {
+                const scaleX = sx - 35 * scale + i * 14 * scale;
+                const scaleY = sy - 10 * scale + row * 18 * scale - bodyBob + breathe;
+                ctx.beginPath();
+                ctx.ellipse(scaleX, scaleY, 8 * scale, 6 * scale, 0, Math.PI, 0);
+                ctx.fill();
+              }
+            }
+            
+            // Back ridge spines
+            ctx.fillStyle = '#1c1917';
+            for (let i = 0; i < 8; i++) {
+              const spineX = sx - 20 * scale + i * 8 * scale;
+              const spineY = sy - 55 * scale - bodyBob + breathe + Math.sin(time * 6 + i) * 2;
+              ctx.beginPath();
+              ctx.moveTo(spineX, spineY);
+              ctx.lineTo(spineX - 5 * scale, spineY + 20 * scale);
+              ctx.lineTo(spineX + 5 * scale, spineY + 20 * scale);
+              ctx.closePath();
+              ctx.fill();
+            }
+            
+            // === FRONT LEGS ===
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.moveTo(sx - 45 * scale, sy + 10 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx - 55 * scale, sy + 40 * scale - bodyBob, sx - 50 * scale, sy + 70 * scale - bodyBob);
+            ctx.lineTo(sx - 35 * scale, sy + 70 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx - 35 * scale, sy + 40 * scale - bodyBob, sx - 30 * scale, sy + 10 * scale - bodyBob);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(sx + 45 * scale, sy + 10 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx + 55 * scale, sy + 40 * scale - bodyBob, sx + 50 * scale, sy + 70 * scale - bodyBob);
+            ctx.lineTo(sx + 35 * scale, sy + 70 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx + 35 * scale, sy + 40 * scale - bodyBob, sx + 30 * scale, sy + 10 * scale - bodyBob);
+            ctx.closePath();
+            ctx.fill();
+            // Claws
+            ctx.fillStyle = '#1c1917';
+            for (let leg = 0; leg < 2; leg++) {
+              const legBaseX = leg === 0 ? sx - 50 * scale : sx + 35 * scale;
+              const legDir = leg === 0 ? -1 : 1;
+              for (let c = 0; c < 4; c++) {
+                ctx.beginPath();
+                ctx.moveTo(legBaseX + c * 5 * scale * legDir, sy + 70 * scale - bodyBob);
+                ctx.lineTo(legBaseX + c * 5 * scale * legDir + 2 * scale * legDir, sy + 85 * scale - bodyBob);
+                ctx.lineTo(legBaseX + c * 5 * scale * legDir + 5 * scale * legDir, sy + 70 * scale - bodyBob);
+                ctx.closePath();
+                ctx.fill();
+              }
+            }
+            
+            // === LONG NECK ===
+            const neckGrad = ctx.createLinearGradient(sx, sy - 50 * scale - bodyBob, sx + 30 * scale, sy - 120 * scale - bodyBob);
+            neckGrad.addColorStop(0, '#b91c1c');
+            neckGrad.addColorStop(1, '#991b1b');
+            ctx.fillStyle = neckGrad;
+            ctx.beginPath();
+            ctx.moveTo(sx - 20 * scale, sy - 40 * scale - bodyBob + breathe);
+            ctx.quadraticCurveTo(sx, sy - 80 * scale - bodyBob, sx + 20 * scale, sy - 110 * scale - bodyBob);
+            ctx.lineTo(sx + 40 * scale, sy - 105 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx + 25 * scale, sy - 70 * scale - bodyBob, sx + 20 * scale, sy - 40 * scale - bodyBob + breathe);
+            ctx.closePath();
+            ctx.fill();
+            // Neck spines
+            ctx.fillStyle = '#1c1917';
+            for (let i = 0; i < 5; i++) {
+              const neckProgress = i / 5;
+              const neckX = sx - 5 * scale + neckProgress * 25 * scale;
+              const neckY = sy - 50 * scale - neckProgress * 55 * scale - bodyBob;
+              ctx.beginPath();
+              ctx.moveTo(neckX, neckY - 12 * scale);
+              ctx.lineTo(neckX - 4 * scale, neckY + 5 * scale);
+              ctx.lineTo(neckX + 4 * scale, neckY + 5 * scale);
+              ctx.closePath();
+              ctx.fill();
+            }
+            
+            // === MASSIVE HEAD ===
+            const headX = sx + 30 * scale;
+            const headY = sy - 120 * scale - bodyBob;
+            const headGrad = ctx.createRadialGradient(headX, headY, 0, headX, headY, 35 * scale);
+            headGrad.addColorStop(0, '#dc2626');
+            headGrad.addColorStop(0.7, '#b91c1c');
+            headGrad.addColorStop(1, '#991b1b');
+            ctx.fillStyle = headGrad;
+            ctx.beginPath();
+            ctx.ellipse(headX, headY, 35 * scale, 28 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Snout
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.ellipse(headX + 40 * scale, headY + 5 * scale, 25 * scale, 18 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Jaw
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.ellipse(headX + 30 * scale, headY + 20 * scale, 28 * scale, 12 * scale, 0.2, 0, Math.PI);
+            ctx.fill();
+            
+            // Teeth
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 6; i++) {
+              const toothX = headX + 15 * scale + i * 10 * scale;
+              const toothY = headY + 12 * scale;
+              ctx.beginPath();
+              ctx.moveTo(toothX, toothY);
+              ctx.lineTo(toothX - 3 * scale, toothY + 10 * scale);
+              ctx.lineTo(toothX + 3 * scale, toothY + 10 * scale);
+              ctx.closePath();
+              ctx.fill();
+            }
+            
+            // MASSIVE HORNS
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.moveTo(headX - 15 * scale, headY - 20 * scale);
+            ctx.quadraticCurveTo(headX - 30 * scale, headY - 50 * scale, headX - 25 * scale, headY - 70 * scale);
+            ctx.lineTo(headX - 15 * scale, headY - 65 * scale);
+            ctx.quadraticCurveTo(headX - 20 * scale, headY - 45 * scale, headX - 5 * scale, headY - 18 * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(headX + 10 * scale, headY - 22 * scale);
+            ctx.quadraticCurveTo(headX + 5 * scale, headY - 55 * scale, headX + 15 * scale, headY - 80 * scale);
+            ctx.lineTo(headX + 25 * scale, headY - 75 * scale);
+            ctx.quadraticCurveTo(headX + 20 * scale, headY - 50 * scale, headX + 20 * scale, headY - 20 * scale);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Glowing eyes
+            ctx.shadowColor = '#ff6600';
+            ctx.shadowBlur = 25;
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.ellipse(headX + 20 * scale, headY - 8 * scale, 10 * scale, 8 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(headX - 5 * scale, headY - 5 * scale, 10 * scale, 8 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.ellipse(headX + 22 * scale, headY - 8 * scale, 3 * scale, 6 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(headX - 3 * scale, headY - 5 * scale, 3 * scale, 6 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Fire breath from nostrils
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.ellipse(headX + 55 * scale, headY + 2 * scale, 4 * scale, 3 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(headX + 55 * scale, headY + 12 * scale, 4 * scale, 3 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            for (let n = 0; n < 2; n++) {
+              const nostrilY = headY + (n === 0 ? 2 : 12) * scale;
+              for (let i = 0; i < 4; i++) {
+                const fireX = headX + 60 * scale + i * 8 * scale + Math.sin(time * 8 + i + n) * 5;
+                const fireY = nostrilY + Math.sin(time * 10 + i) * 3;
+                const fireSize = (4 - i) * scale;
+                ctx.globalAlpha = 0.6 - i * 0.15;
+                ctx.fillStyle = i < 2 ? '#fbbf24' : '#f97316';
+                ctx.beginPath();
+                ctx.arc(fireX, fireY, fireSize, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+            ctx.globalAlpha = 1;
+            
+            // === DRAGON HEALTH BAR (custom, larger) ===
+            const dhbW = 200;
+            const dhbY = sy - 200 * scale - bodyBob;
+            ctx.fillStyle = 'rgba(0,0,0,0.8)';
+            ctx.fillRect(sx - dhbW / 2 - 4, dhbY - 4, dhbW + 8, 24);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(sx - dhbW / 2, dhbY, dhbW, 16);
+            
+            const healthPct = enemy.health / enemy.maxHealth;
+            const hpGrad = ctx.createLinearGradient(sx - dhbW / 2, dhbY, sx - dhbW / 2 + dhbW * healthPct, dhbY);
+            hpGrad.addColorStop(0, '#dc2626');
+            hpGrad.addColorStop(0.5, '#f97316');
+            hpGrad.addColorStop(1, '#fbbf24');
+            ctx.fillStyle = hpGrad;
+            ctx.fillRect(sx - dhbW / 2, dhbY, dhbW * healthPct, 16);
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${Math.ceil(enemy.health)} / ${enemy.maxHealth}`, sx, dhbY + 13);
+            
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 18px Arial';
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 10;
+            ctx.fillText('🐉 INFERNAL DRAGON 🐉', sx, dhbY - 15);
+            ctx.shadowBlur = 0;
+            
+            const phase = enemy.health < enemy.maxHealth * 0.25 ? 3 : 
+                          enemy.health < enemy.maxHealth * 0.5 ? 2 : 1;
+            if (phase > 1) {
+              ctx.fillStyle = phase === 3 ? '#dc2626' : '#f97316';
+              ctx.font = 'bold 14px Arial';
+              ctx.fillText(`⚠️ PHASE ${phase} ${phase === 3 ? '- ENRAGED!' : ''} ⚠️`, sx, dhbY - 35);
+            }
+            
+            // Skip default health bar for dragon (we drew our own)
+            continue;
           }
           else {
             // Default boss (fallback)
@@ -3845,377 +4640,6 @@ export default function SpellBrigade() {
               ctx.lineTo(fx + 3, sy - 18 - bounce);
               ctx.closePath();
               ctx.fill();
-            }
-          }
-          else if (enemyType === 'boss_dragon') {
-            // ========== MASSIVE INFERNAL DRAGON BOSS (4x size) ==========
-            const time = Date.now() / 1000;
-            const dragonRadius = enemy.radius || 160;
-            const scale = dragonRadius / 40; // Scale factor (was 40, now 160 = 4x)
-            const wingFlap = Math.sin(time * 2.5) * 0.4;
-            const breathe = Math.sin(time * 1.5) * 5 * scale;
-            const bodyBob = Math.sin(time * 2) * 3 * scale;
-            
-            // Massive fire aura glow
-            const auraGrad = ctx.createRadialGradient(sx, sy - bodyBob, dragonRadius * 0.2, sx, sy - bodyBob, dragonRadius * 2);
-            auraGrad.addColorStop(0, 'rgba(255, 100, 0, 0.5)');
-            auraGrad.addColorStop(0.3, 'rgba(249, 115, 22, 0.3)');
-            auraGrad.addColorStop(0.6, 'rgba(220, 38, 38, 0.15)');
-            auraGrad.addColorStop(1, 'transparent');
-            ctx.fillStyle = auraGrad;
-            ctx.beginPath();
-            ctx.arc(sx, sy - bodyBob, dragonRadius * 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Pulsing ground fire effect
-            ctx.fillStyle = `rgba(255, 100, 0, ${0.1 + Math.sin(time * 4) * 0.05})`;
-            ctx.beginPath();
-            ctx.ellipse(sx, sy + 60 * scale, dragonRadius * 1.5, 30 * scale, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // === MASSIVE WINGS (behind body) ===
-            // Left wing
-            ctx.save();
-            ctx.translate(sx - 60 * scale, sy - 30 * scale - bodyBob);
-            ctx.rotate(-0.6 + wingFlap);
-            // Wing bone structure
-            ctx.fillStyle = '#5c0a0a';
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.quadraticCurveTo(-50 * scale, -80 * scale, -120 * scale, -40 * scale);
-            ctx.quadraticCurveTo(-100 * scale, 0, -80 * scale, 40 * scale);
-            ctx.quadraticCurveTo(-40 * scale, 30 * scale, 0, 10 * scale);
-            ctx.closePath();
-            ctx.fill();
-            // Wing membrane with gradient
-            const wingGrad1 = ctx.createLinearGradient(-120 * scale, -40 * scale, 0, 0);
-            wingGrad1.addColorStop(0, '#7f1d1d');
-            wingGrad1.addColorStop(0.5, '#991b1b');
-            wingGrad1.addColorStop(1, '#b91c1c');
-            ctx.fillStyle = wingGrad1;
-            ctx.beginPath();
-            ctx.moveTo(-15 * scale, 5 * scale);
-            ctx.quadraticCurveTo(-60 * scale, -50 * scale, -100 * scale, -20 * scale);
-            ctx.quadraticCurveTo(-70 * scale, 10 * scale, -15 * scale, 20 * scale);
-            ctx.closePath();
-            ctx.fill();
-            // Wing veins
-            ctx.strokeStyle = '#5c0a0a';
-            ctx.lineWidth = 2 * scale;
-            for (let i = 0; i < 4; i++) {
-              ctx.beginPath();
-              ctx.moveTo(-20 * scale, 5 * scale);
-              ctx.quadraticCurveTo(-50 * scale - i * 15 * scale, -30 * scale + i * 10 * scale, -90 * scale, -10 * scale + i * 10 * scale);
-              ctx.stroke();
-            }
-            ctx.restore();
-            
-            // Right wing
-            ctx.save();
-            ctx.translate(sx + 60 * scale, sy - 30 * scale - bodyBob);
-            ctx.rotate(0.6 - wingFlap);
-            ctx.fillStyle = '#5c0a0a';
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.quadraticCurveTo(50 * scale, -80 * scale, 120 * scale, -40 * scale);
-            ctx.quadraticCurveTo(100 * scale, 0, 80 * scale, 40 * scale);
-            ctx.quadraticCurveTo(40 * scale, 30 * scale, 0, 10 * scale);
-            ctx.closePath();
-            ctx.fill();
-            const wingGrad2 = ctx.createLinearGradient(120 * scale, -40 * scale, 0, 0);
-            wingGrad2.addColorStop(0, '#7f1d1d');
-            wingGrad2.addColorStop(0.5, '#991b1b');
-            wingGrad2.addColorStop(1, '#b91c1c');
-            ctx.fillStyle = wingGrad2;
-            ctx.beginPath();
-            ctx.moveTo(15 * scale, 5 * scale);
-            ctx.quadraticCurveTo(60 * scale, -50 * scale, 100 * scale, -20 * scale);
-            ctx.quadraticCurveTo(70 * scale, 10 * scale, 15 * scale, 20 * scale);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = '#5c0a0a';
-            ctx.lineWidth = 2 * scale;
-            for (let i = 0; i < 4; i++) {
-              ctx.beginPath();
-              ctx.moveTo(20 * scale, 5 * scale);
-              ctx.quadraticCurveTo(50 * scale + i * 15 * scale, -30 * scale + i * 10 * scale, 90 * scale, -10 * scale + i * 10 * scale);
-              ctx.stroke();
-            }
-            ctx.restore();
-            
-            // === MASSIVE TAIL ===
-            ctx.strokeStyle = '#7f1d1d';
-            ctx.lineWidth = 20 * scale;
-            ctx.lineCap = 'round';
-            const tailWave = Math.sin(time * 3);
-            ctx.beginPath();
-            ctx.moveTo(sx, sy + 50 * scale - bodyBob);
-            ctx.bezierCurveTo(
-              sx - 40 * scale, sy + 100 * scale - bodyBob + tailWave * 20,
-              sx - 100 * scale, sy + 80 * scale - bodyBob - tailWave * 30,
-              sx - 150 * scale, sy + 40 * scale - bodyBob + tailWave * 25
-            );
-            ctx.stroke();
-            // Tail tip with spikes
-            ctx.fillStyle = '#1c1917';
-            const tailEndX = sx - 150 * scale;
-            const tailEndY = sy + 40 * scale - bodyBob + tailWave * 25;
-            for (let i = 0; i < 4; i++) {
-              const spikeAngle = -0.8 + i * 0.2 + tailWave * 0.1;
-              ctx.save();
-              ctx.translate(tailEndX + i * 15 * scale, tailEndY - i * 5 * scale);
-              ctx.rotate(spikeAngle);
-              ctx.beginPath();
-              ctx.moveTo(0, -15 * scale);
-              ctx.lineTo(-8 * scale, 10 * scale);
-              ctx.lineTo(8 * scale, 10 * scale);
-              ctx.closePath();
-              ctx.fill();
-              ctx.restore();
-            }
-            
-            // === BACK LEGS ===
-            ctx.fillStyle = '#7f1d1d';
-            ctx.beginPath();
-            ctx.ellipse(sx - 35 * scale, sy + 30 * scale - bodyBob, 20 * scale, 35 * scale, -0.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(sx + 35 * scale, sy + 30 * scale - bodyBob, 20 * scale, 35 * scale, 0.2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // === MASSIVE BODY ===
-            const bodyGrad = ctx.createRadialGradient(sx, sy - bodyBob, 0, sx, sy - bodyBob, 80 * scale);
-            bodyGrad.addColorStop(0, '#dc2626');
-            bodyGrad.addColorStop(0.5, '#b91c1c');
-            bodyGrad.addColorStop(1, '#7f1d1d');
-            ctx.fillStyle = bodyGrad;
-            ctx.beginPath();
-            ctx.ellipse(sx, sy - bodyBob + breathe, 70 * scale, 55 * scale, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Belly scales
-            ctx.fillStyle = '#fbbf24';
-            for (let row = 0; row < 4; row++) {
-              for (let i = 0; i < 6; i++) {
-                const scaleX = sx - 35 * scale + i * 14 * scale;
-                const scaleY = sy - 10 * scale + row * 18 * scale - bodyBob + breathe;
-                ctx.beginPath();
-                ctx.ellipse(scaleX, scaleY, 8 * scale, 6 * scale, 0, Math.PI, 0);
-                ctx.fill();
-              }
-            }
-            
-            // Back ridge spines
-            ctx.fillStyle = '#1c1917';
-            for (let i = 0; i < 8; i++) {
-              const spineX = sx - 20 * scale + i * 8 * scale;
-              const spineY = sy - 55 * scale - bodyBob + breathe + Math.sin(time * 6 + i) * 2;
-              ctx.beginPath();
-              ctx.moveTo(spineX, spineY);
-              ctx.lineTo(spineX - 5 * scale, spineY + 20 * scale);
-              ctx.lineTo(spineX + 5 * scale, spineY + 20 * scale);
-              ctx.closePath();
-              ctx.fill();
-            }
-            
-            // === FRONT LEGS ===
-            ctx.fillStyle = '#991b1b';
-            // Left front leg
-            ctx.beginPath();
-            ctx.moveTo(sx - 45 * scale, sy + 10 * scale - bodyBob);
-            ctx.quadraticCurveTo(sx - 55 * scale, sy + 40 * scale - bodyBob, sx - 50 * scale, sy + 70 * scale - bodyBob);
-            ctx.lineTo(sx - 35 * scale, sy + 70 * scale - bodyBob);
-            ctx.quadraticCurveTo(sx - 35 * scale, sy + 40 * scale - bodyBob, sx - 30 * scale, sy + 10 * scale - bodyBob);
-            ctx.closePath();
-            ctx.fill();
-            // Right front leg
-            ctx.beginPath();
-            ctx.moveTo(sx + 45 * scale, sy + 10 * scale - bodyBob);
-            ctx.quadraticCurveTo(sx + 55 * scale, sy + 40 * scale - bodyBob, sx + 50 * scale, sy + 70 * scale - bodyBob);
-            ctx.lineTo(sx + 35 * scale, sy + 70 * scale - bodyBob);
-            ctx.quadraticCurveTo(sx + 35 * scale, sy + 40 * scale - bodyBob, sx + 30 * scale, sy + 10 * scale - bodyBob);
-            ctx.closePath();
-            ctx.fill();
-            // Claws
-            ctx.fillStyle = '#1c1917';
-            for (let leg = 0; leg < 2; leg++) {
-              const legBaseX = leg === 0 ? sx - 50 * scale : sx + 35 * scale;
-              const legDir = leg === 0 ? -1 : 1;
-              for (let c = 0; c < 4; c++) {
-                ctx.beginPath();
-                ctx.moveTo(legBaseX + c * 5 * scale * legDir, sy + 70 * scale - bodyBob);
-                ctx.lineTo(legBaseX + c * 5 * scale * legDir + 2 * scale * legDir, sy + 85 * scale - bodyBob);
-                ctx.lineTo(legBaseX + c * 5 * scale * legDir + 5 * scale * legDir, sy + 70 * scale - bodyBob);
-                ctx.closePath();
-                ctx.fill();
-              }
-            }
-            
-            // === LONG NECK ===
-            const neckGrad = ctx.createLinearGradient(sx, sy - 50 * scale - bodyBob, sx + 30 * scale, sy - 120 * scale - bodyBob);
-            neckGrad.addColorStop(0, '#b91c1c');
-            neckGrad.addColorStop(1, '#991b1b');
-            ctx.fillStyle = neckGrad;
-            ctx.beginPath();
-            ctx.moveTo(sx - 20 * scale, sy - 40 * scale - bodyBob + breathe);
-            ctx.quadraticCurveTo(sx, sy - 80 * scale - bodyBob, sx + 20 * scale, sy - 110 * scale - bodyBob);
-            ctx.lineTo(sx + 40 * scale, sy - 105 * scale - bodyBob);
-            ctx.quadraticCurveTo(sx + 25 * scale, sy - 70 * scale - bodyBob, sx + 20 * scale, sy - 40 * scale - bodyBob + breathe);
-            ctx.closePath();
-            ctx.fill();
-            // Neck spines
-            ctx.fillStyle = '#1c1917';
-            for (let i = 0; i < 5; i++) {
-              const neckProgress = i / 5;
-              const neckX = sx - 5 * scale + neckProgress * 25 * scale;
-              const neckY = sy - 50 * scale - neckProgress * 55 * scale - bodyBob;
-              ctx.beginPath();
-              ctx.moveTo(neckX, neckY - 12 * scale);
-              ctx.lineTo(neckX - 4 * scale, neckY + 5 * scale);
-              ctx.lineTo(neckX + 4 * scale, neckY + 5 * scale);
-              ctx.closePath();
-              ctx.fill();
-            }
-            
-            // === MASSIVE HEAD ===
-            const headX = sx + 30 * scale;
-            const headY = sy - 120 * scale - bodyBob;
-            // Main head shape
-            const headGrad = ctx.createRadialGradient(headX, headY, 0, headX, headY, 35 * scale);
-            headGrad.addColorStop(0, '#dc2626');
-            headGrad.addColorStop(0.7, '#b91c1c');
-            headGrad.addColorStop(1, '#991b1b');
-            ctx.fillStyle = headGrad;
-            ctx.beginPath();
-            ctx.ellipse(headX, headY, 35 * scale, 28 * scale, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Snout
-            ctx.fillStyle = '#b91c1c';
-            ctx.beginPath();
-            ctx.ellipse(headX + 40 * scale, headY + 5 * scale, 25 * scale, 18 * scale, 0.2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Jaw
-            ctx.fillStyle = '#991b1b';
-            ctx.beginPath();
-            ctx.ellipse(headX + 30 * scale, headY + 20 * scale, 28 * scale, 12 * scale, 0.2, 0, Math.PI);
-            ctx.fill();
-            
-            // Teeth
-            ctx.fillStyle = '#fff';
-            for (let i = 0; i < 6; i++) {
-              const toothX = headX + 15 * scale + i * 10 * scale;
-              const toothY = headY + 12 * scale;
-              ctx.beginPath();
-              ctx.moveTo(toothX, toothY);
-              ctx.lineTo(toothX - 3 * scale, toothY + 10 * scale);
-              ctx.lineTo(toothX + 3 * scale, toothY + 10 * scale);
-              ctx.closePath();
-              ctx.fill();
-            }
-            
-            // MASSIVE HORNS
-            ctx.fillStyle = '#1c1917';
-            // Left horn
-            ctx.beginPath();
-            ctx.moveTo(headX - 15 * scale, headY - 20 * scale);
-            ctx.quadraticCurveTo(headX - 30 * scale, headY - 50 * scale, headX - 25 * scale, headY - 70 * scale);
-            ctx.lineTo(headX - 15 * scale, headY - 65 * scale);
-            ctx.quadraticCurveTo(headX - 20 * scale, headY - 45 * scale, headX - 5 * scale, headY - 18 * scale);
-            ctx.closePath();
-            ctx.fill();
-            // Right horn
-            ctx.beginPath();
-            ctx.moveTo(headX + 10 * scale, headY - 22 * scale);
-            ctx.quadraticCurveTo(headX + 5 * scale, headY - 55 * scale, headX + 15 * scale, headY - 80 * scale);
-            ctx.lineTo(headX + 25 * scale, headY - 75 * scale);
-            ctx.quadraticCurveTo(headX + 20 * scale, headY - 50 * scale, headX + 20 * scale, headY - 20 * scale);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Glowing eyes
-            ctx.shadowColor = '#ff6600';
-            ctx.shadowBlur = 25;
-            ctx.fillStyle = '#fbbf24';
-            ctx.beginPath();
-            ctx.ellipse(headX + 20 * scale, headY - 8 * scale, 10 * scale, 8 * scale, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(headX - 5 * scale, headY - 5 * scale, 10 * scale, 8 * scale, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            // Slit pupils
-            ctx.fillStyle = '#000';
-            ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.ellipse(headX + 22 * scale, headY - 8 * scale, 3 * scale, 6 * scale, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(headX - 3 * scale, headY - 5 * scale, 3 * scale, 6 * scale, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Nostrils with fire/smoke
-            ctx.fillStyle = '#1c1917';
-            ctx.beginPath();
-            ctx.ellipse(headX + 55 * scale, headY + 2 * scale, 4 * scale, 3 * scale, 0.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(headX + 55 * scale, headY + 12 * scale, 4 * scale, 3 * scale, 0.2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Fire breath from nostrils
-            for (let n = 0; n < 2; n++) {
-              const nostrilY = headY + (n === 0 ? 2 : 12) * scale;
-              for (let i = 0; i < 4; i++) {
-                const fireX = headX + 60 * scale + i * 8 * scale + Math.sin(time * 8 + i + n) * 5;
-                const fireY = nostrilY + Math.sin(time * 10 + i) * 3;
-                const fireSize = (4 - i) * scale;
-                ctx.globalAlpha = 0.6 - i * 0.15;
-                ctx.fillStyle = i < 2 ? '#fbbf24' : '#f97316';
-                ctx.beginPath();
-                ctx.arc(fireX, fireY, fireSize, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            }
-            ctx.globalAlpha = 1;
-            
-            // === BOSS HEALTH BAR ===
-            const hbW = 200 * scale;
-            const hbY = sy - 180 * scale - bodyBob;
-            ctx.fillStyle = 'rgba(0,0,0,0.8)';
-            ctx.fillRect(sx - hbW / 2 - 4, hbY - 4, hbW + 8, 24);
-            ctx.fillStyle = '#1a1a2e';
-            ctx.fillRect(sx - hbW / 2, hbY, hbW, 16);
-            
-            const healthPct = enemy.health / enemy.maxHealth;
-            const hpGrad = ctx.createLinearGradient(sx - hbW / 2, hbY, sx - hbW / 2 + hbW * healthPct, hbY);
-            hpGrad.addColorStop(0, '#dc2626');
-            hpGrad.addColorStop(0.5, '#f97316');
-            hpGrad.addColorStop(1, '#fbbf24');
-            ctx.fillStyle = hpGrad;
-            ctx.fillRect(sx - hbW / 2, hbY, hbW * healthPct, 16);
-            
-            // Health text
-            ctx.fillStyle = '#fff';
-            ctx.font = `bold ${12 * scale}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText(`${Math.ceil(enemy.health)} / ${enemy.maxHealth}`, sx, hbY + 13);
-            
-            // Boss name with fire effect
-            ctx.fillStyle = '#fbbf24';
-            ctx.font = `bold ${18 * scale}px Arial`;
-            ctx.shadowColor = '#f97316';
-            ctx.shadowBlur = 10;
-            ctx.fillText('🐉 INFERNAL DRAGON 🐉', sx, hbY - 15);
-            ctx.shadowBlur = 0;
-            
-            // Phase indicator
-            const phase = enemy.health < enemy.maxHealth * 0.25 ? 3 : 
-                          enemy.health < enemy.maxHealth * 0.5 ? 2 : 1;
-            if (phase > 1) {
-              ctx.fillStyle = phase === 3 ? '#dc2626' : '#f97316';
-              ctx.font = `bold ${14 * scale}px Arial`;
-              ctx.fillText(`⚠️ PHASE ${phase} ${phase === 3 ? '- ENRAGED!' : ''} ⚠️`, sx, hbY - 35);
             }
           }
           // ========== MINI-BOSSES ==========
@@ -5047,6 +5471,7 @@ export default function SpellBrigade() {
           
           // Dance animation for dance emote (side sway)
           if (player.emote === 'dance') {
+            const sway = Math.sin(emoteTime * 6) * 5;
             // Already drawn player, but add sparkles
             for (let i = 0; i < 3; i++) {
               const sparkleAngle = emoteTime * 4 + i * 2;
@@ -5658,6 +6083,40 @@ export default function SpellBrigade() {
           }
         }
         
+        // === DRAGON AWAKENS EFFECT ===
+        else if (ef.type === 'dragonAwakens') {
+          const dx = ef.x - cx;
+          const dy = ef.y - cy;
+          
+          // Red/orange flash
+          const flashAlpha = (1 - progress) * 0.3 * alpha;
+          ctx.fillStyle = `rgba(220, 38, 38, ${flashAlpha})`;
+          ctx.fillRect(0, 0, width, height);
+          
+          // Ominous glow from dragon's location
+          const glowRadius = 300 + progress * 200;
+          const glowGrad = ctx.createRadialGradient(dx, dy, 0, dx, dy, glowRadius);
+          glowGrad.addColorStop(0, `rgba(255, 100, 0, ${0.5 * alpha})`);
+          glowGrad.addColorStop(0.5, `rgba(220, 38, 38, ${0.3 * alpha})`);
+          glowGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = glowGrad;
+          ctx.beginPath();
+          ctx.arc(dx, dy, glowRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Warning text
+          if (progress < 0.7) {
+            const textAlpha = Math.min(1, progress * 3) * alpha * (1 - progress / 0.7);
+            ctx.font = 'bold 36px Arial';
+            ctx.fillStyle = `rgba(220, 38, 38, ${textAlpha})`;
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 10;
+            ctx.textAlign = 'center';
+            ctx.fillText('🐉 THE DRAGON AWAKENS! 🐉', width / 2, height / 2);
+            ctx.shadowBlur = 0;
+          }
+        }
+        
         // === DRAGON DEATH EFFECT ===
         else if (ef.type === 'dragonDeath') {
           const dx = ef.x - cx;
@@ -6151,87 +6610,198 @@ export default function SpellBrigade() {
         const mmW = mm.width;
         const mmH = mm.height;
         
-        // Scale to fit world in minimap
-        const scale = mmW / WORLD_WIDTH;
-
         // Clear minimap with dark background
         mmCtx.fillStyle = '#0a0a15';
         mmCtx.fillRect(0, 0, mmW, mmH);
-
-        // Use the same COLORS as the main game for consistency
-        const mmZoneColors = {
-          sanctuary: COLORS.sanctuary[1],
-          meadow: COLORS.meadow[1],
-          forest: COLORS.forest[1],
-          volcanic: COLORS.volcanic[1],
-          frozen: COLORS.frozen[1],
-          abyss: COLORS.abyss[1],
-          crystal_caves: COLORS.crystal_caves[1],
-        };
         
-        // Draw tile-based minimap matching main game exactly
-        const tileSize = 100; // Smaller tiles for better accuracy
-        for (let wx = 0; wx < WORLD_WIDTH; wx += tileSize) {
-          for (let wy = 0; wy < WORLD_HEIGHT; wy += tileSize) {
-            // Get zone using imported getZoneAtPosition function
-            const zone = getZoneAtPosition(wx + tileSize / 2, wy + tileSize / 2);
-            
-            // Draw tile on minimap
-            mmCtx.fillStyle = mmZoneColors[zone] || mmZoneColors.meadow;
+        if (inDungeonRef.current) {
+          // ========== DUNGEON MINIMAP ==========
+          const dungeonHeight = 3200;
+          const dungeonWidth = 800;
+          const scale = Math.min(mmW / dungeonWidth, mmH / dungeonHeight);
+          const offsetX = (mmW - dungeonWidth * scale) / 2;
+          const offsetY = 0;
+          
+          // Room colors
+          const roomColors = {
+            stone: '#2a2520',
+            bones: '#252218',
+            haunted: '#1a1a25',
+            rocky: '#252520',
+            infernal: '#2a1515',
+            dragon: '#2a1a0a',
+            corridor: '#1a1515',
+          };
+          
+          // Draw dungeon rooms
+          const rooms = [
+            { yStart: 0, yEnd: 400, minX: 200, maxX: 600, theme: 'stone' },
+            { yStart: 400, yEnd: 600, minX: 300, maxX: 500, theme: 'corridor' },
+            { yStart: 600, yEnd: 1000, minX: 150, maxX: 650, theme: 'bones' },
+            { yStart: 1000, yEnd: 1200, minX: 300, maxX: 500, theme: 'corridor' },
+            { yStart: 1200, yEnd: 1600, minX: 150, maxX: 650, theme: 'haunted' },
+            { yStart: 1600, yEnd: 1800, minX: 300, maxX: 500, theme: 'corridor' },
+            { yStart: 1800, yEnd: 2200, minX: 150, maxX: 650, theme: 'rocky' },
+            { yStart: 2200, yEnd: 2400, minX: 300, maxX: 500, theme: 'corridor' },
+            { yStart: 2400, yEnd: 2800, minX: 150, maxX: 650, theme: 'infernal' },
+            { yStart: 2800, yEnd: 3200, minX: 100, maxX: 700, theme: 'dragon' },
+          ];
+          
+          for (const room of rooms) {
+            mmCtx.fillStyle = roomColors[room.theme] || '#1a1515';
             mmCtx.fillRect(
-              Math.floor(wx * scale),
-              Math.floor(wy * scale),
-              Math.ceil(tileSize * scale) + 1,
-              Math.ceil(tileSize * scale) + 1
+              offsetX + room.minX * scale,
+              offsetY + room.yStart * scale,
+              (room.maxX - room.minX) * scale,
+              (room.yEnd - room.yStart) * scale
+            );
+            
+            // Room border
+            mmCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+            mmCtx.lineWidth = 1;
+            mmCtx.strokeRect(
+              offsetX + room.minX * scale,
+              offsetY + room.yStart * scale,
+              (room.maxX - room.minX) * scale,
+              (room.yEnd - room.yStart) * scale
             );
           }
-        }
-        
-        // Draw zone borders for better visibility
-        const zoneBorderOrder = ['forest', 'volcanic', 'frozen', 'abyss', 'crystal_caves', 'sanctuary'];
-        for (const zoneId of zoneBorderOrder) {
-          const polygon = ZONE_POLYGONS[zoneId];
-          if (!polygon || polygon.length < 3) continue;
+          
+          // Draw exit portal at entrance
           mmCtx.beginPath();
-          mmCtx.moveTo(polygon[0].x * scale, polygon[0].y * scale);
-          for (let i = 1; i < polygon.length; i++) {
-            mmCtx.lineTo(polygon[i].x * scale, polygon[i].y * scale);
-          }
-          mmCtx.closePath();
-          mmCtx.strokeStyle = 'rgba(255,255,255,0.25)';
-          mmCtx.lineWidth = 0.5;
+          mmCtx.arc(offsetX + 400 * scale, offsetY + 200 * scale, 4, 0, Math.PI * 2);
+          mmCtx.fillStyle = '#22c55e';
+          mmCtx.fill();
+          
+          // Draw dragon lair marker
+          mmCtx.beginPath();
+          mmCtx.arc(offsetX + 400 * scale, offsetY + 3000 * scale, 6, 0, Math.PI * 2);
+          mmCtx.fillStyle = '#f97316';
+          mmCtx.fill();
+          mmCtx.strokeStyle = '#fbbf24';
+          mmCtx.lineWidth = 2;
           mmCtx.stroke();
-        }
-        
-        // Draw portals on minimap
-        for (const portal of Object.values(PORTAL_POSITIONS)) {
-          mmCtx.beginPath();
-          mmCtx.arc(portal.from.x * scale, portal.from.y * scale, 2, 0, Math.PI * 2);
-          mmCtx.fillStyle = portal.color;
-          mmCtx.fill();
-        }
-
-        // Enemies on minimap - red dots, bosses are yellow/gold and larger
-        for (const e of enemies || []) {
-          mmCtx.beginPath();
-          mmCtx.arc(e.x * scale, e.y * scale, e.isBoss ? 4 : 1.5, 0, Math.PI * 2);
-          mmCtx.fillStyle = e.isBoss ? '#fbbf24' : '#ef4444';
-          mmCtx.fill();
-        }
-
-        // Players on minimap - CYAN for self (distinct from yellow bosses), blue for others
-        for (const p of players || []) {
-          if (p.health <= 0) continue;
-          const isMe = p.id === playerIdRef.current;
-          mmCtx.beginPath();
-          mmCtx.arc(p.x * scale, p.y * scale, isMe ? 4 : 3, 0, Math.PI * 2);
-          mmCtx.fillStyle = isMe ? '#00ffff' : '#60a5fa';  // Cyan for self, lighter blue for others
-          mmCtx.fill();
-          // White border for self to make it stand out
-          if (isMe) {
-            mmCtx.strokeStyle = '#ffffff';
-            mmCtx.lineWidth = 1.5;
+          
+          // Enemies on minimap
+          for (const e of enemies || []) {
+            mmCtx.beginPath();
+            mmCtx.arc(offsetX + e.x * scale, offsetY + e.y * scale, e.isBoss ? 5 : e.isMiniBoss ? 3 : 2, 0, Math.PI * 2);
+            mmCtx.fillStyle = e.isBoss ? '#fbbf24' : e.isMiniBoss ? '#f97316' : '#ef4444';
+            mmCtx.fill();
+          }
+          
+          // Players on minimap
+          for (const p of players || []) {
+            if (p.health <= 0) continue;
+            const isMe = p.id === playerIdRef.current;
+            mmCtx.beginPath();
+            mmCtx.arc(offsetX + p.x * scale, offsetY + p.y * scale, isMe ? 4 : 3, 0, Math.PI * 2);
+            mmCtx.fillStyle = isMe ? '#00ffff' : '#60a5fa';
+            mmCtx.fill();
+            if (isMe) {
+              mmCtx.strokeStyle = '#ffffff';
+              mmCtx.lineWidth = 1.5;
+              mmCtx.stroke();
+            }
+          }
+          
+          // Victory portal if active
+          if (dungeonVictoryPortalRef.current && dungeonVictoryPortalRef.current.active) {
+            mmCtx.beginPath();
+            mmCtx.arc(offsetX + dungeonVictoryPortalRef.current.x * scale, offsetY + dungeonVictoryPortalRef.current.y * scale, 5, 0, Math.PI * 2);
+            mmCtx.fillStyle = '#fbbf24';
+            mmCtx.fill();
+            mmCtx.strokeStyle = '#fff';
+            mmCtx.lineWidth = 2;
             mmCtx.stroke();
+          }
+          
+          // Dungeon label
+          mmCtx.fillStyle = '#f97316';
+          mmCtx.font = 'bold 10px Arial';
+          mmCtx.textAlign = 'center';
+          mmCtx.fillText('DUNGEON', mmW / 2, mmH - 5);
+          
+        } else {
+          // ========== NORMAL WORLD MINIMAP ==========
+          // Scale to fit world in minimap
+          const scale = mmW / WORLD_WIDTH;
+
+          // Use the same COLORS as the main game for consistency
+          const mmZoneColors = {
+            sanctuary: COLORS.sanctuary[1],
+            meadow: COLORS.meadow[1],
+            forest: COLORS.forest[1],
+            volcanic: COLORS.volcanic[1],
+            frozen: COLORS.frozen[1],
+            abyss: COLORS.abyss[1],
+            crystal_caves: COLORS.crystal_caves[1],
+          };
+          
+          // Draw tile-based minimap matching main game exactly
+          const tileSize = 100; // Smaller tiles for better accuracy
+          for (let wx = 0; wx < WORLD_WIDTH; wx += tileSize) {
+            for (let wy = 0; wy < WORLD_HEIGHT; wy += tileSize) {
+              // Get zone using imported getZoneAtPosition function
+              const zone = getZoneAtPosition(wx + tileSize / 2, wy + tileSize / 2);
+              
+              // Draw tile on minimap
+              mmCtx.fillStyle = mmZoneColors[zone] || mmZoneColors.meadow;
+              mmCtx.fillRect(
+                Math.floor(wx * scale),
+                Math.floor(wy * scale),
+                Math.ceil(tileSize * scale) + 1,
+                Math.ceil(tileSize * scale) + 1
+              );
+            }
+          }
+          
+          // Draw zone borders for better visibility
+          const zoneBorderOrder = ['forest', 'volcanic', 'frozen', 'abyss', 'crystal_caves', 'sanctuary'];
+          for (const zoneId of zoneBorderOrder) {
+            const polygon = ZONE_POLYGONS[zoneId];
+            if (!polygon || polygon.length < 3) continue;
+            mmCtx.beginPath();
+            mmCtx.moveTo(polygon[0].x * scale, polygon[0].y * scale);
+            for (let i = 1; i < polygon.length; i++) {
+              mmCtx.lineTo(polygon[i].x * scale, polygon[i].y * scale);
+            }
+            mmCtx.closePath();
+            mmCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+            mmCtx.lineWidth = 0.5;
+            mmCtx.stroke();
+          }
+          
+          // Draw portals on minimap
+          for (const portal of Object.values(PORTAL_POSITIONS)) {
+            mmCtx.beginPath();
+            mmCtx.arc(portal.from.x * scale, portal.from.y * scale, 2, 0, Math.PI * 2);
+            mmCtx.fillStyle = portal.color;
+            mmCtx.fill();
+          }
+
+          // Enemies on minimap - red dots, bosses are yellow/gold and larger
+          for (const e of enemies || []) {
+            mmCtx.beginPath();
+            mmCtx.arc(e.x * scale, e.y * scale, e.isBoss ? 4 : 1.5, 0, Math.PI * 2);
+            mmCtx.fillStyle = e.isBoss ? '#fbbf24' : '#ef4444';
+            mmCtx.fill();
+          }
+
+          // Players on minimap - CYAN for self (distinct from yellow bosses), blue for others
+          for (const p of players || []) {
+            if (p.health <= 0) continue;
+            const isMe = p.id === playerIdRef.current;
+            mmCtx.beginPath();
+            mmCtx.arc(p.x * scale, p.y * scale, isMe ? 4 : 3, 0, Math.PI * 2);
+            mmCtx.fillStyle = isMe ? '#00ffff' : '#60a5fa';  // Cyan for self, lighter blue for others
+            mmCtx.fill();
+            // White border for self to make it stand out
+            if (isMe) {
+              mmCtx.strokeStyle = '#ffffff';
+              mmCtx.lineWidth = 1.5;
+              mmCtx.stroke();
+            }
           }
         }
       }
@@ -6364,6 +6934,14 @@ export default function SpellBrigade() {
             from { opacity: 0; }
             to { opacity: 1; }
           }
+          @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+          @keyframes floatSlow {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+          }
           /* Mobile-specific styles to prevent zoom and selection */
           * {
             -webkit-tap-highlight-color: transparent;
@@ -6385,6 +6963,437 @@ export default function SpellBrigade() {
         `}</style>
         <div style={styles.spinner} />
         <p style={styles.loadingText}>Connecting to server...</p>
+      </div>
+
+      {/* Auth Screen */}
+      <div style={{ ...styles.overlay, ...(screen !== 'auth' ? styles.hidden : {}), overflow: 'hidden' }}>
+        {/* Monster Background Decorations */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          {/* Slime - bottom left */}
+          <svg style={{ position: 'absolute', bottom: '10%', left: '5%', width: 80, height: 80, opacity: 0.15, animation: 'float 3s ease-in-out infinite' }} viewBox="0 0 40 40">
+            <ellipse cx="20" cy="28" rx="16" ry="10" fill="#22c55e"/>
+            <ellipse cx="20" cy="22" rx="14" ry="12" fill="#4ade80"/>
+            <circle cx="14" cy="20" r="3" fill="#000"/>
+            <circle cx="26" cy="20" r="3" fill="#000"/>
+            <ellipse cx="20" cy="26" rx="4" ry="2" fill="#166534"/>
+          </svg>
+          
+          {/* Skeleton - top right */}
+          <svg style={{ position: 'absolute', top: '15%', right: '8%', width: 70, height: 90, opacity: 0.12, animation: 'floatSlow 4s ease-in-out infinite' }} viewBox="0 0 40 50">
+            <ellipse cx="20" cy="12" rx="10" ry="8" fill="#e5e5e5"/>
+            <circle cx="15" cy="10" r="3" fill="#000"/>
+            <circle cx="25" cy="10" r="3" fill="#000"/>
+            <path d="M15 16 L17 18 L20 16 L23 18 L25 16" stroke="#000" strokeWidth="1" fill="none"/>
+            <rect x="18" y="20" width="4" height="15" fill="#d4d4d4"/>
+            <rect x="12" y="22" width="16" height="8" rx="2" fill="#e5e5e5"/>
+            <rect x="16" y="35" width="3" height="12" fill="#d4d4d4"/>
+            <rect x="21" y="35" width="3" height="12" fill="#d4d4d4"/>
+          </svg>
+          
+          {/* Fire Elemental - bottom right */}
+          <svg style={{ position: 'absolute', bottom: '20%', right: '12%', width: 90, height: 100, opacity: 0.15, animation: 'float 2.5s ease-in-out infinite' }} viewBox="0 0 40 50">
+            <path d="M20 5 Q30 15 28 25 Q32 30 25 40 Q20 45 15 40 Q8 30 12 25 Q10 15 20 5" fill="#f97316"/>
+            <path d="M20 10 Q26 18 24 25 Q27 28 22 35 Q20 38 18 35 Q13 28 16 25 Q14 18 20 10" fill="#fbbf24"/>
+            <path d="M20 15 Q23 20 22 25 Q18 28 20 32 Q17 25 18 22 Q17 18 20 15" fill="#fef3c7"/>
+            <circle cx="16" cy="22" r="2" fill="#000"/>
+            <circle cx="24" cy="22" r="2" fill="#000"/>
+          </svg>
+          
+          {/* Ghost - top left */}
+          <svg style={{ position: 'absolute', top: '20%', left: '10%', width: 70, height: 80, opacity: 0.1, animation: 'floatSlow 5s ease-in-out infinite' }} viewBox="0 0 40 50">
+            <path d="M8 45 L8 20 Q8 5 20 5 Q32 5 32 20 L32 45 L28 40 L24 45 L20 40 L16 45 L12 40 L8 45" fill="#e0e7ff"/>
+            <circle cx="14" cy="20" r="4" fill="#1e1b4b"/>
+            <circle cx="26" cy="20" r="4" fill="#1e1b4b"/>
+            <ellipse cx="20" cy="30" rx="4" ry="3" fill="#c7d2fe"/>
+          </svg>
+          
+          {/* Dragon silhouette - center background */}
+          <svg style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, height: 300, opacity: 0.03 }} viewBox="0 0 100 80">
+            <path d="M10 60 L15 50 L20 55 L30 40 L40 45 L50 30 L60 35 L70 25 L75 30 L85 20 L90 25 L95 15 L90 30 L80 35 L70 45 L60 50 L50 55 L40 60 L30 58 L20 62 L10 60" fill="#991b1b"/>
+            <ellipse cx="50" cy="55" rx="35" ry="15" fill="#7f1d1d"/>
+            <path d="M15 60 L5 70 L20 65" fill="#991b1b"/>
+            <path d="M85 60 L95 70 L80 65" fill="#991b1b"/>
+          </svg>
+          
+          {/* Ice crystal - bottom center */}
+          <svg style={{ position: 'absolute', bottom: '5%', left: '45%', width: 60, height: 80, opacity: 0.1, animation: 'float 4s ease-in-out infinite' }} viewBox="0 0 30 40">
+            <path d="M15 0 L22 15 L30 20 L22 25 L15 40 L8 25 L0 20 L8 15 Z" fill="#0ea5e9"/>
+            <path d="M15 5 L20 15 L25 20 L20 25 L15 35 L10 25 L5 20 L10 15 Z" fill="#38bdf8"/>
+            <path d="M15 10 L18 18 L15 30 L12 18 Z" fill="#bae6fd"/>
+          </svg>
+        </div>
+        
+        {/* Auth Content */}
+        <div style={styles.title}>
+          <svg width={isMobile ? 42 : 56} height={isMobile ? 42 : 56} viewBox="0 0 48 48">
+            <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
+            <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
+          </svg>
+          <h1 style={styles.titleText}>Spell Brigade</h1>
+        </div>
+        <p style={{ ...styles.subtitle, marginBottom: 30 }}>Survive the magical wilderness</p>
+        
+        {/* Auth Forms Container */}
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(10px)',
+          padding: isMobile ? 20 : 30,
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.1)',
+          width: isMobile ? '90%' : 380,
+          maxWidth: 400,
+        }}>
+          {authScreen === 'main' && (
+            <>
+              <h2 style={{ textAlign: 'center', marginBottom: 20, fontSize: '1.3rem', color: '#fff' }}>Welcome</h2>
+              
+              <button
+                onClick={async () => {
+                  setAuthLoading(true);
+                  try {
+                    const res = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/guest`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      setAuthState({ isAuthenticated: true, isGuest: true, user: null, sessionToken: data.sessionToken });
+                      localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: true }));
+                      setScreen(savedPlayer ? 'returning' : 'title');
+                    }
+                  } catch (err) {
+                    console.error('Guest auth error:', err);
+                    setScreen(savedPlayer ? 'returning' : 'title');
+                  }
+                  setAuthLoading(false);
+                }}
+                disabled={authLoading}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: 'linear-gradient(135deg, #ffd93d, #f97316)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#000',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginBottom: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                Play as Guest
+              </button>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+                <span style={{ color: '#666', fontSize: '0.8rem' }}>or</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+              </div>
+              
+              <button
+                onClick={() => { setAuthScreen('login'); setAuthError(null); }}
+                style={{
+                  width: '100%',
+                  padding: '12px 20px',
+                  background: 'rgba(59,130,246,0.2)',
+                  border: '1px solid rgba(59,130,246,0.4)',
+                  borderRadius: 10,
+                  color: '#3b82f6',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  marginBottom: 10,
+                }}
+              >
+                Log In
+              </button>
+              
+              <button
+                onClick={() => { setAuthScreen('signup'); setAuthError(null); }}
+                style={{
+                  width: '100%',
+                  padding: '12px 20px',
+                  background: 'rgba(34,197,94,0.2)',
+                  border: '1px solid rgba(34,197,94,0.4)',
+                  borderRadius: 10,
+                  color: '#22c55e',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Create Account
+              </button>
+              
+              <p style={{ textAlign: 'center', color: '#666', fontSize: '0.75rem', marginTop: 16 }}>
+                Create an account to save your progress across devices
+              </p>
+            </>
+          )}
+          
+          {authScreen === 'login' && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setAuthLoading(true);
+              setAuthError(null);
+              const formData = new FormData(e.target);
+              try {
+                const res = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/login`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    username: formData.get('username'),
+                    password: formData.get('password'),
+                  }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setAuthState({ isAuthenticated: true, isGuest: false, user: data.user, sessionToken: data.sessionToken });
+                  localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: false }));
+                  // Check if user has characters
+                  if (data.user.characters?.length > 0) {
+                    setSavedPlayer(data.user.characters[0]);
+                    setScreen('returning');
+                  } else {
+                    setScreen('title');
+                  }
+                } else {
+                  setAuthError(data.error || 'Login failed');
+                }
+              } catch (err) {
+                setAuthError('Connection error. Please try again.');
+              }
+              setAuthLoading(false);
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <button
+                  type="button"
+                  onClick={() => setAuthScreen('main')}
+                  style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 0 }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                  </svg>
+                </button>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>Log In</h2>
+              </div>
+              
+              {authError && (
+                <div style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#ef4444', fontSize: '0.85rem' }}>
+                  {authError}
+                </div>
+              )}
+              
+              <input
+                name="username"
+                type="text"
+                placeholder="Username"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 20,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <button
+                type="submit"
+                disabled={authLoading}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: authLoading ? '#666' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: authLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {authLoading ? 'Logging in...' : 'Log In'}
+              </button>
+            </form>
+          )}
+          
+          {authScreen === 'signup' && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setAuthLoading(true);
+              setAuthError(null);
+              const formData = new FormData(e.target);
+              const password = formData.get('password');
+              const confirmPassword = formData.get('confirmPassword');
+              
+              if (password !== confirmPassword) {
+                setAuthError('Passwords do not match');
+                setAuthLoading(false);
+                return;
+              }
+              
+              try {
+                const res = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/signup`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    username: formData.get('username'),
+                    password: password,
+                  }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setAuthState({ isAuthenticated: true, isGuest: false, user: data.user, sessionToken: data.sessionToken });
+                  localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: false }));
+                  setScreen('title');
+                } else {
+                  setAuthError(data.error || 'Signup failed');
+                }
+              } catch (err) {
+                setAuthError('Connection error. Please try again.');
+              }
+              setAuthLoading(false);
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <button
+                  type="button"
+                  onClick={() => setAuthScreen('main')}
+                  style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 0 }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                  </svg>
+                </button>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>Create Account</h2>
+              </div>
+              
+              {authError && (
+                <div style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#ef4444', fontSize: '0.85rem' }}>
+                  {authError}
+                </div>
+              )}
+              
+              <input
+                name="username"
+                type="text"
+                placeholder="Username (3-20 characters)"
+                required
+                minLength={3}
+                maxLength={20}
+                pattern="[a-zA-Z0-9_]+"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <input
+                name="password"
+                type="password"
+                placeholder="Password (6+ characters)"
+                required
+                minLength={6}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <input
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm Password"
+                required
+                minLength={6}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 20,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <button
+                type="submit"
+                disabled={authLoading}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: authLoading ? '#666' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: authLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {authLoading ? 'Creating...' : 'Create Account'}
+              </button>
+              
+              <p style={{ textAlign: 'center', color: '#666', fontSize: '0.7rem', marginTop: 12 }}>
+                Letters, numbers, and underscores only
+              </p>
+            </form>
+          )}
+        </div>
+        
+        {/* Players Online */}
+        {playersOnline > 0 && (
+          <div style={{ marginTop: 20, color: '#4ade80', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, background: '#4ade80', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+            {playersOnline} wizard{playersOnline !== 1 ? 's' : ''} online
+          </div>
+        )}
       </div>
 
       {/* Returning Player Screen */}
@@ -7158,9 +8167,9 @@ export default function SpellBrigade() {
                     <div style={{ fontSize: '.85rem', fontWeight: 600 }}>{playerInfo.name}</div>
                     <div style={{ fontSize: '.65rem', color: '#888' }}>Lv {playerInfo.level}</div>
                   </div>
-                  {/* Quest button */}
+                  {/* Quest Log button */}
                   <button
-                    onClick={() => setShowQuest(true)}
+                    onClick={() => setShowQuestLog(true)}
                     style={{
                       marginLeft: 'auto',
                       background: 'rgba(255,215,0,0.2)',
@@ -7174,7 +8183,28 @@ export default function SpellBrigade() {
                       gap: 4,
                     }}
                   >
-                    🏆 {Object.keys(playerInfo.bossKills || {}).length}/5
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                    Quests
+                  </button>
+                  {/* Settings button */}
+                  <button
+                    onClick={() => setShowInGameSettings(true)}
+                    style={{
+                      background: 'rgba(100,100,100,0.3)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      color: '#aaa',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    </svg>
                   </button>
                 </div>
 
@@ -7412,7 +8442,9 @@ export default function SpellBrigade() {
                         fontWeight: 'bold',
                         pointerEvents: 'none',
                       }}>
-                        ⏳
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
                       </div>
                     )}
                   </div>
@@ -7420,15 +8452,17 @@ export default function SpellBrigade() {
                   <div style={{ position: 'relative' }}>
                     <button
                       style={{
-                        ...styles.actionButton('#ff6b35'),
+                        ...styles.actionButton(ultAimMode ? '#ffd93d' : '#ff6b35'),
                         opacity: ultCooldown > 0 ? 0.5 : 1,
+                        transform: ultAimMode ? 'scale(1.1)' : 'scale(1)',
+                        boxShadow: ultAimMode ? '0 0 20px rgba(255,215,0,0.6)' : 'none',
                       }}
                       onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
                     >
                       <span style={styles.actionButtonIcon}>{SVG.warning}</span>
-                      <span style={{ fontSize: '0.6rem', marginTop: 2 }}>ULT</span>
+                      <span style={{ fontSize: '0.6rem', marginTop: 2 }}>{ultAimMode ? 'TAP!' : 'ULT'}</span>
                     </button>
-                    {ultCooldown > 0 && (
+                    {ultCooldown > 0 && !ultAimMode && (
                       <div style={{
                         position: 'absolute',
                         top: 0,
@@ -7445,13 +8479,77 @@ export default function SpellBrigade() {
                         fontWeight: 'bold',
                         pointerEvents: 'none',
                       }}>
-                        ⏳
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Ultimate Aim Mode Overlay */}
+          {ultAimMode && isMobile && (
+            <>
+              {/* Semi-transparent overlay */}
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(255,107,53,0.1)',
+                pointerEvents: 'none',
+                zIndex: 150,
+                border: '4px solid rgba(255,107,53,0.6)',
+                boxSizing: 'border-box',
+                animation: 'pulse 1s infinite',
+              }} />
+              
+              {/* Instruction banner */}
+              <div style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0,0,0,0.9)',
+                padding: '16px 24px',
+                borderRadius: 12,
+                border: '2px solid #ff6b35',
+                zIndex: 151,
+                textAlign: 'center',
+                pointerEvents: 'none',
+              }}>
+                <div style={{ color: '#ff6b35', fontSize: '1.2rem', fontWeight: 700, marginBottom: 8 }}>
+                  AIM YOUR ULTIMATE
+                </div>
+                <div style={{ color: '#fff', fontSize: '0.9rem' }}>
+                  Tap anywhere to fire
+                </div>
+              </div>
+              
+              {/* Cancel button */}
+              <button
+                onTouchStart={(e) => { e.preventDefault(); cancelUltAim(); }}
+                style={{
+                  position: 'fixed',
+                  bottom: 240,
+                  right: 20,
+                  background: 'rgba(0,0,0,0.9)',
+                  border: '2px solid #ef4444',
+                  borderRadius: 8,
+                  padding: '10px 20px',
+                  color: '#ef4444',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  zIndex: 152,
+                }}
+              >
+                CANCEL
+              </button>
+            </>
           )}
         </>
       )}
@@ -7977,67 +9075,93 @@ export default function SpellBrigade() {
 
       {/* Quest Progress Tracker - Desktop */}
       {screen === 'game' && playerInfo && !isMobile && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 20,
-            left: 20,
-            background: 'rgba(0,0,0,0.8)',
-            backdropFilter: 'blur(10px)',
-            padding: '12px 16px',
-            borderRadius: 12,
-            border: '1px solid rgba(255,215,0,0.3)',
-            zIndex: 100,
-            cursor: 'pointer',
-            minWidth: 200,
-          }}
-          onClick={() => setShowQuest(true)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: '1.2rem' }}>🏆</span>
-            <span style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.85rem' }}>Conquer the Realm</span>
-          </div>
-          {(() => {
-            const bossKills = playerInfo.bossKills || {};
-            const zones = [
-              { id: 'meadow', name: 'Meadow', emoji: '🌸' },
-              { id: 'forest', name: 'Forest', emoji: '🌳' },
-              { id: 'volcanic', name: 'Volcanic', emoji: '🌋' },
-              { id: 'frozen', name: 'Frozen', emoji: '❄️' },
-              { id: 'abyss', name: 'Abyss', emoji: '🌀' },
-            ];
-            const defeated = zones.filter(z => bossKills[z.id]).length;
-            return (
-              <>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                  {zones.map(z => (
-                    <span key={z.id} style={{ 
-                      fontSize: '1rem',
-                      opacity: bossKills[z.id] ? 1 : 0.3,
-                      filter: bossKills[z.id] ? 'none' : 'grayscale(1)',
-                    }}>{z.emoji}</span>
-                  ))}
-                </div>
-                <div style={{ 
-                  height: 4, 
-                  background: 'rgba(255,255,255,0.1)', 
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${(defeated / 5) * 100}%`,
-                    background: defeated === 5 ? '#22c55e' : 'linear-gradient(90deg, #ffd93d, #f97316)',
+        <div style={{ position: 'fixed', top: 20, left: 20, display: 'flex', gap: 10, zIndex: 100 }}>
+          {/* Quest Log Button */}
+          <div 
+            style={{
+              background: 'rgba(0,0,0,0.8)',
+              backdropFilter: 'blur(10px)',
+              padding: '12px 16px',
+              borderRadius: 12,
+              border: '1px solid rgba(255,215,0,0.3)',
+              cursor: 'pointer',
+              minWidth: 200,
+            }}
+            onClick={() => setShowQuestLog(true)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffd93d">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+              <span style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.85rem' }}>Quest Log</span>
+            </div>
+            {(() => {
+              const bossKills = playerInfo.bossKills || {};
+              const zones = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'];
+              const defeated = zones.filter(z => bossKills[z]).length;
+              return (
+                <>
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                    {zones.map(z => (
+                      <div key={z} style={{ 
+                        width: 24,
+                        height: 24,
+                        borderRadius: 4,
+                        background: bossKills[z] ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)',
+                        border: `1px solid ${bossKills[z] ? '#22c55e' : 'rgba(255,255,255,0.2)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {bossKills[z] && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                          </svg>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ 
+                    height: 4, 
+                    background: 'rgba(255,255,255,0.1)', 
                     borderRadius: 2,
-                    transition: 'width 0.5s ease',
-                  }} />
-                </div>
-                <div style={{ color: '#888', fontSize: '0.7rem', marginTop: 4, textAlign: 'right' }}>
-                  {defeated}/5 Bosses
-                </div>
-              </>
-            );
-          })()}
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${(defeated / 6) * 100}%`,
+                      background: defeated === 6 ? '#22c55e' : 'linear-gradient(90deg, #ffd93d, #f97316)',
+                      borderRadius: 2,
+                      transition: 'width 0.5s ease',
+                    }} />
+                  </div>
+                  <div style={{ color: '#888', fontSize: '0.7rem', marginTop: 4, textAlign: 'right' }}>
+                    {defeated}/6 Bosses
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+          
+          {/* Settings Button - Desktop */}
+          <button
+            onClick={() => setShowInGameSettings(true)}
+            style={{
+              background: 'rgba(0,0,0,0.8)',
+              backdropFilter: 'blur(10px)',
+              padding: '12px',
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.2)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#aaa">
+              <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+          </button>
         </div>
       )}
 
@@ -8050,9 +9174,13 @@ export default function SpellBrigade() {
             maxWidth: 450,
             background: npcDialogue.npcType === 'guide' 
               ? 'linear-gradient(135deg, rgba(20,30,40,0.98), rgba(30,60,80,0.98))'
+              : npcDialogue.npcType === 'quest_master'
+              ? 'linear-gradient(135deg, rgba(40,30,50,0.98), rgba(60,40,70,0.98))'
               : 'linear-gradient(135deg, rgba(30,25,20,0.98), rgba(50,40,30,0.98))',
             border: npcDialogue.npcType === 'guide'
               ? '2px solid rgba(103, 232, 249, 0.5)'
+              : npcDialogue.npcType === 'quest_master'
+              ? '2px solid rgba(255, 215, 61, 0.5)'
               : '2px solid rgba(168, 162, 158, 0.5)',
           }}>
             <button style={styles.modalClose} onClick={() => setNpcDialogue(null)}>×</button>
@@ -8065,6 +9193,8 @@ export default function SpellBrigade() {
                 borderRadius: '50%',
                 background: npcDialogue.npcType === 'guide'
                   ? 'linear-gradient(135deg, #67e8f9, #0ea5e9)'
+                  : npcDialogue.npcType === 'quest_master'
+                  ? 'linear-gradient(135deg, #ffd93d, #f97316)'
                   : 'linear-gradient(135deg, #78716c, #44403c)',
                 margin: '0 auto 10px',
                 display: 'flex',
@@ -8073,13 +9203,27 @@ export default function SpellBrigade() {
                 fontSize: '1.8rem',
                 boxShadow: npcDialogue.npcType === 'guide'
                   ? '0 0 20px rgba(103, 232, 249, 0.5)'
+                  : npcDialogue.npcType === 'quest_master'
+                  ? '0 0 20px rgba(255, 215, 61, 0.5)'
                   : '0 0 15px rgba(0,0,0,0.5)',
               }}>
-                {npcDialogue.npcType === 'guide' ? '✨' : '⚔️'}
+                {npcDialogue.npcType === 'guide' ? (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ) : npcDialogue.npcType === 'quest_master' ? (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                  </svg>
+                ) : (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M6.92 5L5 7.92l3.04 3.04L5 14.08 6.92 16l3.04-3.04L13.04 16 15 14.08l-3.04-3.04L15 7.92 13.04 6l-3.04 3.04L6.92 5z"/>
+                  </svg>
+                )}
               </div>
               <h3 style={{ 
                 margin: 0, 
-                color: npcDialogue.npcType === 'guide' ? '#67e8f9' : '#a8a29e',
+                color: npcDialogue.npcType === 'guide' ? '#67e8f9' : npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#a8a29e',
                 fontSize: '1.1rem',
               }}>
                 {npcDialogue.npcName}
@@ -8112,11 +9256,11 @@ export default function SpellBrigade() {
                 borderRadius: 10,
                 padding: 15,
                 marginBottom: 15,
-                borderLeft: '3px solid #f97316',
+                borderLeft: `3px solid ${npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#f97316'}`,
               }}>
                 {npcDialogue.followUp.map((line, i) => (
                   <p key={i} style={{ 
-                    color: '#fbbf24', 
+                    color: npcDialogue.npcType === 'quest_master' ? '#fcd34d' : '#fbbf24', 
                     margin: i === npcDialogue.followUp.length - 1 ? 0 : '0 0 8px 0',
                     lineHeight: 1.4,
                     fontSize: '0.85rem',
@@ -8127,8 +9271,67 @@ export default function SpellBrigade() {
               </div>
             )}
             
-            {/* Prompt and choices for knight */}
-            {npcDialogue.hasChoice && npcDialogue.prompt && (
+            {/* Quest Master Accept Quest */}
+            {npcDialogue.npcType === 'quest_master' && npcDialogue.hasChoice && npcDialogue.prompt && (
+              <div style={{ marginTop: 20 }}>
+                <p style={{ 
+                  color: '#fff', 
+                  textAlign: 'center', 
+                  marginBottom: 15,
+                  fontWeight: 600,
+                }}>
+                  {npcDialogue.prompt}
+                </p>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 10,
+                  justifyContent: 'center',
+                }}>
+                  <button
+                    onClick={() => {
+                      // Accept quest - update quest log
+                      setQuestLog(prev => ({
+                        ...prev,
+                        allBosses: { ...prev.allBosses, active: true },
+                      }));
+                      setNpcDialogue(null);
+                      // Show confirmation
+                      playSound('levelUp');
+                    }}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'linear-gradient(135deg, #ffd93d, #f97316)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#000',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Accept Quest
+                  </button>
+                  <button
+                    onClick={() => setNpcDialogue(null)}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Maybe later
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Prompt and choices for knight dungeon */}
+            {npcDialogue.npcType === 'knight' && npcDialogue.hasChoice && npcDialogue.prompt && (
               <div style={{ marginTop: 20 }}>
                 <p style={{ 
                   color: '#fff', 
@@ -8147,6 +9350,11 @@ export default function SpellBrigade() {
                   <button
                     onClick={() => {
                       socketRef.current?.emit('enterDungeon');
+                      // Activate dragon slayer quest
+                      setQuestLog(prev => ({
+                        ...prev,
+                        dragonSlayer: { ...prev.dragonSlayer, active: true },
+                      }));
                       setNpcDialogue(null);
                     }}
                     style={{
@@ -8194,10 +9402,14 @@ export default function SpellBrigade() {
                   onClick={() => setNpcDialogue(null)}
                   style={{
                     padding: '10px 30px',
-                    background: 'rgba(103, 232, 249, 0.2)',
-                    border: '1px solid rgba(103, 232, 249, 0.4)',
+                    background: npcDialogue.npcType === 'quest_master'
+                      ? 'rgba(255, 215, 61, 0.2)'
+                      : 'rgba(103, 232, 249, 0.2)',
+                    border: npcDialogue.npcType === 'quest_master'
+                      ? '1px solid rgba(255, 215, 61, 0.4)'
+                      : '1px solid rgba(103, 232, 249, 0.4)',
                     borderRadius: 8,
-                    color: '#67e8f9',
+                    color: npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#67e8f9',
                     cursor: 'pointer',
                   }}
                 >
@@ -8209,73 +9421,354 @@ export default function SpellBrigade() {
         </>
       )}
 
-      {/* Quest Detail Modal */}
-      {showQuest && screen === 'game' && (
+      {/* Quest Log Modal */}
+      {showQuestLog && screen === 'game' && (
         <>
-          <div style={styles.modalBackdrop} onClick={() => setShowQuest(false)} />
+          <div style={styles.modalBackdrop} onClick={() => setShowQuestLog(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 500,
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowQuestLog(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, color: '#ffd93d', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#ffd93d">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+              Quest Log
+            </h3>
+            
+            {/* Quest: Champion of the Realm */}
+            <div style={{
+              background: questLog.allBosses.completed ? 'rgba(34,197,94,0.15)' : 'rgba(255,215,0,0.1)',
+              border: `1px solid ${questLog.allBosses.completed ? '#22c55e' : 'rgba(255,215,0,0.3)'}`,
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <svg width="32" height="32" viewBox="0 0 32 32">
+                  <circle cx="16" cy="16" r="14" fill={questLog.allBosses.completed ? '#22c55e' : '#ffd93d'} stroke="#b8860b" strokeWidth="2"/>
+                  <path d="M16 8 L18 14 L24 14 L19 18 L21 24 L16 20 L11 24 L13 18 L8 14 L14 14 Z" fill={questLog.allBosses.completed ? '#166534' : '#b8860b'}/>
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: questLog.allBosses.completed ? '#22c55e' : '#ffd93d', fontWeight: 700, fontSize: '1rem' }}>
+                    {questLog.allBosses.name}
+                    {questLog.allBosses.completed && <span style={{ marginLeft: 8, color: '#22c55e' }}>COMPLETE</span>}
+                  </div>
+                  <div style={{ color: '#888', fontSize: '0.8rem' }}>{questLog.allBosses.description}</div>
+                </div>
+              </div>
+              
+              {/* Boss checklist */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 12 }}>
+                {[
+                  { id: 'meadow', name: 'Blossom Behemoth', color: '#ec4899' },
+                  { id: 'forest', name: 'Ancient Treant', color: '#22c55e' },
+                  { id: 'volcanic', name: 'Magma Titan', color: '#f97316' },
+                  { id: 'frozen', name: 'Frost Wyrm', color: '#22d3ee' },
+                  { id: 'crystal_caves', name: 'Crystal Golem', color: '#ec4899' },
+                  { id: 'abyss', name: 'Void Overlord', color: '#7c3aed' },
+                ].map(boss => {
+                  const killed = playerInfo?.bossKills?.[boss.id] || questLog.allBosses.progress?.[boss.id];
+                  return (
+                    <div key={boss.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 10px',
+                      background: killed ? 'rgba(34,197,94,0.2)' : 'rgba(0,0,0,0.3)',
+                      borderRadius: 6,
+                      border: `1px solid ${killed ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
+                    }}>
+                      {killed ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#22c55e">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                      ) : (
+                        <div style={{ width: 16, height: 16, border: '2px solid #444', borderRadius: 3 }} />
+                      )}
+                      <span style={{ 
+                        color: killed ? '#22c55e' : boss.color, 
+                        fontSize: '0.75rem',
+                        textDecoration: killed ? 'line-through' : 'none',
+                        opacity: killed ? 0.7 : 1,
+                      }}>{boss.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Reward */}
+              <div style={{ 
+                marginTop: 12, 
+                padding: '8px 12px', 
+                background: 'rgba(0,0,0,0.3)', 
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+              }}>
+                <span style={{ color: '#888', fontSize: '0.75rem' }}>Reward:</span>
+                <span style={{ color: '#3b82f6', fontSize: '0.8rem', fontWeight: 600 }}>+5000 XP</span>
+                <span style={{ color: '#ffd93d', fontSize: '0.8rem', fontWeight: 600 }}>Champion Title</span>
+              </div>
+            </div>
+            
+            {/* Quest: Dragon Slayer */}
+            <div style={{
+              background: questLog.dragonSlayer.completed ? 'rgba(34,197,94,0.15)' : 'rgba(139,0,0,0.15)',
+              border: `1px solid ${questLog.dragonSlayer.completed ? '#22c55e' : 'rgba(220,38,38,0.4)'}`,
+              borderRadius: 12,
+              padding: 16,
+              opacity: questLog.dragonSlayer.active || questLog.dragonSlayer.completed ? 1 : 0.6,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <svg width="32" height="32" viewBox="0 0 32 32">
+                  <ellipse cx="16" cy="18" rx="10" ry="7" fill="#991b1b"/>
+                  <path d="M6 18 L2 10 L7 14 Z" fill="#991b1b"/>
+                  <path d="M26 18 L30 10 L25 14 Z" fill="#991b1b"/>
+                  <circle cx="12" cy="16" r="2" fill="#fbbf24"/>
+                  <circle cx="20" cy="16" r="2" fill="#fbbf24"/>
+                  <path d="M12 22 L16 24 L20 22" stroke="#f97316" strokeWidth="2" fill="none"/>
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: questLog.dragonSlayer.completed ? '#22c55e' : '#dc2626', fontWeight: 700, fontSize: '1rem' }}>
+                    {questLog.dragonSlayer.name}
+                    {questLog.dragonSlayer.completed && <span style={{ marginLeft: 8, color: '#22c55e' }}>COMPLETE</span>}
+                    {!questLog.dragonSlayer.active && !questLog.dragonSlayer.completed && (
+                      <span style={{ marginLeft: 8, color: '#666', fontSize: '0.75rem' }}>LOCKED</span>
+                    )}
+                  </div>
+                  <div style={{ color: '#888', fontSize: '0.8rem' }}>{questLog.dragonSlayer.description}</div>
+                </div>
+              </div>
+              
+              {!questLog.dragonSlayer.active && !questLog.dragonSlayer.completed && (
+                <div style={{ color: '#666', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                  Speak with Knight Commander Aldric in the Sanctuary to begin this quest.
+                </div>
+              )}
+              
+              {/* Reward */}
+              <div style={{ 
+                marginTop: 12, 
+                padding: '8px 12px', 
+                background: 'rgba(0,0,0,0.3)', 
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+              }}>
+                <span style={{ color: '#888', fontSize: '0.75rem' }}>Reward:</span>
+                <span style={{ color: '#3b82f6', fontSize: '0.8rem', fontWeight: 600 }}>+10000 XP</span>
+                <span style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: 600 }}>Dragon Slayer Title</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* In-Game Settings Modal */}
+      {showInGameSettings && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowInGameSettings(false)} />
           <div style={{
             ...styles.modal,
             maxWidth: 400,
           }}>
-            <button style={styles.modalClose} onClick={() => setShowQuest(false)}>×</button>
-            <h3 style={{ ...styles.modalTitle, color: '#ffd93d' }}>
-              <span style={{ fontSize: '1.5rem', marginRight: 10 }}>🏆</span>
-              Conquer the Realm
+            <button style={styles.modalClose} onClick={() => setShowInGameSettings(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+              </svg>
+              Settings
             </h3>
-            <p style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: 20, lineHeight: 1.5 }}>
-              Defeat all five Zone Bosses to prove your mastery over the realm. Each boss guards a different zone and has unique abilities.
-            </p>
             
-            {(() => {
-              const bossKills = playerInfo?.bossKills || {};
-              const zones = [
-                { id: 'meadow', name: 'Blossom Behemoth', zone: 'Meadow', emoji: '🌸', color: '#ec4899', level: 5 },
-                { id: 'forest', name: 'Ancient Treant', zone: 'Forest', emoji: '🌳', color: '#22c55e', level: 10 },
-                { id: 'volcanic', name: 'Magma Titan', zone: 'Volcanic', emoji: '🌋', color: '#f97316', level: 15 },
-                { id: 'frozen', name: 'Frost Wyrm', zone: 'Frozen', emoji: '❄️', color: '#22d3ee', level: 20 },
-                { id: 'abyss', name: 'Void Overlord', zone: 'Abyss', emoji: '🌀', color: '#7c3aed', level: 25 },
-              ];
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {zones.map(z => (
-                    <div key={z.id} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '10px 12px',
-                      background: bossKills[z.id] ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
-                      borderRadius: 8,
-                      border: `1px solid ${bossKills[z.id] ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
-                    }}>
-                      <span style={{ fontSize: '1.5rem' }}>{z.emoji}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ color: z.color, fontWeight: 600, fontSize: '0.9rem' }}>{z.name}</div>
-                        <div style={{ color: '#666', fontSize: '0.75rem' }}>{z.zone} • Lv {z.level}+</div>
-                      </div>
-                      {bossKills[z.id] ? (
-                        <span style={{ color: '#22c55e', fontSize: '1.2rem' }}>✓</span>
-                      ) : (
-                        <span style={{ color: '#666', fontSize: '0.8rem' }}>⬜</span>
-                      )}
-                    </div>
-                  ))}
+            {/* Sound Settings */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Audio</div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Sound Effects</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
+                  style={{
+                    background: settings.sfxEnabled ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.sfxEnabled ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Music</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, musicEnabled: !s.musicEnabled }))}
+                  style={{
+                    background: settings.musicEnabled ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.musicEnabled ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: '#fff', fontSize: '0.9rem' }}>Volume</span>
+                  <span style={{ color: '#888', fontSize: '0.8rem' }}>{Math.round(settings.volume * 100)}%</span>
                 </div>
-              );
-            })()}
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={settings.volume * 100}
+                  onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
+                  style={{ width: '100%', accentColor: '#3b82f6' }}
+                />
+              </div>
+            </div>
             
-            <div style={{ 
-              marginTop: 20, 
-              padding: 12, 
-              background: 'rgba(255,215,0,0.1)', 
-              borderRadius: 8,
-              border: '1px solid rgba(255,215,0,0.3)',
-            }}>
-              <div style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
-                🎁 Reward
+            {/* Display Settings */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Display</div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Show Zone Names</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, showZoneNames: !s.showZoneNames }))}
+                  style={{
+                    background: settings.showZoneNames ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.showZoneNames ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
               </div>
-              <div style={{ color: '#aaa', fontSize: '0.8rem' }}>
-                +5000 XP • "Realm Conqueror" Title • Eternal Glory
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Show Minimap</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, showMinimap: !s.showMinimap }))}
+                  style={{
+                    background: settings.showMinimap ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.showMinimap ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
               </div>
+            </div>
+            
+            {/* Account Section */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Account</div>
+              
+              {authState.isAuthenticated && !authState.isGuest ? (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ color: '#fff', fontSize: '0.9rem', marginBottom: 4 }}>
+                    Logged in as: <span style={{ color: '#3b82f6' }}>{authState.user?.username}</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 12 }}>
+                  Playing as guest - progress may not be saved
+                </div>
+              )}
+              
+              <button
+                onClick={() => {
+                  // Logout and return to title
+                  setShowInGameSettings(false);
+                  setScreen('title');
+                  setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                  localStorage.removeItem('spellBrigadeSession');
+                  socketRef.current?.disconnect();
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(239,68,68,0.2)',
+                  border: '1px solid rgba(239,68,68,0.4)',
+                  borderRadius: 8,
+                  color: '#ef4444',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                </svg>
+                Return to Menu
+              </button>
             </div>
           </div>
         </>
@@ -8300,7 +9793,12 @@ export default function SpellBrigade() {
             textAlign: 'center',
             animation: 'dropIn 0.6s ease-out',
           }}>
-            <div style={{ fontSize: '4rem', marginBottom: 20 }}>🏆</div>
+            <div style={{ fontSize: '4rem', marginBottom: 20 }}>
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="35" fill="#ffd93d" stroke="#b8860b" strokeWidth="3"/>
+                <path d="M40 20 L45 35 L60 35 L48 45 L53 60 L40 50 L27 60 L32 45 L20 35 L35 35 Z" fill="#b8860b"/>
+              </svg>
+            </div>
             <div style={{ 
               color: '#ffd93d', 
               fontSize: '2rem', 
@@ -8329,8 +9827,8 @@ export default function SpellBrigade() {
                 <div style={{ color: '#3b82f6', fontSize: '1.5rem', fontWeight: 700 }}>+{questComplete.xp}</div>
               </div>
               <div>
-                <div style={{ color: '#888', fontSize: '0.8rem' }}>TITLE</div>
-                <div style={{ color: '#ffd93d', fontSize: '1.2rem', fontWeight: 600 }}>👑 {questComplete.title}</div>
+                <div style={{ color: '#888', fontSize: '0.8rem' }}>TITLE UNLOCKED</div>
+                <div style={{ color: '#ffd93d', fontSize: '1.2rem', fontWeight: 600 }}>{questComplete.title}</div>
               </div>
             </div>
             <div style={{ 
@@ -8338,7 +9836,152 @@ export default function SpellBrigade() {
               fontSize: '1rem',
               animation: 'pulse 1s infinite',
             }}>
-              You have conquered all five zone bosses!
+              You have conquered all zone bosses!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Boss Death Banner */}
+      {bossDeathBanner && screen === 'game' && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(180deg, rgba(139,0,0,0.95) 0%, rgba(60,0,0,0.9) 100%)',
+          padding: '16px 20px',
+          zIndex: 1500,
+          animation: 'slideDown 0.4s ease-out',
+          borderBottom: '3px solid #ffd93d',
+          boxShadow: '0 4px 30px rgba(139,0,0,0.8)',
+        }}>
+          <style>{`
+            @keyframes slideDown {
+              from { transform: translateY(-100%); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes pulseGlow {
+              0%, 100% { filter: brightness(1); }
+              50% { filter: brightness(1.2); }
+            }
+          `}</style>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 20,
+            maxWidth: 800,
+            margin: '0 auto',
+          }}>
+            {/* Boss Icon */}
+            <div style={{
+              width: 60,
+              height: 60,
+              background: 'rgba(0,0,0,0.5)',
+              borderRadius: '50%',
+              border: '3px solid #ffd93d',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'pulseGlow 2s infinite',
+            }}>
+              {/* Custom boss SVG icons */}
+              {bossDeathBanner.bossType === 'boss_meadow' && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="14" fill="#84cc16"/>
+                  <circle cx="12" cy="14" r="3" fill="#000"/>
+                  <circle cx="24" cy="14" r="3" fill="#000"/>
+                  <path d="M10 22 Q18 30 26 22" stroke="#000" strokeWidth="2" fill="none"/>
+                  <ellipse cx="18" cy="6" rx="8" ry="4" fill="#f0abfc"/>
+                </svg>
+              )}
+              {bossDeathBanner.bossType === 'boss_forest' && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <rect x="14" y="20" width="8" height="12" fill="#8b4513"/>
+                  <ellipse cx="18" cy="14" rx="12" ry="10" fill="#166534"/>
+                  <circle cx="13" cy="12" r="2" fill="#000"/>
+                  <circle cx="23" cy="12" r="2" fill="#000"/>
+                  <path d="M12 18 L24 18" stroke="#4a3000" strokeWidth="2"/>
+                </svg>
+              )}
+              {bossDeathBanner.bossType === 'boss_volcanic' && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <path d="M4 32 L18 4 L32 32 Z" fill="#78716c"/>
+                  <path d="M10 32 L18 16 L26 32 Z" fill="#dc2626"/>
+                  <circle cx="14" cy="24" r="3" fill="#f97316"/>
+                  <circle cx="22" cy="26" r="2" fill="#fbbf24"/>
+                  <circle cx="18" cy="10" r="3" fill="#fbbf24" opacity="0.8"/>
+                </svg>
+              )}
+              {bossDeathBanner.bossType === 'boss_frozen' && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <path d="M18 2 L22 14 L34 18 L22 22 L18 34 L14 22 L2 18 L14 14 Z" fill="#0ea5e9"/>
+                  <circle cx="18" cy="18" r="6" fill="#e0f2fe"/>
+                  <circle cx="18" cy="18" r="3" fill="#0369a1"/>
+                </svg>
+              )}
+              {bossDeathBanner.bossType === 'boss_abyss' && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="14" fill="#1a0a2e"/>
+                  <circle cx="18" cy="18" r="10" fill="#7c3aed"/>
+                  <circle cx="18" cy="18" r="5" fill="#000"/>
+                  <path d="M8 8 L14 14 M28 8 L22 14 M8 28 L14 22 M28 28 L22 22" stroke="#a855f7" strokeWidth="2"/>
+                </svg>
+              )}
+              {bossDeathBanner.bossType === 'boss_crystal' && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <path d="M18 2 L30 14 L30 26 L18 34 L6 26 L6 14 Z" fill="#ec4899" stroke="#f9a8d4" strokeWidth="2"/>
+                  <path d="M18 8 L24 14 L24 22 L18 28 L12 22 L12 14 Z" fill="#f9a8d4"/>
+                </svg>
+              )}
+              {bossDeathBanner.bossType === 'boss_dragon' && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <ellipse cx="18" cy="20" rx="12" ry="8" fill="#991b1b"/>
+                  <path d="M6 20 L2 12 L8 16 Z" fill="#991b1b"/>
+                  <path d="M30 20 L34 12 L28 16 Z" fill="#991b1b"/>
+                  <circle cx="14" cy="18" r="2" fill="#fbbf24"/>
+                  <circle cx="22" cy="18" r="2" fill="#fbbf24"/>
+                  <path d="M14 24 L18 26 L22 24" stroke="#f97316" strokeWidth="2" fill="none"/>
+                </svg>
+              )}
+              {/* Default skull icon */}
+              {!['boss_meadow', 'boss_forest', 'boss_volcanic', 'boss_frozen', 'boss_abyss', 'boss_crystal', 'boss_dragon'].includes(bossDeathBanner.bossType) && (
+                <svg width="36" height="36" viewBox="0 0 36 36">
+                  <ellipse cx="18" cy="16" rx="12" ry="10" fill="#e5e5e5"/>
+                  <circle cx="13" cy="14" r="3" fill="#000"/>
+                  <circle cx="23" cy="14" r="3" fill="#000"/>
+                  <path d="M14 22 L18 26 L22 22" fill="#000"/>
+                  <rect x="14" y="26" width="2" height="6" fill="#e5e5e5"/>
+                  <rect x="17" y="26" width="2" height="6" fill="#e5e5e5"/>
+                  <rect x="20" y="26" width="2" height="6" fill="#e5e5e5"/>
+                </svg>
+              )}
+            </div>
+            
+            {/* Text */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                color: '#ffd93d',
+                fontSize: isMobile ? '1rem' : '1.3rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '2px',
+                textShadow: '0 0 20px rgba(255,215,0,0.5)',
+              }}>
+                {bossDeathBanner.name} Slain!
+              </div>
+              <div style={{
+                color: '#fff',
+                fontSize: isMobile ? '0.8rem' : '0.95rem',
+                marginTop: 4,
+                opacity: 0.9,
+              }}>
+                Defeated by <span style={{ color: '#4ade80', fontWeight: 600 }}>{bossDeathBanner.killerName}</span>
+                {bossDeathBanner.dropsCount > 0 && (
+                  <span style={{ color: '#a855f7' }}> • {bossDeathBanner.dropsCount} spell drop{bossDeathBanner.dropsCount > 1 ? 's' : ''}!</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -396,11 +396,37 @@ exports.handler = async (event, context) => {
 
   console.log(`[daily-blog] Generating blog for ${targetDate}`);
 
+  // Helper to log activity steps
+  async function logStep(type, title, description, reasoning, metadata = {}) {
+    try {
+      await db.collection('agent_activity').add({
+        type,
+        title,
+        description,
+        reasoning,
+        metadata: { ...metadata, step: type },
+        source: 'daily-blog',
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (err) {
+      console.error('[daily-blog] Failed to log activity:', err.message);
+    }
+  }
+
   try {
     // 1. Check required env vars
     if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN not configured');
     if (!OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY not configured');
     if (!process.env.FIREBASE_PROJECT_ID) throw new Error('Firebase not configured');
+
+    // Log: Starting observation
+    await logStep(
+      'agent_observing',
+      'Scanning GitHub activity',
+      `Checking commits for ${targetDate}`,
+      'Starting daily blog generation cycle - need to see what was built yesterday',
+      { date: targetDate }
+    );
 
     // 2. Fetch commits
     const commitsByRepo = await fetchCommitsForDate(targetDate);
@@ -409,9 +435,28 @@ exports.handler = async (event, context) => {
 
     console.log(`[daily-blog] Found ${totalCommits} commits across ${Object.keys(commitsByRepo).length} repos`);
 
+    // Log: Analysis complete
+    const repoNames = Object.keys(commitsByRepo);
+    if (totalCommits > 0) {
+      await logStep(
+        'agent_deciding',
+        `Found ${totalCommits} commits`,
+        `Activity in ${repoNames.length} repo${repoNames.length > 1 ? 's' : ''}: ${repoNames.join(', ')}`,
+        `Analyzed GitHub activity and found ${totalCommits} commits to write about. Will generate a narrative around the main themes.`,
+        { totalCommits, repos: repoNames }
+      );
+    }
+
     // 3. No commits? Skip.
     if (totalCommits === 0) {
       console.log(`[daily-blog] No commits for ${targetDate}, skipping.`);
+      await logStep(
+        'agent_deciding',
+        'No commits found',
+        `Nothing to write about for ${targetDate}`,
+        'Checked GitHub but found no commits for this date. Will skip blog generation.',
+        { date: targetDate }
+      );
       return {
         statusCode: 200,
         headers,
@@ -425,6 +470,16 @@ exports.handler = async (event, context) => {
 
     // 4. Generate blog post via LLM
     console.log('[daily-blog] Generating blog post...');
+    
+    // Log: Drafting
+    await logStep(
+      'agent_drafting',
+      'Writing blog post',
+      `Crafting narrative from ${totalCommits} commits`,
+      `Sending commit data to LLM to generate an engaging dev log. Looking for themes and storytelling angles.`,
+      { totalCommits, repos: repoNames }
+    );
+    
     const blogPost = await generateBlogPost(commitsByRepo, targetDate);
     console.log(`[daily-blog] Generated: "${blogPost.title}"`);
 
