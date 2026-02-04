@@ -7333,7 +7333,7 @@ export default function SpellBrigade() {
         <button
           style={{
             position: 'absolute',
-            bottom: 445,
+            bottom: 325,
             right: 10,
             width: 24,
             height: 24,
@@ -7360,7 +7360,7 @@ export default function SpellBrigade() {
         <button
           style={{
             position: 'absolute',
-            bottom: 340,
+            bottom: 220,
             right: 10,
             padding: '6px 10px',
             borderRadius: 8,
@@ -8924,6 +8924,7 @@ export default function SpellBrigade() {
                         socketRef.current.emit('dash');
                       }
                     }}
+                    title={`${classData?.dash || 'Dash'} - Quick movement ability (SPACE)`}
                     style={{
                       width: 65,
                       height: 65,
@@ -8974,6 +8975,7 @@ export default function SpellBrigade() {
                         socketRef.current.emit('ultimate', { targetX, targetY });
                       }
                     }}
+                    title={`${classData?.ultimate || 'Ultimate'} - Powerful ability (Q)`}
                     style={{
                       width: 65,
                       height: 65,
@@ -9016,6 +9018,13 @@ export default function SpellBrigade() {
                   stormcaller: { 1: 'Static Field', 2: 'Ball Lightning', 3: 'Thunder God' },
                   voidlord: { 1: 'Void Rift', 2: 'Soul Drain', 3: 'Apocalypse' },
                 };
+                const abilityDescs = {
+                  pyromancer: { 1: 'Damage aura around you', 2: 'Delayed AOE at target', 3: 'Massive explosion' },
+                  cryomancer: { 1: 'Freeze nearby enemies', 2: 'Piercing ice bolt', 3: 'Blizzard zone' },
+                  arcanist: { 1: 'Teleport forward', 2: 'Homing missiles', 3: 'Speed boost' },
+                  stormcaller: { 1: 'Chain lightning', 2: 'Bouncing orb', 3: 'Storm avatar' },
+                  voidlord: { 1: 'Pull enemies', 2: 'Lifesteal', 3: 'Devastation' },
+                };
                 const abilityColors = {
                   pyromancer: '#ff6b35',
                   cryomancer: '#00ffff',
@@ -9029,6 +9038,7 @@ export default function SpellBrigade() {
                 const onCooldown = cooldownEnd > Date.now();
                 const cdRemaining = onCooldown ? Math.ceil((cooldownEnd - Date.now()) / 1000) : 0;
                 const abilityName = abilityNames[playerInfo.class]?.[slot] || `Ability ${slot}`;
+                const abilityDesc = abilityDescs[playerInfo.class]?.[slot] || '';
                 const color = abilityColors[playerInfo.class] || '#888';
                 
                 return (
@@ -9045,6 +9055,7 @@ export default function SpellBrigade() {
                         socketRef.current.emit('classAbility', { abilitySlot: slot, targetX, targetY });
                       }
                     }}
+                    title={unlocked ? `${abilityName} - ${abilityDesc} (Key: ${slot})` : `Unlocks at Level ${levelReqs[slot]}`}
                     style={{
                       width: 65,
                       height: 65,
@@ -9370,11 +9381,9 @@ export default function SpellBrigade() {
                             if (unlocked && !onCooldown) {
                               const me = playerDataRef.current;
                               if (me) {
-                                socketRef.current?.emit('useAbility', { 
-                                  slot, 
-                                  targetX: me.x + (me.facing === 'right' ? 100 : me.facing === 'left' ? -100 : 0),
-                                  targetY: me.y + (me.facing === 'down' ? 100 : me.facing === 'up' ? -100 : 0)
-                                });
+                                const targetX = me.x + (me.facing === 'right' ? 100 : me.facing === 'left' ? -100 : 0);
+                                const targetY = me.y + (me.facing === 'down' ? 100 : me.facing === 'up' ? -100 : 0);
+                                socketRef.current?.emit('classAbility', { abilitySlot: slot, targetX, targetY });
                               }
                             }
                           }}
@@ -9822,7 +9831,7 @@ export default function SpellBrigade() {
       {screen === 'game' && showChat && (
         <div style={{
           position: 'fixed',
-          bottom: isMobile ? 240 : 20,
+          bottom: isMobile ? 160 : 20,
           left: isMobile ? 10 : 20,
           width: isMobile ? 170 : 320,
           maxHeight: isMobile ? 100 : 200,
@@ -9990,56 +9999,41 @@ export default function SpellBrigade() {
         </div>
       )}
 
-      {/* Quest Progress Tracker - Desktop */}
+      {/* Current Quest Tracker - Desktop (positioned below player stats) */}
       {screen === 'game' && playerInfo && !isMobile && (
-        <div style={{ position: 'fixed', top: 20, left: 20, display: 'flex', gap: 10, zIndex: 100 }}>
-          {/* Quest Log Button */}
+        <div style={{ position: 'fixed', top: 180, left: 20, zIndex: 50 }}>
+          {/* Current Quest Mini-tracker */}
           <div 
             style={{
-              background: 'rgba(0,0,0,0.8)',
-              backdropFilter: 'blur(10px)',
-              padding: '12px 16px',
-              borderRadius: 12,
-              border: '1px solid rgba(255,215,0,0.3)',
+              background: 'rgba(0,0,0,0.75)',
+              backdropFilter: 'blur(8px)',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid rgba(255,215,0,0.2)',
               cursor: 'pointer',
-              minWidth: 200,
+              maxWidth: 200,
             }}
             onClick={() => setShowQuestLog(true)}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffd93d">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffd93d">
                 <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
               </svg>
-              <span style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.85rem' }}>Quest Log</span>
+              <span style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.75rem' }}>Current Quest</span>
             </div>
             {(() => {
               const bossKills = playerInfo.bossKills || {};
               const zones = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'];
               const defeated = zones.filter(z => bossKills[z]).length;
+              const allDone = defeated === 6;
+              
               return (
-                <>
-                  <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-                    {zones.map(z => (
-                      <div key={z} style={{ 
-                        width: 24,
-                        height: 24,
-                        borderRadius: 4,
-                        background: bossKills[z] ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)',
-                        border: `1px solid ${bossKills[z] ? '#22c55e' : 'rgba(255,255,255,0.2)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        {bossKills[z] && (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e">
-                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                          </svg>
-                        )}
-                      </div>
-                    ))}
+                <div>
+                  <div style={{ color: '#fff', fontSize: '0.7rem', marginBottom: 4 }}>
+                    {allDone ? '🐉 Dragon Slayer' : '⭐ Champion of the Realm'}
                   </div>
                   <div style={{ 
-                    height: 4, 
+                    height: 3, 
                     background: 'rgba(255,255,255,0.1)', 
                     borderRadius: 2,
                     overflow: 'hidden',
@@ -10047,35 +10041,35 @@ export default function SpellBrigade() {
                     <div style={{
                       height: '100%',
                       width: `${(defeated / 6) * 100}%`,
-                      background: defeated === 6 ? '#22c55e' : 'linear-gradient(90deg, #ffd93d, #f97316)',
+                      background: allDone ? '#22c55e' : '#ffd93d',
                       borderRadius: 2,
-                      transition: 'width 0.5s ease',
                     }} />
                   </div>
-                  <div style={{ color: '#888', fontSize: '0.7rem', marginTop: 4, textAlign: 'right' }}>
-                    {defeated}/6 Bosses
+                  <div style={{ color: '#666', fontSize: '0.6rem', marginTop: 3 }}>
+                    {allDone ? 'Defeat the Dragon!' : `${defeated}/6 Bosses`}
                   </div>
-                </>
+                </div>
               );
             })()}
           </div>
           
-          {/* Settings Button - Desktop */}
+          {/* Settings Button */}
           <button
             onClick={() => setShowInGameSettings(true)}
             style={{
-              background: 'rgba(0,0,0,0.8)',
-              backdropFilter: 'blur(10px)',
-              padding: '12px',
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.2)',
+              background: 'rgba(0,0,0,0.75)',
+              backdropFilter: 'blur(8px)',
+              padding: '10px',
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.15)',
               cursor: 'pointer',
+              marginTop: 8,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#aaa">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#888">
               <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
             </svg>
           </button>
@@ -11030,144 +11024,44 @@ export default function SpellBrigade() {
         </div>
       )}
 
-      {/* Boss Death Banner */}
+      {/* Boss Death Banner - Subtle notification */}
       {bossDeathBanner && screen === 'game' && (
         <div style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          background: 'linear-gradient(180deg, rgba(139,0,0,0.95) 0%, rgba(60,0,0,0.9) 100%)',
-          padding: '16px 20px',
-          zIndex: 1500,
-          animation: 'slideDown 0.4s ease-out',
-          borderBottom: '3px solid #ffd93d',
-          boxShadow: '0 4px 30px rgba(139,0,0,0.8)',
+          top: isMobile ? 60 : 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.85)',
+          padding: '10px 20px',
+          borderRadius: 8,
+          zIndex: 200,
+          animation: 'fadeInDown 0.3s ease-out',
+          border: '1px solid rgba(255,215,61,0.4)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
         }}>
           <style>{`
-            @keyframes slideDown {
-              from { transform: translateY(-100%); opacity: 0; }
-              to { transform: translateY(0); opacity: 1; }
-            }
-            @keyframes pulseGlow {
-              0%, 100% { filter: brightness(1); }
-              50% { filter: brightness(1.2); }
+            @keyframes fadeInDown {
+              from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+              to { transform: translateX(-50%) translateY(0); opacity: 1; }
             }
           `}</style>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 20,
-            maxWidth: 800,
-            margin: '0 auto',
-          }}>
-            {/* Boss Icon */}
-            <div style={{
-              width: 60,
-              height: 60,
-              background: 'rgba(0,0,0,0.5)',
-              borderRadius: '50%',
-              border: '3px solid #ffd93d',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: 'pulseGlow 2s infinite',
-            }}>
-              {/* Custom boss SVG icons */}
-              {bossDeathBanner.bossType === 'boss_meadow' && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="14" fill="#84cc16"/>
-                  <circle cx="12" cy="14" r="3" fill="#000"/>
-                  <circle cx="24" cy="14" r="3" fill="#000"/>
-                  <path d="M10 22 Q18 30 26 22" stroke="#000" strokeWidth="2" fill="none"/>
-                  <ellipse cx="18" cy="6" rx="8" ry="4" fill="#f0abfc"/>
-                </svg>
-              )}
-              {bossDeathBanner.bossType === 'boss_forest' && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <rect x="14" y="20" width="8" height="12" fill="#8b4513"/>
-                  <ellipse cx="18" cy="14" rx="12" ry="10" fill="#166534"/>
-                  <circle cx="13" cy="12" r="2" fill="#000"/>
-                  <circle cx="23" cy="12" r="2" fill="#000"/>
-                  <path d="M12 18 L24 18" stroke="#4a3000" strokeWidth="2"/>
-                </svg>
-              )}
-              {bossDeathBanner.bossType === 'boss_volcanic' && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <path d="M4 32 L18 4 L32 32 Z" fill="#78716c"/>
-                  <path d="M10 32 L18 16 L26 32 Z" fill="#dc2626"/>
-                  <circle cx="14" cy="24" r="3" fill="#f97316"/>
-                  <circle cx="22" cy="26" r="2" fill="#fbbf24"/>
-                  <circle cx="18" cy="10" r="3" fill="#fbbf24" opacity="0.8"/>
-                </svg>
-              )}
-              {bossDeathBanner.bossType === 'boss_frozen' && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <path d="M18 2 L22 14 L34 18 L22 22 L18 34 L14 22 L2 18 L14 14 Z" fill="#0ea5e9"/>
-                  <circle cx="18" cy="18" r="6" fill="#e0f2fe"/>
-                  <circle cx="18" cy="18" r="3" fill="#0369a1"/>
-                </svg>
-              )}
-              {bossDeathBanner.bossType === 'boss_abyss' && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="14" fill="#1a0a2e"/>
-                  <circle cx="18" cy="18" r="10" fill="#7c3aed"/>
-                  <circle cx="18" cy="18" r="5" fill="#000"/>
-                  <path d="M8 8 L14 14 M28 8 L22 14 M8 28 L14 22 M28 28 L22 22" stroke="#a855f7" strokeWidth="2"/>
-                </svg>
-              )}
-              {bossDeathBanner.bossType === 'boss_crystal' && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <path d="M18 2 L30 14 L30 26 L18 34 L6 26 L6 14 Z" fill="#ec4899" stroke="#f9a8d4" strokeWidth="2"/>
-                  <path d="M18 8 L24 14 L24 22 L18 28 L12 22 L12 14 Z" fill="#f9a8d4"/>
-                </svg>
-              )}
-              {bossDeathBanner.bossType === 'boss_dragon' && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <ellipse cx="18" cy="20" rx="12" ry="8" fill="#991b1b"/>
-                  <path d="M6 20 L2 12 L8 16 Z" fill="#991b1b"/>
-                  <path d="M30 20 L34 12 L28 16 Z" fill="#991b1b"/>
-                  <circle cx="14" cy="18" r="2" fill="#fbbf24"/>
-                  <circle cx="22" cy="18" r="2" fill="#fbbf24"/>
-                  <path d="M14 24 L18 26 L22 24" stroke="#f97316" strokeWidth="2" fill="none"/>
-                </svg>
-              )}
-              {/* Default skull icon */}
-              {!['boss_meadow', 'boss_forest', 'boss_volcanic', 'boss_frozen', 'boss_abyss', 'boss_crystal', 'boss_dragon'].includes(bossDeathBanner.bossType) && (
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <ellipse cx="18" cy="16" rx="12" ry="10" fill="#e5e5e5"/>
-                  <circle cx="13" cy="14" r="3" fill="#000"/>
-                  <circle cx="23" cy="14" r="3" fill="#000"/>
-                  <path d="M14 22 L18 26 L22 22" fill="#000"/>
-                  <rect x="14" y="26" width="2" height="6" fill="#e5e5e5"/>
-                  <rect x="17" y="26" width="2" height="6" fill="#e5e5e5"/>
-                  <rect x="20" y="26" width="2" height="6" fill="#e5e5e5"/>
-                </svg>
-              )}
-            </div>
-            
-            {/* Text */}
-            <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '1.2rem' }}>💀</span>
+            <div>
               <div style={{
                 color: '#ffd93d',
-                fontSize: isMobile ? '1rem' : '1.3rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '2px',
-                textShadow: '0 0 20px rgba(255,215,0,0.5)',
+                fontSize: isMobile ? '0.85rem' : '0.95rem',
+                fontWeight: 600,
               }}>
-                {bossDeathBanner.name} Slain!
+                {bossDeathBanner.name} Defeated
               </div>
               <div style={{
-                color: '#fff',
-                fontSize: isMobile ? '0.8rem' : '0.95rem',
-                marginTop: 4,
-                opacity: 0.9,
+                color: '#888',
+                fontSize: isMobile ? '0.7rem' : '0.75rem',
               }}>
-                Defeated by <span style={{ color: '#4ade80', fontWeight: 600 }}>{bossDeathBanner.killerName}</span>
+                by <span style={{ color: '#4ade80' }}>{bossDeathBanner.killerName}</span>
                 {bossDeathBanner.dropsCount > 0 && (
-                  <span style={{ color: '#a855f7' }}> • {bossDeathBanner.dropsCount} spell drop{bossDeathBanner.dropsCount > 1 ? 's' : ''}!</span>
+                  <span style={{ color: '#a855f7' }}> • {bossDeathBanner.dropsCount} drop{bossDeathBanner.dropsCount > 1 ? 's' : ''}</span>
                 )}
               </div>
             </div>
