@@ -72,6 +72,7 @@ const Activity = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [isLive, ] = useState(true);
   const feedRef = useRef(null);
   const [newActivityCount, setNewActivityCount] = useState(0);
   const lastCountRef = useRef(0);
