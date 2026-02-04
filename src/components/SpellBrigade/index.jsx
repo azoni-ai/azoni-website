@@ -73,9 +73,11 @@ export default function SpellBrigade() {
   const [recallCooldown, setRecallCooldown] = useState(0); // timestamp when ready
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [showChat, setShowChat] = useState(true);
+  const [showChat, setShowChat] = useState(() => !(window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
+  const [unreadChat, setUnreadChat] = useState(0);
   const [adminKey, setAdminKey] = useState('');
   const chatContainerRef = useRef(null);
+  const showChatRef = useRef(!(window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
   const dashCooldownRef = useRef(0);
   const ultCooldownRef = useRef(0);
   const recallCooldownRef = useRef(0);
@@ -97,6 +99,7 @@ export default function SpellBrigade() {
   const [questComplete, setQuestComplete] = useState(null);
   const [npcDialogue, setNpcDialogue] = useState(null); // Current NPC dialogue
   const [nearbyNpc, setNearbyNpc] = useState(null); // NPC player can interact with
+  const [nearbyPortal, setNearbyPortal] = useState(null); // Portal player can use
   const [inDungeon, setInDungeon] = useState(false); // In dungeon mode
   const inDungeonRef = useRef(false); // Ref version for render loop
   const [dungeonVictoryPortal, setDungeonVictoryPortal] = useState(null); // Portal after dragon death
@@ -199,10 +202,25 @@ export default function SpellBrigade() {
     // Prevent context menu on long press
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     
+    // Prevent pull-to-refresh and bounce scroll on mobile
+    const preventScroll = (e) => {
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    
     return () => {
       document.removeEventListener('contextmenu', (e) => e.preventDefault());
+      document.removeEventListener('touchmove', preventScroll);
     };
   }, []);
+  
+  // Sync showChat ref and clear unread
+  useEffect(() => {
+    showChatRef.current = showChat;
+    if (showChat) setUnreadChat(0);
+  }, [showChat]);
 
   // Save settings to server when they change (for logged-in users)
   useEffect(() => {
@@ -764,7 +782,7 @@ export default function SpellBrigade() {
       if (data.world) gameStateRef.current.world = data.world;
       
       // Auto-enable admin for azoni
-      if (data.player?.name?.toLowerCase() === 'azoni') {
+      if (data.player?.name?.toLowerCase().includes('azoni')) {
         setAdminKey('azoni-voidlord-2026');
       }
       
@@ -777,6 +795,7 @@ export default function SpellBrigade() {
       setNpcDialogue(null);
       setNearbyNpc(null);
       setNearbyBuilding(null);
+      setNearbyPortal(null);
       
       // Reset input state on join to prevent stuck movement
       inputRef.current = { up: false, down: false, left: false, right: false };
@@ -864,10 +883,24 @@ export default function SpellBrigade() {
             }
           }
           setNearbyNpc(foundNpc);
+          
+          // Check for nearby portals
+          let foundPortal = null;
+          for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
+            const dx = me.x - portal.from.x;
+            const dy = me.y - portal.from.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 60) {
+              foundPortal = { id: portalId, ...portal };
+              break;
+            }
+          }
+          setNearbyPortal(foundPortal);
         } else {
           // Clear world interactions when in dungeon
           setNearbyBuilding(null);
           setNearbyNpc(null);
+          setNearbyPortal(null);
         }
       }
     });
@@ -1460,6 +1493,7 @@ export default function SpellBrigade() {
       setNpcDialogue(null); // Close any open NPC dialogue
       setNearbyNpc(null); // Clear nearby NPC
       setNearbyBuilding(null); // Clear nearby building
+      setNearbyPortal(null); // Clear nearby portal
       // Reset camera to dungeon start position - center horizontally
       const screenWidth = canvasRef.current?.width || 800;
       const screenHeight = canvasRef.current?.height || 600;
@@ -1624,6 +1658,10 @@ export default function SpellBrigade() {
         if (updated.length > 50) updated.shift();
         return updated;
       });
+      // Track unread when chat hidden
+      if (!showChatRef.current) {
+        setUnreadChat(prev => prev + 1);
+      }
       // Auto-scroll chat
       setTimeout(() => {
         if (chatContainerRef.current) {
@@ -3601,6 +3639,94 @@ export default function SpellBrigade() {
             ctx.font = '10px Arial';
             ctx.fillStyle = '#ffd93d';
             ctx.fillText('[E] Accept Quest', nx, ny + 55);
+          }
+        } else if (npc.type === 'shapeshifter') {
+          // Shapeshifter - Mirage - morphing entity with prismatic glow
+          const bobY = Math.sin(time * 2.5) * 6;
+          const morphPhase = (time * 0.5) % (Math.PI * 2);
+          const pulseAlpha = 0.6 + Math.sin(time * 3) * 0.2;
+          
+          // Outer prismatic glow
+          const prismGlow = ctx.createRadialGradient(nx, ny + bobY, 0, nx, ny + bobY, 50);
+          prismGlow.addColorStop(0, `rgba(236, 72, 153, ${pulseAlpha * 0.4})`);
+          prismGlow.addColorStop(0.3, `rgba(168, 85, 247, ${pulseAlpha * 0.3})`);
+          prismGlow.addColorStop(0.6, `rgba(6, 182, 212, ${pulseAlpha * 0.2})`);
+          prismGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = prismGlow;
+          ctx.beginPath();
+          ctx.arc(nx, ny + bobY, 50, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Morphing body - blob-like shape that shifts
+          ctx.fillStyle = npc.color || '#ec4899';
+          ctx.beginPath();
+          const points = 8;
+          for (let i = 0; i <= points; i++) {
+            const angle = (i / points) * Math.PI * 2;
+            const morphOffset = Math.sin(morphPhase + angle * 2) * 5;
+            const r = 18 + morphOffset;
+            const px = nx + Math.cos(angle) * r;
+            const py = ny + bobY - 5 + Math.sin(angle) * r * 0.8;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.fill();
+          
+          // Inner glow
+          const innerGlow = ctx.createRadialGradient(nx, ny + bobY - 5, 0, nx, ny + bobY - 5, 15);
+          innerGlow.addColorStop(0, 'rgba(255,255,255,0.8)');
+          innerGlow.addColorStop(0.5, `${npc.color || '#ec4899'}80`);
+          innerGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = innerGlow;
+          ctx.beginPath();
+          ctx.arc(nx, ny + bobY - 5, 15, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Eyes that shift position
+          const eyeOffset = Math.sin(time * 2) * 2;
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(nx - 5 + eyeOffset, ny + bobY - 8, 4, 0, Math.PI * 2);
+          ctx.arc(nx + 5 + eyeOffset, ny + bobY - 8, 4, 0, Math.PI * 2);
+          ctx.fill();
+          // Pupils
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.arc(nx - 5 + eyeOffset, ny + bobY - 8, 2, 0, Math.PI * 2);
+          ctx.arc(nx + 5 + eyeOffset, ny + bobY - 8, 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Floating particles around (prismatic)
+          const particleColors = ['#ec4899', '#a855f7', '#06b6d4', '#fbbf24', '#22c55e'];
+          for (let i = 0; i < 8; i++) {
+            const angle = (time + i * Math.PI / 4) * 0.8;
+            const dist = 28 + Math.sin(time * 2 + i) * 6;
+            const particleX = nx + Math.cos(angle) * dist;
+            const particleY = ny + bobY + Math.sin(angle) * dist * 0.5;
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, 2 + Math.sin(time * 3 + i) * 1, 0, Math.PI * 2);
+            ctx.fillStyle = particleColors[i % particleColors.length] + 'aa';
+            ctx.fill();
+          }
+          
+          // Emoji indicator (current form)
+          if (npc.emoji) {
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(npc.emoji, nx, ny + bobY - 28);
+          }
+          
+          // Name
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = '#ec4899';
+          ctx.textAlign = 'center';
+          ctx.fillText(npc.name || 'Mirage', nx, ny + 30);
+          
+          // Interaction hint
+          if (nearbyNpc?.id === npc.id) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillText('[E] Change Skin', nx, ny + 43);
           }
         }
       }
@@ -7333,18 +7459,18 @@ export default function SpellBrigade() {
         <button
           style={{
             position: 'absolute',
-            bottom: 325,
-            right: 10,
-            width: 24,
-            height: 24,
+            top: 4,
+            right: 4,
+            width: 20,
+            height: 20,
             borderRadius: '50%',
-            border: '2px solid rgba(255,255,255,0.3)',
+            border: '1px solid rgba(255,255,255,0.3)',
             background: 'rgba(0,0,0,0.6)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
-            fontSize: '0.7rem',
+            fontSize: '0.6rem',
             zIndex: 100,
           }}
           onTouchStart={(e) => { 
@@ -7360,8 +7486,8 @@ export default function SpellBrigade() {
         <button
           style={{
             position: 'absolute',
-            bottom: 220,
-            right: 10,
+            top: 8,
+            right: 8,
             padding: '6px 10px',
             borderRadius: 8,
             border: '2px solid rgba(255,255,255,0.3)',
@@ -7412,11 +7538,17 @@ export default function SpellBrigade() {
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
           }
-          body {
-            touch-action: manipulation;
+          html, body {
+            touch-action: none;
             overscroll-behavior: none;
             -webkit-user-select: none;
             user-select: none;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
           }
           canvas {
             touch-action: none;
@@ -7424,6 +7556,7 @@ export default function SpellBrigade() {
           input, textarea {
             -webkit-user-select: text;
             user-select: text;
+            touch-action: manipulation;
           }
         `}</style>
         <div style={styles.spinner} />
@@ -8463,7 +8596,9 @@ export default function SpellBrigade() {
                 <span style={styles.key}>SPACE</span> Dash ability<br/>
                 <span style={styles.key}>Q</span> Ultimate ability<br/>
                 <span style={styles.key}>1 2 3</span> Class abilities (unlock at Lv10, 20, 30)<br/>
+                <span style={styles.key}>E</span> Interact with NPCs/Portals<br/>
                 <span style={styles.key}>C</span> Character sheet<br/>
+                <span style={styles.key}>T</span> Emotes<br/>
                 <span style={styles.key}>ESC</span> Settings<br/>
                 <span style={{ fontSize: '0.8em', color: '#888' }}>Spells auto-cast at nearby enemies</span>
               </p>
@@ -8819,28 +8954,43 @@ export default function SpellBrigade() {
                   </span>
                 </div>
 
-                {/* Skin Change Button */}
-                <button
-                  style={{
+                {/* Skin Change - only on mobile or mention NPC */}
+                {isMobile ? (
+                  <button
+                    style={{
+                      marginTop: 12,
+                      padding: '8px 12px',
+                      background: 'rgba(236,72,153,0.15)',
+                      border: '1px solid rgba(236,72,153,0.3)',
+                      borderRadius: 8,
+                      color: '#ec4899',
+                      fontSize: '.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      width: '100%',
+                      justifyContent: 'center',
+                    }}
+                    onClick={() => setShowSkinSelect(true)}
+                  >
+                    <span style={{ width: 14, height: 14 }}>{SVG.star}</span>
+                    Change Skin
+                  </button>
+                ) : (
+                  <div style={{
                     marginTop: 12,
                     padding: '8px 12px',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid #2a2a3e',
+                    background: 'rgba(236,72,153,0.1)',
+                    border: '1px solid rgba(236,72,153,0.2)',
                     borderRadius: 8,
+                    fontSize: '.7rem',
                     color: '#888',
-                    fontSize: '.75rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    width: '100%',
-                    justifyContent: 'center',
-                  }}
-                  onClick={() => setShowSkinSelect(true)}
-                >
-                  <span style={{ width: 14, height: 14 }}>{SVG.star}</span>
-                  Change Skin
-                </button>
+                    textAlign: 'center',
+                  }}>
+                    Visit <span style={{ color: '#ec4899' }}>🦋 Mirage</span> in Sanctuary to change skins
+                  </div>
+                )}
 
                 {/* Controls Panel */}
                 <div style={{
@@ -8883,6 +9033,10 @@ export default function SpellBrigade() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: autoAttack ? '#fbbf24' : '#666' }}>Auto-Atk</span>
                       <span style={{ color: '#fff' }}>X</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: '#67e8f9' }}>Character</span>
+                      <span style={{ color: '#fff' }}>C</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Settings</span>
@@ -8947,7 +9101,7 @@ export default function SpellBrigade() {
                       <div style={{
                         position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', borderRadius: 8,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.2rem', fontWeight: 'bold', color: '#f87171',
+                        fontSize: '0.85rem', fontWeight: 'bold', color: '#f87171',
                       }}>{cdRemaining}</div>
                     )}
                   </div>
@@ -8998,7 +9152,7 @@ export default function SpellBrigade() {
                       <div style={{
                         position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', borderRadius: 8,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.2rem', fontWeight: 'bold', color: '#f87171',
+                        fontSize: '0.85rem', fontWeight: 'bold', color: '#f87171',
                       }}>{cdRemaining}</div>
                     )}
                   </div>
@@ -9025,6 +9179,13 @@ export default function SpellBrigade() {
                   stormcaller: { 1: 'Chain lightning', 2: 'Bouncing orb', 3: 'Storm avatar' },
                   voidlord: { 1: 'Pull enemies', 2: 'Lifesteal', 3: 'Devastation' },
                 };
+                const abilityIcons = {
+                  pyromancer: { 1: '🔥', 2: '☄️', 3: '💥' },
+                  cryomancer: { 1: '❄️', 2: '🧊', 3: '🌨️' },
+                  arcanist: { 1: '✨', 2: '💫', 3: '⏳' },
+                  stormcaller: { 1: '⚡', 2: '🔮', 3: '🌩️' },
+                  voidlord: { 1: '🕳️', 2: '💀', 3: '☠️' },
+                };
                 const abilityColors = {
                   pyromancer: '#ff6b35',
                   cryomancer: '#00ffff',
@@ -9039,6 +9200,7 @@ export default function SpellBrigade() {
                 const cdRemaining = onCooldown ? Math.ceil((cooldownEnd - Date.now()) / 1000) : 0;
                 const abilityName = abilityNames[playerInfo.class]?.[slot] || `Ability ${slot}`;
                 const abilityDesc = abilityDescs[playerInfo.class]?.[slot] || '';
+                const abilityIcon = abilityIcons[playerInfo.class]?.[slot] || '⚔️';
                 const color = abilityColors[playerInfo.class] || '#888';
                 
                 return (
@@ -9071,18 +9233,21 @@ export default function SpellBrigade() {
                       cursor: unlocked && !onCooldown ? 'pointer' : 'not-allowed',
                       opacity: unlocked ? 1 : 0.5,
                       position: 'relative',
+                      overflow: 'hidden',
                     }}
                   >
-                    <div style={{ position: 'absolute', top: 3, left: 5, fontSize: '0.6rem', color: '#fff', fontWeight: 'bold' }}>{slot}</div>
-                    <div style={{ fontSize: '0.6rem', color: unlocked ? '#fff' : '#666', textAlign: 'center', padding: '0 2px', lineHeight: 1.1, marginTop: 8 }}>
+                    <div style={{ position: 'absolute', top: 3, left: 5, fontSize: '0.55rem', color: '#fff80', fontWeight: 'bold' }}>{slot}</div>
+                    <span style={{ fontSize: '1.1rem', filter: onCooldown ? 'grayscale(1) brightness(0.4)' : 'none' }}>{unlocked ? abilityIcon : '🔒'}</span>
+                    <div style={{ fontSize: '0.5rem', color: unlocked ? '#fff' : '#666', textAlign: 'center', lineHeight: 1.1 }}>
                       {unlocked ? abilityName : `Lv${levelReqs[slot]}`}
                     </div>
                     {onCooldown && (
                       <div style={{
-                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', borderRadius: 8,
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', borderRadius: 8,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.2rem', fontWeight: 'bold', color: '#f87171',
-                      }}>{cdRemaining}</div>
+                      }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color }}>{cdRemaining}</span>
+                      </div>
                     )}
                   </div>
                 );
@@ -9135,7 +9300,24 @@ export default function SpellBrigade() {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                     </svg>
-                    Quests
+                  </button>
+                  {/* Character Sheet button */}
+                  <button
+                    onClick={() => setShowCharacterSheet(prev => !prev)}
+                    style={{
+                      background: 'rgba(103,232,249,0.2)',
+                      border: '1px solid rgba(103,232,249,0.4)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      color: '#67e8f9',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
                   </button>
                   {/* Settings button */}
                   <button
@@ -9272,10 +9454,31 @@ export default function SpellBrigade() {
                       ...styles.actionButton('#3b82f6'),
                       width: 44,
                       height: 44,
+                      position: 'relative',
                     }}
                     onTouchStart={(e) => { e.preventDefault(); setShowChat(prev => !prev); }}
                   >
                     <span style={{ fontSize: '0.9rem' }}>💬</span>
+                    {unreadChat > 0 && !showChat && (
+                      <div style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -4,
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontSize: '0.6rem',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid rgba(0,0,0,0.5)',
+                      }}>
+                        {unreadChat > 9 ? '9+' : unreadChat}
+                      </div>
+                    )}
                   </button>
                 </div>
 
@@ -9356,6 +9559,17 @@ export default function SpellBrigade() {
                       const now = Date.now();
                       const onCooldown = cooldownEnd > now;
                       const remainingMs = onCooldown ? cooldownEnd - now : 0;
+                      const cdSec = Math.ceil(remainingMs / 1000);
+                      
+                      // Ability icons per class/slot
+                      const abilityIcons = {
+                        pyromancer: { 1: '🔥', 2: '☄️', 3: '💥' },
+                        cryomancer: { 1: '❄️', 2: '🧊', 3: '🌨️' },
+                        arcanist: { 1: '✨', 2: '💫', 3: '⏳' },
+                        stormcaller: { 1: '⚡', 2: '🔮', 3: '🌩️' },
+                        voidlord: { 1: '🕳️', 2: '💀', 3: '☠️' },
+                      };
+                      const icon = abilityIcons[playerInfo.class]?.[slot] || '⚔️';
                       
                       return (
                         <button
@@ -9375,6 +9589,8 @@ export default function SpellBrigade() {
                             opacity: unlocked ? 1 : 0.4,
                             pointerEvents: unlocked ? 'auto' : 'none',
                             boxShadow: unlocked && !onCooldown ? `0 0 10px ${classColor}30` : 'none',
+                            position: 'relative',
+                            overflow: 'hidden',
                           }}
                           onTouchStart={(e) => {
                             e.preventDefault();
@@ -9389,17 +9605,23 @@ export default function SpellBrigade() {
                           }}
                         >
                           {unlocked ? (
-                            onCooldown ? (
-                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: classColor }}>
-                                {Math.ceil(remainingMs / 1000)}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: '1rem', fontWeight: 'bold', color: classColor }}>{slot}</span>
-                            )
+                            <>
+                              <span style={{ fontSize: '1.2rem', filter: onCooldown ? 'grayscale(1) brightness(0.5)' : 'none' }}>{icon}</span>
+                              {onCooldown && (
+                                <div style={{
+                                  position: 'absolute', inset: 0,
+                                  background: 'rgba(0,0,0,0.5)',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  borderRadius: 8,
+                                }}>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: classColor }}>{cdSec}</span>
+                                </div>
+                              )}
+                            </>
                           ) : (
                             <>
-                              <span style={{ fontSize: '0.7rem', color: '#555' }}>{slot}</span>
-                              <span style={{ fontSize: '0.45rem', color: '#555' }}>Lv{levelReq}</span>
+                              <span style={{ fontSize: '0.9rem', filter: 'grayscale(1)', opacity: 0.4 }}>{icon}</span>
+                              <span style={{ fontSize: '0.4rem', color: '#555', position: 'absolute', bottom: 2 }}>Lv{levelReq}</span>
                             </>
                           )}
                         </button>
@@ -9562,21 +9784,53 @@ export default function SpellBrigade() {
           padding: '12px 25px',
           borderRadius: 15,
           zIndex: 800,
-          border: `2px solid ${nearbyNpc.type === 'guide' ? '#67e8f9' : '#a8a29e'}`,
+          border: `2px solid ${nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e'}`,
           textAlign: 'center',
           cursor: 'pointer',
         }}
         onClick={() => socketRef.current?.emit('interactNpc', { npcId: nearbyNpc.id })}
         >
           <div style={{ 
-            color: nearbyNpc.type === 'guide' ? '#67e8f9' : '#a8a29e', 
+            color: nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e', 
             fontWeight: 'bold', 
             fontSize: '0.9rem' 
           }}>
+            {nearbyNpc.emoji && <span style={{ marginRight: 6 }}>{nearbyNpc.emoji}</span>}
             {nearbyNpc.name}
           </div>
           <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
             {isMobile ? 'Tap to talk' : 'Press E to talk'}
+          </div>
+        </div>
+      )}
+
+      {/* Portal Interaction Prompt */}
+      {nearbyPortal && screen === 'game' && !npcDialogue && !nearbyBuilding && !nearbyNpc && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 180 : 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.9)',
+          backdropFilter: 'blur(10px)',
+          padding: '12px 25px',
+          borderRadius: 15,
+          zIndex: 800,
+          border: `2px solid ${nearbyPortal.color || '#a855f7'}`,
+          textAlign: 'center',
+          cursor: 'pointer',
+        }}
+        onClick={() => socketRef.current?.emit('usePortal', { portalId: nearbyPortal.id })}
+        >
+          <div style={{ 
+            color: nearbyPortal.color || '#a855f7', 
+            fontWeight: 'bold', 
+            fontSize: '0.9rem' 
+          }}>
+            🌀 {nearbyPortal.name || 'Portal'}
+          </div>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
+            {isMobile ? 'Tap to enter' : 'Press E to enter'}
           </div>
         </div>
       )}
@@ -9831,14 +10085,14 @@ export default function SpellBrigade() {
       {screen === 'game' && showChat && (
         <div style={{
           position: 'fixed',
-          bottom: isMobile ? 160 : 20,
+          bottom: isMobile ? 170 : 20,
           left: isMobile ? 10 : 20,
-          width: isMobile ? 170 : 320,
-          maxHeight: isMobile ? 100 : 200,
-          background: isMobile ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(3px)',
-          borderRadius: 8,
-          border: '1px solid rgba(255,255,255,0.08)',
+          width: isMobile ? 260 : 320,
+          maxHeight: isMobile ? 180 : 200,
+          background: isMobile ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(5px)',
+          borderRadius: 10,
+          border: '1px solid rgba(255,255,255,0.1)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 50,
@@ -9877,7 +10131,7 @@ export default function SpellBrigade() {
               display: 'flex',
               flexDirection: 'column',
               gap: 4,
-              maxHeight: 120,
+              maxHeight: isMobile ? 120 : 120,
             }}
           >
             {chatMessages.map((msg) => {
@@ -10087,11 +10341,15 @@ export default function SpellBrigade() {
               ? 'linear-gradient(135deg, rgba(20,30,40,0.98), rgba(30,60,80,0.98))'
               : npcDialogue.npcType === 'quest_master'
               ? 'linear-gradient(135deg, rgba(40,30,50,0.98), rgba(60,40,70,0.98))'
+              : npcDialogue.npcType === 'shapeshifter'
+              ? 'linear-gradient(135deg, rgba(60,20,50,0.98), rgba(80,30,60,0.98))'
               : 'linear-gradient(135deg, rgba(30,25,20,0.98), rgba(50,40,30,0.98))',
             border: npcDialogue.npcType === 'guide'
               ? '2px solid rgba(103, 232, 249, 0.5)'
               : npcDialogue.npcType === 'quest_master'
               ? '2px solid rgba(255, 215, 61, 0.5)'
+              : npcDialogue.npcType === 'shapeshifter'
+              ? '2px solid rgba(236, 72, 153, 0.5)'
               : '2px solid rgba(168, 162, 158, 0.5)',
           }}>
             <button style={styles.modalClose} onClick={() => setNpcDialogue(null)}>×</button>
@@ -10106,6 +10364,8 @@ export default function SpellBrigade() {
                   ? 'linear-gradient(135deg, #67e8f9, #0ea5e9)'
                   : npcDialogue.npcType === 'quest_master'
                   ? 'linear-gradient(135deg, #ffd93d, #f97316)'
+                  : npcDialogue.npcType === 'shapeshifter'
+                  ? 'linear-gradient(135deg, #ec4899, #a855f7)'
                   : 'linear-gradient(135deg, #78716c, #44403c)',
                 margin: '0 auto 10px',
                 display: 'flex',
@@ -10116,6 +10376,8 @@ export default function SpellBrigade() {
                   ? '0 0 20px rgba(103, 232, 249, 0.5)'
                   : npcDialogue.npcType === 'quest_master'
                   ? '0 0 20px rgba(255, 215, 61, 0.5)'
+                  : npcDialogue.npcType === 'shapeshifter'
+                  ? '0 0 20px rgba(236, 72, 153, 0.5)'
                   : '0 0 15px rgba(0,0,0,0.5)',
               }}>
                 {npcDialogue.npcType === 'guide' ? (
@@ -10126,6 +10388,8 @@ export default function SpellBrigade() {
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
                     <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                   </svg>
+                ) : npcDialogue.npcType === 'shapeshifter' ? (
+                  <span>{npcDialogue.emoji || '🦋'}</span>
                 ) : (
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
                     <path d="M6.92 5L5 7.92l3.04 3.04L5 14.08 6.92 16l3.04-3.04L13.04 16 15 14.08l-3.04-3.04L15 7.92 13.04 6l-3.04 3.04L6.92 5z"/>
@@ -10134,7 +10398,7 @@ export default function SpellBrigade() {
               </div>
               <h3 style={{ 
                 margin: 0, 
-                color: npcDialogue.npcType === 'guide' ? '#67e8f9' : npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#a8a29e',
+                color: npcDialogue.npcType === 'guide' ? '#67e8f9' : npcDialogue.npcType === 'quest_master' ? '#ffd93d' : npcDialogue.npcType === 'shapeshifter' ? '#ec4899' : '#a8a29e',
                 fontSize: '1.1rem',
               }}>
                 {npcDialogue.npcName}
@@ -10301,6 +10565,59 @@ export default function SpellBrigade() {
                     }}
                   >
                     Not yet
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Shapeshifter - Change Appearance */}
+            {npcDialogue.npcType === 'shapeshifter' && npcDialogue.hasChoice && (
+              <div style={{ marginTop: 20 }}>
+                <p style={{ 
+                  color: '#fff', 
+                  textAlign: 'center', 
+                  marginBottom: 15,
+                  fontWeight: 600,
+                }}>
+                  {npcDialogue.prompt}
+                </p>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 10,
+                  justifyContent: 'center',
+                }}>
+                  <button
+                    onClick={() => {
+                      setNpcDialogue(null);
+                      setShowSkinSelect(true);
+                    }}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'linear-gradient(135deg, #ec4899, #a855f7)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    🎨 Change Appearance
+                  </button>
+                  <button
+                    onClick={() => setNpcDialogue(null)}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Not now
                   </button>
                 </div>
               </div>
