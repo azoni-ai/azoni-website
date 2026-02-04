@@ -7333,7 +7333,7 @@ export default function SpellBrigade() {
         <button
           style={{
             position: 'absolute',
-            bottom: 385,
+            bottom: 445,
             right: 10,
             width: 24,
             height: 24,
@@ -7360,7 +7360,7 @@ export default function SpellBrigade() {
         <button
           style={{
             position: 'absolute',
-            bottom: 280,
+            bottom: 340,
             right: 10,
             padding: '6px 10px',
             borderRadius: 8,
@@ -7900,19 +7900,19 @@ export default function SpellBrigade() {
           
           {/* Tabs */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 15 }}>
-            {['play', 'tutorial', 'settings'].map(t => (
+            {['play', 'create', 'tutorial', 'settings'].map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
-                padding: isMobile ? '8px 16px' : '10px 24px',
+                padding: isMobile ? '8px 12px' : '10px 20px',
                 background: tab === t ? 'rgba(255,215,61,0.15)' : 'rgba(255,255,255,0.03)',
                 border: tab === t ? '1px solid rgba(255,215,61,0.4)' : '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 color: tab === t ? '#ffd93d' : '#888',
-                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                fontSize: isMobile ? '0.75rem' : '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}>
-                {t === 'play' ? '⚔️ Play' : t === 'tutorial' ? '📖 How to Play' : '⚙️ Settings'}
+                {t === 'play' ? '⚔️ Play' : t === 'create' ? '✨ Create' : t === 'tutorial' ? '📖 Guide' : '⚙️ Settings'}
               </button>
             ))}
           </div>
@@ -7927,8 +7927,261 @@ export default function SpellBrigade() {
           overflow: isMobile ? 'visible' : 'hidden',
         }}>
 
-        {/* Play Tab */}
+        {/* Play Tab - Character Display */}
         {tab === 'play' && (
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 20,
+            height: isMobile ? 'auto' : '100%',
+            padding: 20,
+          }}>
+            
+            {savedPlayer ? (
+              <>
+                {/* Character Card */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(30,30,50,0.7))',
+                  border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}`,
+                  borderRadius: 20,
+                  padding: isMobile ? 25 : 35,
+                  maxWidth: 420,
+                  width: '100%',
+                  boxShadow: `0 20px 60px ${classes[savedPlayer.class]?.color || '#888'}30`,
+                }}>
+                  {/* Avatar and Name */}
+                  <div style={{ textAlign: 'center', marginBottom: 25 }}>
+                    <div style={{
+                      width: 100,
+                      height: 100,
+                      margin: '0 auto 15px',
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${classes[savedPlayer.class]?.color || '#888'}50, ${classes[savedPlayer.class]?.color || '#888'}20)`,
+                      border: `4px solid ${classes[savedPlayer.class]?.color || '#888'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: `0 0 40px ${classes[savedPlayer.class]?.color || '#888'}50`,
+                    }}>
+                      <span style={{ width: 55, height: 55, color: classes[savedPlayer.class]?.secondaryColor || classes[savedPlayer.class]?.color }}>
+                        {CLASS_SVG[savedPlayer.class] || SVG.arcane}
+                      </span>
+                    </div>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.6rem' }}>{savedPlayer.name}</div>
+                    <div style={{ 
+                      color: classes[savedPlayer.class]?.secondaryColor || classes[savedPlayer.class]?.color, 
+                      fontSize: '1rem', 
+                      marginTop: 6,
+                      textTransform: 'uppercase',
+                      letterSpacing: 2,
+                      fontWeight: 600,
+                    }}>
+                      {classes[savedPlayer.class]?.name || savedPlayer.class}
+                    </div>
+                  </div>
+                  
+                  {/* Stats */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-around', 
+                    marginBottom: 25, 
+                    padding: '18px 0', 
+                    background: 'rgba(0,0,0,0.4)', 
+                    borderRadius: 12,
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#ffd93d', fontSize: '1.8rem', fontWeight: 700 }}>{savedPlayer.level || 1}</div>
+                      <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Level</div>
+                    </div>
+                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#22c55e', fontSize: '1.8rem', fontWeight: 700 }}>{((savedPlayer.totalXp || 0) / 1000).toFixed(1)}k</div>
+                      <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Total XP</div>
+                    </div>
+                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#ef4444', fontSize: '1.8rem', fontWeight: 700 }}>{savedPlayer.kills || 0}</div>
+                      <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Kills</div>
+                    </div>
+                  </div>
+                  
+                  {/* Skins */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, textAlign: 'center' }}>
+                      Skins ({DEFAULT_SKINS.filter(s => s.class === savedPlayer.class && (s.requiredXp <= (savedPlayer.totalXp || 0)) && !s.locked).length}/{DEFAULT_SKINS.filter(s => s.class === savedPlayer.class && !s.locked).length})
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      {DEFAULT_SKINS.filter(s => s.class === savedPlayer.class).map(skin => {
+                        const isUnlocked = skin.requiredXp >= 0 && skin.requiredXp <= (savedPlayer.totalXp || 0) && !skin.locked;
+                        const isSelected = selectedSkin === skin.id;
+                        return (
+                          <div
+                            key={skin.id}
+                            onClick={() => isUnlocked && setSelectedSkin(skin.id)}
+                            title={isUnlocked ? skin.name : `${skin.name} - ${skin.locked ? 'COMING SOON' : `${skin.requiredXp.toLocaleString()} XP`}`}
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 8,
+                              background: isUnlocked ? `linear-gradient(135deg, ${skin.color}60, ${skin.color}30)` : 'rgba(0,0,0,0.4)',
+                              border: isSelected ? `3px solid ${skin.color}` : '2px solid rgba(255,255,255,0.1)',
+                              cursor: isUnlocked ? 'pointer' : 'not-allowed',
+                              opacity: isUnlocked ? 1 : 0.4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.7rem',
+                              transition: 'all 0.2s',
+                              boxShadow: isSelected ? `0 0 15px ${skin.color}50` : 'none',
+                            }}
+                          >
+                            {!isUnlocked && (skin.locked ? '🔮' : '🔒')}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {/* Play Button */}
+                  <button 
+                    style={{ 
+                      width: '100%',
+                      padding: '18px 24px',
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      background: `linear-gradient(135deg, ${classes[savedPlayer.class]?.color || '#22c55e'}, ${classes[savedPlayer.class]?.color || '#22c55e'}cc)`,
+                      border: 'none',
+                      borderRadius: 12,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 10,
+                      boxShadow: `0 4px 20px ${classes[savedPlayer.class]?.color || '#22c55e'}50`,
+                      transition: 'all 0.2s',
+                    }} 
+                    onClick={handleContinue}
+                  >
+                    <span style={{ width: 24, height: 24 }}>{SVG.play}</span>
+                    Enter World
+                  </button>
+                </div>
+                
+                {/* Quick Actions */}
+                <div style={{ display: 'flex', gap: 15 }}>
+                  <button
+                    onClick={() => setTab('create')}
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 8,
+                      padding: '10px 20px',
+                      color: '#888',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + New Character
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                      localStorage.removeItem('spellBrigadeSession');
+                      localStorage.removeItem('spellBrigadePlayerId');
+                      setSavedPlayer(null);
+                      setScreen('auth');
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#666',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* No Character - Create Prompt */
+              <div style={{
+                textAlign: 'center',
+                padding: 40,
+                maxWidth: 500,
+              }}>
+                <div style={{
+                  width: 120,
+                  height: 120,
+                  margin: '0 auto 25px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(255,215,61,0.2), rgba(255,107,53,0.2))',
+                  border: '3px dashed rgba(255,215,61,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  animation: 'pulse 2s ease-in-out infinite',
+                }}>
+                  <span style={{ fontSize: '3rem' }}>🧙‍♂️</span>
+                </div>
+                
+                <h2 style={{ color: '#ffd93d', fontSize: '1.6rem', marginBottom: 10 }}>No Wizard Yet!</h2>
+                <p style={{ color: '#888', fontSize: '1rem', marginBottom: 30, lineHeight: 1.6 }}>
+                  Create your wizard and join the magical arena.<br/>
+                  <span style={{ color: '#666' }}>Choose your class, master your spells, defeat bosses!</span>
+                </p>
+                
+                <button
+                  onClick={() => setTab('create')}
+                  style={{
+                    padding: '16px 40px',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #ffd93d, #ff6b35)',
+                    border: 'none',
+                    borderRadius: 12,
+                    color: '#000',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    boxShadow: '0 4px 20px rgba(255,215,61,0.4)',
+                  }}
+                >
+                  <span>✨</span> Create Your Wizard
+                </button>
+                
+                <div style={{ marginTop: 20 }}>
+                  <button
+                    onClick={() => {
+                      setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                      localStorage.removeItem('spellBrigadeSession');
+                      localStorage.removeItem('spellBrigadePlayerId');
+                      setScreen('auth');
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#666',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Switch Account
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Create Tab - Character Creation */}
+        {tab === 'create' && (
           <div style={{ 
             display: 'flex', 
             flexDirection: isMobile ? 'column' : 'row',
@@ -7937,169 +8190,95 @@ export default function SpellBrigade() {
             overflow: isMobile ? 'visible' : 'hidden',
           }}>
             
-            {/* Left Panel - Saved Character / New Character Toggle */}
+            {/* Left Panel - Name and Create */}
             <div style={{
-              flex: isMobile ? 'none' : '0 0 320px',
+              flex: isMobile ? 'none' : '0 0 300px',
               display: 'flex',
               flexDirection: 'column',
               gap: 15,
             }}>
-              {/* Saved Character Card */}
-              {savedPlayer && (
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(30,30,50,0.6))',
-                  border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}60`,
-                  borderRadius: 16,
-                  padding: 20,
-                  boxShadow: `0 10px 40px ${classes[savedPlayer.class]?.color || '#888'}20`,
-                }}>
-                  <div style={{ textAlign: 'center', marginBottom: 15 }}>
-                    <div style={{
-                      width: 80,
-                      height: 80,
-                      margin: '0 auto 12px',
-                      borderRadius: '50%',
-                      background: `linear-gradient(135deg, ${classes[savedPlayer.class]?.color || '#888'}40, ${classes[savedPlayer.class]?.color || '#888'}20)`,
-                      border: `3px solid ${classes[savedPlayer.class]?.color || '#888'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 0 30px ${classes[savedPlayer.class]?.color || '#888'}40`,
-                    }}>
-                      <span style={{ width: 45, height: 45, color: classes[savedPlayer.class]?.color }}>
-                        {CLASS_SVG[savedPlayer.class] || SVG.arcane}
-                      </span>
-                    </div>
-                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.3rem' }}>{savedPlayer.name}</div>
-                    <div style={{ color: classes[savedPlayer.class]?.color || '#888', fontSize: '0.9rem', marginTop: 4 }}>
-                      {classes[savedPlayer.class]?.name || savedPlayer.class}
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 15, padding: '12px 0', background: 'rgba(0,0,0,0.3)', borderRadius: 10 }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#ffd93d', fontSize: '1.4rem', fontWeight: 700 }}>{savedPlayer.level || 1}</div>
-                      <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase' }}>Level</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#22c55e', fontSize: '1.4rem', fontWeight: 700 }}>{(savedPlayer.totalXp || 0).toLocaleString()}</div>
-                      <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase' }}>XP</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#ef4444', fontSize: '1.4rem', fontWeight: 700 }}>{savedPlayer.kills || 0}</div>
-                      <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase' }}>Kills</div>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    style={{ 
-                      ...styles.btn, 
-                      width: '100%',
-                      padding: '14px 20px',
-                      fontSize: '1rem',
-                    }} 
-                    onClick={handleContinue}
-                  >
-                    <span style={styles.btnIcon}>{SVG.play}</span> Continue Playing
-                  </button>
-                </div>
-              )}
-              
-              {/* New Character Section */}
               <div style={{
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 12,
-                padding: 15,
+                background: 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(30,30,50,0.6))',
+                border: `2px solid ${classes[selectedClass]?.color || '#888'}50`,
+                borderRadius: 16,
+                padding: 20,
               }}>
-                <div style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, textAlign: 'center' }}>
-                  {savedPlayer ? 'Create New Character' : 'Create Character'}
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <div style={{
+                    width: 70,
+                    height: 70,
+                    margin: '0 auto 12px',
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#888'}40, ${classes[selectedClass]?.color || '#888'}20)`,
+                    border: `3px solid ${classes[selectedClass]?.color || '#888'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <span style={{ width: 40, height: 40, color: classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color }}>
+                      {CLASS_SVG[selectedClass] || SVG.arcane}
+                    </span>
+                  </div>
+                  <div style={{ color: classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color, fontWeight: 700, fontSize: '1.1rem' }}>
+                    {classes[selectedClass]?.name || 'Select a Class'}
+                  </div>
                 </div>
+                
                 <input
-                  style={{ ...styles.input, marginBottom: 10 }}
+                  style={{ 
+                    ...styles.input, 
+                    marginBottom: 15,
+                    textAlign: 'center',
+                    fontSize: '1rem',
+                    padding: '14px',
+                  }}
                   type="text"
-                  placeholder="Enter wizard name (or leave blank)"
+                  placeholder="Wizard name (or random)"
                   maxLength={20}
                   value={playerName}
                   onChange={(e) => setPlayerName(e.target.value)}
                 />
                 
-                {/* Skin Preview */}
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
-                  {DEFAULT_SKINS.filter(s => s.class === selectedClass).map(skin => {
-                    const isSelected = selectedSkin === skin.id;
-                    const isLocked = skin.requiredXp > 0;
-                    return (
-                      <div
-                        key={skin.id}
-                        onClick={() => !isLocked && setSelectedSkin(skin.id)}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 6,
-                          background: `${skin.color}40`,
-                          border: isSelected ? `2px solid ${skin.color}` : '2px solid transparent',
-                          cursor: isLocked ? 'not-allowed' : 'pointer',
-                          opacity: isLocked ? 0.4 : 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.6rem',
-                        }}
-                      >
-                        {isLocked ? '🔒' : ''}
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <button style={{ ...styles.btn, width: '100%', padding: '12px 16px' }} onClick={handleJoin}>
-                  <span style={styles.btnIcon}>{SVG.dash}</span> Enter Arena
+                <button 
+                  style={{ 
+                    width: '100%',
+                    padding: '16px 20px',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#22c55e'}, ${classes[selectedClass]?.color || '#22c55e'}cc)`,
+                    border: 'none',
+                    borderRadius: 10,
+                    color: '#fff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    boxShadow: `0 4px 20px ${classes[selectedClass]?.color || '#22c55e'}40`,
+                  }} 
+                  onClick={handleJoin}
+                >
+                  <span style={{ width: 20, height: 20 }}>{SVG.dash}</span>
+                  Create & Play
                 </button>
               </div>
               
-              {/* Admin Key */}
-              <input
-                style={{
-                  ...styles.input,
-                  fontSize: '0.7rem',
-                  padding: '8px 12px',
-                  background: adminKey ? 'rgba(255,0,255,0.1)' : 'rgba(255,255,255,0.03)',
-                  borderColor: adminKey ? '#ff00ff' : 'rgba(255,255,255,0.1)',
-                }}
-                type="password"
-                placeholder="Admin key (optional)"
-                value={adminKey}
-                onChange={(e) => {
-                  setAdminKey(e.target.value);
-                  if (e.target.value === 'azoni-voidlord-2026') {
-                    setSelectedClass('voidlord');
-                    setSelectedSkin('voidlord_default');
-                  }
-                }}
-              />
-              
-              {/* Logout */}
-              <button
-                onClick={() => {
-                  setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
-                  localStorage.removeItem('spellBrigadeSession');
-                  localStorage.removeItem('spellBrigadePlayerId');
-                  setSavedPlayer(null);
-                  setScreen('auth');
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#666',
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  textAlign: 'center',
-                }}
-              >
-                Switch Account / Logout
-              </button>
+              {savedPlayer && (
+                <button
+                  onClick={() => setTab('play')}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 8,
+                    padding: '10px 16px',
+                    color: '#888',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ← Back to {savedPlayer.name}
+                </button>
+              )}
             </div>
             
             {/* Right Panel - Class Selection */}
@@ -8112,19 +8291,18 @@ export default function SpellBrigade() {
               paddingRight: isMobile ? 0 : 5,
             }}>
               <div style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 }}>
-                Select Class
+                Choose Your Class
               </div>
               
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
                 gap: 12,
               }}>
                 {Object.entries(classes)
                   .filter(([id, c]) => !c.hidden || adminKey === 'azoni-voidlord-2026')
                   .map(([id, c]) => {
                     const isSelected = selectedClass === id;
-                    const spells = c.spells || [];
                     
                     // Class abilities that unlock at levels 10, 20, 30
                     const classAbilities = {
@@ -8163,14 +8341,13 @@ export default function SpellBrigade() {
                         onClick={() => handleClassChange(id)}
                         style={{
                           background: isSelected 
-                            ? `linear-gradient(135deg, ${c.color}25, ${c.color}10)` 
+                            ? `linear-gradient(135deg, ${c.color}20, ${c.color}08)` 
                             : 'rgba(0,0,0,0.3)',
-                          border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.1)',
+                          border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.08)',
                           borderRadius: 12,
                           padding: 15,
                           cursor: 'pointer',
                           transition: 'all 0.2s',
-                          position: 'relative',
                         }}
                       >
                         {c.isAdmin && (
@@ -8189,92 +8366,81 @@ export default function SpellBrigade() {
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                           <div style={{
-                            width: 50,
-                            height: 50,
+                            width: 45,
+                            height: 45,
                             borderRadius: 10,
-                            background: `${c.color}30`,
-                            border: `2px solid ${c.color}60`,
+                            background: `${c.color}25`,
+                            border: `2px solid ${c.color}50`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}>
-                            <span style={{ width: 30, height: 30, color: c.secondaryColor || c.color }}>
+                            <span style={{ width: 26, height: 26, color: c.secondaryColor || c.color }}>
                               {CLASS_SVG[id] || SVG.arcane}
                             </span>
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ color: c.secondaryColor || c.color, fontWeight: 700, fontSize: '1.1rem' }}>{c.name}</div>
-                            <div style={{ color: '#888', fontSize: '0.75rem' }}>{c.description}</div>
+                            <div style={{ color: c.secondaryColor || c.color, fontWeight: 700, fontSize: '1rem' }}>{c.name}</div>
+                            <div style={{ color: '#777', fontSize: '0.7rem' }}>{c.description}</div>
                           </div>
                         </div>
                         
                         {/* Stats */}
                         <div style={{ 
                           display: 'flex', 
-                          gap: 15, 
-                          marginBottom: 10,
-                          padding: '8px 0',
-                          borderTop: '1px solid rgba(255,255,255,0.1)',
-                          borderBottom: '1px solid rgba(255,255,255,0.1)',
+                          gap: 12, 
+                          marginBottom: 8,
+                          padding: '6px 0',
+                          borderTop: '1px solid rgba(255,255,255,0.06)',
                         }}>
                           <div style={{ fontSize: '0.7rem' }}>
                             <span style={{ color: '#ef4444' }}>❤️</span>
-                            <span style={{ color: '#888', marginLeft: 4 }}>{c.baseHealth || 100} HP</span>
+                            <span style={{ color: '#777', marginLeft: 3 }}>{c.baseHealth || 100}</span>
                           </div>
                           <div style={{ fontSize: '0.7rem' }}>
                             <span style={{ color: '#3b82f6' }}>⚡</span>
-                            <span style={{ color: '#888', marginLeft: 4 }}>{c.baseSpeed || 150} Speed</span>
+                            <span style={{ color: '#777', marginLeft: 3 }}>{c.baseSpeed || 150}</span>
                           </div>
                         </div>
                         
                         {/* Core Abilities */}
-                        <div style={{ marginBottom: 8 }}>
-                          <div style={{ fontSize: '0.65rem', color: '#666', marginBottom: 4, textTransform: 'uppercase' }}>Core</div>
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            <div style={{ 
-                              background: `${c.color}15`, 
-                              padding: '3px 8px', 
-                              borderRadius: 4, 
-                              fontSize: '0.7rem',
-                              color: c.secondaryColor || c.color,
-                              border: `1px solid ${c.color}30`,
-                            }}>
-                              ⚡ {c.dash || 'Dash'}
-                            </div>
-                            <div style={{ 
-                              background: `${c.color}15`, 
-                              padding: '3px 8px', 
-                              borderRadius: 4, 
-                              fontSize: '0.7rem',
-                              color: c.secondaryColor || c.color,
-                              border: `1px solid ${c.color}30`,
-                            }}>
-                              💥 {c.ultimate || 'Ultimate'}
-                            </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                          <div style={{ 
+                            background: `${c.color}12`, 
+                            padding: '2px 6px', 
+                            borderRadius: 4, 
+                            fontSize: '0.65rem',
+                            color: c.secondaryColor || c.color,
+                            border: `1px solid ${c.color}25`,
+                          }}>
+                            ⚡ {c.dash || 'Dash'}
+                          </div>
+                          <div style={{ 
+                            background: `${c.color}12`, 
+                            padding: '2px 6px', 
+                            borderRadius: 4, 
+                            fontSize: '0.65rem',
+                            color: c.secondaryColor || c.color,
+                            border: `1px solid ${c.color}25`,
+                          }}>
+                            💥 {c.ultimate || 'Ultimate'}
                           </div>
                         </div>
                         
                         {/* Unlockable Abilities */}
-                        <div>
-                          <div style={{ fontSize: '0.65rem', color: '#666', marginBottom: 4, textTransform: 'uppercase' }}>Unlock at Level</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            {abilities.map((ability, i) => (
-                              <div key={i} style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 8,
-                                fontSize: '0.65rem',
-                              }}>
-                                <span style={{ 
-                                  color: '#ffd93d', 
-                                  fontWeight: 600,
-                                  minWidth: 35,
-                                }}>Lv{ability.level}</span>
-                                <span style={{ color: '#aaa' }}>{ability.name}</span>
-                                <span style={{ color: '#666', fontSize: '0.6rem' }}>- {ability.desc}</span>
-                              </div>
-                            ))}
-                          </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {abilities.map((ability, i) => (
+                            <div key={i} style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 6,
+                              fontSize: '0.6rem',
+                            }}>
+                              <span style={{ color: '#ffd93d', fontWeight: 600, minWidth: 28 }}>Lv{ability.level}</span>
+                              <span style={{ color: '#999' }}>{ability.name}</span>
+                              <span style={{ color: '#555' }}>- {ability.desc}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
@@ -8439,30 +8605,6 @@ export default function SpellBrigade() {
                 <div style={styles.toggleKnob(settings.showMinimap)} />
               </div>
             </div>
-
-            {/* Back to Play Button */}
-            <button
-              style={{
-                width: '100%',
-                marginTop: 20,
-                padding: '12px 16px',
-                background: 'rgba(255, 215, 61, 0.2)',
-                border: '1px solid rgba(255, 215, 61, 0.4)',
-                borderRadius: 8,
-                color: '#ffd93d',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}
-              onClick={() => setTab('play')}
-            >
-              <span style={{ width: 16, height: 16 }}>{SVG.play}</span>
-              Back to Play
-            </button>
           </div>
         )}
         </div>{/* End scrollable content */}
@@ -9127,78 +9269,68 @@ export default function SpellBrigade() {
                 </div>
 
                 {/* Row 2: Main action buttons */}
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 10 }}>
                   {/* Dash Button */}
                   <div style={{ position: 'relative' }}>
                     <button
                       style={{
-                        ...styles.actionButton('#4ecdc4'),
-                        opacity: dashCooldown > 0 ? 0.5 : 1,
+                        width: 58,
+                        height: 58,
+                        borderRadius: 12,
+                        border: `2px solid ${dashCooldown > 0 ? 'rgba(78,205,196,0.3)' : '#4ecdc4'}`,
+                        background: dashCooldown > 0 ? 'rgba(0,0,0,0.7)' : 'linear-gradient(145deg, rgba(78,205,196,0.25), rgba(78,205,196,0.1))',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 2,
+                        boxShadow: dashCooldown > 0 ? 'none' : '0 0 15px rgba(78,205,196,0.3)',
                       }}
                       onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
                     >
-                      <span style={styles.actionButtonIcon}>{SVG.dash}</span>
-                      <span style={{ fontSize: '0.6rem', marginTop: 2 }}>DASH</span>
+                      <span style={{ width: 22, height: 22, color: dashCooldown > 0 ? '#666' : '#4ecdc4' }}>{SVG.dash}</span>
+                      {dashCooldown > 0 ? (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4ecdc4' }}>
+                          {Math.ceil(dashCooldown / 1000)}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.55rem', color: '#4ecdc4', fontWeight: 600 }}>DASH</span>
+                      )}
                     </button>
-                    {dashCooldown > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'rgba(0,0,0,0.6)',
-                        borderRadius: '50%',
-                        color: '#fff',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        pointerEvents: 'none',
-                      }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                      </div>
-                    )}
                   </div>
                   {/* Ultimate Button */}
                   <div style={{ position: 'relative' }}>
                     <button
                       style={{
-                        ...styles.actionButton(ultAimMode ? '#ffd93d' : '#ff6b35'),
-                        opacity: ultCooldown > 0 ? 0.5 : 1,
-                        transform: ultAimMode ? 'scale(1.1)' : 'scale(1)',
-                        boxShadow: ultAimMode ? '0 0 20px rgba(255,215,0,0.6)' : 'none',
+                        width: 58,
+                        height: 58,
+                        borderRadius: 12,
+                        border: `2px solid ${ultCooldown > 0 ? 'rgba(255,107,53,0.3)' : ultAimMode ? '#ffd93d' : '#ff6b35'}`,
+                        background: ultCooldown > 0 ? 'rgba(0,0,0,0.7)' : ultAimMode 
+                          ? 'linear-gradient(145deg, rgba(255,215,61,0.4), rgba(255,107,53,0.2))' 
+                          : 'linear-gradient(145deg, rgba(255,107,53,0.25), rgba(255,107,53,0.1))',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 2,
+                        transform: ultAimMode ? 'scale(1.08)' : 'scale(1)',
+                        boxShadow: ultAimMode ? '0 0 20px rgba(255,215,0,0.5)' : ultCooldown > 0 ? 'none' : '0 0 15px rgba(255,107,53,0.3)',
+                        transition: 'all 0.15s',
                       }}
                       onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
                     >
-                      <span style={styles.actionButtonIcon}>{SVG.warning}</span>
-                      <span style={{ fontSize: '0.6rem', marginTop: 2 }}>{ultAimMode ? 'TAP!' : 'ULT'}</span>
+                      <span style={{ width: 22, height: 22, color: ultCooldown > 0 ? '#666' : ultAimMode ? '#ffd93d' : '#ff6b35' }}>{SVG.warning}</span>
+                      {ultCooldown > 0 && !ultAimMode ? (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#ff6b35' }}>
+                          {Math.ceil(ultCooldown / 1000)}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.55rem', color: ultAimMode ? '#ffd93d' : '#ff6b35', fontWeight: 600 }}>
+                          {ultAimMode ? 'TAP!' : 'ULT'}
+                        </span>
+                      )}
                     </button>
-                    {ultCooldown > 0 && !ultAimMode && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'rgba(0,0,0,0.6)',
-                        borderRadius: '50%',
-                        color: '#fff',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        pointerEvents: 'none',
-                      }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                      </div>
-                    )}
                   </div>
                 </div>
                 
@@ -9209,25 +9341,33 @@ export default function SpellBrigade() {
                       const levelReq = { 1: 10, 2: 20, 3: 30 }[slot];
                       const unlocked = playerInfo.level >= levelReq;
                       const classColor = classes[playerInfo.class]?.color || '#888';
+                      const cooldownEnd = abilityCooldowns[slot] || 0;
+                      const now = Date.now();
+                      const onCooldown = cooldownEnd > now;
+                      const remainingMs = onCooldown ? cooldownEnd - now : 0;
+                      
                       return (
                         <button
                           key={slot}
                           style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 8,
-                            border: `2px solid ${unlocked ? classColor : '#444'}`,
-                            background: unlocked ? `${classColor}22` : 'rgba(0,0,0,0.6)',
+                            width: 48,
+                            height: 48,
+                            borderRadius: 10,
+                            border: `2px solid ${unlocked ? (onCooldown ? `${classColor}40` : classColor) : '#444'}`,
+                            background: unlocked 
+                              ? (onCooldown ? 'rgba(0,0,0,0.7)' : `linear-gradient(145deg, ${classColor}20, ${classColor}08)`)
+                              : 'rgba(0,0,0,0.6)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
                             opacity: unlocked ? 1 : 0.4,
                             pointerEvents: unlocked ? 'auto' : 'none',
+                            boxShadow: unlocked && !onCooldown ? `0 0 10px ${classColor}30` : 'none',
                           }}
                           onTouchStart={(e) => {
                             e.preventDefault();
-                            if (unlocked) {
+                            if (unlocked && !onCooldown) {
                               const me = playerDataRef.current;
                               if (me) {
                                 socketRef.current?.emit('useAbility', { 
@@ -9239,8 +9379,20 @@ export default function SpellBrigade() {
                             }
                           }}
                         >
-                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: unlocked ? classColor : '#666' }}>{slot}</span>
-                          {!unlocked && <span style={{ fontSize: '0.5rem', color: '#666' }}>Lv{levelReq}</span>}
+                          {unlocked ? (
+                            onCooldown ? (
+                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: classColor }}>
+                                {Math.ceil(remainingMs / 1000)}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '1rem', fontWeight: 'bold', color: classColor }}>{slot}</span>
+                            )
+                          ) : (
+                            <>
+                              <span style={{ fontSize: '0.7rem', color: '#555' }}>{slot}</span>
+                              <span style={{ fontSize: '0.45rem', color: '#555' }}>Lv{levelReq}</span>
+                            </>
+                          )}
                         </button>
                       );
                     })}
@@ -9670,11 +9822,11 @@ export default function SpellBrigade() {
       {screen === 'game' && showChat && (
         <div style={{
           position: 'fixed',
-          bottom: isMobile ? 180 : 20,
+          bottom: isMobile ? 240 : 20,
           left: isMobile ? 10 : 20,
-          width: isMobile ? 180 : 320,
-          maxHeight: isMobile ? 120 : 200,
-          background: isMobile ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.7)',
+          width: isMobile ? 170 : 320,
+          maxHeight: isMobile ? 100 : 200,
+          background: isMobile ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.7)',
           backdropFilter: 'blur(3px)',
           borderRadius: 8,
           border: '1px solid rgba(255,255,255,0.08)',

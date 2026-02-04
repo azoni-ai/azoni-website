@@ -18,7 +18,7 @@ export const createStyles = (isMobile, settings, screen) => ({
     },
     minimap: {
       position: 'absolute',
-      bottom: isMobile ? 280 : 20,
+      bottom: isMobile ? 340 : 20,
       right: isMobile ? 10 : 20,
       border: '2px solid rgba(255,255,255,0.15)',
       borderRadius: 12,
