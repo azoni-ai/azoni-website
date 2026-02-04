@@ -7,6 +7,7 @@ export const COLORS = {
   frozen: ['#4a5a6a', '#3a4a5a'],
   abyss: ['#1a1a2e', '#12121f'],
   crystal_caves: ['#5a3a5a', '#4a2a4a'],
+  dungeon: ['#1a1414', '#120e0e'],
   
   enemy: {
     slime: '#4ade80',

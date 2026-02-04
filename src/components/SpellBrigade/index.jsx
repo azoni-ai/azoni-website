@@ -579,7 +579,12 @@ export default function SpellBrigade() {
         setPlayerInfo(prev => ({ ...prev, ...me }));
         updateZone(me);
         
-        // Check for nearby buildings
+        // Sync dungeon state from server
+        if (me.inDungeon !== inDungeon) {
+          setInDungeon(me.inDungeon || false);
+        }
+        
+        // Check for nearby buildings (skip in dungeon)
         let foundBuilding = null;
         for (const [id, building] of Object.entries(BUILDING_DATA)) {
           const dx = me.x - building.x;
@@ -770,6 +775,58 @@ export default function SpellBrigade() {
         startTime: Date.now(),
         duration: 300,
       });
+    });
+
+    // Dragon attack effects
+    socket.on('dragonBreath', (data) => {
+      effectsRef.current.push({
+        type: 'dragonBreath',
+        x: data.x,
+        y: data.y,
+        angle: data.angle,
+        range: data.range,
+        color: data.color || '#f97316',
+        startTime: Date.now(),
+        duration: 800,
+      });
+      playSound('bossAttack');
+    });
+
+    socket.on('dragonWingGust', (data) => {
+      effectsRef.current.push({
+        type: 'dragonWingGust',
+        x: data.x,
+        y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 600,
+      });
+      playSound('dash');
+    });
+
+    socket.on('dragonTailSwipe', (data) => {
+      effectsRef.current.push({
+        type: 'dragonTailSwipe',
+        x: data.x,
+        y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 400,
+      });
+      playSound('hit');
+    });
+
+    socket.on('dragonRage', (data) => {
+      effectsRef.current.push({
+        type: 'dragonRage',
+        x: data.x,
+        y: data.y,
+        startTime: Date.now(),
+        duration: 1500,
+      });
+      playSound('bossAttack');
+      // Screen shake for rage mode
+      screenShakeRef.current = { intensity: 15, duration: 1000, startTime: Date.now() };
     });
 
     socket.on('bossSpawn', (data) => {
@@ -1102,12 +1159,22 @@ export default function SpellBrigade() {
         });
       }
 
-      // Interact (E) - NPC dialogue or shop
+      // Interact (E) - NPC dialogue, shop, or dungeon exit
       if (e.code === 'KeyE') {
         // Close dialogue if open
         if (npcDialogue) {
           setNpcDialogue(null);
           return;
+        }
+        
+        // Check for dungeon exit first
+        if (inDungeon) {
+          const me = playerDataRef.current;
+          if (me && me.y < 200) {
+            // Near exit portal
+            socketRef.current?.emit('exitDungeon');
+            return;
+          }
         }
         
         // Check for nearby NPC first
@@ -1132,13 +1199,6 @@ export default function SpellBrigade() {
       // Emote wheel (T)
       if (e.code === 'KeyT') {
         setShowEmotes(prev => !prev);
-      }
-
-      // Recall to Sanctuary (B) - with cooldown check
-      if (e.code === 'KeyB' && socketRef.current && playerIdRef.current) {
-        if (recallCooldownRef.current > Date.now()) return;
-        initAudio();
-        socketRef.current.emit('recall');
       }
 
       // Toggle Auto-Attack (X)
@@ -1526,41 +1586,343 @@ export default function SpellBrigade() {
         return 'meadow';
       };
 
-      // Grid tiles with zone-specific colors
-      const tileSize = 64;
-      const startX = Math.floor(cx / tileSize) * tileSize;
-      const startY = Math.floor(cy / tileSize) * tileSize;
-      
-      for (let x = startX; x < cx + width + tileSize; x += tileSize) {
-        for (let y = startY; y < cy + height + tileSize; y += tileSize) {
-          const zone = getZone(x + tileSize/2, y + tileSize/2);
-          const colors = COLORS[zone] || COLORS.forest;
-          const isLight = ((x / tileSize) + (y / tileSize)) % 2 === 0;
-          ctx.fillStyle = isLight ? colors[0] : colors[1];
-          ctx.fillRect(x - cx, y - cy, tileSize, tileSize);
+      // ========== DUNGEON RENDERING ==========
+      if (inDungeon) {
+        const time = Date.now() / 1000;
+        const dungeonWidth = 700; // Corridor width
+        const dungeonHeight = 5000; // Total dungeon length
+        const wallThickness = 100;
+        
+        // Dark background
+        ctx.fillStyle = '#0a0808';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Stone floor tiles
+        const floorTileSize = 48;
+        const floorStartX = Math.floor((cx - 100) / floorTileSize) * floorTileSize;
+        const floorStartY = Math.floor(cy / floorTileSize) * floorTileSize;
+        
+        for (let x = floorStartX; x < cx + width + floorTileSize; x += floorTileSize) {
+          for (let y = floorStartY; y < cy + height + floorTileSize; y += floorTileSize) {
+            // Only draw within corridor bounds
+            if (x < 100 || x > 800) continue;
+            
+            const screenX = x - cx;
+            const screenY = y - cy;
+            const isLight = ((x / floorTileSize) + (y / floorTileSize)) % 2 === 0;
+            
+            // Stone floor gradient based on depth
+            const depthFactor = Math.min(1, y / 4000);
+            const baseColor = isLight ? 
+              `rgb(${35 - depthFactor * 10}, ${30 - depthFactor * 8}, ${28 - depthFactor * 6})` :
+              `rgb(${28 - depthFactor * 8}, ${24 - depthFactor * 6}, ${22 - depthFactor * 4})`;
+            
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(screenX, screenY, floorTileSize, floorTileSize);
+            
+            // Tile cracks (seeded random)
+            const crackSeed = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+            const hasCrack = (crackSeed - Math.floor(crackSeed)) > 0.7;
+            if (hasCrack) {
+              ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(screenX + 10, screenY + 10);
+              ctx.lineTo(screenX + 30, screenY + 35);
+              ctx.stroke();
+            }
+          }
+        }
+        
+        // Left wall
+        const leftWallX = 100 - cx;
+        ctx.fillStyle = '#1a1515';
+        ctx.fillRect(leftWallX - wallThickness, -500, wallThickness, height + 1000);
+        // Wall detail - stone blocks
+        for (let wy = Math.floor(cy / 80) * 80; wy < cy + height + 80; wy += 80) {
+          const blockY = wy - cy;
+          ctx.strokeStyle = '#0d0a0a';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(leftWallX - wallThickness, blockY, wallThickness, 80);
+        }
+        
+        // Right wall
+        const rightWallX = 800 - cx;
+        ctx.fillStyle = '#1a1515';
+        ctx.fillRect(rightWallX, -500, wallThickness, height + 1000);
+        for (let wy = Math.floor(cy / 80) * 80; wy < cy + height + 80; wy += 80) {
+          const blockY = wy - cy;
+          ctx.strokeStyle = '#0d0a0a';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(rightWallX, blockY, wallThickness, 80);
+        }
+        
+        // Torches on walls (every 300 pixels)
+        for (let ty = 200; ty < 4800; ty += 300) {
+          const torchScreenY = ty - cy;
+          if (torchScreenY < -50 || torchScreenY > height + 50) continue;
+          
+          // Left torch
+          const leftTorchX = 120 - cx;
+          // Torch bracket
+          ctx.fillStyle = '#44403c';
+          ctx.fillRect(leftTorchX - 5, torchScreenY - 5, 15, 25);
+          // Fire glow
+          const glowSize = 40 + Math.sin(time * 8 + ty) * 8;
+          const fireGlow = ctx.createRadialGradient(leftTorchX + 5, torchScreenY - 15, 0, leftTorchX + 5, torchScreenY - 15, glowSize);
+          fireGlow.addColorStop(0, 'rgba(255, 150, 50, 0.4)');
+          fireGlow.addColorStop(0.5, 'rgba(255, 100, 0, 0.15)');
+          fireGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = fireGlow;
+          ctx.beginPath();
+          ctx.arc(leftTorchX + 5, torchScreenY - 15, glowSize, 0, Math.PI * 2);
+          ctx.fill();
+          // Flames
+          for (let f = 0; f < 3; f++) {
+            const flameH = 12 + Math.sin(time * 12 + ty + f * 2) * 4;
+            ctx.fillStyle = f === 1 ? '#fbbf24' : '#f97316';
+            ctx.beginPath();
+            ctx.moveTo(leftTorchX + 2 + f * 3, torchScreenY - 5);
+            ctx.quadraticCurveTo(leftTorchX + 3 + f * 3, torchScreenY - 5 - flameH, leftTorchX + 5 + f * 3, torchScreenY - 5);
+            ctx.fill();
+          }
+          
+          // Right torch
+          const rightTorchX = 780 - cx;
+          ctx.fillStyle = '#44403c';
+          ctx.fillRect(rightTorchX - 10, torchScreenY - 5, 15, 25);
+          const fireGlow2 = ctx.createRadialGradient(rightTorchX - 5, torchScreenY - 15, 0, rightTorchX - 5, torchScreenY - 15, glowSize);
+          fireGlow2.addColorStop(0, 'rgba(255, 150, 50, 0.4)');
+          fireGlow2.addColorStop(0.5, 'rgba(255, 100, 0, 0.15)');
+          fireGlow2.addColorStop(1, 'transparent');
+          ctx.fillStyle = fireGlow2;
+          ctx.beginPath();
+          ctx.arc(rightTorchX - 5, torchScreenY - 15, glowSize, 0, Math.PI * 2);
+          ctx.fill();
+          for (let f = 0; f < 3; f++) {
+            const flameH = 12 + Math.sin(time * 12 + ty + f * 2 + 1) * 4;
+            ctx.fillStyle = f === 1 ? '#fbbf24' : '#f97316';
+            ctx.beginPath();
+            ctx.moveTo(rightTorchX - 8 + f * 3, torchScreenY - 5);
+            ctx.quadraticCurveTo(rightTorchX - 7 + f * 3, torchScreenY - 5 - flameH, rightTorchX - 5 + f * 3, torchScreenY - 5);
+            ctx.fill();
+          }
+        }
+        
+        // Dungeon decorations (bones, skulls, chains)
+        const dungeonDecorSeeded = (x, y, seed = 0) => {
+          const n = Math.sin(x * 45.233 + y * 91.117 + seed) * 12345.6789;
+          return n - Math.floor(n);
+        };
+        
+        for (let dx = 150; dx < 750; dx += 100) {
+          for (let dy = Math.floor(cy / 150) * 150; dy < cy + height + 150; dy += 150) {
+            const decorScreenX = dx - cx;
+            const decorScreenY = dy - cy;
+            const decorRand = dungeonDecorSeeded(dx, dy);
+            
+            if (decorRand > 0.85) {
+              // Skull
+              ctx.fillStyle = '#d4d4d4';
+              ctx.beginPath();
+              ctx.arc(decorScreenX, decorScreenY, 8, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#1a1a1a';
+              ctx.beginPath();
+              ctx.arc(decorScreenX - 3, decorScreenY - 2, 2, 0, Math.PI * 2);
+              ctx.arc(decorScreenX + 3, decorScreenY - 2, 2, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillRect(decorScreenX - 2, decorScreenY + 3, 4, 3);
+            } else if (decorRand > 0.7) {
+              // Bones
+              ctx.strokeStyle = '#a8a29e';
+              ctx.lineWidth = 3;
+              ctx.lineCap = 'round';
+              ctx.beginPath();
+              ctx.moveTo(decorScreenX - 10, decorScreenY - 5);
+              ctx.lineTo(decorScreenX + 10, decorScreenY + 5);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(decorScreenX - 10, decorScreenY - 5, 3, 0, Math.PI * 2);
+              ctx.arc(decorScreenX + 10, decorScreenY + 5, 3, 0, Math.PI * 2);
+              ctx.fillStyle = '#a8a29e';
+              ctx.fill();
+            } else if (decorRand > 0.6) {
+              // Blood stain
+              ctx.fillStyle = 'rgba(127, 29, 29, 0.4)';
+              ctx.beginPath();
+              ctx.ellipse(decorScreenX, decorScreenY, 15, 10, decorRand * Math.PI, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (decorRand > 0.5) {
+              // Broken chain
+              ctx.strokeStyle = '#57534e';
+              ctx.lineWidth = 3;
+              for (let c = 0; c < 4; c++) {
+                ctx.beginPath();
+                ctx.ellipse(decorScreenX, decorScreenY - 10 + c * 8, 4, 6, 0, 0, Math.PI * 2);
+                ctx.stroke();
+              }
+            }
+          }
+        }
+        
+        // Exit portal at entrance (y ~ 100)
+        const exitPortalY = 120;
+        const exitScreenY = exitPortalY - cy;
+        if (exitScreenY > -100 && exitScreenY < height + 100) {
+          const exitScreenX = 450 - cx;
+          const portalPulse = 0.8 + Math.sin(time * 3) * 0.2;
+          
+          // Portal glow
+          const exitGlow = ctx.createRadialGradient(exitScreenX, exitScreenY, 0, exitScreenX, exitScreenY, 60);
+          exitGlow.addColorStop(0, `rgba(34, 197, 94, ${0.6 * portalPulse})`);
+          exitGlow.addColorStop(0.5, `rgba(34, 197, 94, ${0.3 * portalPulse})`);
+          exitGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = exitGlow;
+          ctx.beginPath();
+          ctx.arc(exitScreenX, exitScreenY, 60, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Portal ring
+          ctx.strokeStyle = '#22c55e';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(exitScreenX, exitScreenY, 30 * portalPulse, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          // Inner swirl
+          ctx.save();
+          ctx.translate(exitScreenX, exitScreenY);
+          ctx.rotate(time * 2);
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(angle) * 10, Math.sin(angle) * 10);
+            ctx.lineTo(Math.cos(angle + 0.5) * 25, Math.sin(angle + 0.5) * 25);
+            ctx.strokeStyle = `rgba(134, 239, 172, ${0.5 + Math.sin(time * 4 + i) * 0.3})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          ctx.restore();
+          
+          // Exit text
+          ctx.font = 'bold 12px Arial';
+          ctx.fillStyle = '#22c55e';
+          ctx.textAlign = 'center';
+          ctx.fillText('EXIT', exitScreenX, exitScreenY + 50);
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#86efac';
+          ctx.fillText('Press E', exitScreenX, exitScreenY + 62);
+        }
+        
+        // Dragon lair area (y > 4200) - special environment
+        if (cy + height > 4200) {
+          const lairStartY = 4200 - cy;
+          
+          // Lava pools
+          for (let lx = 150; lx < 750; lx += 120) {
+            for (let ly = 4300; ly < 4800; ly += 150) {
+              const lavaScreenX = lx - cx + Math.sin(ly * 0.1) * 30;
+              const lavaScreenY = ly - cy;
+              if (lavaScreenY < -50 || lavaScreenY > height + 50) continue;
+              
+              // Lava pool
+              const lavaGlow = ctx.createRadialGradient(lavaScreenX, lavaScreenY, 0, lavaScreenX, lavaScreenY, 40);
+              lavaGlow.addColorStop(0, '#fbbf24');
+              lavaGlow.addColorStop(0.3, '#f97316');
+              lavaGlow.addColorStop(0.7, '#dc2626');
+              lavaGlow.addColorStop(1, '#7f1d1d');
+              ctx.fillStyle = lavaGlow;
+              ctx.beginPath();
+              ctx.ellipse(lavaScreenX, lavaScreenY, 25 + Math.sin(time * 2 + lx) * 5, 15, 0, 0, Math.PI * 2);
+              ctx.fill();
+              
+              // Bubbles
+              for (let b = 0; b < 3; b++) {
+                const bubbleX = lavaScreenX + Math.sin(time * 3 + b * 2 + lx) * 15;
+                const bubbleY = lavaScreenY - Math.abs(Math.sin(time * 4 + b * 1.5)) * 10;
+                ctx.beginPath();
+                ctx.arc(bubbleX, bubbleY, 3 + Math.sin(time * 5 + b) * 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fill();
+              }
+            }
+          }
+          
+          // Dragon lair ambient glow
+          const lairGlow = ctx.createLinearGradient(0, Math.max(0, lairStartY), 0, height);
+          lairGlow.addColorStop(0, 'transparent');
+          lairGlow.addColorStop(0.3, 'rgba(249, 115, 22, 0.1)');
+          lairGlow.addColorStop(1, 'rgba(220, 38, 38, 0.15)');
+          ctx.fillStyle = lairGlow;
+          ctx.fillRect(0, Math.max(0, lairStartY), width, height - Math.max(0, lairStartY));
+        }
+        
+        // Depth indicator lines on floor (every 500 pixels)
+        for (let depthY = 500; depthY < 4500; depthY += 500) {
+          const lineScreenY = depthY - cy;
+          if (lineScreenY < -10 || lineScreenY > height + 10) continue;
+          
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([20, 10]);
+          ctx.beginPath();
+          ctx.moveTo(120 - cx, lineScreenY);
+          ctx.lineTo(780 - cx, lineScreenY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          
+          // Depth marker
+          const floorNum = Math.floor(depthY / 500);
+          ctx.font = '10px Arial';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.textAlign = 'left';
+          ctx.fillText(`Floor ${floorNum}`, 130 - cx, lineScreenY - 5);
+        }
+        
+      } else {
+        // ========== NORMAL WORLD RENDERING ==========
+        // Grid tiles with zone-specific colors
+        const tileSize = 64;
+        const startX = Math.floor(cx / tileSize) * tileSize;
+        const startY = Math.floor(cy / tileSize) * tileSize;
+        
+        for (let x = startX; x < cx + width + tileSize; x += tileSize) {
+          for (let y = startY; y < cy + height + tileSize; y += tileSize) {
+            const zone = getZone(x + tileSize/2, y + tileSize/2);
+            const colors = COLORS[zone] || COLORS.forest;
+            const isLight = ((x / tileSize) + (y / tileSize)) % 2 === 0;
+            ctx.fillStyle = isLight ? colors[0] : colors[1];
+            ctx.fillRect(x - cx, y - cy, tileSize, tileSize);
+          }
         }
       }
 
-      // Zone decorations (seeded random based on position for consistency)
-      const seededRandom = (x, y, seed = 0) => {
-        const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
-        return n - Math.floor(n);
-      };
+      // Zone decorations (seeded random based on position for consistency) - SKIP IN DUNGEON
+      if (!inDungeon) {
+        const tileSize = 64;
+        const startX = Math.floor(cx / tileSize) * tileSize;
+        const startY = Math.floor(cy / tileSize) * tileSize;
+        
+        const seededRandom = (x, y, seed = 0) => {
+          const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+          return n - Math.floor(n);
+        };
 
-      // Draw decorations for visible area
-      for (let x = startX; x < cx + width + tileSize; x += tileSize) {
-        for (let y = startY; y < cy + height + tileSize; y += tileSize) {
-          const zone = getZone(x + tileSize/2, y + tileSize/2);
-          const rand = seededRandom(x, y);
-          const screenX = x - cx + tileSize/2;
-          const screenY = y - cy + tileSize/2;
-          
-          // Only draw some tiles have decorations (20% chance)
-          if (rand > 0.2) continue;
-          
-          const decorRand = seededRandom(x, y, 1);
-          
-          if (zone === 'sanctuary') {
+        // Draw decorations for visible area
+        for (let x = startX; x < cx + width + tileSize; x += tileSize) {
+          for (let y = startY; y < cy + height + tileSize; y += tileSize) {
+            const zone = getZone(x + tileSize/2, y + tileSize/2);
+            const rand = seededRandom(x, y);
+            const screenX = x - cx + tileSize/2;
+            const screenY = y - cy + tileSize/2;
+            
+            // Only draw some tiles have decorations (20% chance)
+            if (rand > 0.2) continue;
+            
+            const decorRand = seededRandom(x, y, 1);
+            
+            if (zone === 'sanctuary') {
             // Flowers
             ctx.fillStyle = decorRand > 0.5 ? '#fcd34d' : '#f472b6';
             ctx.beginPath();
@@ -1737,11 +2099,13 @@ export default function SpellBrigade() {
             }
           }
         }
-      }
+      } // End of if (!inDungeon) for decorations
 
-      // Zone transition rings (subtle gradient borders)
-      const centerX = worldCenterX - cx;
-      const centerY = worldCenterY - cy;
+      // Skip zone-specific visuals when in dungeon
+      if (!inDungeon) {
+        // Zone transition rings (subtle gradient borders)
+        const centerX = worldCenterX - cx;
+        const centerY = worldCenterY - cy;
       const zoneRings = [
         { r: 2600, c: '#581c87' },
         { r: 2100, c: '#0ea5e9' },
@@ -1809,13 +2173,16 @@ export default function SpellBrigade() {
         ctx.font = '11px sans-serif';
         ctx.fillText('Safe Zone • Healing', centerX, centerY + 22);
       }
+      } // End of if (!inDungeon) for zone visuals
 
-      // World border
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 6;
-      ctx.setLineDash([20, 10]);
-      ctx.strokeRect(-cx, -cy, world.width, world.height);
-      ctx.setLineDash([]);
+      // World border (or dungeon walls in dungeon)
+      if (!inDungeon) {
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 6;
+        ctx.setLineDash([20, 10]);
+        ctx.strokeRect(-cx, -cy, world.width, world.height);
+        ctx.setLineDash([]);
+      }
       
       // Touch target indicator (mobile)
       if (touchTargetRef.current.active && isMobileView) {
@@ -1830,9 +2197,95 @@ export default function SpellBrigade() {
         ctx.stroke();
       }
 
-      // ========== BUILDINGS ==========
-      const time = Date.now() / 1000;
-      for (const [id, building] of Object.entries(BUILDING_DATA)) {
+      // ========== SANCTUARY HEALING ZONE VISUAL ========== (skip in dungeon)
+      if (!inDungeon) {
+        const sanctuaryCenter = { x: 3000, y: 2500 };
+        const scx = sanctuaryCenter.x - cx;
+        const scy = sanctuaryCenter.y - cy;
+        const healRadius = 320; // Slightly smaller than polygon
+        const time = Date.now() / 1000;
+        
+        // Only render if on screen
+        if (scx > -healRadius - 100 && scx < width + healRadius + 100 && 
+            scy > -healRadius - 100 && scy < height + healRadius + 100) {
+          
+          // Outer healing circle glow
+          const glowPulse = 0.15 + Math.sin(time * 2) * 0.05;
+          const gradient = ctx.createRadialGradient(scx, scy, healRadius * 0.5, scx, scy, healRadius);
+          gradient.addColorStop(0, 'transparent');
+          gradient.addColorStop(0.7, `rgba(34, 197, 94, ${glowPulse * 0.3})`);
+          gradient.addColorStop(1, `rgba(34, 197, 94, ${glowPulse})`);
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(scx, scy, healRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Healing circle border
+          ctx.strokeStyle = `rgba(34, 197, 94, ${0.3 + Math.sin(time * 3) * 0.1})`;
+          ctx.lineWidth = 3;
+          ctx.setLineDash([15, 10]);
+          ctx.beginPath();
+          ctx.arc(scx, scy, healRadius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          
+          // Floating healing particles
+          for (let i = 0; i < 12; i++) {
+            const angle = (time * 0.3 + i * Math.PI / 6) % (Math.PI * 2);
+            const dist = healRadius * 0.6 + Math.sin(time * 2 + i) * 30;
+            const px = scx + Math.cos(angle) * dist;
+            const py = scy + Math.sin(angle) * dist;
+            const floatY = Math.sin(time * 3 + i * 2) * 10;
+            
+            // Plus sign healing particle
+            ctx.fillStyle = `rgba(74, 222, 128, ${0.5 + Math.sin(time * 4 + i) * 0.3})`;
+            ctx.fillRect(px - 4, py + floatY - 1, 8, 2);
+            ctx.fillRect(px - 1, py + floatY - 4, 2, 8);
+          }
+          
+          // Inner healing aura when player is healing
+          const meData = players?.find(p => p.id === playerIdRef.current);
+          if (meData?.isHealing) {
+            // Stronger inner glow
+            const innerGlow = ctx.createRadialGradient(scx, scy, 0, scx, scy, healRadius * 0.8);
+            innerGlow.addColorStop(0, `rgba(74, 222, 128, ${0.15 + Math.sin(time * 5) * 0.05})`);
+            innerGlow.addColorStop(0.5, `rgba(34, 197, 94, ${0.1 + Math.sin(time * 4) * 0.03})`);
+            innerGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = innerGlow;
+            ctx.beginPath();
+            ctx.arc(scx, scy, healRadius * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Rising heal particles around player
+            if (me) {
+              const mx = me.x - cx;
+              const my = me.y - cy;
+              for (let i = 0; i < 6; i++) {
+                const riseOffset = (time * 50 + i * 40) % 60;
+                const spreadX = Math.sin(time * 3 + i * 1.5) * 15;
+                ctx.fillStyle = `rgba(74, 222, 128, ${0.8 - riseOffset / 60})`;
+                ctx.beginPath();
+                ctx.arc(mx + spreadX, my - riseOffset, 3 - riseOffset / 30, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+          
+          // "Safe Zone" text
+          ctx.font = 'bold 14px Arial';
+          ctx.fillStyle = `rgba(34, 197, 94, ${0.6 + Math.sin(time * 2) * 0.2})`;
+          ctx.textAlign = 'center';
+          ctx.fillText('✨ SANCTUARY ✨', scx, scy - healRadius + 25);
+          ctx.font = '10px Arial';
+          ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
+          ctx.fillText('Healing Zone', scx, scy - healRadius + 40);
+        }
+      }
+
+      // ========== BUILDINGS ========== (skip in dungeon)
+      if (!inDungeon) {
+        const time = Date.now() / 1000;
+        for (const [id, building] of Object.entries(BUILDING_DATA)) {
         const bx = building.x - cx;
         const by = building.y - cy;
         const w = building.width;
@@ -2113,9 +2566,11 @@ export default function SpellBrigade() {
           }
         }
       }
+      } // End of if (!inDungeon) for buildings/campfire/NPCs
 
-      // ========== PORTALS ==========
-      for (const [, portal] of Object.entries(PORTAL_POSITIONS)) {
+      // ========== PORTALS ========== (skip in dungeon)
+      if (!inDungeon) {
+        for (const [, portal] of Object.entries(PORTAL_POSITIONS)) {
         const px = portal.from.x - cx;
         const py = portal.from.y - cy;
         
@@ -2181,8 +2636,9 @@ export default function SpellBrigade() {
           ctx.fillText(`Lv ${portal.level}+`, px, py + size + 15);
         }
       }
+      } // End of if (!inDungeon) for PORTALS
 
-      // Enemies
+      // Enemies (render in both world and dungeon)
       for (const enemy of enemies || []) {
         const sx = enemy.x - cx;
         const sy = enemy.y - cy;
@@ -2758,6 +3214,380 @@ export default function SpellBrigade() {
             ctx.lineTo(sx + 12, sy + 12 - bounce);
             ctx.stroke();
           }
+          // ========== DUNGEON ENEMIES ==========
+          else if (enemyType === 'dungeon_skeleton') {
+            // Cursed Knight - armored undead
+            const time = Date.now() / 1000;
+            ctx.fillStyle = '#44403c';
+            // Helmet
+            ctx.beginPath();
+            ctx.arc(sx, sy - 14 - bounce, 10, Math.PI, 0);
+            ctx.lineTo(sx + 10, sy - 8 - bounce);
+            ctx.lineTo(sx - 10, sy - 8 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            // Armor body
+            ctx.fillRect(sx - 8, sy - 8 - bounce, 16, 20);
+            // Pauldrons (shoulder armor)
+            ctx.beginPath();
+            ctx.arc(sx - 10, sy - 6 - bounce, 6, 0, Math.PI * 2);
+            ctx.arc(sx + 10, sy - 6 - bounce, 6, 0, Math.PI * 2);
+            ctx.fill();
+            // Red glowing eyes
+            ctx.fillStyle = '#dc2626';
+            ctx.shadowColor = '#dc2626';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(sx - 3, sy - 16 - bounce, 2, 0, Math.PI * 2);
+            ctx.arc(sx + 3, sy - 16 - bounce, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Sword
+            ctx.strokeStyle = '#a8a29e';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(sx + 12, sy - 10 - bounce);
+            ctx.lineTo(sx + 20, sy - 25 - bounce);
+            ctx.stroke();
+          }
+          else if (enemyType === 'dungeon_wraith') {
+            // Soul Wraith - ethereal spirit
+            const time = Date.now() / 1000;
+            const wobble = Math.sin(time * 4) * 4;
+            ctx.globalAlpha = 0.6;
+            // Ghostly body
+            const gradient = ctx.createRadialGradient(sx, sy - bounce + wobble, 0, sx, sy - bounce + wobble, 25);
+            gradient.addColorStop(0, '#3730a3');
+            gradient.addColorStop(0.5, '#1e1b4b');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce + wobble, 20, 0, Math.PI * 2);
+            ctx.fill();
+            // Inner form
+            ctx.fillStyle = '#4338ca';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - 5 - bounce + wobble, 10, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Hollow eyes
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(sx - 4, sy - 8 - bounce + wobble, 3, 0, Math.PI * 2);
+            ctx.arc(sx + 4, sy - 8 - bounce + wobble, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+            // Trailing wisps
+            for (let i = 0; i < 3; i++) {
+              const wispY = sy + 10 + i * 8 - bounce + wobble;
+              ctx.globalAlpha = 0.3 - i * 0.1;
+              ctx.fillStyle = '#3730a3';
+              ctx.beginPath();
+              ctx.ellipse(sx + Math.sin(time * 3 + i) * 5, wispY, 6 - i * 2, 4, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+          }
+          else if (enemyType === 'dungeon_golem') {
+            // Obsidian Guardian - massive stone construct
+            ctx.fillStyle = '#1c1917';
+            // Massive body
+            ctx.fillRect(sx - 16, sy - 10 - bounce, 32, 28);
+            // Head
+            ctx.beginPath();
+            ctx.arc(sx, sy - 18 - bounce, 14, 0, Math.PI * 2);
+            ctx.fill();
+            // Glowing runes
+            ctx.strokeStyle = '#f97316';
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 8;
+            ctx.lineWidth = 2;
+            // Rune on chest
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 8 - bounce);
+            ctx.lineTo(sx - 6, sy + 4 - bounce);
+            ctx.lineTo(sx + 6, sy + 4 - bounce);
+            ctx.closePath();
+            ctx.stroke();
+            // Glowing eyes
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath();
+            ctx.arc(sx - 5, sy - 20 - bounce, 3, 0, Math.PI * 2);
+            ctx.arc(sx + 5, sy - 20 - bounce, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Arms
+            ctx.fillStyle = '#1c1917';
+            ctx.fillRect(sx - 24, sy - 8 - bounce, 8, 20);
+            ctx.fillRect(sx + 16, sy - 8 - bounce, 8, 20);
+          }
+          else if (enemyType === 'dungeon_demon') {
+            // Infernal Demon - fiery hellspawn
+            const time = Date.now() / 1000;
+            const fireFlicker = Math.sin(time * 10) * 3;
+            // Fire aura
+            ctx.fillStyle = 'rgba(249, 115, 22, 0.3)';
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, 25, 0, Math.PI * 2);
+            ctx.fill();
+            // Body
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bounce, 14, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Horns
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.moveTo(sx - 8, sy - 16 - bounce);
+            ctx.lineTo(sx - 14, sy - 30 - bounce);
+            ctx.lineTo(sx - 4, sy - 18 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(sx + 8, sy - 16 - bounce);
+            ctx.lineTo(sx + 14, sy - 30 - bounce);
+            ctx.lineTo(sx + 4, sy - 18 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            // Flaming eyes
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(sx - 4, sy - 8 - bounce, 3, 0, Math.PI * 2);
+            ctx.arc(sx + 4, sy - 8 - bounce, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Fire on top
+            for (let i = 0; i < 4; i++) {
+              const fx = sx - 6 + i * 4;
+              const fh = 8 + Math.sin(time * 12 + i * 2) * 4;
+              ctx.fillStyle = i % 2 === 0 ? '#f97316' : '#fbbf24';
+              ctx.beginPath();
+              ctx.moveTo(fx - 3, sy - 18 - bounce);
+              ctx.lineTo(fx, sy - 18 - fh - bounce);
+              ctx.lineTo(fx + 3, sy - 18 - bounce);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+          else if (enemyType === 'boss_dragon') {
+            // ========== INFERNAL DRAGON BOSS ==========
+            const time = Date.now() / 1000;
+            const wingFlap = Math.sin(time * 3) * 0.3;
+            const breathe = Math.sin(time * 2) * 3;
+            const dragonRadius = enemy.radius || 80;
+            
+            // Fire aura glow
+            const auraGrad = ctx.createRadialGradient(sx, sy - bounce, dragonRadius * 0.3, sx, sy - bounce, dragonRadius * 1.5);
+            auraGrad.addColorStop(0, 'rgba(249, 115, 22, 0.4)');
+            auraGrad.addColorStop(0.5, 'rgba(220, 38, 38, 0.2)');
+            auraGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = auraGrad;
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, dragonRadius * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Wings (behind body)
+            ctx.save();
+            ctx.translate(sx - 50, sy - 20 - bounce);
+            ctx.rotate(-0.5 + wingFlap);
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(-40, -30, -70, 10);
+            ctx.quadraticCurveTo(-50, 20, -30, 30);
+            ctx.quadraticCurveTo(-20, 10, 0, 0);
+            ctx.fill();
+            // Wing membrane
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.moveTo(-10, 5);
+            ctx.quadraticCurveTo(-35, -15, -55, 5);
+            ctx.quadraticCurveTo(-35, 15, -10, 15);
+            ctx.fill();
+            ctx.restore();
+            
+            ctx.save();
+            ctx.translate(sx + 50, sy - 20 - bounce);
+            ctx.rotate(0.5 - wingFlap);
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(40, -30, 70, 10);
+            ctx.quadraticCurveTo(50, 20, 30, 30);
+            ctx.quadraticCurveTo(20, 10, 0, 0);
+            ctx.fill();
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.moveTo(10, 5);
+            ctx.quadraticCurveTo(35, -15, 55, 5);
+            ctx.quadraticCurveTo(35, 15, 10, 15);
+            ctx.fill();
+            ctx.restore();
+            
+            // Tail
+            ctx.strokeStyle = '#7f1d1d';
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(sx, sy + 30 - bounce);
+            ctx.quadraticCurveTo(sx - 30, sy + 60 - bounce, sx - 60, sy + 40 - bounce + Math.sin(time * 4) * 10);
+            ctx.stroke();
+            // Tail spikes
+            ctx.fillStyle = '#1c1917';
+            for (let i = 0; i < 3; i++) {
+              const tx = sx - 20 - i * 15;
+              const ty = sy + 50 - bounce + Math.sin(time * 4 + i) * 5;
+              ctx.beginPath();
+              ctx.moveTo(tx, ty - 8);
+              ctx.lineTo(tx - 5, ty + 5);
+              ctx.lineTo(tx + 5, ty + 5);
+              ctx.closePath();
+              ctx.fill();
+            }
+            
+            // Body
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bounce + breathe, 45, 35, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Scales pattern
+            ctx.fillStyle = '#991b1b';
+            for (let row = 0; row < 3; row++) {
+              for (let i = 0; i < 5; i++) {
+                const scaleX = sx - 30 + i * 15;
+                const scaleY = sy - 15 + row * 12 - bounce + breathe;
+                ctx.beginPath();
+                ctx.arc(scaleX, scaleY, 6, Math.PI, 0);
+                ctx.fill();
+              }
+            }
+            
+            // Neck
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.moveTo(sx - 15, sy - 25 - bounce + breathe);
+            ctx.quadraticCurveTo(sx, sy - 50 - bounce, sx + 5, sy - 60 - bounce);
+            ctx.lineTo(sx + 15, sy - 55 - bounce);
+            ctx.quadraticCurveTo(sx + 10, sy - 40 - bounce, sx + 15, sy - 25 - bounce + breathe);
+            ctx.fill();
+            
+            // Head
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.ellipse(sx + 5, sy - 65 - bounce, 20, 15, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Snout
+            ctx.beginPath();
+            ctx.ellipse(sx + 25, sy - 68 - bounce, 12, 8, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Horns
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.moveTo(sx - 5, sy - 75 - bounce);
+            ctx.lineTo(sx - 15, sy - 95 - bounce);
+            ctx.lineTo(sx, sy - 78 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(sx + 10, sy - 78 - bounce);
+            ctx.lineTo(sx + 5, sy - 100 - bounce);
+            ctx.lineTo(sx + 18, sy - 80 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Eyes - glowing
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.ellipse(sx + 12, sy - 70 - bounce, 5, 4, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx - 2, sy - 68 - bounce, 5, 4, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Pupils
+            ctx.fillStyle = '#000';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.ellipse(sx + 13, sy - 70 - bounce, 2, 3, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx - 1, sy - 68 - bounce, 2, 3, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Nostrils with smoke
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.arc(sx + 32, sy - 65 - bounce, 2, 0, Math.PI * 2);
+            ctx.arc(sx + 32, sy - 71 - bounce, 2, 0, Math.PI * 2);
+            ctx.fill();
+            // Smoke puffs
+            for (let i = 0; i < 3; i++) {
+              const smokeX = sx + 35 + i * 5 + Math.sin(time * 5 + i) * 3;
+              const smokeY = sy - 68 - bounce - i * 8;
+              ctx.globalAlpha = 0.3 - i * 0.1;
+              ctx.fillStyle = '#666';
+              ctx.beginPath();
+              ctx.arc(smokeX, smokeY, 4 - i, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            
+            // Legs
+            ctx.fillStyle = '#7f1d1d';
+            // Front legs
+            ctx.fillRect(sx - 30, sy + 15 - bounce, 12, 25);
+            ctx.fillRect(sx + 18, sy + 15 - bounce, 12, 25);
+            // Claws
+            ctx.fillStyle = '#1c1917';
+            for (let leg = 0; leg < 2; leg++) {
+              const legX = leg === 0 ? sx - 30 : sx + 18;
+              for (let c = 0; c < 3; c++) {
+                ctx.beginPath();
+                ctx.moveTo(legX + c * 4, sy + 40 - bounce);
+                ctx.lineTo(legX + c * 4 + 2, sy + 48 - bounce);
+                ctx.lineTo(legX + c * 4 + 4, sy + 40 - bounce);
+                ctx.fill();
+              }
+            }
+            
+            // Boss health bar
+            const hbW = 120;
+            const hbY = sy - 115 - bounce;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(sx - hbW / 2 - 2, hbY - 2, hbW + 4, 14);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(sx - hbW / 2, hbY, hbW, 10);
+            // Health gradient
+            const healthPct = enemy.health / enemy.maxHealth;
+            const hpGrad = ctx.createLinearGradient(sx - hbW / 2, hbY, sx - hbW / 2 + hbW * healthPct, hbY);
+            hpGrad.addColorStop(0, '#dc2626');
+            hpGrad.addColorStop(0.5, '#f97316');
+            hpGrad.addColorStop(1, '#fbbf24');
+            ctx.fillStyle = hpGrad;
+            ctx.fillRect(sx - hbW / 2, hbY, hbW * healthPct, 10);
+            // Boss name
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 4;
+            ctx.fillText('🐉 INFERNAL DRAGON', sx, hbY - 8);
+            ctx.shadowBlur = 0;
+            
+            // Phase indicator
+            const phase = enemy.health < enemy.maxHealth * 0.25 ? 3 : 
+                          enemy.health < enemy.maxHealth * 0.5 ? 2 : 1;
+            if (phase > 1) {
+              ctx.fillStyle = phase === 3 ? '#dc2626' : '#f97316';
+              ctx.font = 'bold 10px Arial';
+              ctx.fillText(`PHASE ${phase}`, sx, hbY - 20);
+            }
+          }
           else {
             // Default circle enemy (fallback)
             ctx.beginPath();
@@ -3289,7 +4119,6 @@ export default function SpellBrigade() {
           
           // Dance animation for dance emote (side sway)
           if (player.emote === 'dance') {
-
             // Already drawn player, but add sparkles
             for (let i = 0; i < 3; i++) {
               const sparkleAngle = emoteTime * 4 + i * 2;
@@ -3753,6 +4582,152 @@ export default function SpellBrigade() {
             ctx.fillText('3x', ex, ey - 20 - progress * 20);
           }
           ctx.globalAlpha = 1;
+        } else if (ef.type === 'dragonBreath') {
+          // Dragon flame breath - cone of fire
+          const dx = ef.x - cx;
+          const dy = ef.y - cy;
+          const angle = ef.angle;
+          const range = ef.range * progress;
+          const coneAngle = Math.PI / 3; // 60 degrees
+          
+          // Draw flame cone
+          ctx.save();
+          ctx.translate(dx, dy);
+          ctx.rotate(angle);
+          
+          // Multiple flame layers
+          for (let layer = 0; layer < 3; layer++) {
+            const layerRange = range * (1 - layer * 0.2);
+            const layerAngle = coneAngle * (1 - layer * 0.15);
+            
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, layerRange);
+            if (layer === 0) {
+              gradient.addColorStop(0, `rgba(255, 200, 50, ${0.9 * alpha})`);
+              gradient.addColorStop(0.5, `rgba(255, 100, 0, ${0.6 * alpha})`);
+              gradient.addColorStop(1, `rgba(255, 50, 0, ${0.1 * alpha})`);
+            } else if (layer === 1) {
+              gradient.addColorStop(0, `rgba(255, 150, 0, ${0.7 * alpha})`);
+              gradient.addColorStop(1, `rgba(200, 50, 0, ${0 * alpha})`);
+            } else {
+              gradient.addColorStop(0, `rgba(255, 255, 200, ${0.5 * alpha})`);
+              gradient.addColorStop(1, 'transparent');
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, layerRange, -layerAngle / 2, layerAngle / 2);
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.fill();
+          }
+          
+          // Fire particles
+          for (let i = 0; i < 15; i++) {
+            const pDist = Math.random() * range;
+            const pAngle = (Math.random() - 0.5) * coneAngle * 0.8;
+            const px = Math.cos(pAngle) * pDist;
+            const py = Math.sin(pAngle) * pDist;
+            const pSize = 3 + Math.random() * 5;
+            
+            ctx.beginPath();
+            ctx.arc(px, py, pSize, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, ${150 + Math.random() * 100}, 0, ${alpha * 0.8})`;
+            ctx.fill();
+          }
+          
+          ctx.restore();
+          
+        } else if (ef.type === 'dragonWingGust') {
+          // Wing gust - expanding wind wave
+          const wx = ef.x - cx;
+          const wy = ef.y - cy;
+          const radius = ef.radius * progress;
+          
+          // Wind rings expanding outward
+          for (let i = 0; i < 3; i++) {
+            const ringRadius = radius * (1 - i * 0.2);
+            ctx.beginPath();
+            ctx.arc(wx, wy, ringRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(200, 200, 255, ${alpha * (1 - i * 0.3)})`;
+            ctx.lineWidth = 4 - i;
+            ctx.stroke();
+          }
+          
+          // Wind particles
+          for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const dist = radius * 0.5 + Math.random() * radius * 0.5;
+            const px = wx + Math.cos(angle) * dist;
+            const py = wy + Math.sin(angle) * dist;
+            
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + Math.cos(angle) * 15, py + Math.sin(angle) * 15);
+            ctx.strokeStyle = `rgba(200, 220, 255, ${alpha * 0.6})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          
+        } else if (ef.type === 'dragonTailSwipe') {
+          // Tail swipe - arc damage indicator
+          const tx = ef.x - cx;
+          const ty = ef.y - cy;
+          const radius = ef.radius;
+          
+          // Swipe arc
+          ctx.beginPath();
+          ctx.arc(tx, ty, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(139, 69, 19, ${0.4 * alpha})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`;
+          ctx.lineWidth = 6;
+          ctx.stroke();
+          
+          // Impact lines
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + progress * Math.PI;
+            ctx.beginPath();
+            ctx.moveTo(tx + Math.cos(angle) * 30, ty + Math.sin(angle) * 30);
+            ctx.lineTo(tx + Math.cos(angle) * radius, ty + Math.sin(angle) * radius);
+            ctx.strokeStyle = `rgba(255, 150, 50, ${alpha * 0.7})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+          
+        } else if (ef.type === 'dragonRage') {
+          // Rage mode - screen-filling fire effect
+          const rx = ef.x - cx;
+          const ry = ef.y - cy;
+          
+          // Pulsing red overlay
+          const pulseAlpha = 0.1 + Math.sin(progress * Math.PI * 6) * 0.05;
+          ctx.fillStyle = `rgba(255, 0, 0, ${pulseAlpha * alpha})`;
+          ctx.fillRect(0, 0, width, height);
+          
+          // Central fire burst
+          const burstRadius = 200 + progress * 100;
+          const fireGrad = ctx.createRadialGradient(rx, ry, 0, rx, ry, burstRadius);
+          fireGrad.addColorStop(0, `rgba(255, 200, 0, ${0.8 * alpha})`);
+          fireGrad.addColorStop(0.3, `rgba(255, 100, 0, ${0.5 * alpha})`);
+          fireGrad.addColorStop(0.6, `rgba(200, 50, 0, ${0.3 * alpha})`);
+          fireGrad.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(rx, ry, burstRadius, 0, Math.PI * 2);
+          ctx.fillStyle = fireGrad;
+          ctx.fill();
+          
+          // Flying embers everywhere
+          for (let i = 0; i < 30; i++) {
+            const emberAngle = Math.random() * Math.PI * 2;
+            const emberDist = 50 + Math.random() * 300;
+            const emberX = rx + Math.cos(emberAngle) * emberDist;
+            const emberY = ry + Math.sin(emberAngle) * emberDist - progress * 50;
+            
+            ctx.beginPath();
+            ctx.arc(emberX, emberY, 2 + Math.random() * 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, ${100 + Math.random() * 155}, 0, ${alpha})`;
+            ctx.fill();
+          }
         }
 
         return true;
@@ -4417,6 +5392,79 @@ export default function SpellBrigade() {
         </button>
       </div>
 
+      {/* Dungeon HUD Overlay */}
+      {screen === 'game' && inDungeon && playerInfo && (
+        <div style={{
+          position: 'fixed',
+          top: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, rgba(20, 10, 10, 0.95), rgba(40, 15, 15, 0.95))',
+          backdropFilter: 'blur(10px)',
+          padding: '15px 30px',
+          borderRadius: 15,
+          zIndex: 900,
+          border: '2px solid rgba(220, 38, 38, 0.5)',
+          textAlign: 'center',
+          minWidth: 250,
+        }}>
+          <div style={{ 
+            color: '#f97316', 
+            fontWeight: 'bold', 
+            fontSize: '1.1rem',
+            marginBottom: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}>
+            🐉 Dragon's Gauntlet
+          </div>
+          
+          {/* Progress bar */}
+          <div style={{
+            background: 'rgba(0,0,0,0.4)',
+            borderRadius: 6,
+            padding: 3,
+            marginBottom: 8,
+          }}>
+            <div style={{
+              height: 8,
+              background: 'linear-gradient(90deg, #dc2626, #f97316, #fbbf24)',
+              borderRadius: 4,
+              width: `${Math.min(100, (playerInfo.y || 200) / 46)}%`,
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+          
+          <div style={{ color: '#a8a29e', fontSize: '0.8rem' }}>
+            Depth: {Math.floor((playerInfo.y || 200) / 500)} / 9
+            {playerInfo.y > 4200 && (
+              <span style={{ color: '#f97316', marginLeft: 10 }}>⚠️ DRAGON LAIR</span>
+            )}
+          </div>
+          
+          {/* Exit button (mobile) */}
+          {isMobile && playerInfo.y < 300 && (
+            <button
+              style={{
+                marginTop: 10,
+                padding: '8px 20px',
+                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                border: 'none',
+                borderRadius: 8,
+                color: '#fff',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              onClick={() => socketRef.current?.emit('exitDungeon')}
+            >
+              🏠 Exit Dungeon
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Game HUD */}
       {screen === 'game' && playerInfo && (
         <>
@@ -4545,10 +5593,6 @@ export default function SpellBrigade() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#888' }}>Interact</span>
                       <span style={{ color: '#fff' }}>E</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#22c55e' }}>Recall</span>
-                      <span style={{ color: '#fff' }}>B</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: autoAttack ? '#fbbf24' : '#666' }}>Auto-Atk</span>
@@ -4735,35 +5779,6 @@ export default function SpellBrigade() {
               }}>
                 {/* Row 1: Secondary buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {/* Recall Button with cooldown */}
-                  <button
-                    style={{
-                      ...styles.actionButton(recallCooldown > Date.now() ? '#666' : '#22c55e'),
-                      width: 44,
-                      height: 44,
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                    onTouchStart={(e) => { 
-                      e.preventDefault(); 
-                      if (recallCooldown > Date.now()) return;
-                      initAudio();
-                      socketRef.current?.emit('recall');
-                    }}
-                  >
-                    <span style={{ fontSize: '0.9rem', opacity: recallCooldown > Date.now() ? 0.5 : 1 }}>🏠</span>
-                    {recallCooldown > Date.now() && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: `${Math.max(0, (recallCooldown - Date.now()) / 5000 * 100)}%`,
-                        background: 'rgba(0,0,0,0.6)',
-                        transition: 'height 0.1s linear',
-                      }} />
-                    )}
-                  </button>
                   {/* Auto-Attack Toggle (for Voidlord) */}
                   {playerInfo?.class === 'voidlord' && (
                     <button
