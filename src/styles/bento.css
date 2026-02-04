@@ -146,7 +146,7 @@
 
 /* Scrollable commits/activity list */
 .commits-scroll {
-  max-height: 320px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -180,7 +180,7 @@
 }
 
 .agent-activity-card .agent-feed-list {
-  max-height: 280px;
+  max-height: 360px;
   overflow-y: auto;
 }
 

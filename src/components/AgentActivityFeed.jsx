@@ -229,7 +229,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
         })}
       </div>
 
-      <Link to="/agent-log" className="feed-view-all">
+      <Link to="/moltbook" className="feed-view-all">
         View full activity log →
       </Link>
     </div>

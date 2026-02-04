@@ -69,6 +69,7 @@ export default function SpellBrigade() {
   });
   const [dashCooldown, setDashCooldown] = useState(0); // timestamp when ready
   const [ultCooldown, setUltCooldown] = useState(0);   // timestamp when ready
+  const [recallCooldown, setRecallCooldown] = useState(0); // timestamp when ready
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [showChat, setShowChat] = useState(true);
@@ -76,6 +77,7 @@ export default function SpellBrigade() {
   const chatContainerRef = useRef(null);
   const dashCooldownRef = useRef(0);
   const ultCooldownRef = useRef(0);
+  const recallCooldownRef = useRef(0);
   const lastZoneRef = useRef(null);
   const musicIntervalRef = useRef(null);
   const musicGainRef = useRef(null);
@@ -558,6 +560,37 @@ export default function SpellBrigade() {
     });
 
     socket.on('gameState', (state) => {
+      // Store previous state for interpolation
+      const prevState = gameStateRef.current;
+      
+      // Interpolate entity positions for smoother movement
+      if (state.players && prevState.players) {
+        state.players = state.players.map(p => {
+          const prev = prevState.players?.find(pp => pp.id === p.id);
+          if (prev) {
+            // Store target and lerp positions
+            p._targetX = p.x;
+            p._targetY = p.y;
+            p.x = prev.x;
+            p.y = prev.y;
+          }
+          return p;
+        });
+      }
+      
+      if (state.enemies && prevState.enemies) {
+        state.enemies = state.enemies.map(e => {
+          const prev = prevState.enemies?.find(pe => pe.id === e.id);
+          if (prev) {
+            e._targetX = e.x;
+            e._targetY = e.y;
+            e.x = prev.x;
+            e.y = prev.y;
+          }
+          return e;
+        });
+      }
+      
       gameStateRef.current = { ...gameStateRef.current, ...state };
       
       // Update players online count
@@ -876,16 +909,52 @@ export default function SpellBrigade() {
     socket.on('recalled', (data) => {
       console.log('🏠 Recalled to Sanctuary');
       playSound('portalEnter');
-      // Add teleport effect
+      
+      // Set recall cooldown
+      if (data.cooldown) {
+        const endTime = Date.now() + data.cooldown;
+        recallCooldownRef.current = endTime;
+        setRecallCooldown(endTime);
+        setTimeout(() => setRecallCooldown(0), data.cooldown);
+      }
+      
+      // Departure effect (swirl out)
+      if (data.fromX !== undefined) {
+        effectsRef.current.push({
+          type: 'recallDepart',
+          x: data.fromX,
+          y: data.fromY,
+          startTime: Date.now(),
+          duration: 600,
+        });
+      }
+      
+      // Arrival effect (swirl in)
       effectsRef.current.push({
-        type: 'teleport',
-        x: data.x,
-        y: data.y,
-        color: '#22c55e',
-        entering: true,
-        startTime: Date.now(),
-        duration: 500,
+        type: 'recallArrive',
+        x: data.toX || 3000,
+        y: data.toY || 2500,
+        startTime: Date.now() + 100,
+        duration: 800,
       });
+    });
+
+    socket.on('recallCooldown', (data) => {
+      console.log(`⏳ Recall on cooldown: ${data.remaining}s`);
+      // Could show a toast notification
+    });
+
+    socket.on('recallEffect', (data) => {
+      // Other player recalled - show departure effect
+      if (data.playerId !== playerIdRef.current) {
+        effectsRef.current.push({
+          type: 'recallDepart',
+          x: data.x,
+          y: data.y,
+          startTime: Date.now(),
+          duration: 600,
+        });
+      }
     });
 
     socket.on('portalError', (data) => {
@@ -1019,11 +1088,11 @@ export default function SpellBrigade() {
         setShowEmotes(prev => !prev);
       }
 
-      // Recall to Sanctuary (B)
+      // Recall to Sanctuary (B) - with cooldown check
       if (e.code === 'KeyB' && socketRef.current && playerIdRef.current) {
+        if (recallCooldownRef.current > Date.now()) return;
         initAudio();
         socketRef.current.emit('recall');
-        playSound('portalEnter');
       }
 
       // Toggle Auto-Attack (X)
@@ -1339,6 +1408,26 @@ export default function SpellBrigade() {
 
     const render = () => {
       const { world, players, enemies, projectiles, xpOrbs, particles, damageNumbers } = gameStateRef.current;
+      
+      // Interpolate entity positions for smooth movement (60fps feels smooth)
+      const LERP_SPEED = 0.25; // Higher = snappier, lower = smoother
+      if (players) {
+        for (const p of players) {
+          if (p._targetX !== undefined) {
+            p.x = lerp(p.x, p._targetX, LERP_SPEED);
+            p.y = lerp(p.y, p._targetY, LERP_SPEED);
+          }
+        }
+      }
+      if (enemies) {
+        for (const e of enemies) {
+          if (e._targetX !== undefined) {
+            e.x = lerp(e.x, e._targetX, LERP_SPEED);
+            e.y = lerp(e.y, e._targetY, LERP_SPEED);
+          }
+        }
+      }
+      
       const me = players?.find(p => p.id === playerIdRef.current);
       const cam = cameraRef.current;
       const shake = screenShakeRef.current;
@@ -1354,8 +1443,8 @@ export default function SpellBrigade() {
 
       // Camera follow player
       if (me) {
-        cam.x = lerp(cam.x, me.x - width / 2, 0.1);
-        cam.y = lerp(cam.y, me.y - height / 2, 0.1);
+        cam.x = lerp(cam.x, me.x - width / 2, 0.15);
+        cam.y = lerp(cam.y, me.y - height / 2, 0.15);
         cam.x = Math.max(0, Math.min(world.width - width, cam.x));
         cam.y = Math.max(0, Math.min(world.height - height, cam.y));
       }
@@ -3262,6 +3351,88 @@ export default function SpellBrigade() {
             ctx.fill();
           }
           ctx.globalAlpha = 1;
+        } else if (ef.type === 'recallDepart') {
+          // Recall departure - green spiral shrinking in
+          const rx = ef.x - cx;
+          const ry = ef.y - cy;
+          const radius = 60 * (1 - progress);
+          
+          // Swirling green particles getting sucked in
+          ctx.globalAlpha = alpha;
+          for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2 + progress * Math.PI * 4;
+            const dist = radius * (1 - progress * 0.5);
+            const px = rx + Math.cos(angle) * dist;
+            const py = ry + Math.sin(angle) * dist - progress * 20;
+            
+            ctx.beginPath();
+            ctx.arc(px, py, 4 * alpha, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${140 + i * 10}, 80%, ${50 + progress * 30}%)`;
+            ctx.fill();
+          }
+          
+          // Central glow
+          const glow = ctx.createRadialGradient(rx, ry - progress * 20, 0, rx, ry, radius);
+          glow.addColorStop(0, `rgba(34, 197, 94, ${0.8 * alpha})`);
+          glow.addColorStop(0.5, `rgba(34, 197, 94, ${0.3 * alpha})`);
+          glow.addColorStop(1, 'transparent');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(rx, ry - progress * 20, radius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Home icon rising up
+          ctx.font = `${20 + progress * 15}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+          ctx.fillText('🏠', rx, ry - progress * 50);
+          ctx.globalAlpha = 1;
+        } else if (ef.type === 'recallArrive') {
+          // Recall arrival - green burst expanding out
+          const rx = ef.x - cx;
+          const ry = ef.y - cy;
+          const radius = 80 * progress;
+          
+          // Expanding green ring
+          ctx.beginPath();
+          ctx.arc(rx, ry, radius, 0, Math.PI * 2);
+          ctx.strokeStyle = '#22c55e';
+          ctx.globalAlpha = alpha;
+          ctx.lineWidth = 6 * alpha;
+          ctx.stroke();
+          
+          // Inner rings
+          for (let i = 1; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.arc(rx, ry, radius * (1 - i * 0.25), 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(134, 239, 172, ${alpha * (1 - i * 0.3)})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+          
+          // Sparkles bursting out
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = radius * 0.8;
+            const px = rx + Math.cos(angle) * dist;
+            const py = ry + Math.sin(angle) * dist;
+            
+            ctx.beginPath();
+            ctx.arc(px, py, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+          }
+          
+          // Central flash
+          if (progress < 0.3) {
+            const flashAlpha = (1 - progress / 0.3) * 0.6;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 30, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
         } else if (ef.type === 'freezeBurst') {
           // Freeze burst effect from Permafrost upgrade
           const fx = ef.x - cx;
@@ -4163,6 +4334,21 @@ export default function SpellBrigade() {
           {isMobile && (
             <div style={styles.mobileHud}>
               <div style={styles.mobileHudPanel}>
+                {/* Zone indicator integrated at top */}
+                {settings.showZoneNames && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginBottom: 8,
+                    paddingBottom: 6,
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                  }}>
+                    <span style={{ ...styles.zoneIcon(currentZone.color), width: 12, height: 12 }}>{SVG.home}</span>
+                    <span style={{ fontSize: '.7rem', color: currentZone.color }}>{currentZone.name}</span>
+                    <span style={{ marginLeft: 'auto', fontSize: '.65rem', color: '#4ade80' }}>● {playersOnline}</span>
+                  </div>
+                )}
                 <div style={styles.mobilePlayerHeader}>
                   <div style={styles.mobileAvatar(classes[playerInfo.class]?.color || '#fff')}>
                     <span style={styles.mobileAvatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
@@ -4225,14 +4411,6 @@ export default function SpellBrigade() {
                   Lv {currentZone.rec}+
                 </span>
               )}
-            </div>
-          )}
-
-          {/* Zone Indicator - Mobile (Compact) */}
-          {settings.showZoneNames && isMobile && (
-            <div style={styles.mobileZoneIndicator}>
-              <span style={{ ...styles.zoneIcon(currentZone.color), width: 14, height: 14 }}>{SVG.home}</span>
-              <span>{currentZone.name}</span>
             </div>
           )}
 
@@ -4331,21 +4509,34 @@ export default function SpellBrigade() {
               }}>
                 {/* Row 1: Secondary buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {/* Recall Button */}
+                  {/* Recall Button with cooldown */}
                   <button
                     style={{
-                      ...styles.actionButton('#22c55e'),
+                      ...styles.actionButton(recallCooldown > Date.now() ? '#666' : '#22c55e'),
                       width: 44,
                       height: 44,
+                      position: 'relative',
+                      overflow: 'hidden',
                     }}
                     onTouchStart={(e) => { 
                       e.preventDefault(); 
+                      if (recallCooldown > Date.now()) return;
                       initAudio();
                       socketRef.current?.emit('recall');
-                      playSound('portalEnter');
                     }}
                   >
-                    <span style={{ fontSize: '0.9rem' }}>🏠</span>
+                    <span style={{ fontSize: '0.9rem', opacity: recallCooldown > Date.now() ? 0.5 : 1 }}>🏠</span>
+                    {recallCooldown > Date.now() && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: `${Math.max(0, (recallCooldown - Date.now()) / 5000 * 100)}%`,
+                        background: 'rgba(0,0,0,0.6)',
+                        transition: 'height 0.1s linear',
+                      }} />
+                    )}
                   </button>
                   {/* Auto-Attack Toggle (for Voidlord) */}
                   {playerInfo?.class === 'voidlord' && (

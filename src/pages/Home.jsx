@@ -220,7 +220,7 @@ const Home = () => {
                 </div>
                 
                 <div className="commits-list commits-scroll">
-                  {githubStats?.recentCommits?.slice(0, 8).map((commit, i) => (
+                  {githubStats?.recentCommits?.slice(0, 15).map((commit, i) => (
                     <div key={`${commit.sha}-${i}`} className="commit-row">
                       <span className="commit-msg">{commit.message}</span>
                       <div className="commit-meta">
@@ -243,7 +243,7 @@ const Home = () => {
 
               {/* Agent Activity */}
               <div className="activity-card activity-half agent-activity-card">
-                <AgentActivityFeed maxItems={6} showReasoning={true} compact={true} />
+                <AgentActivityFeed maxItems={15} showReasoning={true} compact={true} />
               </div>
             </div>
           </div>
