@@ -100,6 +100,7 @@ export default function SpellBrigade() {
   const [npcDialogue, setNpcDialogue] = useState(null); // Current NPC dialogue
   const [nearbyNpc, setNearbyNpc] = useState(null); // NPC player can interact with
   const [inDungeon, setInDungeon] = useState(false); // In dungeon mode
+  const [dungeonVictoryPortal, setDungeonVictoryPortal] = useState(null); // Portal after dragon death
   // eslint-disable-next-line no-unused-vars
   const [dungeonProgress, setDungeonProgress] = useState(0);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
@@ -876,6 +877,76 @@ export default function SpellBrigade() {
       // Screen shake for rage mode
       screenShakeRef.current = { intensity: 15, duration: 1000, startTime: Date.now() };
     });
+    
+    // Dragon defeated - victory portal spawns
+    socket.on('dragonDefeated', (data) => {
+      console.log('🐉 DRAGON DEFEATED! Victory portal spawning...');
+      effectsRef.current.push({
+        type: 'dragonDeath',
+        x: data.x,
+        y: data.y,
+        killerName: data.killerName,
+        startTime: Date.now(),
+        duration: 5000,
+      });
+      // Massive screen shake
+      screenShakeRef.current = { intensity: 30, duration: 2000, startTime: Date.now() };
+      playSound('bossExplosion');
+      // Store victory portal location
+      setDungeonVictoryPortal({ x: data.x, y: data.y - 100, active: true });
+    });
+    
+    socket.on('dragonSlayerReward', (data) => {
+      console.log(`🏆 Dragonslayer reward: ${data.xp} XP, Title: ${data.title}`);
+      // Could show a special UI here
+    });
+    
+    // Mini-boss events
+    socket.on('minotaurCharge', (data) => {
+      effectsRef.current.push({
+        type: 'minotaurCharge',
+        id: data.id,
+        x: data.x,
+        y: data.y,
+        targetX: data.targetX,
+        targetY: data.targetY,
+        startTime: Date.now(),
+        duration: 2000,
+      });
+      playSound('charge');
+    });
+    
+    socket.on('minotaurChargeEnd', (data) => {
+      effectsRef.current.push({
+        type: 'minotaurImpact',
+        x: data.x,
+        y: data.y,
+        startTime: Date.now(),
+        duration: 500,
+      });
+    });
+    
+    socket.on('lichSummon', (data) => {
+      effectsRef.current.push({
+        type: 'lichSummon',
+        x: data.x,
+        y: data.y,
+        startTime: Date.now(),
+        duration: 1000,
+      });
+      playSound('summon');
+    });
+    
+    socket.on('lichDeathWave', (data) => {
+      effectsRef.current.push({
+        type: 'lichDeathWave',
+        x: data.x,
+        y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 800,
+      });
+    });
 
     socket.on('bossSpawn', (data) => {
       playSound('bossSpawn');
@@ -1087,6 +1158,18 @@ export default function SpellBrigade() {
         startTime: Date.now(),
         duration: 300,
       });
+    });
+
+    socket.on('apocalypse', (data) => {
+      effectsRef.current.push({
+        type: 'apocalypse',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 2000,
+      });
+      screenShakeRef.current = { x: 0, y: 0, intensity: 25 };
+      playSound('meteor');
     });
 
     // NPC Dialogue
@@ -1342,10 +1425,23 @@ export default function SpellBrigade() {
         // Check for dungeon exit first
         if (inDungeon) {
           const me = playerDataRef.current;
-          if (me && me.y < 200) {
-            // Near exit portal
+          if (me && me.y < 250) {
+            // Near entrance exit portal
             socketRef.current?.emit('exitDungeon');
             return;
+          }
+          
+          // Check for victory portal (after dragon defeat)
+          if (me && dungeonVictoryPortal && dungeonVictoryPortal.active) {
+            const dx = me.x - dungeonVictoryPortal.x;
+            const dy = me.y - dungeonVictoryPortal.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
+              // Use victory portal
+              socketRef.current?.emit('exitDungeon');
+              setDungeonVictoryPortal(null); // Clear the portal
+              return;
+            }
           }
         }
         
@@ -1784,97 +1880,152 @@ export default function SpellBrigade() {
       // ========== DUNGEON RENDERING ==========
       if (inDungeon) {
         const time = Date.now() / 1000;
-        // eslint-disable-next-line no-unused-vars
-        const dungeonWidth = 700; // Corridor width
-        // eslint-disable-next-line no-unused-vars
-        const dungeonHeight = 5000; // Total dungeon length
-        const wallThickness = 100;
+        
+        // Dungeon layout constants
+        const DUNGEON_WIDTH = 800;
+        const CORRIDOR_MIN_X = 300;
+        const CORRIDOR_MAX_X = 500;
+        const ROOM_MIN_X = 150;
+        const ROOM_MAX_X = 650;
+        
+        // Room definitions
+        const ROOMS = [
+          { name: 'Entrance Chamber', yStart: 0, yEnd: 400, theme: 'stone', minX: 200, maxX: 600 },
+          { name: 'Skeleton Crypt', yStart: 600, yEnd: 1000, theme: 'bones', minX: 150, maxX: 650 },
+          { name: 'Wraith Sanctum', yStart: 1200, yEnd: 1600, theme: 'haunted', minX: 150, maxX: 650 },
+          { name: 'Golem Forge', yStart: 1800, yEnd: 2200, theme: 'rocky', minX: 150, maxX: 650 },
+          { name: 'Demon Pit', yStart: 2400, yEnd: 2800, theme: 'infernal', minX: 150, maxX: 650 },
+          { name: 'Dragon Lair', yStart: 2800, yEnd: 3200, theme: 'dragon', minX: 100, maxX: 700 },
+        ];
         
         // Dark background
         ctx.fillStyle = '#0a0808';
         ctx.fillRect(0, 0, width, height);
         
-        // Stone floor tiles
+        // Determine current area type
+        const playerY = me?.y || 0;
+        let currentTheme = 'corridor';
+        let currentRoom = null;
+        for (const room of ROOMS) {
+          if (playerY >= room.yStart && playerY < room.yEnd) {
+            currentTheme = room.theme;
+            currentRoom = room;
+            break;
+          }
+        }
+        
+        // Theme-specific colors
+        const themeColors = {
+          stone: { floor1: '#2a2520', floor2: '#1f1b18', wall: '#1a1515', accent: '#44403c' },
+          bones: { floor1: '#252218', floor2: '#1a1815', wall: '#15120f', accent: '#a8a29e' },
+          haunted: { floor1: '#1a1a25', floor2: '#121218', wall: '#0f0f18', accent: '#6366f1' },
+          rocky: { floor1: '#252520', floor2: '#1a1a18', wall: '#1a1815', accent: '#78716c' },
+          infernal: { floor1: '#2a1515', floor2: '#1f1010', wall: '#1a0a0a', accent: '#dc2626' },
+          dragon: { floor1: '#2a1a0a', floor2: '#1f1505', wall: '#150a05', accent: '#f97316' },
+          corridor: { floor1: '#1f1b18', floor2: '#181512', wall: '#121010', accent: '#3f3f46' },
+        };
+        
+        const colors = themeColors[currentTheme] || themeColors.corridor;
+        
+        // Floor tiles
         const floorTileSize = 48;
-        const floorStartX = Math.floor((cx - 100) / floorTileSize) * floorTileSize;
+        const floorStartX = Math.floor((cx - 200) / floorTileSize) * floorTileSize;
         const floorStartY = Math.floor(cy / floorTileSize) * floorTileSize;
         
         for (let x = floorStartX; x < cx + width + floorTileSize; x += floorTileSize) {
           for (let y = floorStartY; y < cy + height + floorTileSize; y += floorTileSize) {
-            // Only draw within corridor bounds
-            if (x < 100 || x > 800) continue;
+            // Determine bounds at this y position
+            let minX = CORRIDOR_MIN_X, maxX = CORRIDOR_MAX_X;
+            for (const room of ROOMS) {
+              if (y >= room.yStart && y < room.yEnd) {
+                minX = room.minX;
+                maxX = room.maxX;
+                break;
+              }
+            }
+            
+            if (x < minX || x > maxX) continue;
             
             const screenX = x - cx;
             const screenY = y - cy;
             const isLight = ((x / floorTileSize) + (y / floorTileSize)) % 2 === 0;
             
-            // Stone floor gradient based on depth
-            const depthFactor = Math.min(1, y / 4000);
-            const baseColor = isLight ? 
-              `rgb(${35 - depthFactor * 10}, ${30 - depthFactor * 8}, ${28 - depthFactor * 6})` :
-              `rgb(${28 - depthFactor * 8}, ${24 - depthFactor * 6}, ${22 - depthFactor * 4})`;
-            
-            ctx.fillStyle = baseColor;
+            ctx.fillStyle = isLight ? colors.floor1 : colors.floor2;
             ctx.fillRect(screenX, screenY, floorTileSize, floorTileSize);
             
-            // Tile cracks (seeded random)
+            // Tile cracks
             const crackSeed = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-            const hasCrack = (crackSeed - Math.floor(crackSeed)) > 0.7;
-            if (hasCrack) {
-              ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            if ((crackSeed - Math.floor(crackSeed)) > 0.8) {
+              ctx.strokeStyle = 'rgba(0,0,0,0.4)';
               ctx.lineWidth = 1;
               ctx.beginPath();
-              ctx.moveTo(screenX + 10, screenY + 10);
-              ctx.lineTo(screenX + 30, screenY + 35);
+              ctx.moveTo(screenX + 8, screenY + 8);
+              ctx.lineTo(screenX + 35, screenY + 38);
               ctx.stroke();
             }
           }
         }
         
-        // Left wall
-        const leftWallX = 100 - cx;
-        ctx.fillStyle = '#1a1515';
-        ctx.fillRect(leftWallX - wallThickness, -500, wallThickness, height + 1000);
-        // Wall detail - stone blocks
-        for (let wy = Math.floor(cy / 80) * 80; wy < cy + height + 80; wy += 80) {
+        // Draw walls based on current area bounds
+        for (let wy = Math.floor(cy / 60) * 60; wy < cy + height + 60; wy += 60) {
+          let minX = CORRIDOR_MIN_X, maxX = CORRIDOR_MAX_X;
+          for (const room of ROOMS) {
+            if (wy >= room.yStart && wy < room.yEnd) {
+              minX = room.minX;
+              maxX = room.maxX;
+              break;
+            }
+          }
+          
           const blockY = wy - cy;
-          ctx.strokeStyle = '#0d0a0a';
+          
+          // Left wall
+          const leftWallX = minX - cx;
+          ctx.fillStyle = colors.wall;
+          ctx.fillRect(leftWallX - 100, blockY, 100, 60);
+          ctx.strokeStyle = '#0a0808';
           ctx.lineWidth = 2;
-          ctx.strokeRect(leftWallX - wallThickness, blockY, wallThickness, 80);
+          ctx.strokeRect(leftWallX - 100, blockY, 100, 60);
+          
+          // Right wall  
+          const rightWallX = maxX - cx;
+          ctx.fillStyle = colors.wall;
+          ctx.fillRect(rightWallX, blockY, 100, 60);
+          ctx.strokeStyle = '#0a0808';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(rightWallX, blockY, 100, 60);
         }
         
-        // Right wall
-        const rightWallX = 800 - cx;
-        ctx.fillStyle = '#1a1515';
-        ctx.fillRect(rightWallX, -500, wallThickness, height + 1000);
-        for (let wy = Math.floor(cy / 80) * 80; wy < cy + height + 80; wy += 80) {
-          const blockY = wy - cy;
-          ctx.strokeStyle = '#0d0a0a';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(rightWallX, blockY, wallThickness, 80);
-        }
-        
-        // Torches on walls (every 300 pixels)
-        for (let ty = 200; ty < 4800; ty += 300) {
+        // Torches (less frequent in corridors, more in rooms)
+        const torchSpacing = currentRoom ? 200 : 350;
+        for (let ty = Math.floor(cy / torchSpacing) * torchSpacing; ty < cy + height + torchSpacing; ty += torchSpacing) {
+          let minX = CORRIDOR_MIN_X, maxX = CORRIDOR_MAX_X;
+          for (const room of ROOMS) {
+            if (ty >= room.yStart && ty < room.yEnd) {
+              minX = room.minX;
+              maxX = room.maxX;
+              break;
+            }
+          }
+          
           const torchScreenY = ty - cy;
           if (torchScreenY < -50 || torchScreenY > height + 50) continue;
           
           // Left torch
-          const leftTorchX = 120 - cx;
-          // Torch bracket
-          ctx.fillStyle = '#44403c';
+          const leftTorchX = minX + 20 - cx;
+          ctx.fillStyle = colors.accent;
           ctx.fillRect(leftTorchX - 5, torchScreenY - 5, 15, 25);
-          // Fire glow
+          
           const glowSize = 40 + Math.sin(time * 8 + ty) * 8;
           const fireGlow = ctx.createRadialGradient(leftTorchX + 5, torchScreenY - 15, 0, leftTorchX + 5, torchScreenY - 15, glowSize);
-          fireGlow.addColorStop(0, 'rgba(255, 150, 50, 0.4)');
-          fireGlow.addColorStop(0.5, 'rgba(255, 100, 0, 0.15)');
+          fireGlow.addColorStop(0, `rgba(255, 150, 50, 0.4)`);
+          fireGlow.addColorStop(0.5, `rgba(255, 100, 0, 0.15)`);
           fireGlow.addColorStop(1, 'transparent');
           ctx.fillStyle = fireGlow;
           ctx.beginPath();
           ctx.arc(leftTorchX + 5, torchScreenY - 15, glowSize, 0, Math.PI * 2);
           ctx.fill();
-          // Flames
+          
           for (let f = 0; f < 3; f++) {
             const flameH = 12 + Math.sin(time * 12 + ty + f * 2) * 4;
             ctx.fillStyle = f === 1 ? '#fbbf24' : '#f97316';
@@ -1885,17 +2036,19 @@ export default function SpellBrigade() {
           }
           
           // Right torch
-          const rightTorchX = 780 - cx;
-          ctx.fillStyle = '#44403c';
+          const rightTorchX = maxX - 20 - cx;
+          ctx.fillStyle = colors.accent;
           ctx.fillRect(rightTorchX - 10, torchScreenY - 5, 15, 25);
+          
           const fireGlow2 = ctx.createRadialGradient(rightTorchX - 5, torchScreenY - 15, 0, rightTorchX - 5, torchScreenY - 15, glowSize);
-          fireGlow2.addColorStop(0, 'rgba(255, 150, 50, 0.4)');
-          fireGlow2.addColorStop(0.5, 'rgba(255, 100, 0, 0.15)');
+          fireGlow2.addColorStop(0, `rgba(255, 150, 50, 0.4)`);
+          fireGlow2.addColorStop(0.5, `rgba(255, 100, 0, 0.15)`);
           fireGlow2.addColorStop(1, 'transparent');
           ctx.fillStyle = fireGlow2;
           ctx.beginPath();
           ctx.arc(rightTorchX - 5, torchScreenY - 15, glowSize, 0, Math.PI * 2);
           ctx.fill();
+          
           for (let f = 0; f < 3; f++) {
             const flameH = 12 + Math.sin(time * 12 + ty + f * 2 + 1) * 4;
             ctx.fillStyle = f === 1 ? '#fbbf24' : '#f97316';
@@ -1906,68 +2059,147 @@ export default function SpellBrigade() {
           }
         }
         
-        // Dungeon decorations (bones, skulls, chains)
+        // Theme-specific decorations
         const dungeonDecorSeeded = (x, y, seed = 0) => {
           const n = Math.sin(x * 45.233 + y * 91.117 + seed) * 12345.6789;
           return n - Math.floor(n);
         };
         
-        for (let dx = 150; dx < 750; dx += 100) {
-          for (let dy = Math.floor(cy / 150) * 150; dy < cy + height + 150; dy += 150) {
-            const decorScreenX = dx - cx;
-            const decorScreenY = dy - cy;
-            const decorRand = dungeonDecorSeeded(dx, dy);
-            
-            if (decorRand > 0.85) {
-              // Skull
-              ctx.fillStyle = '#d4d4d4';
-              ctx.beginPath();
-              ctx.arc(decorScreenX, decorScreenY, 8, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#1a1a1a';
-              ctx.beginPath();
-              ctx.arc(decorScreenX - 3, decorScreenY - 2, 2, 0, Math.PI * 2);
-              ctx.arc(decorScreenX + 3, decorScreenY - 2, 2, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillRect(decorScreenX - 2, decorScreenY + 3, 4, 3);
-            } else if (decorRand > 0.7) {
-              // Bones
-              ctx.strokeStyle = '#a8a29e';
-              ctx.lineWidth = 3;
-              ctx.lineCap = 'round';
-              ctx.beginPath();
-              ctx.moveTo(decorScreenX - 10, decorScreenY - 5);
-              ctx.lineTo(decorScreenX + 10, decorScreenY + 5);
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.arc(decorScreenX - 10, decorScreenY - 5, 3, 0, Math.PI * 2);
-              ctx.arc(decorScreenX + 10, decorScreenY + 5, 3, 0, Math.PI * 2);
-              ctx.fillStyle = '#a8a29e';
-              ctx.fill();
-            } else if (decorRand > 0.6) {
-              // Blood stain
-              ctx.fillStyle = 'rgba(127, 29, 29, 0.4)';
-              ctx.beginPath();
-              ctx.ellipse(decorScreenX, decorScreenY, 15, 10, decorRand * Math.PI, 0, Math.PI * 2);
-              ctx.fill();
-            } else if (decorRand > 0.5) {
-              // Broken chain
-              ctx.strokeStyle = '#57534e';
-              ctx.lineWidth = 3;
-              for (let c = 0; c < 4; c++) {
+        // Draw room-specific decorations
+        for (const room of ROOMS) {
+          if (cy > room.yEnd + 100 || cy + height < room.yStart - 100) continue;
+          
+          const decorSpacing = room.theme === 'dragon' ? 150 : 80;
+          
+          for (let dx = room.minX + 50; dx < room.maxX - 50; dx += decorSpacing) {
+            for (let dy = room.yStart + 50; dy < room.yEnd - 50; dy += decorSpacing) {
+              const decorScreenX = dx - cx;
+              const decorScreenY = dy - cy;
+              if (decorScreenX < -50 || decorScreenX > width + 50) continue;
+              if (decorScreenY < -50 || decorScreenY > height + 50) continue;
+              
+              const decorRand = dungeonDecorSeeded(dx, dy);
+              
+              if (room.theme === 'bones' && decorRand > 0.6) {
+                // Skulls and bones
+                if (decorRand > 0.8) {
+                  ctx.fillStyle = '#d4d4d4';
+                  ctx.beginPath();
+                  ctx.arc(decorScreenX, decorScreenY, 8, 0, Math.PI * 2);
+                  ctx.fill();
+                  ctx.fillStyle = '#1a1a1a';
+                  ctx.beginPath();
+                  ctx.arc(decorScreenX - 3, decorScreenY - 2, 2, 0, Math.PI * 2);
+                  ctx.arc(decorScreenX + 3, decorScreenY - 2, 2, 0, Math.PI * 2);
+                  ctx.fill();
+                } else {
+                  ctx.strokeStyle = '#a8a29e';
+                  ctx.lineWidth = 3;
+                  ctx.lineCap = 'round';
+                  ctx.beginPath();
+                  ctx.moveTo(decorScreenX - 12, decorScreenY - 5);
+                  ctx.lineTo(decorScreenX + 12, decorScreenY + 5);
+                  ctx.stroke();
+                }
+              } else if (room.theme === 'haunted' && decorRand > 0.7) {
+                // Ghostly wisps
+                const wispFloat = Math.sin(time * 2 + dx + dy) * 10;
+                ctx.fillStyle = `rgba(99, 102, 241, ${0.3 + Math.sin(time * 3 + dx) * 0.2})`;
                 ctx.beginPath();
-                ctx.ellipse(decorScreenX, decorScreenY - 10 + c * 8, 4, 6, 0, 0, Math.PI * 2);
-                ctx.stroke();
+                ctx.arc(decorScreenX, decorScreenY + wispFloat, 15, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = `rgba(165, 180, 252, ${0.5 + Math.sin(time * 4 + dy) * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(decorScreenX, decorScreenY + wispFloat, 6, 0, Math.PI * 2);
+                ctx.fill();
+              } else if (room.theme === 'rocky' && decorRand > 0.6) {
+                // Boulders and rocks
+                ctx.fillStyle = '#57534e';
+                ctx.beginPath();
+                ctx.moveTo(decorScreenX - 15, decorScreenY + 10);
+                ctx.lineTo(decorScreenX - 8, decorScreenY - 12);
+                ctx.lineTo(decorScreenX + 10, decorScreenY - 8);
+                ctx.lineTo(decorScreenX + 15, decorScreenY + 10);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#78716c';
+                ctx.beginPath();
+                ctx.moveTo(decorScreenX - 8, decorScreenY - 12);
+                ctx.lineTo(decorScreenX + 10, decorScreenY - 8);
+                ctx.lineTo(decorScreenX + 5, decorScreenY);
+                ctx.closePath();
+                ctx.fill();
+              } else if (room.theme === 'infernal' && decorRand > 0.5) {
+                // Lava cracks and embers
+                if (decorRand > 0.75) {
+                  // Lava crack
+                  ctx.strokeStyle = '#f97316';
+                  ctx.lineWidth = 3;
+                  ctx.shadowColor = '#f97316';
+                  ctx.shadowBlur = 10;
+                  ctx.beginPath();
+                  ctx.moveTo(decorScreenX - 15, decorScreenY);
+                  ctx.lineTo(decorScreenX - 5, decorScreenY + 10);
+                  ctx.lineTo(decorScreenX + 8, decorScreenY - 5);
+                  ctx.lineTo(decorScreenX + 15, decorScreenY + 8);
+                  ctx.stroke();
+                  ctx.shadowBlur = 0;
+                } else {
+                  // Ember
+                  const emberFloat = Math.sin(time * 4 + dx) * 5;
+                  ctx.fillStyle = '#fbbf24';
+                  ctx.beginPath();
+                  ctx.arc(decorScreenX, decorScreenY - 10 + emberFloat, 4, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+              } else if (room.theme === 'dragon' && decorRand > 0.6) {
+                // Lava pools
+                const lavaGlow = ctx.createRadialGradient(decorScreenX, decorScreenY, 0, decorScreenX, decorScreenY, 40);
+                lavaGlow.addColorStop(0, '#fbbf24');
+                lavaGlow.addColorStop(0.3, '#f97316');
+                lavaGlow.addColorStop(0.7, '#dc2626');
+                lavaGlow.addColorStop(1, '#7f1d1d');
+                ctx.fillStyle = lavaGlow;
+                ctx.beginPath();
+                ctx.ellipse(decorScreenX, decorScreenY, 30 + Math.sin(time * 2 + dx) * 5, 18, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Bubbles
+                for (let b = 0; b < 2; b++) {
+                  const bubbleX = decorScreenX + Math.sin(time * 3 + b * 2) * 15;
+                  const bubbleY = decorScreenY - Math.abs(Math.sin(time * 4 + b)) * 12;
+                  ctx.beginPath();
+                  ctx.arc(bubbleX, bubbleY, 3, 0, Math.PI * 2);
+                  ctx.fillStyle = '#fbbf24';
+                  ctx.fill();
+                }
               }
             }
           }
         }
         
-        // Exit portal at entrance (y ~ 100)
-        const exitPortalY = 120;
+        // Room name banner
+        if (currentRoom) {
+          const bannerY = 60;
+          ctx.font = 'bold 18px Arial';
+          ctx.fillStyle = colors.accent;
+          ctx.textAlign = 'center';
+          ctx.fillText(currentRoom.name, width / 2, bannerY);
+          
+          // Underline
+          ctx.strokeStyle = colors.accent;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(width / 2 - 80, bannerY + 8);
+          ctx.lineTo(width / 2 + 80, bannerY + 8);
+          ctx.stroke();
+        }
+        
+        // Exit portal in entrance chamber
+        const exitPortalY = 200;
         const exitScreenY = exitPortalY - cy;
-        if (exitScreenY > -100 && exitScreenY < height + 100) {
-          const exitScreenX = 450 - cx;
+        if (exitScreenY > -100 && exitScreenY < height + 100 && playerY < 400) {
+          const exitScreenX = 400 - cx;
           const portalPulse = 0.8 + Math.sin(time * 3) * 0.2;
           
           // Portal glow
@@ -2012,70 +2244,113 @@ export default function SpellBrigade() {
           ctx.fillText('Press E', exitScreenX, exitScreenY + 62);
         }
         
-        // Dragon lair area (y > 4200) - special environment
-        if (cy + height > 4200) {
-          const lairStartY = 4200 - cy;
-          
-          // Lava pools
-          for (let lx = 150; lx < 750; lx += 120) {
-            for (let ly = 4300; ly < 4800; ly += 150) {
-              const lavaScreenX = lx - cx + Math.sin(ly * 0.1) * 30;
-              const lavaScreenY = ly - cy;
-              if (lavaScreenY < -50 || lavaScreenY > height + 50) continue;
-              
-              // Lava pool
-              const lavaGlow = ctx.createRadialGradient(lavaScreenX, lavaScreenY, 0, lavaScreenX, lavaScreenY, 40);
-              lavaGlow.addColorStop(0, '#fbbf24');
-              lavaGlow.addColorStop(0.3, '#f97316');
-              lavaGlow.addColorStop(0.7, '#dc2626');
-              lavaGlow.addColorStop(1, '#7f1d1d');
-              ctx.fillStyle = lavaGlow;
-              ctx.beginPath();
-              ctx.ellipse(lavaScreenX, lavaScreenY, 25 + Math.sin(time * 2 + lx) * 5, 15, 0, 0, Math.PI * 2);
-              ctx.fill();
-              
-              // Bubbles
-              for (let b = 0; b < 3; b++) {
-                const bubbleX = lavaScreenX + Math.sin(time * 3 + b * 2 + lx) * 15;
-                const bubbleY = lavaScreenY - Math.abs(Math.sin(time * 4 + b * 1.5)) * 10;
-                ctx.beginPath();
-                ctx.arc(bubbleX, bubbleY, 3 + Math.sin(time * 5 + b) * 2, 0, Math.PI * 2);
-                ctx.fillStyle = '#fbbf24';
-                ctx.fill();
-              }
-            }
-          }
-          
-          // Dragon lair ambient glow
-          const lairGlow = ctx.createLinearGradient(0, Math.max(0, lairStartY), 0, height);
-          lairGlow.addColorStop(0, 'transparent');
-          lairGlow.addColorStop(0.3, 'rgba(249, 115, 22, 0.1)');
-          lairGlow.addColorStop(1, 'rgba(220, 38, 38, 0.15)');
+        // Dragon lair ambient effect
+        if (playerY >= 2800) {
+          const lairGlow = ctx.createLinearGradient(0, 0, 0, height);
+          lairGlow.addColorStop(0, 'rgba(249, 115, 22, 0.05)');
+          lairGlow.addColorStop(1, 'rgba(220, 38, 38, 0.1)');
           ctx.fillStyle = lairGlow;
-          ctx.fillRect(0, Math.max(0, lairStartY), width, height - Math.max(0, lairStartY));
+          ctx.fillRect(0, 0, width, height);
+          
+          // Heat distortion effect
+          if (Math.random() > 0.95) {
+            ctx.fillStyle = 'rgba(255, 100, 0, 0.03)';
+            ctx.fillRect(0, 0, width, height);
+          }
         }
         
-        // Depth indicator lines on floor (every 500 pixels)
-        for (let depthY = 500; depthY < 4500; depthY += 500) {
-          const lineScreenY = depthY - cy;
-          if (lineScreenY < -10 || lineScreenY > height + 10) continue;
+        // Victory portal (after dragon defeat)
+        if (dungeonVictoryPortal && dungeonVictoryPortal.active) {
+          const vpX = dungeonVictoryPortal.x - cx;
+          const vpY = dungeonVictoryPortal.y - cy;
           
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([20, 10]);
-          ctx.beginPath();
-          ctx.moveTo(120 - cx, lineScreenY);
-          ctx.lineTo(780 - cx, lineScreenY);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          
-          // Depth marker
-          const floorNum = Math.floor(depthY / 500);
-          ctx.font = '10px Arial';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.textAlign = 'left';
-          ctx.fillText(`Floor ${floorNum}`, 130 - cx, lineScreenY - 5);
+          if (vpY > -150 && vpY < height + 150) {
+            const portalPulse = 0.8 + Math.sin(time * 4) * 0.2;
+            const portalSize = 80;
+            
+            // Epic golden glow
+            const victoryGlow = ctx.createRadialGradient(vpX, vpY, 0, vpX, vpY, portalSize * 2);
+            victoryGlow.addColorStop(0, 'rgba(251, 191, 36, 0.8)');
+            victoryGlow.addColorStop(0.3, 'rgba(245, 158, 11, 0.5)');
+            victoryGlow.addColorStop(0.6, 'rgba(217, 119, 6, 0.2)');
+            victoryGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = victoryGlow;
+            ctx.beginPath();
+            ctx.arc(vpX, vpY, portalSize * 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Outer ring - golden
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 6;
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(vpX, vpY, portalSize * portalPulse, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            // Inner ring
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(vpX, vpY, portalSize * 0.6 * portalPulse, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Swirling particles
+            ctx.save();
+            ctx.translate(vpX, vpY);
+            ctx.rotate(time * 3);
+            for (let i = 0; i < 8; i++) {
+              const angle = (i / 8) * Math.PI * 2;
+              const dist = 30 + Math.sin(time * 5 + i) * 15;
+              const px = Math.cos(angle) * dist;
+              const py = Math.sin(angle) * dist;
+              ctx.fillStyle = `rgba(251, 191, 36, ${0.8 - i * 0.08})`;
+              ctx.beginPath();
+              ctx.arc(px, py, 6 - i * 0.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+            
+            // Inner swirl
+            ctx.save();
+            ctx.translate(vpX, vpY);
+            ctx.rotate(-time * 2);
+            for (let i = 0; i < 6; i++) {
+              const angle = (i / 6) * Math.PI * 2;
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(angle) * 15, Math.sin(angle) * 15);
+              ctx.lineTo(Math.cos(angle + 0.6) * 40, Math.sin(angle + 0.6) * 40);
+              ctx.strokeStyle = `rgba(253, 224, 71, ${0.6 + Math.sin(time * 6 + i) * 0.3})`;
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
+            ctx.restore();
+            
+            // Victory text
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 4;
+            ctx.textAlign = 'center';
+            ctx.fillText('🏆 VICTORY PORTAL 🏆', vpX, vpY + portalSize + 25);
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#fde68a';
+            ctx.fillText('Press E to return to Sanctuary', vpX, vpY + portalSize + 42);
+            ctx.shadowBlur = 0;
+          }
         }
+        
+        // Depth progress indicator
+        const progress = Math.min(1, playerY / 3000);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(20, height - 30, 150, 15);
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(22, height - 28, 146 * progress, 11);
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Depth: ${Math.floor(progress * 100)}%`, 25, height - 20);
         
       } else {
         // ========== NORMAL WORLD RENDERING ==========
@@ -3570,209 +3845,365 @@ export default function SpellBrigade() {
             }
           }
           else if (enemyType === 'boss_dragon') {
-            // ========== INFERNAL DRAGON BOSS ==========
+            // ========== MASSIVE INFERNAL DRAGON BOSS (4x size) ==========
             const time = Date.now() / 1000;
-            const wingFlap = Math.sin(time * 3) * 0.3;
-            const breathe = Math.sin(time * 2) * 3;
-            const dragonRadius = enemy.radius || 80;
+            const dragonRadius = enemy.radius || 160;
+            const scale = dragonRadius / 40; // Scale factor (was 40, now 160 = 4x)
+            const wingFlap = Math.sin(time * 2.5) * 0.4;
+            const breathe = Math.sin(time * 1.5) * 5 * scale;
+            const bodyBob = Math.sin(time * 2) * 3 * scale;
             
-            // Fire aura glow
-            const auraGrad = ctx.createRadialGradient(sx, sy - bounce, dragonRadius * 0.3, sx, sy - bounce, dragonRadius * 1.5);
-            auraGrad.addColorStop(0, 'rgba(249, 115, 22, 0.4)');
-            auraGrad.addColorStop(0.5, 'rgba(220, 38, 38, 0.2)');
+            // Massive fire aura glow
+            const auraGrad = ctx.createRadialGradient(sx, sy - bodyBob, dragonRadius * 0.2, sx, sy - bodyBob, dragonRadius * 2);
+            auraGrad.addColorStop(0, 'rgba(255, 100, 0, 0.5)');
+            auraGrad.addColorStop(0.3, 'rgba(249, 115, 22, 0.3)');
+            auraGrad.addColorStop(0.6, 'rgba(220, 38, 38, 0.15)');
             auraGrad.addColorStop(1, 'transparent');
             ctx.fillStyle = auraGrad;
             ctx.beginPath();
-            ctx.arc(sx, sy - bounce, dragonRadius * 1.5, 0, Math.PI * 2);
+            ctx.arc(sx, sy - bodyBob, dragonRadius * 2, 0, Math.PI * 2);
             ctx.fill();
             
-            // Wings (behind body)
+            // Pulsing ground fire effect
+            ctx.fillStyle = `rgba(255, 100, 0, ${0.1 + Math.sin(time * 4) * 0.05})`;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy + 60 * scale, dragonRadius * 1.5, 30 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // === MASSIVE WINGS (behind body) ===
+            // Left wing
             ctx.save();
-            ctx.translate(sx - 50, sy - 20 - bounce);
-            ctx.rotate(-0.5 + wingFlap);
-            ctx.fillStyle = '#7f1d1d';
+            ctx.translate(sx - 60 * scale, sy - 30 * scale - bodyBob);
+            ctx.rotate(-0.6 + wingFlap);
+            // Wing bone structure
+            ctx.fillStyle = '#5c0a0a';
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.quadraticCurveTo(-40, -30, -70, 10);
-            ctx.quadraticCurveTo(-50, 20, -30, 30);
-            ctx.quadraticCurveTo(-20, 10, 0, 0);
+            ctx.quadraticCurveTo(-50 * scale, -80 * scale, -120 * scale, -40 * scale);
+            ctx.quadraticCurveTo(-100 * scale, 0, -80 * scale, 40 * scale);
+            ctx.quadraticCurveTo(-40 * scale, 30 * scale, 0, 10 * scale);
+            ctx.closePath();
             ctx.fill();
-            // Wing membrane
-            ctx.fillStyle = '#991b1b';
+            // Wing membrane with gradient
+            const wingGrad1 = ctx.createLinearGradient(-120 * scale, -40 * scale, 0, 0);
+            wingGrad1.addColorStop(0, '#7f1d1d');
+            wingGrad1.addColorStop(0.5, '#991b1b');
+            wingGrad1.addColorStop(1, '#b91c1c');
+            ctx.fillStyle = wingGrad1;
             ctx.beginPath();
-            ctx.moveTo(-10, 5);
-            ctx.quadraticCurveTo(-35, -15, -55, 5);
-            ctx.quadraticCurveTo(-35, 15, -10, 15);
+            ctx.moveTo(-15 * scale, 5 * scale);
+            ctx.quadraticCurveTo(-60 * scale, -50 * scale, -100 * scale, -20 * scale);
+            ctx.quadraticCurveTo(-70 * scale, 10 * scale, -15 * scale, 20 * scale);
+            ctx.closePath();
             ctx.fill();
-            ctx.restore();
-            
-            ctx.save();
-            ctx.translate(sx + 50, sy - 20 - bounce);
-            ctx.rotate(0.5 - wingFlap);
-            ctx.fillStyle = '#7f1d1d';
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.quadraticCurveTo(40, -30, 70, 10);
-            ctx.quadraticCurveTo(50, 20, 30, 30);
-            ctx.quadraticCurveTo(20, 10, 0, 0);
-            ctx.fill();
-            ctx.fillStyle = '#991b1b';
-            ctx.beginPath();
-            ctx.moveTo(10, 5);
-            ctx.quadraticCurveTo(35, -15, 55, 5);
-            ctx.quadraticCurveTo(35, 15, 10, 15);
-            ctx.fill();
-            ctx.restore();
-            
-            // Tail
-            ctx.strokeStyle = '#7f1d1d';
-            ctx.lineWidth = 12;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(sx, sy + 30 - bounce);
-            ctx.quadraticCurveTo(sx - 30, sy + 60 - bounce, sx - 60, sy + 40 - bounce + Math.sin(time * 4) * 10);
-            ctx.stroke();
-            // Tail spikes
-            ctx.fillStyle = '#1c1917';
-            for (let i = 0; i < 3; i++) {
-              const tx = sx - 20 - i * 15;
-              const ty = sy + 50 - bounce + Math.sin(time * 4 + i) * 5;
+            // Wing veins
+            ctx.strokeStyle = '#5c0a0a';
+            ctx.lineWidth = 2 * scale;
+            for (let i = 0; i < 4; i++) {
               ctx.beginPath();
-              ctx.moveTo(tx, ty - 8);
-              ctx.lineTo(tx - 5, ty + 5);
-              ctx.lineTo(tx + 5, ty + 5);
+              ctx.moveTo(-20 * scale, 5 * scale);
+              ctx.quadraticCurveTo(-50 * scale - i * 15 * scale, -30 * scale + i * 10 * scale, -90 * scale, -10 * scale + i * 10 * scale);
+              ctx.stroke();
+            }
+            ctx.restore();
+            
+            // Right wing
+            ctx.save();
+            ctx.translate(sx + 60 * scale, sy - 30 * scale - bodyBob);
+            ctx.rotate(0.6 - wingFlap);
+            ctx.fillStyle = '#5c0a0a';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(50 * scale, -80 * scale, 120 * scale, -40 * scale);
+            ctx.quadraticCurveTo(100 * scale, 0, 80 * scale, 40 * scale);
+            ctx.quadraticCurveTo(40 * scale, 30 * scale, 0, 10 * scale);
+            ctx.closePath();
+            ctx.fill();
+            const wingGrad2 = ctx.createLinearGradient(120 * scale, -40 * scale, 0, 0);
+            wingGrad2.addColorStop(0, '#7f1d1d');
+            wingGrad2.addColorStop(0.5, '#991b1b');
+            wingGrad2.addColorStop(1, '#b91c1c');
+            ctx.fillStyle = wingGrad2;
+            ctx.beginPath();
+            ctx.moveTo(15 * scale, 5 * scale);
+            ctx.quadraticCurveTo(60 * scale, -50 * scale, 100 * scale, -20 * scale);
+            ctx.quadraticCurveTo(70 * scale, 10 * scale, 15 * scale, 20 * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#5c0a0a';
+            ctx.lineWidth = 2 * scale;
+            for (let i = 0; i < 4; i++) {
+              ctx.beginPath();
+              ctx.moveTo(20 * scale, 5 * scale);
+              ctx.quadraticCurveTo(50 * scale + i * 15 * scale, -30 * scale + i * 10 * scale, 90 * scale, -10 * scale + i * 10 * scale);
+              ctx.stroke();
+            }
+            ctx.restore();
+            
+            // === MASSIVE TAIL ===
+            ctx.strokeStyle = '#7f1d1d';
+            ctx.lineWidth = 20 * scale;
+            ctx.lineCap = 'round';
+            const tailWave = Math.sin(time * 3);
+            ctx.beginPath();
+            ctx.moveTo(sx, sy + 50 * scale - bodyBob);
+            ctx.bezierCurveTo(
+              sx - 40 * scale, sy + 100 * scale - bodyBob + tailWave * 20,
+              sx - 100 * scale, sy + 80 * scale - bodyBob - tailWave * 30,
+              sx - 150 * scale, sy + 40 * scale - bodyBob + tailWave * 25
+            );
+            ctx.stroke();
+            // Tail tip with spikes
+            ctx.fillStyle = '#1c1917';
+            const tailEndX = sx - 150 * scale;
+            const tailEndY = sy + 40 * scale - bodyBob + tailWave * 25;
+            for (let i = 0; i < 4; i++) {
+              const spikeAngle = -0.8 + i * 0.2 + tailWave * 0.1;
+              ctx.save();
+              ctx.translate(tailEndX + i * 15 * scale, tailEndY - i * 5 * scale);
+              ctx.rotate(spikeAngle);
+              ctx.beginPath();
+              ctx.moveTo(0, -15 * scale);
+              ctx.lineTo(-8 * scale, 10 * scale);
+              ctx.lineTo(8 * scale, 10 * scale);
+              ctx.closePath();
+              ctx.fill();
+              ctx.restore();
+            }
+            
+            // === BACK LEGS ===
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath();
+            ctx.ellipse(sx - 35 * scale, sy + 30 * scale - bodyBob, 20 * scale, 35 * scale, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx + 35 * scale, sy + 30 * scale - bodyBob, 20 * scale, 35 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // === MASSIVE BODY ===
+            const bodyGrad = ctx.createRadialGradient(sx, sy - bodyBob, 0, sx, sy - bodyBob, 80 * scale);
+            bodyGrad.addColorStop(0, '#dc2626');
+            bodyGrad.addColorStop(0.5, '#b91c1c');
+            bodyGrad.addColorStop(1, '#7f1d1d');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bodyBob + breathe, 70 * scale, 55 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Belly scales
+            ctx.fillStyle = '#fbbf24';
+            for (let row = 0; row < 4; row++) {
+              for (let i = 0; i < 6; i++) {
+                const scaleX = sx - 35 * scale + i * 14 * scale;
+                const scaleY = sy - 10 * scale + row * 18 * scale - bodyBob + breathe;
+                ctx.beginPath();
+                ctx.ellipse(scaleX, scaleY, 8 * scale, 6 * scale, 0, Math.PI, 0);
+                ctx.fill();
+              }
+            }
+            
+            // Back ridge spines
+            ctx.fillStyle = '#1c1917';
+            for (let i = 0; i < 8; i++) {
+              const spineX = sx - 20 * scale + i * 8 * scale;
+              const spineY = sy - 55 * scale - bodyBob + breathe + Math.sin(time * 6 + i) * 2;
+              ctx.beginPath();
+              ctx.moveTo(spineX, spineY);
+              ctx.lineTo(spineX - 5 * scale, spineY + 20 * scale);
+              ctx.lineTo(spineX + 5 * scale, spineY + 20 * scale);
               ctx.closePath();
               ctx.fill();
             }
             
-            // Body
-            ctx.fillStyle = '#b91c1c';
-            ctx.beginPath();
-            ctx.ellipse(sx, sy - bounce + breathe, 45, 35, 0, 0, Math.PI * 2);
-            ctx.fill();
-            // Scales pattern
+            // === FRONT LEGS ===
             ctx.fillStyle = '#991b1b';
-            for (let row = 0; row < 3; row++) {
-              for (let i = 0; i < 5; i++) {
-                const scaleX = sx - 30 + i * 15;
-                const scaleY = sy - 15 + row * 12 - bounce + breathe;
-                ctx.beginPath();
-                ctx.arc(scaleX, scaleY, 6, Math.PI, 0);
-                ctx.fill();
-              }
-            }
-            
-            // Neck
-            ctx.fillStyle = '#b91c1c';
+            // Left front leg
             ctx.beginPath();
-            ctx.moveTo(sx - 15, sy - 25 - bounce + breathe);
-            ctx.quadraticCurveTo(sx, sy - 50 - bounce, sx + 5, sy - 60 - bounce);
-            ctx.lineTo(sx + 15, sy - 55 - bounce);
-            ctx.quadraticCurveTo(sx + 10, sy - 40 - bounce, sx + 15, sy - 25 - bounce + breathe);
-            ctx.fill();
-            
-            // Head
-            ctx.fillStyle = '#b91c1c';
-            ctx.beginPath();
-            ctx.ellipse(sx + 5, sy - 65 - bounce, 20, 15, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            // Snout
-            ctx.beginPath();
-            ctx.ellipse(sx + 25, sy - 68 - bounce, 12, 8, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            // Horns
-            ctx.fillStyle = '#1c1917';
-            ctx.beginPath();
-            ctx.moveTo(sx - 5, sy - 75 - bounce);
-            ctx.lineTo(sx - 15, sy - 95 - bounce);
-            ctx.lineTo(sx, sy - 78 - bounce);
+            ctx.moveTo(sx - 45 * scale, sy + 10 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx - 55 * scale, sy + 40 * scale - bodyBob, sx - 50 * scale, sy + 70 * scale - bodyBob);
+            ctx.lineTo(sx - 35 * scale, sy + 70 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx - 35 * scale, sy + 40 * scale - bodyBob, sx - 30 * scale, sy + 10 * scale - bodyBob);
             ctx.closePath();
             ctx.fill();
+            // Right front leg
             ctx.beginPath();
-            ctx.moveTo(sx + 10, sy - 78 - bounce);
-            ctx.lineTo(sx + 5, sy - 100 - bounce);
-            ctx.lineTo(sx + 18, sy - 80 - bounce);
+            ctx.moveTo(sx + 45 * scale, sy + 10 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx + 55 * scale, sy + 40 * scale - bodyBob, sx + 50 * scale, sy + 70 * scale - bodyBob);
+            ctx.lineTo(sx + 35 * scale, sy + 70 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx + 35 * scale, sy + 40 * scale - bodyBob, sx + 30 * scale, sy + 10 * scale - bodyBob);
             ctx.closePath();
             ctx.fill();
-            
-            // Eyes - glowing
-            ctx.fillStyle = '#fbbf24';
-            ctx.shadowColor = '#f97316';
-            ctx.shadowBlur = 15;
-            ctx.beginPath();
-            ctx.ellipse(sx + 12, sy - 70 - bounce, 5, 4, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(sx - 2, sy - 68 - bounce, 5, 4, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            // Pupils
-            ctx.fillStyle = '#000';
-            ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.ellipse(sx + 13, sy - 70 - bounce, 2, 3, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(sx - 1, sy - 68 - bounce, 2, 3, 0.3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Nostrils with smoke
-            ctx.fillStyle = '#1c1917';
-            ctx.beginPath();
-            ctx.arc(sx + 32, sy - 65 - bounce, 2, 0, Math.PI * 2);
-            ctx.arc(sx + 32, sy - 71 - bounce, 2, 0, Math.PI * 2);
-            ctx.fill();
-            // Smoke puffs
-            for (let i = 0; i < 3; i++) {
-              const smokeX = sx + 35 + i * 5 + Math.sin(time * 5 + i) * 3;
-              const smokeY = sy - 68 - bounce - i * 8;
-              ctx.globalAlpha = 0.3 - i * 0.1;
-              ctx.fillStyle = '#666';
-              ctx.beginPath();
-              ctx.arc(smokeX, smokeY, 4 - i, 0, Math.PI * 2);
-              ctx.fill();
-            }
-            ctx.globalAlpha = 1;
-            
-            // Legs
-            ctx.fillStyle = '#7f1d1d';
-            // Front legs
-            ctx.fillRect(sx - 30, sy + 15 - bounce, 12, 25);
-            ctx.fillRect(sx + 18, sy + 15 - bounce, 12, 25);
             // Claws
             ctx.fillStyle = '#1c1917';
             for (let leg = 0; leg < 2; leg++) {
-              const legX = leg === 0 ? sx - 30 : sx + 18;
-              for (let c = 0; c < 3; c++) {
+              const legBaseX = leg === 0 ? sx - 50 * scale : sx + 35 * scale;
+              const legDir = leg === 0 ? -1 : 1;
+              for (let c = 0; c < 4; c++) {
                 ctx.beginPath();
-                ctx.moveTo(legX + c * 4, sy + 40 - bounce);
-                ctx.lineTo(legX + c * 4 + 2, sy + 48 - bounce);
-                ctx.lineTo(legX + c * 4 + 4, sy + 40 - bounce);
+                ctx.moveTo(legBaseX + c * 5 * scale * legDir, sy + 70 * scale - bodyBob);
+                ctx.lineTo(legBaseX + c * 5 * scale * legDir + 2 * scale * legDir, sy + 85 * scale - bodyBob);
+                ctx.lineTo(legBaseX + c * 5 * scale * legDir + 5 * scale * legDir, sy + 70 * scale - bodyBob);
+                ctx.closePath();
                 ctx.fill();
               }
             }
             
-            // Boss health bar
-            const hbW = 120;
-            const hbY = sy - 115 - bounce;
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(sx - hbW / 2 - 2, hbY - 2, hbW + 4, 14);
+            // === LONG NECK ===
+            const neckGrad = ctx.createLinearGradient(sx, sy - 50 * scale - bodyBob, sx + 30 * scale, sy - 120 * scale - bodyBob);
+            neckGrad.addColorStop(0, '#b91c1c');
+            neckGrad.addColorStop(1, '#991b1b');
+            ctx.fillStyle = neckGrad;
+            ctx.beginPath();
+            ctx.moveTo(sx - 20 * scale, sy - 40 * scale - bodyBob + breathe);
+            ctx.quadraticCurveTo(sx, sy - 80 * scale - bodyBob, sx + 20 * scale, sy - 110 * scale - bodyBob);
+            ctx.lineTo(sx + 40 * scale, sy - 105 * scale - bodyBob);
+            ctx.quadraticCurveTo(sx + 25 * scale, sy - 70 * scale - bodyBob, sx + 20 * scale, sy - 40 * scale - bodyBob + breathe);
+            ctx.closePath();
+            ctx.fill();
+            // Neck spines
+            ctx.fillStyle = '#1c1917';
+            for (let i = 0; i < 5; i++) {
+              const neckProgress = i / 5;
+              const neckX = sx - 5 * scale + neckProgress * 25 * scale;
+              const neckY = sy - 50 * scale - neckProgress * 55 * scale - bodyBob;
+              ctx.beginPath();
+              ctx.moveTo(neckX, neckY - 12 * scale);
+              ctx.lineTo(neckX - 4 * scale, neckY + 5 * scale);
+              ctx.lineTo(neckX + 4 * scale, neckY + 5 * scale);
+              ctx.closePath();
+              ctx.fill();
+            }
+            
+            // === MASSIVE HEAD ===
+            const headX = sx + 30 * scale;
+            const headY = sy - 120 * scale - bodyBob;
+            // Main head shape
+            const headGrad = ctx.createRadialGradient(headX, headY, 0, headX, headY, 35 * scale);
+            headGrad.addColorStop(0, '#dc2626');
+            headGrad.addColorStop(0.7, '#b91c1c');
+            headGrad.addColorStop(1, '#991b1b');
+            ctx.fillStyle = headGrad;
+            ctx.beginPath();
+            ctx.ellipse(headX, headY, 35 * scale, 28 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Snout
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.ellipse(headX + 40 * scale, headY + 5 * scale, 25 * scale, 18 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Jaw
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.ellipse(headX + 30 * scale, headY + 20 * scale, 28 * scale, 12 * scale, 0.2, 0, Math.PI);
+            ctx.fill();
+            
+            // Teeth
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 6; i++) {
+              const toothX = headX + 15 * scale + i * 10 * scale;
+              const toothY = headY + 12 * scale;
+              ctx.beginPath();
+              ctx.moveTo(toothX, toothY);
+              ctx.lineTo(toothX - 3 * scale, toothY + 10 * scale);
+              ctx.lineTo(toothX + 3 * scale, toothY + 10 * scale);
+              ctx.closePath();
+              ctx.fill();
+            }
+            
+            // MASSIVE HORNS
+            ctx.fillStyle = '#1c1917';
+            // Left horn
+            ctx.beginPath();
+            ctx.moveTo(headX - 15 * scale, headY - 20 * scale);
+            ctx.quadraticCurveTo(headX - 30 * scale, headY - 50 * scale, headX - 25 * scale, headY - 70 * scale);
+            ctx.lineTo(headX - 15 * scale, headY - 65 * scale);
+            ctx.quadraticCurveTo(headX - 20 * scale, headY - 45 * scale, headX - 5 * scale, headY - 18 * scale);
+            ctx.closePath();
+            ctx.fill();
+            // Right horn
+            ctx.beginPath();
+            ctx.moveTo(headX + 10 * scale, headY - 22 * scale);
+            ctx.quadraticCurveTo(headX + 5 * scale, headY - 55 * scale, headX + 15 * scale, headY - 80 * scale);
+            ctx.lineTo(headX + 25 * scale, headY - 75 * scale);
+            ctx.quadraticCurveTo(headX + 20 * scale, headY - 50 * scale, headX + 20 * scale, headY - 20 * scale);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Glowing eyes
+            ctx.shadowColor = '#ff6600';
+            ctx.shadowBlur = 25;
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.ellipse(headX + 20 * scale, headY - 8 * scale, 10 * scale, 8 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(headX - 5 * scale, headY - 5 * scale, 10 * scale, 8 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Slit pupils
+            ctx.fillStyle = '#000';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.ellipse(headX + 22 * scale, headY - 8 * scale, 3 * scale, 6 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(headX - 3 * scale, headY - 5 * scale, 3 * scale, 6 * scale, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Nostrils with fire/smoke
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.ellipse(headX + 55 * scale, headY + 2 * scale, 4 * scale, 3 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(headX + 55 * scale, headY + 12 * scale, 4 * scale, 3 * scale, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Fire breath from nostrils
+            for (let n = 0; n < 2; n++) {
+              const nostrilY = headY + (n === 0 ? 2 : 12) * scale;
+              for (let i = 0; i < 4; i++) {
+                const fireX = headX + 60 * scale + i * 8 * scale + Math.sin(time * 8 + i + n) * 5;
+                const fireY = nostrilY + Math.sin(time * 10 + i) * 3;
+                const fireSize = (4 - i) * scale;
+                ctx.globalAlpha = 0.6 - i * 0.15;
+                ctx.fillStyle = i < 2 ? '#fbbf24' : '#f97316';
+                ctx.beginPath();
+                ctx.arc(fireX, fireY, fireSize, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+            ctx.globalAlpha = 1;
+            
+            // === BOSS HEALTH BAR ===
+            const hbW = 200 * scale;
+            const hbY = sy - 180 * scale - bodyBob;
+            ctx.fillStyle = 'rgba(0,0,0,0.8)';
+            ctx.fillRect(sx - hbW / 2 - 4, hbY - 4, hbW + 8, 24);
             ctx.fillStyle = '#1a1a2e';
-            ctx.fillRect(sx - hbW / 2, hbY, hbW, 10);
-            // Health gradient
+            ctx.fillRect(sx - hbW / 2, hbY, hbW, 16);
+            
             const healthPct = enemy.health / enemy.maxHealth;
             const hpGrad = ctx.createLinearGradient(sx - hbW / 2, hbY, sx - hbW / 2 + hbW * healthPct, hbY);
             hpGrad.addColorStop(0, '#dc2626');
             hpGrad.addColorStop(0.5, '#f97316');
             hpGrad.addColorStop(1, '#fbbf24');
             ctx.fillStyle = hpGrad;
-            ctx.fillRect(sx - hbW / 2, hbY, hbW * healthPct, 10);
-            // Boss name
-            ctx.fillStyle = '#fbbf24';
-            ctx.font = 'bold 14px Arial';
+            ctx.fillRect(sx - hbW / 2, hbY, hbW * healthPct, 16);
+            
+            // Health text
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${12 * scale}px Arial`;
             ctx.textAlign = 'center';
-            ctx.shadowColor = '#000';
-            ctx.shadowBlur = 4;
-            ctx.fillText('🐉 INFERNAL DRAGON', sx, hbY - 8);
+            ctx.fillText(`${Math.ceil(enemy.health)} / ${enemy.maxHealth}`, sx, hbY + 13);
+            
+            // Boss name with fire effect
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = `bold ${18 * scale}px Arial`;
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 10;
+            ctx.fillText('🐉 INFERNAL DRAGON 🐉', sx, hbY - 15);
             ctx.shadowBlur = 0;
             
             // Phase indicator
@@ -3780,9 +4211,307 @@ export default function SpellBrigade() {
                           enemy.health < enemy.maxHealth * 0.5 ? 2 : 1;
             if (phase > 1) {
               ctx.fillStyle = phase === 3 ? '#dc2626' : '#f97316';
-              ctx.font = 'bold 10px Arial';
-              ctx.fillText(`PHASE ${phase}`, sx, hbY - 20);
+              ctx.font = `bold ${14 * scale}px Arial`;
+              ctx.fillText(`⚠️ PHASE ${phase} ${phase === 3 ? '- ENRAGED!' : ''} ⚠️`, sx, hbY - 35);
             }
+          }
+          // ========== MINI-BOSSES ==========
+          else if (enemyType === 'dungeon_minotaur') {
+            // Ironhide Minotaur - massive bull-headed warrior
+            const time = Date.now() / 1000;
+            const breathe = Math.sin(time * 2) * 2;
+            const isCharging = enemy.isCharging;
+            const chargeIntensity = isCharging ? Math.sin(time * 20) * 5 : 0;
+            
+            // Dust cloud when charging
+            if (isCharging) {
+              ctx.globalAlpha = 0.4;
+              for (let i = 0; i < 5; i++) {
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath();
+                ctx.arc(sx - 20 - i * 15 + Math.random() * 10, sy + 30 + Math.random() * 10, 8 + Math.random() * 8, 0, Math.PI * 2);
+                ctx.fill();
+              }
+              ctx.globalAlpha = 1;
+            }
+            
+            // Massive body
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bounce + breathe + chargeIntensity, 35, 40, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Muscular arms
+            ctx.fillStyle = '#92400e';
+            ctx.beginPath();
+            ctx.ellipse(sx - 35, sy - 10 - bounce, 15, 25, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx + 35, sy - 10 - bounce, 15, 25, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Fists
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.arc(sx - 45, sy + 15 - bounce, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(sx + 45, sy + 15 - bounce, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Legs
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(sx - 20, sy + 25 - bounce, 15, 30);
+            ctx.fillRect(sx + 5, sy + 25 - bounce, 15, 30);
+            // Hooves
+            ctx.fillStyle = '#1c1917';
+            ctx.fillRect(sx - 22, sy + 52 - bounce, 19, 8);
+            ctx.fillRect(sx + 3, sy + 52 - bounce, 19, 8);
+            
+            // Bull head
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - 50 - bounce + chargeIntensity, 28, 24, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Snout
+            ctx.fillStyle = '#92400e';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - 40 - bounce + chargeIntensity, 18, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Nostrils with steam
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath();
+            ctx.ellipse(sx - 6, sy - 38 - bounce + chargeIntensity, 3, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx + 6, sy - 38 - bounce + chargeIntensity, 3, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Steam from nostrils
+            if (isCharging || Math.random() > 0.7) {
+              ctx.globalAlpha = 0.5;
+              ctx.fillStyle = '#d4d4d4';
+              for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(sx - 6 + Math.sin(time * 10 + i) * 5, sy - 45 - i * 6 - bounce, 4 - i, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(sx + 6 + Math.sin(time * 10 + i + 1) * 5, sy - 45 - i * 6 - bounce, 4 - i, 0, Math.PI * 2);
+                ctx.fill();
+              }
+              ctx.globalAlpha = 1;
+            }
+            
+            // Angry eyes
+            ctx.fillStyle = '#dc2626';
+            ctx.shadowColor = '#dc2626';
+            ctx.shadowBlur = isCharging ? 15 : 8;
+            ctx.beginPath();
+            ctx.ellipse(sx - 10, sy - 55 - bounce + chargeIntensity, 6, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx + 10, sy - 55 - bounce + chargeIntensity, 6, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Pupils
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(sx - 10, sy - 55 - bounce + chargeIntensity, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(sx + 10, sy - 55 - bounce + chargeIntensity, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // MASSIVE HORNS
+            ctx.fillStyle = '#1c1917';
+            ctx.strokeStyle = '#44403c';
+            ctx.lineWidth = 2;
+            // Left horn
+            ctx.beginPath();
+            ctx.moveTo(sx - 20, sy - 60 - bounce + chargeIntensity);
+            ctx.quadraticCurveTo(sx - 45, sy - 75 - bounce, sx - 55, sy - 50 - bounce + chargeIntensity);
+            ctx.quadraticCurveTo(sx - 50, sy - 60 - bounce, sx - 25, sy - 58 - bounce + chargeIntensity);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // Right horn
+            ctx.beginPath();
+            ctx.moveTo(sx + 20, sy - 60 - bounce + chargeIntensity);
+            ctx.quadraticCurveTo(sx + 45, sy - 75 - bounce, sx + 55, sy - 50 - bounce + chargeIntensity);
+            ctx.quadraticCurveTo(sx + 50, sy - 60 - bounce, sx + 25, sy - 58 - bounce + chargeIntensity);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Battle axe on back
+            ctx.fillStyle = '#57534e';
+            ctx.fillRect(sx + 25, sy - 60 - bounce, 8, 70);
+            ctx.fillStyle = '#78716c';
+            ctx.beginPath();
+            ctx.moveTo(sx + 20, sy - 65 - bounce);
+            ctx.lineTo(sx + 15, sy - 45 - bounce);
+            ctx.lineTo(sx + 20, sy - 25 - bounce);
+            ctx.lineTo(sx + 28, sy - 25 - bounce);
+            ctx.lineTo(sx + 28, sy - 65 - bounce);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Mini-boss health bar
+            const mhbW = 60;
+            const mhbY = sy - 90 - bounce;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(sx - mhbW / 2 - 2, mhbY - 2, mhbW + 4, 10);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(sx - mhbW / 2, mhbY, mhbW, 6);
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(sx - mhbW / 2, mhbY, mhbW * enemy.health / enemy.maxHealth, 6);
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('⚔️ MINOTAUR', sx, mhbY - 5);
+          }
+          else if (enemyType === 'dungeon_lich') {
+            // Lich King - undead sorcerer
+            const time = Date.now() / 1000;
+            const hover = Math.sin(time * 2) * 5;
+            const cloakWave = Math.sin(time * 3) * 0.1;
+            
+            // Dark aura
+            const auraGrad = ctx.createRadialGradient(sx, sy + hover, 10, sx, sy + hover, 50);
+            auraGrad.addColorStop(0, 'rgba(30, 27, 75, 0.5)');
+            auraGrad.addColorStop(0.5, 'rgba(99, 102, 241, 0.2)');
+            auraGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = auraGrad;
+            ctx.beginPath();
+            ctx.arc(sx, sy + hover, 50, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Floating robe/cloak
+            ctx.fillStyle = '#1e1b4b';
+            ctx.beginPath();
+            ctx.moveTo(sx - 25, sy - 20 + hover);
+            ctx.quadraticCurveTo(sx - 30 + cloakWave * 20, sy + 30 + hover, sx - 20, sy + 50 + hover);
+            ctx.lineTo(sx + 20, sy + 50 + hover);
+            ctx.quadraticCurveTo(sx + 30 - cloakWave * 20, sy + 30 + hover, sx + 25, sy - 20 + hover);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Inner robe detail
+            ctx.fillStyle = '#312e81';
+            ctx.beginPath();
+            ctx.moveTo(sx - 15, sy - 10 + hover);
+            ctx.quadraticCurveTo(sx, sy + 40 + hover, sx + 15, sy - 10 + hover);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Skeletal hands
+            ctx.strokeStyle = '#d4d4d4';
+            ctx.lineWidth = 3;
+            // Left hand
+            ctx.beginPath();
+            ctx.moveTo(sx - 25, sy - 10 + hover);
+            ctx.lineTo(sx - 35, sy + 5 + hover);
+            ctx.stroke();
+            for (let i = 0; i < 4; i++) {
+              ctx.beginPath();
+              ctx.moveTo(sx - 35, sy + 5 + hover);
+              ctx.lineTo(sx - 40 - i * 3, sy + 15 + hover + Math.sin(time * 5 + i) * 2);
+              ctx.stroke();
+            }
+            // Right hand holding staff
+            ctx.beginPath();
+            ctx.moveTo(sx + 25, sy - 10 + hover);
+            ctx.lineTo(sx + 30, sy + 10 + hover);
+            ctx.stroke();
+            
+            // Necromancer staff
+            ctx.strokeStyle = '#44403c';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(sx + 30, sy + 10 + hover);
+            ctx.lineTo(sx + 35, sy + 60 + hover);
+            ctx.stroke();
+            // Staff orb
+            ctx.fillStyle = '#6366f1';
+            ctx.shadowColor = '#6366f1';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(sx + 30, sy + hover, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#a5b4fc';
+            ctx.beginPath();
+            ctx.arc(sx + 28, sy - 3 + hover, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Skull head
+            ctx.fillStyle = '#d4d4d4';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - 35 + hover, 18, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Eye sockets with soul fire
+            ctx.fillStyle = '#1e1b4b';
+            ctx.beginPath();
+            ctx.ellipse(sx - 7, sy - 38 + hover, 6, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx + 7, sy - 38 + hover, 6, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Soul fire in eyes
+            ctx.fillStyle = '#6366f1';
+            ctx.shadowColor = '#6366f1';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(sx - 7, sy - 38 + hover + Math.sin(time * 8) * 2, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(sx + 7, sy - 38 + hover + Math.sin(time * 8 + 1) * 2, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            // Nose hole
+            ctx.fillStyle = '#1e1b4b';
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 32 + hover);
+            ctx.lineTo(sx - 3, sy - 28 + hover);
+            ctx.lineTo(sx + 3, sy - 28 + hover);
+            ctx.closePath();
+            ctx.fill();
+            // Jaw
+            ctx.fillStyle = '#a8a29e';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - 22 + hover, 12, 6, 0, 0, Math.PI);
+            ctx.fill();
+            
+            // Crown
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.moveTo(sx - 15, sy - 52 + hover);
+            ctx.lineTo(sx - 12, sy - 65 + hover);
+            ctx.lineTo(sx - 5, sy - 55 + hover);
+            ctx.lineTo(sx, sy - 70 + hover);
+            ctx.lineTo(sx + 5, sy - 55 + hover);
+            ctx.lineTo(sx + 12, sy - 65 + hover);
+            ctx.lineTo(sx + 15, sy - 52 + hover);
+            ctx.closePath();
+            ctx.fill();
+            // Crown gems
+            ctx.fillStyle = '#6366f1';
+            ctx.beginPath();
+            ctx.arc(sx, sy - 60 + hover, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Mini-boss health bar
+            const lhbW = 60;
+            const lhbY = sy - 85 + hover;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(sx - lhbW / 2 - 2, lhbY - 2, lhbW + 4, 10);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(sx - lhbW / 2, lhbY, lhbW, 6);
+            ctx.fillStyle = '#6366f1';
+            ctx.fillRect(sx - lhbW / 2, lhbY, lhbW * enemy.health / enemy.maxHealth, 6);
+            ctx.fillStyle = '#a5b4fc';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('💀 LICH KING', sx, lhbY - 5);
           }
           else {
             // Default circle enemy (fallback)
@@ -4926,6 +5655,170 @@ export default function SpellBrigade() {
           }
         }
         
+        // === DRAGON DEATH EFFECT ===
+        else if (ef.type === 'dragonDeath') {
+          const dx = ef.x - cx;
+          const dy = ef.y - cy;
+          
+          // Epic golden flash at start
+          if (progress < 0.2) {
+            const flashAlpha = (0.2 - progress) * 2.5 * alpha;
+            ctx.fillStyle = `rgba(251, 191, 36, ${flashAlpha})`;
+            ctx.fillRect(0, 0, width, height);
+          }
+          
+          // Massive expanding rings
+          for (let i = 0; i < 5; i++) {
+            const ringProgress = Math.max(0, progress - i * 0.1);
+            const ringRadius = ringProgress * 500;
+            const ringAlpha = Math.max(0, (1 - ringProgress) * alpha);
+            
+            ctx.strokeStyle = i % 2 === 0 ? `rgba(251, 191, 36, ${ringAlpha})` : `rgba(249, 115, 22, ${ringAlpha})`;
+            ctx.lineWidth = 8 - i;
+            ctx.beginPath();
+            ctx.arc(dx, dy, ringRadius, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          
+          // Explosion particles
+          for (let i = 0; i < 50; i++) {
+            const angle = (i / 50) * Math.PI * 2 + progress * 2;
+            const dist = progress * 400 * (0.5 + Math.random() * 0.5);
+            const px = dx + Math.cos(angle) * dist;
+            const py = dy + Math.sin(angle) * dist - progress * 100;
+            const size = 5 + Math.random() * 10;
+            
+            const colors = ['#fbbf24', '#f97316', '#dc2626', '#7f1d1d'];
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.arc(px, py, size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          
+          // Victory text
+          if (progress > 0.3) {
+            const textAlpha = Math.min(1, (progress - 0.3) * 2) * alpha;
+            ctx.font = 'bold 48px Arial';
+            ctx.fillStyle = `rgba(251, 191, 36, ${textAlpha})`;
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 10;
+            ctx.textAlign = 'center';
+            ctx.fillText('🐉 DRAGON SLAIN! 🐉', width / 2, height / 2 - 50);
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = `rgba(253, 224, 71, ${textAlpha})`;
+            ctx.fillText(`Slain by ${ef.killerName}`, width / 2, height / 2 + 10);
+            ctx.shadowBlur = 0;
+          }
+        }
+        
+        // === MINI-BOSS EFFECTS ===
+        else if (ef.type === 'minotaurCharge') {
+          // Charge trail effect
+          const sx = ef.x - cx;
+          const sy = ef.y - cy;
+          const tx = ef.targetX - cx;
+          const ty = ef.targetY - cy;
+          
+          // Dust trail
+          ctx.strokeStyle = `rgba(120, 53, 15, ${0.6 * alpha})`;
+          ctx.lineWidth = 30;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx + (tx - sx) * progress, sy + (ty - sy) * progress);
+          ctx.stroke();
+          
+          // Impact warning at target
+          ctx.strokeStyle = `rgba(220, 38, 38, ${0.5 + Math.sin(elapsed / 50) * 0.3})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(tx, ty, 40 + Math.sin(elapsed / 100) * 10, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        
+        else if (ef.type === 'minotaurImpact') {
+          const mx = ef.x - cx;
+          const my = ef.y - cy;
+          const impactRadius = progress * 80;
+          
+          // Ground crack effect
+          ctx.strokeStyle = `rgba(78, 53, 15, ${alpha})`;
+          ctx.lineWidth = 4;
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.lineTo(mx + Math.cos(angle) * impactRadius, my + Math.sin(angle) * impactRadius);
+            ctx.stroke();
+          }
+          
+          // Dust cloud
+          ctx.fillStyle = `rgba(120, 53, 15, ${0.5 * alpha})`;
+          ctx.beginPath();
+          ctx.arc(mx, my, impactRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        else if (ef.type === 'lichSummon') {
+          const lx = ef.x - cx;
+          const ly = ef.y - cy;
+          
+          // Purple summoning circle
+          ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
+          ctx.lineWidth = 3;
+          const circleRadius = 60 * (1 - progress * 0.3);
+          ctx.beginPath();
+          ctx.arc(lx, ly, circleRadius, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          // Inner pentagram
+          ctx.beginPath();
+          for (let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2 - Math.PI / 2 + elapsed / 500;
+            const nextAngle = ((i + 2) / 5) * Math.PI * 2 - Math.PI / 2 + elapsed / 500;
+            ctx.moveTo(lx + Math.cos(angle) * circleRadius * 0.8, ly + Math.sin(angle) * circleRadius * 0.8);
+            ctx.lineTo(lx + Math.cos(nextAngle) * circleRadius * 0.8, ly + Math.sin(nextAngle) * circleRadius * 0.8);
+          }
+          ctx.stroke();
+          
+          // Rising spirits
+          for (let i = 0; i < 5; i++) {
+            const spiritY = ly - progress * 80 - i * 15;
+            const spiritX = lx + Math.sin(elapsed / 100 + i) * 20;
+            ctx.fillStyle = `rgba(165, 180, 252, ${alpha * (1 - i * 0.15)})`;
+            ctx.beginPath();
+            ctx.arc(spiritX, spiritY, 8 - i, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        
+        else if (ef.type === 'lichDeathWave') {
+          const lx = ef.x - cx;
+          const ly = ef.y - cy;
+          const waveRadius = progress * (ef.radius || 150);
+          
+          // Expanding death wave
+          const waveGrad = ctx.createRadialGradient(lx, ly, waveRadius * 0.5, lx, ly, waveRadius);
+          waveGrad.addColorStop(0, 'transparent');
+          waveGrad.addColorStop(0.7, `rgba(99, 102, 241, ${0.4 * alpha})`);
+          waveGrad.addColorStop(1, `rgba(30, 27, 75, ${0.6 * alpha})`);
+          ctx.fillStyle = waveGrad;
+          ctx.beginPath();
+          ctx.arc(lx, ly, waveRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Skull particles
+          ctx.font = '16px Arial';
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + elapsed / 200;
+            const dist = waveRadius * 0.7;
+            ctx.fillText('💀', lx + Math.cos(angle) * dist - 8, ly + Math.sin(angle) * dist + 8);
+          }
+        }
+        
         // === CLASS ABILITY EFFECTS ===
         else if (ef.type === 'flameShield') {
           // Find the player to draw around
@@ -5199,6 +6092,50 @@ export default function SpellBrigade() {
           ctx.strokeStyle = `rgba(255, 255, 100, ${alpha})`;
           ctx.lineWidth = 2;
           ctx.stroke();
+        }
+        
+        else if (ef.type === 'apocalypse') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const pulseProgress = Math.min(1, progress * 2);
+          const size = ef.radius * pulseProgress;
+          
+          // Dark void explosion
+          const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, size);
+          gradient.addColorStop(0, `rgba(0, 0, 0, ${alpha})`);
+          gradient.addColorStop(0.2, `rgba(75, 0, 130, ${alpha * 0.8})`);
+          gradient.addColorStop(0.5, `rgba(139, 0, 255, ${alpha * 0.5})`);
+          gradient.addColorStop(0.8, `rgba(255, 0, 255, ${alpha * 0.2})`);
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(ex, ey, size, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Void tendrils
+          ctx.save();
+          ctx.translate(ex, ey);
+          ctx.rotate(elapsed / 200);
+          for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const tendrilLen = size * 0.4 + Math.sin(elapsed / 100 + i * 2) * 30;
+            const tx = Math.cos(angle) * size * 0.8;
+            const ty = Math.sin(angle) * size * 0.8;
+            
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + Math.cos(angle) * tendrilLen, ty + Math.sin(angle) * tendrilLen);
+            ctx.strokeStyle = `rgba(255, 0, 255, ${alpha * 0.8})`;
+            ctx.lineWidth = 4 * alpha;
+            ctx.stroke();
+          }
+          ctx.restore();
+          
+          // Screen flash at start
+          if (progress < 0.1) {
+            ctx.fillStyle = `rgba(139, 0, 255, ${(0.1 - progress) * 3})`;
+            ctx.fillRect(0, 0, width, height);
+          }
         }
 
         return true;
@@ -6080,7 +7017,7 @@ export default function SpellBrigade() {
           )}
 
           {/* Class Ability Bar - Desktop */}
-          {!isMobile && playerInfo && playerInfo.class !== 'voidlord' && (
+          {!isMobile && playerInfo && (
             <div style={{
               position: 'fixed',
               bottom: 20,
@@ -6097,12 +7034,14 @@ export default function SpellBrigade() {
                   cryomancer: { 1: 'Frost Nova', 2: 'Ice Lance', 3: 'Glacial Storm' },
                   arcanist: { 1: 'Blink', 2: 'Arcane Barrage', 3: 'Time Warp' },
                   stormcaller: { 1: 'Static Field', 2: 'Ball Lightning', 3: 'Thunder God' },
+                  voidlord: { 1: 'Void Rift', 2: 'Soul Drain', 3: 'Apocalypse' },
                 };
                 const abilityColors = {
                   pyromancer: '#ff6b35',
                   cryomancer: '#00ffff',
                   arcanist: '#9b5de5',
                   stormcaller: '#ffff00',
+                  voidlord: '#ff00ff',
                 };
                 
                 const unlocked = playerInfo.level >= levelReqs[slot];
