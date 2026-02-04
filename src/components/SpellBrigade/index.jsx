@@ -5396,12 +5396,218 @@ export default function SpellBrigade() {
         // Use skin color if available, otherwise class color
         const skin = DEFAULT_SKINS.find(s => s.id === player.selectedSkin);
         const classColor = skin?.color || (classes[player.class] || DEFAULT_CLASSES[player.class])?.color || '#fff';
+        const secondaryColor = skin?.secondaryColor || classColor;
         const isVoidlord = player.class === 'voidlord';
         const bob = player.state === 'walk' ? Math.sin((player.animFrame || 0) * Math.PI / 2) * 2 : 0;
+        const time = Date.now() / 1000;
+        
+        // ========== SKIN EFFECTS ==========
+        
+        // AURA EFFECT (glowing ring around player)
+        if (skin?.aura) {
+          const auraRadius = skin.aura.radius || 30;
+          const auraColor = skin.aura.color || classColor;
+          const pulse = skin.aura.pulse ? Math.sin(time * 3) * 5 : 0;
+          
+          const gradient = ctx.createRadialGradient(px, py, 0, px, py, auraRadius + pulse);
+          gradient.addColorStop(0, `${auraColor}40`);
+          gradient.addColorStop(0.5, `${auraColor}20`);
+          gradient.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(px, py, auraRadius + pulse, 0, Math.PI * 2);
+          ctx.fillStyle = gradient;
+          ctx.fill();
+        }
+        
+        // WINGS EFFECT (feathered/energy wings)
+        if (skin?.wings) {
+          const wingSpread = 12 + Math.sin(time * 4) * 3;
+          const wingColor = secondaryColor;
+          
+          // Left wing
+          ctx.save();
+          ctx.globalAlpha = 0.7;
+          ctx.fillStyle = wingColor;
+          ctx.beginPath();
+          ctx.moveTo(px - 10, py - 5);
+          ctx.quadraticCurveTo(px - 35 - wingSpread, py - 25, px - 40 - wingSpread, py - 5);
+          ctx.quadraticCurveTo(px - 35 - wingSpread, py + 10, px - 10, py + 5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = classColor;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          // Right wing
+          ctx.beginPath();
+          ctx.moveTo(px + 10, py - 5);
+          ctx.quadraticCurveTo(px + 35 + wingSpread, py - 25, px + 40 + wingSpread, py - 5);
+          ctx.quadraticCurveTo(px + 35 + wingSpread, py + 10, px + 10, py + 5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // HALO EFFECT (floating ring above head)
+        if (skin?.halo) {
+          const haloY = py - 50 - bob + Math.sin(time * 2) * 2;
+          ctx.save();
+          ctx.strokeStyle = '#fcd34d';
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.ellipse(px, haloY, 12, 4, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // CROWN EFFECT
+        if (skin?.crown) {
+          ctx.save();
+          ctx.fillStyle = '#fbbf24';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1;
+          
+          // Crown base
+          const crownY = py - 42 - bob;
+          ctx.beginPath();
+          ctx.moveTo(px - 8, crownY);
+          ctx.lineTo(px - 10, crownY - 8);
+          ctx.lineTo(px - 5, crownY - 4);
+          ctx.lineTo(px, crownY - 12);
+          ctx.lineTo(px + 5, crownY - 4);
+          ctx.lineTo(px + 10, crownY - 8);
+          ctx.lineTo(px + 8, crownY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          // Gems
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(px, crownY - 9, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        
+        // HORNS EFFECT
+        if (skin?.horns) {
+          ctx.save();
+          ctx.fillStyle = '#1f1f1f';
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 1;
+          
+          // Left horn
+          ctx.beginPath();
+          ctx.moveTo(px - 12, py - 22 - bob);
+          ctx.quadraticCurveTo(px - 18, py - 35 - bob, px - 22, py - 45 - bob);
+          ctx.lineTo(px - 14, py - 22 - bob);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          // Right horn
+          ctx.beginPath();
+          ctx.moveTo(px + 12, py - 22 - bob);
+          ctx.quadraticCurveTo(px + 18, py - 35 - bob, px + 22, py - 45 - bob);
+          ctx.lineTo(px + 14, py - 22 - bob);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // ICE ARMOR EFFECT
+        if (skin?.iceArmor) {
+          ctx.save();
+          ctx.globalAlpha = 0.4;
+          ctx.strokeStyle = '#67e8f9';
+          ctx.lineWidth = 3;
+          
+          // Draw crystalline armor overlay
+          ctx.beginPath();
+          ctx.moveTo(px - 16, py + 14);
+          ctx.lineTo(px - 20, py - 5);
+          ctx.lineTo(px - 12, py - 15 - bob);
+          ctx.lineTo(px, py - 20 - bob);
+          ctx.lineTo(px + 12, py - 15 - bob);
+          ctx.lineTo(px + 20, py - 5);
+          ctx.lineTo(px + 16, py + 14);
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // FLOATING RUNES EFFECT
+        if (skin?.floatingRunes) {
+          ctx.save();
+          ctx.font = 'bold 8px sans-serif';
+          ctx.fillStyle = secondaryColor;
+          ctx.globalAlpha = 0.6 + Math.sin(time * 2) * 0.3;
+          
+          const runes = ['✧', '⚝', '✦', '⟡'];
+          for (let i = 0; i < 4; i++) {
+            const angle = time + (i * Math.PI / 2);
+            const runeX = px + Math.cos(angle) * 28;
+            const runeY = py - 5 + Math.sin(angle) * 18 + Math.sin(time * 3 + i) * 3;
+            ctx.fillText(runes[i], runeX, runeY);
+          }
+          ctx.restore();
+        }
+        
+        // CLOCKWORK EFFECT (for Chronomancer skin)
+        if (skin?.clockwork) {
+          ctx.save();
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = 0.5;
+          
+          // Rotating gear
+          const gearX = px + 20;
+          const gearY = py - 10;
+          ctx.translate(gearX, gearY);
+          ctx.rotate(time * 2);
+          
+          // Draw gear teeth
+          ctx.beginPath();
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const innerR = 6;
+            const outerR = 10;
+            ctx.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
+            ctx.lineTo(Math.cos(angle + 0.2) * innerR, Math.sin(angle + 0.2) * innerR);
+          }
+          ctx.closePath();
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // PARTICLE TRAIL (spawn when moving)
+        if (skin?.trail && player.state === 'walk') {
+          const trailColor = skin.trail.color || classColor;
+          const particleCount = skin.trail.particles || 2;
+          const particleSize = skin.trail.size || 3;
+          
+          // Add trail particles to effects
+          if (Math.random() < 0.4) {
+            for (let i = 0; i < particleCount; i++) {
+              effectsRef.current.push({
+                type: 'skinTrail',
+                x: player.x + (Math.random() - 0.5) * 10,
+                y: player.y + (Math.random() - 0.5) * 10 + 5,
+                color: trailColor,
+                size: particleSize + Math.random() * 2,
+                startTime: Date.now(),
+                duration: 500,
+                snowflake: skin.trail.snowflakes,
+                star: skin.trail.stars,
+              });
+            }
+          }
+        }
 
-        // Voidlord special aura
-        if (isVoidlord) {
-          const time = Date.now() / 1000;
+        // Voidlord special aura (legacy - now handled by skin system too)
+        if (isVoidlord && !skin?.aura) {
           const pulseSize = 35 + Math.sin(time * 3) * 8;
           
           // Void aura
@@ -6718,6 +6924,61 @@ export default function SpellBrigade() {
           if (progress < 0.1) {
             ctx.fillStyle = `rgba(139, 0, 255, ${(0.1 - progress) * 3})`;
             ctx.fillRect(0, 0, width, height);
+          }
+        }
+        
+        // SKIN TRAIL PARTICLES
+        else if (ef.type === 'skinTrail') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const size = ef.size * alpha;
+          
+          if (ef.snowflake) {
+            // Snowflake particle
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.rotate(elapsed / 500);
+            ctx.strokeStyle = ef.color;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = alpha;
+            for (let i = 0; i < 6; i++) {
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.lineTo(0, -size);
+              ctx.stroke();
+              ctx.rotate(Math.PI / 3);
+            }
+            ctx.restore();
+          } else if (ef.star) {
+            // Star particle
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.rotate(elapsed / 300);
+            ctx.fillStyle = ef.color;
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+              const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+              const x = Math.cos(angle) * size;
+              const y = Math.sin(angle) * size;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          } else {
+            // Regular glowing particle
+            ctx.beginPath();
+            ctx.arc(ex, ey, size, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, size);
+            gradient.addColorStop(0, ef.color);
+            gradient.addColorStop(0.5, ef.color + '80');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+            ctx.globalAlpha = 1;
           }
         }
 
