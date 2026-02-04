@@ -50,6 +50,13 @@ export const ZONE_MUSIC_CONFIG = {
     waveType: 'sine',
     volume: 0.08,
   },
+  dungeon: {
+    baseFreq: 98,
+    scale: [0, 1, 5, 6, 7, 12],
+    tempo: 1.2,
+    waveType: 'sawtooth',
+    volume: 0.1,
+  },
 };
 
 export function useAudio(settingsRef) {
