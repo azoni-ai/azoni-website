@@ -146,6 +146,10 @@ export default function SpellBrigade() {
   // In-game settings modal
   const [showInGameSettings, setShowInGameSettings] = useState(false);
   
+  // Admin panel
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [adminPlayers, setAdminPlayers] = useState([]);
+  
   // Mobile ultimate aiming mode
   const [ultAimMode, setUltAimMode] = useState(false);
   const ultAimModeRef = useRef(false);
@@ -195,6 +199,24 @@ export default function SpellBrigade() {
       document.removeEventListener('contextmenu', (e) => e.preventDefault());
     };
   }, []);
+
+  // Save settings to server when they change (for logged-in users)
+  useEffect(() => {
+    if (authState.isAuthenticated && !authState.isGuest && authState.sessionToken) {
+      // Debounce save to avoid too many requests
+      const timer = setTimeout(() => {
+        fetch(`${SERVER_URL}/auth/settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionToken: authState.sessionToken,
+            settings: settings,
+          }),
+        }).catch(() => {}); // Silently fail
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [settings, authState]);
 
   // ===========================================
   // AUDIO SYSTEM (Mobile-compatible)
@@ -640,6 +662,20 @@ export default function SpellBrigade() {
                   user: data.user || null, 
                   sessionToken: token 
                 });
+                // Auto-enable admin for azoni
+                if (data.user?.username?.toLowerCase() === 'azoni') {
+                  setAdminKey('azoni-voidlord-2026');
+                  setSelectedClass('voidlord');
+                  setSelectedSkin('voidlord_default');
+                }
+                // Restore user settings if present
+                if (data.user?.settings) {
+                  setSettings(prev => ({ ...prev, ...data.user.settings }));
+                }
+                // Restore quest progress
+                if (data.user?.quests) {
+                  setQuestLog(prev => ({ ...prev, ...data.user.quests }));
+                }
                 // Check for saved character
                 const savedId = localStorage.getItem('spellBrigadePlayerId');
                 if (savedId) {
@@ -1609,7 +1645,7 @@ export default function SpellBrigade() {
         });
       }
 
-      // Interact (E) - NPC dialogue, shop, or dungeon exit
+      // Interact (E) - NPC dialogue, shop, portal, or dungeon exit
       if (e.code === 'KeyE') {
         // Close dialogue if open
         if (npcDialogue) {
@@ -1636,6 +1672,22 @@ export default function SpellBrigade() {
               socketRef.current?.emit('exitDungeon');
               setDungeonVictoryPortal(null); // Clear the portal
               return;
+            }
+          }
+        }
+        
+        // Check for nearby portal (not in dungeon)
+        if (!inDungeon) {
+          const me = playerDataRef.current;
+          if (me) {
+            for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
+              const dx = me.x - portal.from.x;
+              const dy = me.y - portal.from.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 60) {
+                socketRef.current?.emit('usePortal', { portalId });
+                return;
+              }
             }
           }
         }
@@ -1697,26 +1749,19 @@ export default function SpellBrigade() {
         }
       }
 
-      // ESC - prompt for main menu (modals close via backdrop click)
+      // ESC - toggle settings modal
       if (e.code === 'Escape' && playerIdRef.current) {
         // Close any open modals first
-        setShowEmotes(false);
-        setShowShop(false);
-        setShowSkinSelect(false);
-        
-        // Prompt for main menu
-        setTimeout(() => {
-          if (window.confirm('Return to main menu? Your progress is saved.')) {
-            const player = playerDataRef.current;
-            if (player) {
-              setSavedPlayer({
-                ...player,
-                rank: player.rank || { title: 'Novice' },
-              });
-            }
-            setScreen('returning');
-          }
-        }, 50);
+        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue) {
+          setShowEmotes(false);
+          setShowShop(false);
+          setShowSkinSelect(false);
+          setShowQuestLog(false);
+          setNpcDialogue(null);
+        } else {
+          // Toggle settings
+          setShowInGameSettings(prev => !prev);
+        }
       }
     };
 
@@ -2973,26 +3018,6 @@ export default function SpellBrigade() {
         if (scx > -healRadius - 100 && scx < width + healRadius + 100 && 
             scy > -healRadius - 100 && scy < height + healRadius + 100) {
           
-          // Outer sanctuary circle glow
-          const glowPulse = 0.15 + Math.sin(time * 2) * 0.05;
-          const gradient = ctx.createRadialGradient(scx, scy, healRadius * 0.5, scx, scy, healRadius);
-          gradient.addColorStop(0, 'transparent');
-          gradient.addColorStop(0.7, `rgba(34, 197, 94, ${glowPulse * 0.3})`);
-          gradient.addColorStop(1, `rgba(34, 197, 94, ${glowPulse})`);
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(scx, scy, healRadius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Sanctuary border
-          ctx.strokeStyle = `rgba(34, 197, 94, ${0.3 + Math.sin(time * 3) * 0.1})`;
-          ctx.lineWidth = 3;
-          ctx.setLineDash([15, 10]);
-          ctx.beginPath();
-          ctx.arc(scx, scy, healRadius, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          
           // ========== HEALING FOUNTAIN (center) ==========
           const fountainRadius = 80;
           const fountainGlow = ctx.createRadialGradient(scx, scy, 0, scx, scy, fountainRadius * 1.5);
@@ -3572,6 +3597,17 @@ export default function SpellBrigade() {
           ctx.font = '10px Arial';
           ctx.fillStyle = me && me.level >= portal.level ? '#4ade80' : '#ef4444';
           ctx.fillText(`Lv ${portal.level}+`, px, py + size + 15);
+        }
+        
+        // Show interaction prompt when player is nearby
+        if (me) {
+          const distToPortal = Math.sqrt(Math.pow(me.x - portal.from.x, 2) + Math.pow(me.y - portal.from.y, 2));
+          if (distToPortal < 80) {
+            const canUse = !portal.level || me.level >= portal.level;
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = canUse ? '#4ade80' : '#ef4444';
+            ctx.fillText(canUse ? '[E] Enter' : `Need Lv ${portal.level}`, px, py + size + 30);
+          }
         }
       }
       } // End of if (!inDungeon) for PORTALS
@@ -6922,6 +6958,56 @@ export default function SpellBrigade() {
         height={isMobile ? 100 : 150} 
         style={styles.minimap} 
       />
+      {/* Mobile Minimap Toggle Button */}
+      {isMobile && settings.showMinimap && (
+        <button
+          style={{
+            position: 'absolute',
+            bottom: 385,
+            right: 10,
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            border: '2px solid rgba(255,255,255,0.3)',
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            fontSize: '0.7rem',
+            zIndex: 100,
+          }}
+          onTouchStart={(e) => { 
+            e.preventDefault(); 
+            setSettings(s => ({ ...s, showMinimap: false })); 
+          }}
+        >
+          ×
+        </button>
+      )}
+      {/* Mobile Minimap Show Button (when collapsed) */}
+      {isMobile && !settings.showMinimap && screen === 'game' && (
+        <button
+          style={{
+            position: 'absolute',
+            bottom: 280,
+            right: 10,
+            padding: '6px 10px',
+            borderRadius: 8,
+            border: '2px solid rgba(255,255,255,0.3)',
+            background: 'rgba(0,0,0,0.6)',
+            color: '#fff',
+            fontSize: '0.7rem',
+            zIndex: 100,
+          }}
+          onTouchStart={(e) => { 
+            e.preventDefault(); 
+            setSettings(s => ({ ...s, showMinimap: true })); 
+          }}
+        >
+          Map
+        </button>
+      )}
 
       {/* Loading Screen */}
       <div style={{ ...styles.overlay, ...(screen !== 'loading' ? styles.hidden : {}) }}>
@@ -7166,6 +7252,20 @@ export default function SpellBrigade() {
                 if (data.success) {
                   setAuthState({ isAuthenticated: true, isGuest: false, user: data.user, sessionToken: data.sessionToken });
                   localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: false }));
+                  // Auto-enable admin for azoni
+                  if (data.user.username?.toLowerCase() === 'azoni') {
+                    setAdminKey('azoni-voidlord-2026');
+                    setSelectedClass('voidlord');
+                    setSelectedSkin('voidlord_default');
+                  }
+                  // Restore user settings if present
+                  if (data.user.settings) {
+                    setSettings(prev => ({ ...prev, ...data.user.settings }));
+                  }
+                  // Restore quest progress
+                  if (data.user.quests) {
+                    setQuestLog(prev => ({ ...prev, ...data.user.quests }));
+                  }
                   // Check if user has characters
                   if (data.user.characters?.length > 0) {
                     setSavedPlayer(data.user.characters[0]);
@@ -8004,7 +8104,7 @@ export default function SpellBrigade() {
                       <span style={{ color: '#4ade80' }}>Auto</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: classes[playerInfo.class]?.color || '#888' }}>Dash</span>
+                      <span style={{ color: classes[playerInfo.class]?.secondaryColor || classes[playerInfo.class]?.color || '#888' }}>Dash</span>
                       <span style={{ color: dashCooldown > 0 ? '#f87171' : '#fff' }}>
                         {dashCooldown > 0 ? 'CD' : 'Space'}
                       </span>
@@ -8028,7 +8128,7 @@ export default function SpellBrigade() {
                       <span style={{ color: '#fff' }}>X</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#ef4444' }}>Menu</span>
+                      <span style={{ color: '#888' }}>Settings</span>
                       <span style={{ color: '#fff' }}>Esc</span>
                     </div>
                   </div>
@@ -8254,65 +8354,6 @@ export default function SpellBrigade() {
             </div>
           )}
 
-          {/* Volume Control - Desktop only */}
-          {!isMobile && (
-            <div style={styles.volumeControl}>
-              {/* SFX */}
-              <button
-                style={styles.volumeBtn}
-                onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
-                title="Sound Effects"
-              >
-                <span style={styles.volumeIcon}>
-                  {settings.sfxEnabled ? SVG.volume : SVG.volumeMute}
-                </span>
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={settings.volume * 100}
-                onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
-                style={styles.volumeSlider}
-                title="SFX Volume"
-              />
-              {/* Music */}
-              <button
-                style={{ ...styles.volumeBtn, marginLeft: 10 }}
-                onClick={() => {
-                  setSettings(s => ({ ...s, musicEnabled: !s.musicEnabled }));
-                  if (!settings.musicEnabled) {
-                    startZoneMusic(lastZoneRef.current || 'sanctuary');
-                  } else if (musicIntervalRef.current) {
-                    clearInterval(musicIntervalRef.current);
-                    musicIntervalRef.current = null;
-                  }
-                }}
-                title="Music"
-              >
-                <span style={styles.volumeIcon}>
-                  {settings.musicEnabled ? '🎵' : '🔇'}
-                </span>
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={settings.musicVolume * 100}
-                onChange={(e) => {
-                  const vol = e.target.value / 100;
-                  setSettings(s => ({ ...s, musicVolume: vol }));
-                  if (musicGainRef.current && audioCtxRef.current) {
-                    const config = ZONE_MUSIC_CONFIG[lastZoneRef.current] || ZONE_MUSIC_CONFIG.sanctuary;
-                    musicGainRef.current.gain.setValueAtTime(config.volume * vol, audioCtxRef.current.currentTime);
-                  }
-                }}
-                style={{ ...styles.volumeSlider, width: 60 }}
-                title="Music Volume"
-              />
-            </div>
-          )}
-
           {/* Mobile Touch Controls */}
           {isMobile && (
             <div style={styles.touchControls}>
@@ -8396,28 +8437,6 @@ export default function SpellBrigade() {
                   >
                     <span style={{ fontSize: '0.9rem' }}>💬</span>
                   </button>
-                  {/* Menu Button */}
-                  <button
-                    style={{
-                      ...styles.actionButton('#ef4444'),
-                      width: 44,
-                      height: 44,
-                    }}
-                    onTouchStart={(e) => { 
-                      e.preventDefault(); 
-                      if (window.confirm('Return to main menu?')) {
-                        if (playerInfo) {
-                          setSavedPlayer({
-                            ...playerInfo,
-                            rank: playerInfo.rank || { title: 'Novice' },
-                          });
-                        }
-                        setScreen('returning');
-                      }
-                    }}
-                  >
-                    <span style={{ fontSize: '0.9rem' }}>🏠</span>
-                  </button>
                 </div>
 
                 {/* Row 2: Main action buttons */}
@@ -8495,6 +8514,51 @@ export default function SpellBrigade() {
                     )}
                   </div>
                 </div>
+                
+                {/* Row 3: Class Abilities (unlocked at levels 10, 20, 30) */}
+                {playerInfo && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    {[1, 2, 3].map(slot => {
+                      const levelReq = { 1: 10, 2: 20, 3: 30 }[slot];
+                      const unlocked = playerInfo.level >= levelReq;
+                      const classColor = classes[playerInfo.class]?.color || '#888';
+                      return (
+                        <button
+                          key={slot}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 8,
+                            border: `2px solid ${unlocked ? classColor : '#444'}`,
+                            background: unlocked ? `${classColor}22` : 'rgba(0,0,0,0.6)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: unlocked ? 1 : 0.4,
+                            pointerEvents: unlocked ? 'auto' : 'none',
+                          }}
+                          onTouchStart={(e) => {
+                            e.preventDefault();
+                            if (unlocked) {
+                              const me = playerDataRef.current;
+                              if (me) {
+                                socketRef.current?.emit('useAbility', { 
+                                  slot, 
+                                  targetX: me.x + (me.facing === 'right' ? 100 : me.facing === 'left' ? -100 : 0),
+                                  targetY: me.y + (me.facing === 'down' ? 100 : me.facing === 'up' ? -100 : 0)
+                                });
+                              }
+                            }
+                          }}
+                        >
+                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: unlocked ? classColor : '#666' }}>{slot}</span>
+                          {!unlocked && <span style={{ fontSize: '0.5rem', color: '#666' }}>Lv{levelReq}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -157,7 +157,7 @@ export const SANCTUARY_FEATURES = {
 
 // Building data
 export const BUILDING_DATA = {
-  wizard_tower: { x: 3500, y: 2800, width: 60, height: 100, name: "Archmage's Tower", color: '#ffd93d', type: 'tower' },
+  wizard_tower: { x: 3050, y: 3050, width: 60, height: 100, name: "Archmage's Tower", color: '#ffd93d', type: 'tower' },
   forest_ruins: { x: 1200, y: 1600, width: 150, height: 100, name: 'Ancient Ruins', color: '#78716c', type: 'ruins' },
   volcano_fortress: { x: 5900, y: 1600, width: 180, height: 140, name: 'Obsidian Fortress', color: '#7f1d1d', type: 'fortress' },
   ice_citadel: { x: 3500, y: 5000, width: 160, height: 130, name: 'Ice Citadel', color: '#0284c7', type: 'citadel' },
