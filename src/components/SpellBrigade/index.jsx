@@ -87,6 +87,7 @@ export default function SpellBrigade() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [playersOnline, setPlayersOnline] = useState(0);
   const [autoAttack, setAutoAttack] = useState(true);
+  const [pvpEnabled, setPvpEnabled] = useState(false); // Voidlord PvP toggle - OFF by default
   const [questComplete, setQuestComplete] = useState(null);
   const [showQuest, setShowQuest] = useState(false);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
@@ -564,15 +565,28 @@ export default function SpellBrigade() {
       const prevState = gameStateRef.current;
       
       // Interpolate entity positions for smoother movement
+      // Skip interpolation for large jumps (teleportation)
+      const TELEPORT_THRESHOLD = 200; // If moved more than this, snap don't lerp
+      
       if (state.players && prevState.players) {
         state.players = state.players.map(p => {
           const prev = prevState.players?.find(pp => pp.id === p.id);
           if (prev) {
-            // Store target and lerp positions
-            p._targetX = p.x;
-            p._targetY = p.y;
-            p.x = prev.x;
-            p.y = prev.y;
+            const dx = Math.abs(p.x - prev.x);
+            const dy = Math.abs(p.y - prev.y);
+            
+            // If teleported (large distance), snap to new position
+            if (dx > TELEPORT_THRESHOLD || dy > TELEPORT_THRESHOLD) {
+              p._targetX = p.x;
+              p._targetY = p.y;
+              // Don't set prev position - keep current
+            } else {
+              // Normal movement - interpolate
+              p._targetX = p.x;
+              p._targetY = p.y;
+              p.x = prev.x;
+              p.y = prev.y;
+            }
           }
           return p;
         });
@@ -582,10 +596,18 @@ export default function SpellBrigade() {
         state.enemies = state.enemies.map(e => {
           const prev = prevState.enemies?.find(pe => pe.id === e.id);
           if (prev) {
-            e._targetX = e.x;
-            e._targetY = e.y;
-            e.x = prev.x;
-            e.y = prev.y;
+            const dx = Math.abs(e.x - prev.x);
+            const dy = Math.abs(e.y - prev.y);
+            
+            if (dx > TELEPORT_THRESHOLD || dy > TELEPORT_THRESHOLD) {
+              e._targetX = e.x;
+              e._targetY = e.y;
+            } else {
+              e._targetX = e.x;
+              e._targetY = e.y;
+              e.x = prev.x;
+              e.y = prev.y;
+            }
           }
           return e;
         });
@@ -867,6 +889,11 @@ export default function SpellBrigade() {
       console.log(`⚔️ Auto-attack ${data.enabled ? 'enabled' : 'disabled'}`);
     });
 
+    socket.on('pvpToggled', (data) => {
+      setPvpEnabled(data.enabled);
+      console.log(`🎯 PvP ${data.enabled ? 'enabled' : 'disabled'}`);
+    });
+
     // Spell drops from boss kills
     socket.on('spellDrops', (data) => {
       console.log('✨ Spell drops received:', data);
@@ -1098,6 +1125,11 @@ export default function SpellBrigade() {
       // Toggle Auto-Attack (X)
       if (e.code === 'KeyX' && socketRef.current && playerIdRef.current) {
         socketRef.current.emit('toggleAutoAttack');
+      }
+
+      // Toggle PvP (Z) - Voidlord only
+      if (e.code === 'KeyZ' && socketRef.current && playerIdRef.current) {
+        socketRef.current.emit('togglePvP');
       }
 
       // ESC - prompt for main menu (modals close via backdrop click)
@@ -4476,7 +4508,7 @@ export default function SpellBrigade() {
           {/* Controls Hint - Desktop only */}
           {!isMobile && (
             <div style={styles.controlsHint}>
-              WASD or Click to move • SPACE dash • Q ultimate
+              WASD or Click to move • SPACE dash • Q ultimate • B recall • X auto-attack • Z pvp
             </div>
           )}
 
@@ -4552,6 +4584,22 @@ export default function SpellBrigade() {
                       }}
                     >
                       <span style={{ fontSize: '0.9rem' }}>{autoAttack ? '⚔️' : '🛡️'}</span>
+                    </button>
+                  )}
+                  {/* PvP Toggle (for Voidlord) */}
+                  {playerInfo?.class === 'voidlord' && (
+                    <button
+                      style={{
+                        ...styles.actionButton(pvpEnabled ? '#ef4444' : '#666'),
+                        width: 44,
+                        height: 44,
+                      }}
+                      onTouchStart={(e) => { 
+                        e.preventDefault(); 
+                        socketRef.current?.emit('togglePvP');
+                      }}
+                    >
+                      <span style={{ fontSize: '0.9rem' }}>{pvpEnabled ? '👹' : '👤'}</span>
                     </button>
                   )}
                   {/* Emote Button */}
@@ -5168,7 +5216,7 @@ export default function SpellBrigade() {
         <div 
           style={{
             position: 'fixed',
-            top: 20,
+            top: 80,
             right: 20,
             background: 'rgba(0,0,0,0.8)',
             backdropFilter: 'blur(10px)',
