@@ -150,6 +150,9 @@ export default function SpellBrigade() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminPlayers, setAdminPlayers] = useState([]);
   
+  // Character sheet
+  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  
   // Mobile ultimate aiming mode
   const [ultAimMode, setUltAimMode] = useState(false);
   const ultAimModeRef = useRef(false);
@@ -759,6 +762,16 @@ export default function SpellBrigade() {
       if (data.classes) setClasses(data.classes);
       if (data.world) gameStateRef.current.world = data.world;
       
+      // Reset dungeon state on join (player always starts outside dungeon)
+      inDungeonRef.current = false;
+      setInDungeon(false);
+      setDungeonProgress(0);
+      setDungeonVictoryPortal(null);
+      dungeonVictoryPortalRef.current = null;
+      setNpcDialogue(null);
+      setNearbyNpc(null);
+      setNearbyBuilding(null);
+      
       // Reset input state on join to prevent stuck movement
       inputRef.current = { up: false, down: false, left: false, right: false };
       socket.emit('input', inputRef.current);
@@ -786,13 +799,27 @@ export default function SpellBrigade() {
       // Update players online count
       if (state.players) {
         setPlayersOnline(state.players.length);
+        
+        // Update admin player list if admin
+        if (adminKey === 'azoni-voidlord-2026') {
+          setAdminPlayers(state.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            level: p.level,
+            class: p.class,
+            health: p.health,
+            maxHealth: p.maxHealth,
+            kills: p.kills,
+            x: Math.round(p.x),
+            y: Math.round(p.y),
+          })));
+        }
       }
       
       const me = state.players?.find(p => p.id === playerIdRef.current);
       if (me) {
         playerDataRef.current = me;
         setPlayerInfo(prev => ({ ...prev, ...me }));
-        updateZone(me);
         
         // Sync dungeon state from server (update ref immediately for render loop)
         if (me.inDungeon !== inDungeonRef.current) {
@@ -800,33 +827,42 @@ export default function SpellBrigade() {
           setInDungeon(me.inDungeon || false);
         }
         
-        // Check for nearby buildings (skip in dungeon)
-        let foundBuilding = null;
-        for (const [id, building] of Object.entries(BUILDING_DATA)) {
-          const dx = me.x - building.x;
-          const dy = me.y - (building.y - building.height / 2);
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            foundBuilding = { id, ...building };
-            break;
-          }
-        }
-        setNearbyBuilding(foundBuilding);
-        
-        // Check for nearby NPCs
-        let foundNpc = null;
-        if (state.npcs) {
-          for (const npc of state.npcs) {
-            const dx = me.x - npc.x;
-            const dy = me.y - npc.y;
+        // Only update zone/buildings/NPCs when NOT in dungeon
+        if (!me.inDungeon) {
+          updateZone(me);
+          
+          // Check for nearby buildings
+          let foundBuilding = null;
+          for (const [id, building] of Object.entries(BUILDING_DATA)) {
+            const dx = me.x - building.x;
+            const dy = me.y - (building.y - building.height / 2);
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < (npc.interactRange || 80)) {
-              foundNpc = npc;
+            if (dist < 100) {
+              foundBuilding = { id, ...building };
               break;
             }
           }
+          setNearbyBuilding(foundBuilding);
+          
+          // Check for nearby NPCs
+          let foundNpc = null;
+          if (state.npcs) {
+            for (const npc of state.npcs) {
+              const dx = me.x - npc.x;
+              const dy = me.y - npc.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < (npc.interactRange || 80)) {
+                foundNpc = npc;
+                break;
+              }
+            }
+          }
+          setNearbyNpc(foundNpc);
+        } else {
+          // Clear world interactions when in dungeon
+          setNearbyBuilding(null);
+          setNearbyNpc(null);
         }
-        setNearbyNpc(foundNpc);
       }
     });
 
@@ -1405,8 +1441,20 @@ export default function SpellBrigade() {
       inDungeonRef.current = true; // Update ref immediately for render loop
       setInDungeon(true);
       setDungeonProgress(0);
-      // Reset camera to dungeon start position
-      cameraRef.current = { x: data.x - 400, y: data.y - 300 };
+      setNpcDialogue(null); // Close any open NPC dialogue
+      setNearbyNpc(null); // Clear nearby NPC
+      setNearbyBuilding(null); // Clear nearby building
+      // Reset camera to dungeon start position - center horizontally
+      const screenWidth = canvasRef.current?.width || 800;
+      const screenHeight = canvasRef.current?.height || 600;
+      const zoom = window.innerWidth < 768 ? 0.6 : 1;
+      const viewWidth = screenWidth / zoom;
+      const viewHeight = screenHeight / zoom;
+      // Center camera on player in dungeon
+      cameraRef.current = { 
+        x: data.x - viewWidth / 2, 
+        y: data.y - viewHeight / 2 
+      };
       playSound('portalEnter');
       // Start dungeon music
       startZoneMusic('dungeon');
@@ -1692,23 +1740,27 @@ export default function SpellBrigade() {
           }
         }
         
-        // Check for nearby NPC first
-        const npcs = gameStateRef.current.npcs || [];
-        const me = playerDataRef.current;
-        if (me && npcs.length > 0) {
-          for (const npc of npcs) {
-            const dx = me.x - npc.x;
-            const dy = me.y - npc.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < (npc.interactRange || 80)) {
-              socketRef.current?.emit('interactNpc', { npcId: npc.id });
-              return;
+        // Check for nearby NPC first (not in dungeon)
+        if (!inDungeon) {
+          const npcs = gameStateRef.current.npcs || [];
+          const me = playerDataRef.current;
+          if (me && npcs.length > 0) {
+            for (const npc of npcs) {
+              const dx = me.x - npc.x;
+              const dy = me.y - npc.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < (npc.interactRange || 80)) {
+                socketRef.current?.emit('interactNpc', { npcId: npc.id });
+                return;
+              }
             }
           }
         }
         
-        // Otherwise toggle shop
-        setShowShop(prev => !prev);
+        // Otherwise toggle shop (only outside dungeon)
+        if (!inDungeon) {
+          setShowShop(prev => !prev);
+        }
       }
 
       // Emote wheel (T)
@@ -1729,6 +1781,16 @@ export default function SpellBrigade() {
       // Toggle Invincibility (I) - Admin Voidlord only
       if (e.code === 'KeyI' && socketRef.current && playerIdRef.current && adminKey === 'azoni-voidlord-2026') {
         socketRef.current.emit('toggleInvincible');
+      }
+      
+      // Toggle Admin Panel (P) - Admin only
+      if (e.code === 'KeyP' && adminKey === 'azoni-voidlord-2026') {
+        setShowAdminPanel(prev => !prev);
+      }
+      
+      // Character Sheet (C)
+      if (e.code === 'KeyC') {
+        setShowCharacterSheet(prev => !prev);
       }
 
       // Class Abilities (1, 2, 3)
@@ -2106,8 +2168,22 @@ export default function SpellBrigade() {
         // Different bounds for dungeon vs world
         if (inDungeonRef.current) {
           // Dungeon bounds: 800 wide, 3200 tall
-          cam.x = Math.max(0, Math.min(800 - width, cam.x));
-          cam.y = Math.max(0, Math.min(3200 - height, cam.y));
+          const dungeonWidth = 800;
+          const dungeonHeight = 3200;
+          
+          // If dungeon is narrower than screen, center it
+          if (dungeonWidth < width) {
+            cam.x = (dungeonWidth - width) / 2; // Center horizontally
+          } else {
+            cam.x = Math.max(0, Math.min(dungeonWidth - width, cam.x));
+          }
+          
+          // Vertical bounds always apply
+          if (dungeonHeight < height) {
+            cam.y = (dungeonHeight - height) / 2;
+          } else {
+            cam.y = Math.max(0, Math.min(dungeonHeight - height, cam.y));
+          }
         } else {
           cam.x = Math.max(0, Math.min(world.width - width, cam.x));
           cam.y = Math.max(0, Math.min(world.height - height, cam.y));
@@ -2920,7 +2996,6 @@ export default function SpellBrigade() {
         { r: 2100, c: '#0ea5e9' },
         { r: 1600, c: '#dc2626' },
         { r: 900, c: '#166534' },
-        { r: 300, c: '#84cc16' },
       ];
       for (const z of zoneRings) {
         ctx.beginPath();
@@ -2953,34 +3028,6 @@ export default function SpellBrigade() {
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.lineDashOffset = 0;
-        
-        // Floating sparkles inside sanctuary
-        for (let i = 0; i < 8; i++) {
-          const angle = sanctTime * 0.3 + i * (Math.PI * 2 / 8);
-          const radius = 100 + Math.sin(sanctTime + i) * 40;
-          const sx = centerX + Math.cos(angle) * radius;
-          const sy = centerY + Math.sin(angle) * radius + Math.sin(sanctTime * 2 + i) * 10;
-          const sparkleSize = 2 + Math.sin(sanctTime * 3 + i * 2) * 1;
-          
-          ctx.beginPath();
-          ctx.arc(sx, sy, sparkleSize, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(sanctTime * 4 + i) * 0.2})`;
-          ctx.fill();
-        }
-        
-        // Sanctuary label with glow
-        ctx.fillStyle = '#22c55e';
-        ctx.font = 'bold 16px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = '#22c55e';
-        ctx.shadowBlur = 10;
-        ctx.fillText('⛨ SANCTUARY', centerX, centerY + 5);
-        ctx.shadowBlur = 0;
-        
-        // "Safe Zone" subtitle
-        ctx.fillStyle = 'rgba(34,197,94,0.7)';
-        ctx.font = '11px sans-serif';
-        ctx.fillText('Safe Zone • Healing', centerX, centerY + 22);
       }
       } // End of if (!inDungeon) for zone visuals
 
@@ -6886,14 +6933,31 @@ export default function SpellBrigade() {
   const handleContinue = () => {
     initAudio();
     if (!savedPlayer) return;
-    const savedId = localStorage.getItem('spellBrigadePlayerId');
-    socketRef.current?.emit('join', {
-      playerId: savedId,
-      playerName: savedPlayer.name,
-      playerClass: savedPlayer.class,
-      selectedSkin: savedPlayer.selectedSkin,
-      adminKey: adminKey,
-    });
+    
+    // Ensure socket is connected
+    if (!socketRef.current?.connected) {
+      socketRef.current?.connect();
+      // Wait for connection before joining
+      socketRef.current?.once('connect', () => {
+        const savedId = localStorage.getItem('spellBrigadePlayerId');
+        socketRef.current?.emit('join', {
+          playerId: savedId,
+          playerName: savedPlayer.name,
+          playerClass: savedPlayer.class,
+          selectedSkin: savedPlayer.selectedSkin,
+          adminKey: adminKey,
+        });
+      });
+    } else {
+      const savedId = localStorage.getItem('spellBrigadePlayerId');
+      socketRef.current?.emit('join', {
+        playerId: savedId,
+        playerName: savedPlayer.name,
+        playerClass: savedPlayer.class,
+        selectedSkin: savedPlayer.selectedSkin,
+        adminKey: adminKey,
+      });
+    }
   };
 
   const handleNewCharacter = () => {
@@ -6909,13 +6973,29 @@ export default function SpellBrigade() {
   const handleJoin = () => {
     initAudio();
     const name = playerName.trim() || generateWizardName();
-    socketRef.current?.emit('join', {
-      playerId: null, // New character
-      playerName: name,
-      playerClass: selectedClass,
-      selectedSkin: selectedSkin,
-      adminKey: adminKey, // For voidlord access
-    });
+    
+    // Ensure socket is connected
+    if (!socketRef.current?.connected) {
+      socketRef.current?.connect();
+      // Wait for connection before joining
+      socketRef.current?.once('connect', () => {
+        socketRef.current?.emit('join', {
+          playerId: null,
+          playerName: name,
+          playerClass: selectedClass,
+          selectedSkin: selectedSkin,
+          adminKey: adminKey,
+        });
+      });
+    } else {
+      socketRef.current?.emit('join', {
+        playerId: null,
+        playerName: name,
+        playerClass: selectedClass,
+        selectedSkin: selectedSkin,
+        adminKey: adminKey,
+      });
+    }
   };
 
   const handleRespawn = () => {
@@ -7555,6 +7635,38 @@ export default function SpellBrigade() {
             </div>
           </div>
         )}
+        
+        {!savedPlayer && (
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: '#888', marginBottom: 20 }}>No saved character found.</p>
+            <button style={styles.btn} onClick={() => setScreen('title')}>
+              <span style={styles.btnIcon}>{SVG.play}</span>
+              Create New Character
+            </button>
+          </div>
+        )}
+        
+        {/* Logout link */}
+        <button
+          onClick={() => {
+            setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+            localStorage.removeItem('spellBrigadeSession');
+            localStorage.removeItem('spellBrigadePlayerId');
+            setSavedPlayer(null);
+            setScreen('auth');
+          }}
+          style={{
+            marginTop: 30,
+            background: 'transparent',
+            border: 'none',
+            color: '#888',
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+          }}
+        >
+          Switch Account / Logout
+        </button>
       </div>
 
       {/* Title Screen */}
@@ -7699,6 +7811,24 @@ export default function SpellBrigade() {
             <button style={styles.btn} onClick={handleJoin}>
               <span style={styles.btnIcon}>{SVG.dash}</span> Enter Arena
             </button>
+            
+            {/* Back to character select link */}
+            {savedPlayer && (
+              <button
+                onClick={() => setScreen('returning')}
+                style={{
+                  marginTop: 15,
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#888',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                ← Back to Character Select
+              </button>
+            )}
           </div>
         )}
 
@@ -7918,6 +8048,25 @@ export default function SpellBrigade() {
 
         <button style={styles.btn} onClick={handleRespawn}>
           <span style={styles.btnIcon}>{SVG.refresh}</span> Respawn
+        </button>
+        
+        <button 
+          style={{ ...styles.btn, background: 'rgba(100,100,100,0.3)', marginTop: 10 }} 
+          onClick={() => {
+            // Return to menu (keep auth, go to character select)
+            setDeathInfo(null);
+            socketRef.current?.disconnect();
+            // Reset game state
+            inDungeonRef.current = false;
+            setInDungeon(false);
+            // Save current player info for returning screen
+            if (playerInfo) {
+              setSavedPlayer(playerInfo);
+            }
+            setScreen('returning');
+          }}
+        >
+          <span style={styles.btnIcon}>{SVG.home}</span> Return to Menu
         </button>
       </div>
 
@@ -9036,14 +9185,23 @@ export default function SpellBrigade() {
               maxHeight: 120,
             }}
           >
-            {chatMessages.map((msg) => (
+            {chatMessages.map((msg) => {
+              // Get color but ensure it's readable (not too dark)
+              let nameColor = classes[msg.playerClass]?.color || '#fff';
+              // If color is too dark, use secondary color or white
+              if (nameColor && (nameColor.toLowerCase() === '#000' || nameColor.toLowerCase() === '#000000' || 
+                  nameColor.toLowerCase() === '#1a0a2e' || nameColor.toLowerCase().startsWith('#0') || 
+                  nameColor.toLowerCase().startsWith('#1'))) {
+                nameColor = classes[msg.playerClass]?.secondaryColor || '#a78bfa';
+              }
+              return (
               <div key={msg.id} style={{ fontSize: '0.75rem', lineHeight: 1.3 }}>
                 {msg.type === 'system' ? (
                   <span style={{ color: '#888', fontStyle: 'italic' }}>{msg.text}</span>
                 ) : (
                   <>
                     <span style={{ 
-                      color: classes[msg.playerClass]?.color || '#fff',
+                      color: nameColor,
                       fontWeight: 600,
                     }}>
                       {msg.playerName}:
@@ -9052,7 +9210,7 @@ export default function SpellBrigade() {
                   </>
                 )}
               </div>
-            ))}
+            );})}
           </div>
           
           {/* Input */}
@@ -9814,11 +9972,51 @@ export default function SpellBrigade() {
               
               <button
                 onClick={() => {
-                  // Logout and return to title
+                  // Return to menu (keep auth, go to character select)
                   setShowInGameSettings(false);
-                  setScreen('title');
+                  socketRef.current?.disconnect();
+                  // Reset game state
+                  inDungeonRef.current = false;
+                  setInDungeon(false);
+                  setDeathInfo(null);
+                  // Save current player info for returning screen
+                  if (playerInfo) {
+                    setSavedPlayer(playerInfo);
+                  }
+                  setScreen('returning');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(59,130,246,0.2)',
+                  border: '1px solid rgba(59,130,246,0.4)',
+                  borderRadius: 8,
+                  color: '#3b82f6',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                </svg>
+                Return to Menu
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Full logout - clear everything
+                  setShowInGameSettings(false);
+                  setScreen('auth');
                   setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
                   localStorage.removeItem('spellBrigadeSession');
+                  localStorage.removeItem('spellBrigadePlayerId');
+                  setSavedPlayer(null);
                   socketRef.current?.disconnect();
                 }}
                 style={{
@@ -9840,8 +10038,239 @@ export default function SpellBrigade() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
                 </svg>
-                Return to Menu
+                Logout
               </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Character Sheet Modal */}
+      {showCharacterSheet && screen === 'game' && playerInfo && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.7)',
+              zIndex: 1000,
+            }}
+            onClick={() => setShowCharacterSheet(false)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+            border: '2px solid rgba(255,255,255,0.15)',
+            borderRadius: 16,
+            padding: 24,
+            minWidth: 320,
+            maxWidth: 400,
+            zIndex: 1001,
+            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ color: '#fff', fontSize: '1.4rem', margin: 0 }}>Character Sheet</h2>
+              <button
+                onClick={() => setShowCharacterSheet(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  color: '#fff',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
+                }}
+              >×</button>
+            </div>
+            
+            {/* Character Info */}
+            <div style={{ 
+              background: 'rgba(0,0,0,0.3)', 
+              borderRadius: 12, 
+              padding: 16, 
+              marginBottom: 16,
+              border: `2px solid ${classes[playerInfo.class]?.color || '#888'}40`
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: classes[playerInfo.class]?.color || '#888',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                }}>
+                  {classes[playerInfo.class]?.icon || '🧙'}
+                </div>
+                <div>
+                  <div style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600 }}>{playerInfo.name}</div>
+                  <div style={{ color: classes[playerInfo.class]?.color || '#888', fontSize: '0.85rem' }}>
+                    {classes[playerInfo.class]?.name || 'Wizard'}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8 }}>
+                  <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: 4 }}>LEVEL</div>
+                  <div style={{ color: '#ffd93d', fontSize: '1.2rem', fontWeight: 700 }}>{playerInfo.level}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8 }}>
+                  <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: 4 }}>TOTAL XP</div>
+                  <div style={{ color: '#3b82f6', fontSize: '1.2rem', fontWeight: 700 }}>{playerInfo.totalXp?.toLocaleString() || 0}</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Stats</div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>Health</span>
+                <span style={{ color: '#ef4444' }}>{playerInfo.health} / {playerInfo.maxHealth}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>XP to Next Level</span>
+                <span style={{ color: '#22c55e' }}>{playerInfo.xp || 0} / {playerInfo.xpToLevel || 100}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>Damage Multiplier</span>
+                <span style={{ color: '#f97316' }}>x{(playerInfo.damageMultiplier || 1).toFixed(2)}</span>
+              </div>
+            </div>
+            
+            {/* Combat Record */}
+            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Combat Record</div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ textAlign: 'center', padding: 8, background: 'rgba(34,197,94,0.1)', borderRadius: 8 }}>
+                  <div style={{ color: '#22c55e', fontSize: '1.5rem', fontWeight: 700 }}>{playerInfo.kills || 0}</div>
+                  <div style={{ color: '#888', fontSize: '0.7rem' }}>Kills</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: 8, background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>
+                  <div style={{ color: '#ef4444', fontSize: '1.5rem', fontWeight: 700 }}>{playerInfo.deaths || 0}</div>
+                  <div style={{ color: '#888', fontSize: '0.7rem' }}>Deaths</div>
+                </div>
+              </div>
+              
+              {playerInfo.kills > 0 && playerInfo.deaths > 0 && (
+                <div style={{ textAlign: 'center', marginTop: 8, color: '#888', fontSize: '0.8rem' }}>
+                  K/D Ratio: <span style={{ color: '#fff' }}>{(playerInfo.kills / playerInfo.deaths).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Admin Panel Modal */}
+      {showAdminPanel && adminKey === 'azoni-voidlord-2026' && screen === 'game' && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 1000,
+            }}
+            onClick={() => setShowAdminPanel(false)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: 80,
+            right: 20,
+            background: 'linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%)',
+            border: '2px solid #a855f7',
+            borderRadius: 12,
+            padding: 16,
+            minWidth: 280,
+            maxWidth: 350,
+            maxHeight: 'calc(100vh - 160px)',
+            overflowY: 'auto',
+            zIndex: 1001,
+            boxShadow: '0 10px 40px rgba(168,85,247,0.3)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ color: '#a855f7', fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>👑</span> Admin Panel
+              </h3>
+              <button
+                onClick={() => setShowAdminPanel(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 24,
+                  height: 24,
+                  color: '#fff',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                }}
+              >×</button>
+            </div>
+            
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+              Players Online: {adminPlayers.length}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {adminPlayers.map(p => (
+                <div
+                  key={p.id}
+                  style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: `1px solid ${classes[p.class]?.color || '#444'}40`,
+                    borderRadius: 8,
+                    padding: 10,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ 
+                      color: classes[p.class]?.secondaryColor || classes[p.class]?.color || '#fff', 
+                      fontWeight: 600,
+                      fontSize: '0.85rem'
+                    }}>
+                      {p.name}
+                    </span>
+                    <span style={{ 
+                      color: '#ffd93d', 
+                      fontSize: '0.75rem',
+                      background: 'rgba(255,215,0,0.1)',
+                      padding: '2px 6px',
+                      borderRadius: 4
+                    }}>
+                      Lv.{p.level}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#888' }}>
+                    <span>{classes[p.class]?.name || p.class}</span>
+                    <span style={{ color: '#ef4444' }}>{p.health}/{p.maxHealth} HP</span>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#666', marginTop: 4 }}>
+                    Kills: {p.kills} | Pos: ({p.x}, {p.y})
+                  </div>
+                </div>
+              ))}
+              {adminPlayers.length === 0 && (
+                <div style={{ color: '#666', fontSize: '0.8rem', textAlign: 'center', padding: 16 }}>
+                  No players online
+                </div>
+              )}
             </div>
           </div>
         </>
