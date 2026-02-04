@@ -149,6 +149,7 @@ export default function SpellBrigade() {
   // Admin panel
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminPlayers, setAdminPlayers] = useState([]);
+  const [notification, setNotification] = useState(null); // { text, color }
   
   // Character sheet
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
@@ -761,6 +762,11 @@ export default function SpellBrigade() {
       setScreen('game');
       if (data.classes) setClasses(data.classes);
       if (data.world) gameStateRef.current.world = data.world;
+      
+      // Auto-enable admin for azoni
+      if (data.player?.name?.toLowerCase() === 'azoni') {
+        setAdminKey('azoni-voidlord-2026');
+      }
       
       // Reset dungeon state on join (player always starts outside dungeon)
       inDungeonRef.current = false;
@@ -1646,6 +1652,14 @@ export default function SpellBrigade() {
     const handleMouseDown = (e) => {
       if (e.button !== 0) return;
       initAudio();
+      
+      // Click to move (only on canvas, not UI elements)
+      if (screen === 'game' && !isMobile && e.target?.tagName === 'CANVAS' && socketRef.current && playerIdRef.current) {
+        const zoom = zoomRef.current || 1;
+        const targetX = (e.clientX / zoom) + cameraRef.current.x;
+        const targetY = (e.clientY / zoom) + cameraRef.current.y;
+        socketRef.current.emit('clickMove', { targetX, targetY });
+      }
     };
 
     const handleMouseMove = (e) => {
@@ -1781,6 +1795,10 @@ export default function SpellBrigade() {
       // Toggle Invincibility (I) - Admin Voidlord only
       if (e.code === 'KeyI' && socketRef.current && playerIdRef.current && adminKey === 'azoni-voidlord-2026') {
         socketRef.current.emit('toggleInvincible');
+        // Show feedback
+        const newState = !playerDataRef.current?.invincible;
+        setNotification({ text: `Invincibility ${newState ? 'ON' : 'OFF'}`, color: newState ? '#22c55e' : '#ef4444' });
+        setTimeout(() => setNotification(null), 2000);
       }
       
       // Toggle Admin Panel (P) - Admin only
@@ -7586,170 +7604,189 @@ export default function SpellBrigade() {
       </div>
 
       {/* Title Screen */}
-      <div style={{ ...styles.overlay, ...(screen !== 'title' ? styles.hidden : {}), flexDirection: 'column', padding: 0 }}>
-        {/* Fixed Header */}
+      <div style={{ 
+        ...styles.overlay, 
+        ...(screen !== 'title' ? styles.hidden : {}), 
+        flexDirection: 'column', 
+        padding: 0,
+        overflow: isMobile ? 'auto' : 'hidden',
+      }}>
+        {/* Header */}
         <div style={{
           flexShrink: 0,
-          paddingTop: isMobile ? 30 : 40,
-          paddingBottom: 10,
-          background: 'linear-gradient(180deg, rgba(15,15,26,1) 0%, rgba(15,15,26,0.95) 100%)',
+          padding: isMobile ? '20px 15px 15px' : '25px 30px 20px',
+          background: 'linear-gradient(180deg, rgba(15,15,26,1) 0%, rgba(15,15,26,0.9) 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}>
-          {/* Logo & Title */}
-          <div style={styles.title}>
-            <svg width={isMobile ? 36 : 48} height={isMobile ? 36 : 48} viewBox="0 0 48 48">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 8 }}>
+            <svg width={isMobile ? 32 : 40} height={isMobile ? 32 : 40} viewBox="0 0 48 48">
               <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
               <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
             </svg>
-            <h1 style={styles.titleText}>Spell Brigade</h1>
+            <h1 style={{ color: '#ffd93d', fontSize: isMobile ? '1.6rem' : '2rem', fontWeight: 700, margin: 0 }}>Spell Brigade</h1>
           </div>
-          <p style={{ ...styles.subtitle, marginBottom: 15 }}>Survive the magical wilderness</p>
-
+          
           {/* Tabs */}
-          <div style={styles.tabs}>
-            <button style={styles.tab(tab === 'play')} onClick={() => setTab('play')}>
-              <span style={styles.tabIcon}>{SVG.play}</span> Play
-            </button>
-            <button style={styles.tab(tab === 'tutorial')} onClick={() => setTab('tutorial')}>
-              <span style={styles.tabIcon}>{SVG.help}</span> How to Play
-            </button>
-            <button style={styles.tab(tab === 'settings')} onClick={() => setTab('settings')}>
-              <span style={styles.tabIcon}>{SVG.settings}</span> Settings
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 15 }}>
+            {['play', 'tutorial', 'settings'].map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{
+                padding: isMobile ? '8px 16px' : '10px 24px',
+                background: tab === t ? 'rgba(255,215,61,0.15)' : 'rgba(255,255,255,0.03)',
+                border: tab === t ? '1px solid rgba(255,215,61,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8,
+                color: tab === t ? '#ffd93d' : '#888',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}>
+                {t === 'play' ? '⚔️ Play' : t === 'tutorial' ? '📖 How to Play' : '⚙️ Settings'}
+              </button>
+            ))}
           </div>
         </div>
         
-        {/* Scrollable Content Area */}
+        {/* Content Area */}
         <div style={{
           flex: 1,
-          overflowY: 'auto',
-          padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          padding: isMobile ? '15px' : '20px 30px',
+          overflow: isMobile ? 'visible' : 'hidden',
         }}>
 
         {/* Play Tab */}
         {tab === 'play' && (
-          <div style={{ ...styles.content, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 500 }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: 20,
+            height: isMobile ? 'auto' : '100%',
+            overflow: isMobile ? 'visible' : 'hidden',
+          }}>
             
-            {/* Saved Character Card */}
-            {savedPlayer && (
-              <div style={{
-                background: 'rgba(0,0,0,0.4)',
-                border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}50`,
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 20,
-                width: '100%',
-                maxWidth: 400,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                  <div style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: '50%',
-                    background: `${classes[savedPlayer.class]?.color || '#888'}30`,
-                    border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <span style={{ width: 28, height: 28, color: classes[savedPlayer.class]?.color }}>
-                      {CLASS_SVG[savedPlayer.class] || SVG.arcane}
-                    </span>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: '#fff', fontWeight: 600, fontSize: '1.1rem' }}>{savedPlayer.name}</div>
-                    <div style={{ color: classes[savedPlayer.class]?.color || '#888', fontSize: '0.8rem' }}>
-                      {classes[savedPlayer.class]?.name || savedPlayer.class} • Lv.{savedPlayer.level}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: '#ffd93d', fontSize: '0.9rem', fontWeight: 600 }}>{savedPlayer.totalXp?.toLocaleString() || 0} XP</div>
-                    <div style={{ color: '#888', fontSize: '0.75rem' }}>{savedPlayer.kills || 0} kills</div>
-                  </div>
-                </div>
-                <button 
-                  style={{ ...styles.btn, width: '100%', marginBottom: 8 }} 
-                  onClick={handleContinue}
-                >
-                  <span style={styles.btnIcon}>{SVG.play}</span> Continue Playing
-                </button>
-                <div style={{ fontSize: '0.75rem', color: '#666', textAlign: 'center' }}>
-                  Or create a new character below
-                </div>
-              </div>
-            )}
-            
-            <div style={{ 
-              color: '#888', 
-              fontSize: '0.85rem', 
-              marginBottom: 10,
-              textTransform: 'uppercase',
-              letterSpacing: 1,
+            {/* Left Panel - Saved Character / New Character Toggle */}
+            <div style={{
+              flex: isMobile ? 'none' : '0 0 320px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 15,
             }}>
-              {savedPlayer ? 'New Character' : 'Create Character'}
-            </div>
-            
-            <input
-              style={styles.input}
-              type="text"
-              placeholder="Enter wizard name (or leave blank)"
-              maxLength={20}
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-            />
-
-            <div style={styles.classSelect}>
-              {Object.entries(classes)
-                .filter(([id, c]) => !c.hidden || adminKey === 'azoni-voidlord-2026')
-                .map(([id, c]) => (
-                <div
-                  key={id}
-                  style={{
-                    ...styles.classCard(selectedClass === id, c.color),
-                    ...(c.isAdmin ? {
-                      background: `linear-gradient(135deg, ${c.color}40, #ff00ff20)`,
-                      border: `2px solid ${c.secondaryColor || c.color}`,
-                      boxShadow: `0 0 20px ${c.secondaryColor || c.color}40`,
-                    } : {}),
-                  }}
-                  onClick={() => handleClassChange(id)}
-                >
-                  <div style={styles.classIcon(c.secondaryColor || c.color)}>
-                    <span style={styles.classIconSvg}>{CLASS_SVG[id] || SVG.arcane}</span>
-                  </div>
-                  {c.isAdmin && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: 8, 
-                      right: 8, 
-                      fontSize: '.6rem', 
-                      background: '#ff00ff',
-                      color: '#000',
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      fontWeight: 'bold',
-                    }}>ADMIN</div>
-                  )}
-                  <h3 style={{ color: c.secondaryColor || c.color, marginBottom: 8, fontSize: isMobile ? '.95rem' : '1.1rem' }}>{c.name}</h3>
-                  <p style={{ fontSize: isMobile ? '.7rem' : '.8rem', color: '#888', lineHeight: 1.5 }}>{c.description}</p>
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #2a2a3e' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.7rem', color: '#666', marginBottom: 4 }}>
-                      <span style={{ color: c.secondaryColor || c.color, width: 12, height: 12 }}>{SVG.dash}</span>
-                      {c.dash || 'Dash'}
+              {/* Saved Character Card */}
+              {savedPlayer && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(30,30,50,0.6))',
+                  border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}60`,
+                  borderRadius: 16,
+                  padding: 20,
+                  boxShadow: `0 10px 40px ${classes[savedPlayer.class]?.color || '#888'}20`,
+                }}>
+                  <div style={{ textAlign: 'center', marginBottom: 15 }}>
+                    <div style={{
+                      width: 80,
+                      height: 80,
+                      margin: '0 auto 12px',
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${classes[savedPlayer.class]?.color || '#888'}40, ${classes[savedPlayer.class]?.color || '#888'}20)`,
+                      border: `3px solid ${classes[savedPlayer.class]?.color || '#888'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: `0 0 30px ${classes[savedPlayer.class]?.color || '#888'}40`,
+                    }}>
+                      <span style={{ width: 45, height: 45, color: classes[savedPlayer.class]?.color }}>
+                        {CLASS_SVG[savedPlayer.class] || SVG.arcane}
+                      </span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.7rem', color: '#666' }}>
-                      <span style={{ color: c.secondaryColor || c.color, width: 12, height: 12 }}>{SVG.warning}</span>
-                      {c.ultimate || 'Ultimate'}
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.3rem' }}>{savedPlayer.name}</div>
+                    <div style={{ color: classes[savedPlayer.class]?.color || '#888', fontSize: '0.9rem', marginTop: 4 }}>
+                      {classes[savedPlayer.class]?.name || savedPlayer.class}
                     </div>
                   </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 15, padding: '12px 0', background: 'rgba(0,0,0,0.3)', borderRadius: 10 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#ffd93d', fontSize: '1.4rem', fontWeight: 700 }}>{savedPlayer.level || 1}</div>
+                      <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase' }}>Level</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#22c55e', fontSize: '1.4rem', fontWeight: 700 }}>{(savedPlayer.totalXp || 0).toLocaleString()}</div>
+                      <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase' }}>XP</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#ef4444', fontSize: '1.4rem', fontWeight: 700 }}>{savedPlayer.kills || 0}</div>
+                      <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase' }}>Kills</div>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    style={{ 
+                      ...styles.btn, 
+                      width: '100%',
+                      padding: '14px 20px',
+                      fontSize: '1rem',
+                    }} 
+                    onClick={handleContinue}
+                  >
+                    <span style={styles.btnIcon}>{SVG.play}</span> Continue Playing
+                  </button>
                 </div>
-              ))}
-            </div>
-            
-            {/* Secret Admin Key Input */}
-            <div style={{ marginTop: 15 }}>
+              )}
+              
+              {/* New Character Section */}
+              <div style={{
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 12,
+                padding: 15,
+              }}>
+                <div style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, textAlign: 'center' }}>
+                  {savedPlayer ? 'Create New Character' : 'Create Character'}
+                </div>
+                <input
+                  style={{ ...styles.input, marginBottom: 10 }}
+                  type="text"
+                  placeholder="Enter wizard name (or leave blank)"
+                  maxLength={20}
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                />
+                
+                {/* Skin Preview */}
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+                  {DEFAULT_SKINS.filter(s => s.class === selectedClass).map(skin => {
+                    const isSelected = selectedSkin === skin.id;
+                    const isLocked = skin.requiredXp > 0;
+                    return (
+                      <div
+                        key={skin.id}
+                        onClick={() => !isLocked && setSelectedSkin(skin.id)}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 6,
+                          background: `${skin.color}40`,
+                          border: isSelected ? `2px solid ${skin.color}` : '2px solid transparent',
+                          cursor: isLocked ? 'not-allowed' : 'pointer',
+                          opacity: isLocked ? 0.4 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.6rem',
+                        }}
+                      >
+                        {isLocked ? '🔒' : ''}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                <button style={{ ...styles.btn, width: '100%', padding: '12px 16px' }} onClick={handleJoin}>
+                  <span style={styles.btnIcon}>{SVG.dash}</span> Enter Arena
+                </button>
+              </div>
+              
+              {/* Admin Key */}
               <input
                 style={{
                   ...styles.input,
@@ -7769,80 +7806,151 @@ export default function SpellBrigade() {
                   }
                 }}
               />
+              
+              {/* Logout */}
+              <button
+                onClick={() => {
+                  setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                  localStorage.removeItem('spellBrigadeSession');
+                  localStorage.removeItem('spellBrigadePlayerId');
+                  setSavedPlayer(null);
+                  setScreen('auth');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#666',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textAlign: 'center',
+                }}
+              >
+                Switch Account / Logout
+              </button>
             </div>
-
-            {/* Skin Preview */}
-            <div style={styles.skinSelector}>
-              <div style={styles.skinSelectorTitle}>
-                <span style={{ width: 16, height: 16 }}>{SVG.star}</span>
-                Choose Your Style
+            
+            {/* Right Panel - Class Selection */}
+            <div style={{
+              flex: 1,
+              overflow: isMobile ? 'visible' : 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              paddingRight: isMobile ? 0 : 5,
+            }}>
+              <div style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 }}>
+                Select Class
               </div>
-              <div style={styles.skinGrid}>
-                {/* Show default skin + any unlocked ones for new character */}
-                {DEFAULT_SKINS.filter(s => s.class === selectedClass).map(skin => {
-                  const isSelected = selectedSkin === skin.id;
-                  const isLocked = skin.requiredXp > 0; // For new characters, only default is unlocked
-                  return (
-                    <div
-                      key={skin.id}
-                      style={styles.skinOption(isSelected, skin.color, isLocked)}
-                      onClick={() => !isLocked && setSelectedSkin(skin.id)}
-                      title={skin.name}
-                    >
-                      <div style={styles.skinOptionInner(skin.color)} />
-                      {isLocked && (
-                        <div style={styles.skinLock}>🔒</div>
-                      )}
-                    </div>
-                  );
-                })}
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 10,
+              }}>
+                {Object.entries(classes)
+                  .filter(([id, c]) => !c.hidden || adminKey === 'azoni-voidlord-2026')
+                  .map(([id, c]) => {
+                    const isSelected = selectedClass === id;
+                    const spells = c.spells || [];
+                    return (
+                      <div
+                        key={id}
+                        onClick={() => handleClassChange(id)}
+                        style={{
+                          background: isSelected 
+                            ? `linear-gradient(135deg, ${c.color}25, ${c.color}10)` 
+                            : 'rgba(0,0,0,0.3)',
+                          border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: 12,
+                          padding: 15,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                        }}
+                      >
+                        {c.isAdmin && (
+                          <div style={{ 
+                            position: 'absolute', 
+                            top: 8, 
+                            right: 8, 
+                            fontSize: '.6rem', 
+                            background: '#ff00ff',
+                            color: '#000',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            fontWeight: 'bold',
+                          }}>ADMIN</div>
+                        )}
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                          <div style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 10,
+                            background: `${c.color}30`,
+                            border: `2px solid ${c.color}60`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            <span style={{ width: 30, height: 30, color: c.secondaryColor || c.color }}>
+                              {CLASS_SVG[id] || SVG.arcane}
+                            </span>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ color: c.secondaryColor || c.color, fontWeight: 700, fontSize: '1.1rem' }}>{c.name}</div>
+                            <div style={{ color: '#888', fontSize: '0.75rem' }}>{c.description}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Spells Preview */}
+                        <div style={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap',
+                          gap: 6, 
+                          marginTop: 10,
+                          paddingTop: 10,
+                          borderTop: '1px solid rgba(255,255,255,0.1)',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: '#888' }}>
+                            <span style={{ color: c.secondaryColor || c.color }}>⚡</span>
+                            {c.dash || 'Dash'}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: '#888' }}>
+                            <span style={{ color: c.secondaryColor || c.color }}>💥</span>
+                            {c.ultimate || 'Ultimate'}
+                          </div>
+                          {spells.slice(0, 3).map((spellId, i) => (
+                            <div key={spellId} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.65rem', color: '#666' }}>
+                              <span style={{ color: c.color }}>•</span>
+                              {spellId.replace(/_/g, ' ')}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
-              <p style={{ fontSize: '.7rem', color: '#666', marginTop: 10, textAlign: 'center' }}>
-                Earn XP to unlock more skins!
-              </p>
             </div>
-
-            <button style={styles.btn} onClick={handleJoin}>
-              <span style={styles.btnIcon}>{SVG.dash}</span> Enter Arena
-            </button>
-            
-            {/* Logout link */}
-            <button
-              onClick={() => {
-                setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
-                localStorage.removeItem('spellBrigadeSession');
-                localStorage.removeItem('spellBrigadePlayerId');
-                setSavedPlayer(null);
-                setScreen('auth');
-              }}
-              style={{
-                marginTop: 20,
-                background: 'transparent',
-                border: 'none',
-                color: '#666',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-              }}
-            >
-              Switch Account / Logout
-            </button>
-            
           </div>
         )}
 
         {/* Tutorial Tab */}
         {tab === 'tutorial' && (
-          <div style={{ ...styles.content, ...styles.tutorial }}>
+          <div style={{ ...styles.content, ...styles.tutorial, maxWidth: 600 }}>
             <div style={styles.tutorialSection}>
               <h3 style={styles.tutorialTitle}>
                 <span style={styles.tutorialIcon}>{SVG.controls}</span> Controls
               </h3>
               <p style={styles.tutorialText}>
                 <span style={styles.key}>WASD</span> Move wizard<br/>
-                <span style={styles.key}>Click</span> Click to walk to location<br/>
+                <span style={styles.key}>Click</span> Click to move<br/>
                 <span style={styles.key}>SPACE</span> Dash ability<br/>
                 <span style={styles.key}>Q</span> Ultimate ability<br/>
+                <span style={styles.key}>1 2 3</span> Class abilities (unlock at Lv10, 20, 30)<br/>
+                <span style={styles.key}>C</span> Character sheet<br/>
+                <span style={styles.key}>ESC</span> Settings<br/>
                 <span style={{ fontSize: '0.8em', color: '#888' }}>Spells auto-cast at nearby enemies</span>
               </p>
             </div>
@@ -8146,6 +8254,27 @@ export default function SpellBrigade() {
       {/* Game HUD */}
       {screen === 'game' && playerInfo && (
         <>
+          {/* Admin Notification */}
+          {notification && (
+            <div style={{
+              position: 'fixed',
+              top: 100,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: `${notification.color}20`,
+              border: `2px solid ${notification.color}`,
+              borderRadius: 10,
+              padding: '12px 24px',
+              zIndex: 1100,
+              color: notification.color,
+              fontWeight: 700,
+              fontSize: '1rem',
+              boxShadow: `0 0 20px ${notification.color}40`,
+            }}>
+              {notification.text}
+            </div>
+          )}
+          
           {/* Stats Panel - Desktop */}
           {!isMobile && (
             <div style={styles.hud}>
@@ -8294,9 +8423,111 @@ export default function SpellBrigade() {
               left: '50%',
               transform: 'translateX(-50%)',
               display: 'flex',
-              gap: 10,
+              gap: 8,
               zIndex: 100,
+              background: 'rgba(0,0,0,0.4)',
+              padding: '10px 15px',
+              borderRadius: 12,
+              backdropFilter: 'blur(5px)',
             }}>
+              {/* Dash Button */}
+              {(() => {
+                const classData = classes[playerInfo.class];
+                const dashCd = classData?.dashCooldown || 3000;
+                const onCooldown = dashCooldownRef.current > Date.now();
+                const cdRemaining = onCooldown ? Math.ceil((dashCooldownRef.current - Date.now()) / 1000) : 0;
+                const color = classes[playerInfo.class]?.color || '#888';
+                
+                return (
+                  <div
+                    onClick={() => {
+                      if (!onCooldown && socketRef.current) {
+                        socketRef.current.emit('dash');
+                      }
+                    }}
+                    style={{
+                      width: 65,
+                      height: 65,
+                      borderRadius: 10,
+                      background: onCooldown ? 'rgba(50,50,50,0.9)' : `linear-gradient(135deg, ${color}40, ${color}20)`,
+                      border: `2px solid ${color}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: onCooldown ? 'not-allowed' : 'pointer',
+                      position: 'relative',
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: 3, left: 5, fontSize: '0.6rem', color: '#fff', fontWeight: 'bold' }}>SPACE</div>
+                    <div style={{ fontSize: '0.65rem', color: '#fff', textAlign: 'center', marginTop: 8 }}>
+                      {classData?.dash || 'Dash'}
+                    </div>
+                    {onCooldown && (
+                      <div style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', borderRadius: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.2rem', fontWeight: 'bold', color: '#f87171',
+                      }}>{cdRemaining}</div>
+                    )}
+                  </div>
+                );
+              })()}
+              
+              {/* Ultimate Button */}
+              {(() => {
+                const classData = classes[playerInfo.class];
+                const ultCd = classData?.ultimateCooldown || 30000;
+                const onCooldown = ultCooldownRef.current > Date.now();
+                const cdRemaining = onCooldown ? Math.ceil((ultCooldownRef.current - Date.now()) / 1000) : 0;
+                const color = classes[playerInfo.class]?.secondaryColor || classes[playerInfo.class]?.color || '#888';
+                
+                return (
+                  <div
+                    onClick={() => {
+                      if (!onCooldown && socketRef.current) {
+                        const me = playerDataRef.current;
+                        const canvas = canvasRef.current;
+                        const cx = (me?.x || 0) - (canvas?.width || 800) / 2;
+                        const cy = (me?.y || 0) - (canvas?.height || 600) / 2;
+                        const targetX = mouseRef.current ? cx + mouseRef.current.x : me?.x;
+                        const targetY = mouseRef.current ? cy + mouseRef.current.y : me?.y;
+                        socketRef.current.emit('ultimate', { targetX, targetY });
+                      }
+                    }}
+                    style={{
+                      width: 65,
+                      height: 65,
+                      borderRadius: 10,
+                      background: onCooldown ? 'rgba(50,50,50,0.9)' : `linear-gradient(135deg, ${color}40, ${color}20)`,
+                      border: `2px solid ${color}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: onCooldown ? 'not-allowed' : 'pointer',
+                      position: 'relative',
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: 3, left: 5, fontSize: '0.6rem', color: '#fff', fontWeight: 'bold' }}>Q</div>
+                    <div style={{ fontSize: '0.65rem', color: '#fff', textAlign: 'center', marginTop: 8 }}>
+                      {classData?.ultimate || 'Ultimate'}
+                    </div>
+                    {onCooldown && (
+                      <div style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', borderRadius: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.2rem', fontWeight: 'bold', color: '#f87171',
+                      }}>{cdRemaining}</div>
+                    )}
+                  </div>
+                );
+              })()}
+              
+              {/* Divider */}
+              <div style={{ width: 2, background: 'rgba(255,255,255,0.1)', margin: '5px 5px' }} />
+              
+              {/* Class Abilities 1-3 */}
               {[1, 2, 3].map(slot => {
                 const levelReqs = { 1: 10, 2: 20, 3: 30 };
                 const abilityNames = {
@@ -8336,8 +8567,8 @@ export default function SpellBrigade() {
                       }
                     }}
                     style={{
-                      width: 60,
-                      height: 60,
+                      width: 65,
+                      height: 65,
                       borderRadius: 10,
                       background: unlocked 
                         ? (onCooldown ? 'rgba(50,50,50,0.9)' : `linear-gradient(135deg, ${color}40, ${color}20)`)
@@ -8350,48 +8581,18 @@ export default function SpellBrigade() {
                       cursor: unlocked && !onCooldown ? 'pointer' : 'not-allowed',
                       opacity: unlocked ? 1 : 0.5,
                       position: 'relative',
-                      transition: 'transform 0.1s',
                     }}
                   >
-                    {/* Hotkey */}
-                    <div style={{
-                      position: 'absolute',
-                      top: 2,
-                      left: 4,
-                      fontSize: '0.65rem',
-                      color: '#fff',
-                      fontWeight: 'bold',
-                    }}>
-                      {slot}
-                    </div>
-                    
-                    {/* Ability name */}
-                    <div style={{
-                      fontSize: '0.6rem',
-                      color: unlocked ? '#fff' : '#666',
-                      textAlign: 'center',
-                      padding: '0 2px',
-                      lineHeight: 1.1,
-                    }}>
+                    <div style={{ position: 'absolute', top: 3, left: 5, fontSize: '0.6rem', color: '#fff', fontWeight: 'bold' }}>{slot}</div>
+                    <div style={{ fontSize: '0.6rem', color: unlocked ? '#fff' : '#666', textAlign: 'center', padding: '0 2px', lineHeight: 1.1, marginTop: 8 }}>
                       {unlocked ? abilityName : `Lv${levelReqs[slot]}`}
                     </div>
-                    
-                    {/* Cooldown overlay */}
                     {onCooldown && (
                       <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: 'rgba(0,0,0,0.6)',
-                        borderRadius: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '1.2rem',
-                        fontWeight: 'bold',
-                        color: '#f87171',
-                      }}>
-                        {cdRemaining}
-                      </div>
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', borderRadius: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.2rem', fontWeight: 'bold', color: '#f87171',
+                      }}>{cdRemaining}</div>
                     )}
                   </div>
                 );
@@ -8715,40 +8916,36 @@ export default function SpellBrigade() {
           {/* Ultimate Aim Mode Overlay */}
           {ultAimMode && isMobile && (
             <>
-              {/* Semi-transparent overlay */}
+              {/* Semi-transparent overlay - more subtle */}
               <div style={{
                 position: 'fixed',
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: 'rgba(255,107,53,0.1)',
+                background: 'rgba(255,107,53,0.05)',
                 pointerEvents: 'none',
                 zIndex: 150,
-                border: '4px solid rgba(255,107,53,0.6)',
+                border: '3px solid rgba(255,107,53,0.4)',
                 boxSizing: 'border-box',
-                animation: 'pulse 1s infinite',
               }} />
               
-              {/* Instruction banner */}
+              {/* Compact instruction banner */}
               <div style={{
                 position: 'fixed',
-                top: '50%',
+                top: 80,
                 left: '50%',
-                transform: 'translate(-50%, -50%)',
-                background: 'rgba(0,0,0,0.9)',
-                padding: '16px 24px',
-                borderRadius: 12,
-                border: '2px solid #ff6b35',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0,0,0,0.7)',
+                padding: '10px 18px',
+                borderRadius: 8,
+                border: '1px solid rgba(255,107,53,0.5)',
                 zIndex: 151,
                 textAlign: 'center',
                 pointerEvents: 'none',
               }}>
-                <div style={{ color: '#ff6b35', fontSize: '1.2rem', fontWeight: 700, marginBottom: 8 }}>
-                  AIM YOUR ULTIMATE
-                </div>
-                <div style={{ color: '#fff', fontSize: '0.9rem' }}>
-                  Tap anywhere to fire
+                <div style={{ color: '#ff6b35', fontSize: '0.9rem', fontWeight: 600 }}>
+                  TAP TO AIM ULTIMATE
                 </div>
               </div>
               
@@ -8757,14 +8954,14 @@ export default function SpellBrigade() {
                 onTouchStart={(e) => { e.preventDefault(); cancelUltAim(); }}
                 style={{
                   position: 'fixed',
-                  bottom: 240,
-                  right: 20,
-                  background: 'rgba(0,0,0,0.9)',
-                  border: '2px solid #ef4444',
-                  borderRadius: 8,
-                  padding: '10px 20px',
+                  bottom: 200,
+                  right: 15,
+                  background: 'rgba(0,0,0,0.6)',
+                  border: '1px solid rgba(239,68,68,0.5)',
+                  borderRadius: 6,
+                  padding: '8px 14px',
                   color: '#ef4444',
-                  fontSize: '0.9rem',
+                  fontSize: '0.8rem',
                   fontWeight: 600,
                   zIndex: 152,
                 }}
