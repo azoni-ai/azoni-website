@@ -69,6 +69,7 @@ export default function SpellBrigade() {
   });
   const [dashCooldown, setDashCooldown] = useState(0); // timestamp when ready
   const [ultCooldown, setUltCooldown] = useState(0);   // timestamp when ready
+  // eslint-disable-next-line no-unused-vars
   const [recallCooldown, setRecallCooldown] = useState(0); // timestamp when ready
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -92,12 +93,14 @@ export default function SpellBrigade() {
   const [playersOnline, setPlayersOnline] = useState(0);
   const [autoAttack, setAutoAttack] = useState(true);
   const [pvpEnabled, setPvpEnabled] = useState(false); // Voidlord PvP toggle - OFF by default
+  // eslint-disable-next-line no-unused-vars
   const [invincible, setInvincible] = useState(false); // Admin invincibility toggle
   const [questComplete, setQuestComplete] = useState(null);
   const [showQuest, setShowQuest] = useState(false);
   const [npcDialogue, setNpcDialogue] = useState(null); // Current NPC dialogue
   const [nearbyNpc, setNearbyNpc] = useState(null); // NPC player can interact with
   const [inDungeon, setInDungeon] = useState(false); // In dungeon mode
+  // eslint-disable-next-line no-unused-vars
   const [dungeonProgress, setDungeonProgress] = useState(0);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
@@ -285,15 +288,6 @@ export default function SpellBrigade() {
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
           osc.start(now);
           osc.stop(now + 0.15);
-        },
-        meteor: () => {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
-          gain.gain.setValueAtTime(vol * 1.5, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now);
-          osc.stop(now + 0.4);
         },
         iceNova: () => {
           osc.type = 'sine';
@@ -1790,7 +1784,9 @@ export default function SpellBrigade() {
       // ========== DUNGEON RENDERING ==========
       if (inDungeon) {
         const time = Date.now() / 1000;
+        // eslint-disable-next-line no-unused-vars
         const dungeonWidth = 700; // Corridor width
+        // eslint-disable-next-line no-unused-vars
         const dungeonHeight = 5000; // Total dungeon length
         const wallThickness = 100;
         
@@ -3420,7 +3416,6 @@ export default function SpellBrigade() {
           // ========== DUNGEON ENEMIES ==========
           else if (enemyType === 'dungeon_skeleton') {
             // Cursed Knight - armored undead
-            const time = Date.now() / 1000;
             ctx.fillStyle = '#44403c';
             // Helmet
             ctx.beginPath();
@@ -3528,8 +3523,6 @@ export default function SpellBrigade() {
           }
           else if (enemyType === 'dungeon_demon') {
             // Infernal Demon - fiery hellspawn
-            const time = Date.now() / 1000;
-            const fireFlicker = Math.sin(time * 10) * 3;
             // Fire aura
             ctx.fillStyle = 'rgba(249, 115, 22, 0.3)';
             ctx.beginPath();
@@ -5119,12 +5112,10 @@ export default function SpellBrigade() {
             ctx.beginPath();
             ctx.moveTo(startX, startY);
             // Jagged lightning
-            let px = startX, py = startY;
             for (let j = 0; j < 5; j++) {
               const nextX = startX + (endX - startX) * ((j + 1) / 5) + (Math.random() - 0.5) * 15;
               const nextY = startY + (endY - startY) * ((j + 1) / 5) + (Math.random() - 0.5) * 15;
               ctx.lineTo(nextX, nextY);
-              px = nextX; py = nextY;
             }
             ctx.strokeStyle = `rgba(255, 255, ${150 + Math.random() * 105}, ${alpha})`;
             ctx.lineWidth = 2;
@@ -5196,7 +5187,6 @@ export default function SpellBrigade() {
           // Jagged lightning bolt
           ctx.beginPath();
           ctx.moveTo(fromX, fromY);
-          let px = fromX, py = fromY;
           for (let j = 0; j < 6; j++) {
             const nextX = fromX + (toX - fromX) * ((j + 1) / 6) + (Math.random() - 0.5) * 20;
             const nextY = fromY + (toY - fromY) * ((j + 1) / 6) + (Math.random() - 0.5) * 20;
