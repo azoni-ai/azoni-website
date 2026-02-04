@@ -38,7 +38,7 @@ export default function SpellBrigade() {
   const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, musicEnabled: true, musicVolume: 0.3, showZoneNames: true, showMinimap: true });
 
   // State
-  const [screen, setScreen] = useState('loading'); // loading, returning, title, game, dead
+  const [screen, setScreen] = useState('loading'); // loading, title, game, dead
   const [tab, setTab] = useState('play');
   const [connected, setConnected] = useState(false);
   const [playerName, setPlayerName] = useState('');
@@ -685,7 +685,7 @@ export default function SpellBrigade() {
                   socket.emit('getPlayerData', { playerId: savedId });
                 } else if (data.user?.characters?.length > 0) {
                   setSavedPlayer(data.user.characters[0]);
-                  setScreen('returning');
+                  setScreen('title');
                 } else {
                   setScreen('title');
                 }
@@ -739,7 +739,7 @@ export default function SpellBrigade() {
     socket.on('playerData', (data) => {
       if (data.player) {
         setSavedPlayer(data.player);
-        setScreen('returning');
+        setScreen('title');
       } else {
         // No saved player found
         localStorage.removeItem('spellBrigadePlayerId');
@@ -7234,11 +7234,11 @@ export default function SpellBrigade() {
                     if (data.success) {
                       setAuthState({ isAuthenticated: true, isGuest: true, user: null, sessionToken: data.sessionToken });
                       localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: true }));
-                      setScreen(savedPlayer ? 'returning' : 'title');
+                      setScreen('title');
                     }
                   } catch (err) {
                     console.error('Guest auth error:', err);
-                    setScreen(savedPlayer ? 'returning' : 'title');
+                    setScreen('title');
                   }
                   setAuthLoading(false);
                 }}
@@ -7349,7 +7349,7 @@ export default function SpellBrigade() {
                   // Check if user has characters
                   if (data.user.characters?.length > 0) {
                     setSavedPlayer(data.user.characters[0]);
-                    setScreen('returning');
+                    setScreen('title');
                   } else {
                     setScreen('title');
                   }
@@ -7585,118 +7585,112 @@ export default function SpellBrigade() {
         )}
       </div>
 
-      {/* Returning Player Screen */}
-      <div style={{ ...styles.overlay, ...(screen !== 'returning' ? styles.hidden : {}) }}>
-        <div style={styles.title}>
-          <svg width={isMobile ? 36 : 48} height={isMobile ? 36 : 48} viewBox="0 0 48 48">
-            <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
-            <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
-          </svg>
-          <h1 style={styles.titleText}>Spell Brigade</h1>
-        </div>
-        <p style={{ ...styles.subtitle, marginBottom: isMobile ? 20 : 30 }}>Welcome back!</p>
-
-        {savedPlayer && (
-          <div style={styles.returningCard}>
-            <div style={styles.returningAvatar(classes[savedPlayer.class]?.color || '#fff')}>
-              <span style={styles.returningAvatarIcon}>
-                {CLASS_SVG[savedPlayer.class] || SVG.arcane}
-              </span>
-            </div>
-            <div style={styles.returningName}>{savedPlayer.name}</div>
-            <div style={{ color: '#888', fontSize: '.9rem' }}>
-              {classes[savedPlayer.class]?.name || savedPlayer.class} • {savedPlayer.rank?.title || 'Novice'}
-            </div>
-
-            <div style={styles.returningStats}>
-              <div style={styles.returningStat}>
-                <div style={styles.returningStatValue}>{savedPlayer.level || 1}</div>
-                <div style={styles.returningStatLabel}>Level</div>
-              </div>
-              <div style={styles.returningStat}>
-                <div style={styles.returningStatValue}>{savedPlayer.totalXp || 0}</div>
-                <div style={styles.returningStatLabel}>Total XP</div>
-              </div>
-              <div style={styles.returningStat}>
-                <div style={styles.returningStatValue}>{savedPlayer.kills || 0}</div>
-                <div style={styles.returningStatLabel}>Kills</div>
-              </div>
-            </div>
-
-            <div style={styles.returningButtons}>
-              <button style={styles.btn} onClick={handleContinue}>
-                <span style={styles.btnIcon}>{SVG.play}</span>
-                Continue Playing
-              </button>
-              <button style={styles.secondaryBtn} onClick={handleNewCharacter}>
-                <span style={{ width: 18, height: 18 }}>{SVG.refresh}</span>
-                New Character
-              </button>
-            </div>
+      {/* Title Screen */}
+      <div style={{ ...styles.overlay, ...(screen !== 'title' ? styles.hidden : {}), flexDirection: 'column', padding: 0 }}>
+        {/* Fixed Header */}
+        <div style={{
+          flexShrink: 0,
+          paddingTop: isMobile ? 30 : 40,
+          paddingBottom: 10,
+          background: 'linear-gradient(180deg, rgba(15,15,26,1) 0%, rgba(15,15,26,0.95) 100%)',
+        }}>
+          {/* Logo & Title */}
+          <div style={styles.title}>
+            <svg width={isMobile ? 36 : 48} height={isMobile ? 36 : 48} viewBox="0 0 48 48">
+              <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
+              <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
+            </svg>
+            <h1 style={styles.titleText}>Spell Brigade</h1>
           </div>
-        )}
-        
-        {!savedPlayer && (
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ color: '#888', marginBottom: 20 }}>No saved character found.</p>
-            <button style={styles.btn} onClick={() => setScreen('title')}>
-              <span style={styles.btnIcon}>{SVG.play}</span>
-              Create New Character
+          <p style={{ ...styles.subtitle, marginBottom: 15 }}>Survive the magical wilderness</p>
+
+          {/* Tabs */}
+          <div style={styles.tabs}>
+            <button style={styles.tab(tab === 'play')} onClick={() => setTab('play')}>
+              <span style={styles.tabIcon}>{SVG.play}</span> Play
+            </button>
+            <button style={styles.tab(tab === 'tutorial')} onClick={() => setTab('tutorial')}>
+              <span style={styles.tabIcon}>{SVG.help}</span> How to Play
+            </button>
+            <button style={styles.tab(tab === 'settings')} onClick={() => setTab('settings')}>
+              <span style={styles.tabIcon}>{SVG.settings}</span> Settings
             </button>
           </div>
-        )}
+        </div>
         
-        {/* Logout link */}
-        <button
-          onClick={() => {
-            setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
-            localStorage.removeItem('spellBrigadeSession');
-            localStorage.removeItem('spellBrigadePlayerId');
-            setSavedPlayer(null);
-            setScreen('auth');
-          }}
-          style={{
-            marginTop: 30,
-            background: 'transparent',
-            border: 'none',
-            color: '#888',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >
-          Switch Account / Logout
-        </button>
-      </div>
-
-      {/* Title Screen */}
-      <div style={{ ...styles.overlay, ...(screen !== 'title' ? styles.hidden : {}) }}>
-        {/* Logo & Title */}
-        <div style={styles.title}>
-          <svg width={isMobile ? 36 : 48} height={isMobile ? 36 : 48} viewBox="0 0 48 48">
-            <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
-            <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
-          </svg>
-          <h1 style={styles.titleText}>Spell Brigade</h1>
-        </div>
-        <p style={styles.subtitle}>Survive the magical wilderness</p>
-
-        {/* Tabs */}
-        <div style={styles.tabs}>
-          <button style={styles.tab(tab === 'play')} onClick={() => setTab('play')}>
-            <span style={styles.tabIcon}>{SVG.play}</span> Play
-          </button>
-          <button style={styles.tab(tab === 'tutorial')} onClick={() => setTab('tutorial')}>
-            <span style={styles.tabIcon}>{SVG.help}</span> How to Play
-          </button>
-          <button style={styles.tab(tab === 'settings')} onClick={() => setTab('settings')}>
-            <span style={styles.tabIcon}>{SVG.settings}</span> Settings
-          </button>
-        </div>
+        {/* Scrollable Content Area */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
 
         {/* Play Tab */}
         {tab === 'play' && (
-          <div style={{ ...styles.content, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ ...styles.content, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 500 }}>
+            
+            {/* Saved Character Card */}
+            {savedPlayer && (
+              <div style={{
+                background: 'rgba(0,0,0,0.4)',
+                border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}50`,
+                borderRadius: 12,
+                padding: 16,
+                marginBottom: 20,
+                width: '100%',
+                maxWidth: 400,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <div style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: '50%',
+                    background: `${classes[savedPlayer.class]?.color || '#888'}30`,
+                    border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <span style={{ width: 28, height: 28, color: classes[savedPlayer.class]?.color }}>
+                      {CLASS_SVG[savedPlayer.class] || SVG.arcane}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#fff', fontWeight: 600, fontSize: '1.1rem' }}>{savedPlayer.name}</div>
+                    <div style={{ color: classes[savedPlayer.class]?.color || '#888', fontSize: '0.8rem' }}>
+                      {classes[savedPlayer.class]?.name || savedPlayer.class} • Lv.{savedPlayer.level}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ color: '#ffd93d', fontSize: '0.9rem', fontWeight: 600 }}>{savedPlayer.totalXp?.toLocaleString() || 0} XP</div>
+                    <div style={{ color: '#888', fontSize: '0.75rem' }}>{savedPlayer.kills || 0} kills</div>
+                  </div>
+                </div>
+                <button 
+                  style={{ ...styles.btn, width: '100%', marginBottom: 8 }} 
+                  onClick={handleContinue}
+                >
+                  <span style={styles.btnIcon}>{SVG.play}</span> Continue Playing
+                </button>
+                <div style={{ fontSize: '0.75rem', color: '#666', textAlign: 'center' }}>
+                  Or create a new character below
+                </div>
+              </div>
+            )}
+            
+            <div style={{ 
+              color: '#888', 
+              fontSize: '0.85rem', 
+              marginBottom: 10,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            }}>
+              {savedPlayer ? 'New Character' : 'Create Character'}
+            </div>
+            
             <input
               style={styles.input}
               type="text"
@@ -7812,23 +7806,28 @@ export default function SpellBrigade() {
               <span style={styles.btnIcon}>{SVG.dash}</span> Enter Arena
             </button>
             
-            {/* Back to character select link */}
-            {savedPlayer && (
-              <button
-                onClick={() => setScreen('returning')}
-                style={{
-                  marginTop: 15,
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#888',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                }}
-              >
-                ← Back to Character Select
-              </button>
-            )}
+            {/* Logout link */}
+            <button
+              onClick={() => {
+                setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                localStorage.removeItem('spellBrigadeSession');
+                localStorage.removeItem('spellBrigadePlayerId');
+                setSavedPlayer(null);
+                setScreen('auth');
+              }}
+              style={{
+                marginTop: 20,
+                background: 'transparent',
+                border: 'none',
+                color: '#666',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Switch Account / Logout
+            </button>
+            
           </div>
         )}
 
@@ -8012,7 +8011,7 @@ export default function SpellBrigade() {
                       rank: playerInfo.rank || { title: 'Novice' },
                     });
                   }
-                  setScreen('returning');
+                  setScreen('title');
                 }
               }}
             >
@@ -8021,6 +8020,7 @@ export default function SpellBrigade() {
             </button>
           </div>
         )}
+        </div>{/* End scrollable content */}
       </div>
 
       {/* Death Screen */}
@@ -8059,11 +8059,11 @@ export default function SpellBrigade() {
             // Reset game state
             inDungeonRef.current = false;
             setInDungeon(false);
-            // Save current player info for returning screen
+            // Save current player info for title screen
             if (playerInfo) {
               setSavedPlayer(playerInfo);
             }
-            setScreen('returning');
+            setScreen('title');
           }}
         >
           <span style={styles.btnIcon}>{SVG.home}</span> Return to Menu
@@ -9979,11 +9979,11 @@ export default function SpellBrigade() {
                   inDungeonRef.current = false;
                   setInDungeon(false);
                   setDeathInfo(null);
-                  // Save current player info for returning screen
+                  // Save current player info for title screen
                   if (playerInfo) {
                     setSavedPlayer(playerInfo);
                   }
-                  setScreen('returning');
+                  setScreen('title');
                 }}
                 style={{
                   width: '100%',
