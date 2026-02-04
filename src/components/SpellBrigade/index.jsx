@@ -626,7 +626,7 @@ export default function SpellBrigade() {
         try {
           const { token, isGuest } = JSON.parse(savedSession);
           // Validate session with server
-          fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/validate`, {
+          fetch(`${SERVER_URL}/auth/validate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionToken: token }),
@@ -733,7 +733,7 @@ export default function SpellBrigade() {
         try {
           const { token, isGuest } = JSON.parse(savedSession);
           if (!isGuest && token) {
-            fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/link-character`, {
+            fetch(`${SERVER_URL}/auth/link-character`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sessionToken: token, characterId: data.playerId }),
@@ -7060,7 +7060,7 @@ export default function SpellBrigade() {
                 onClick={async () => {
                   setAuthLoading(true);
                   try {
-                    const res = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/guest`, {
+                    const res = await fetch(`${SERVER_URL}/auth/guest`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                     });
@@ -7154,7 +7154,7 @@ export default function SpellBrigade() {
               setAuthError(null);
               const formData = new FormData(e.target);
               try {
-                const res = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/login`, {
+                const res = await fetch(`${SERVER_URL}/auth/login`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -7272,7 +7272,7 @@ export default function SpellBrigade() {
               }
               
               try {
-                const res = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/auth/signup`, {
+                const res = await fetch(`${SERVER_URL}/auth/signup`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
