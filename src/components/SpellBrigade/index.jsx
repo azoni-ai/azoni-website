@@ -84,6 +84,7 @@ export default function SpellBrigade() {
   const [isMobile, setIsMobile] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [playersOnline, setPlayersOnline] = useState(0);
+  const [autoAttack, setAutoAttack] = useState(true);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
@@ -106,6 +107,25 @@ export default function SpellBrigade() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Configure viewport for mobile (prevent zooming)
+  useEffect(() => {
+    // Set or update viewport meta tag
+    let viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport) {
+      viewport = document.createElement('meta');
+      viewport.name = 'viewport';
+      document.head.appendChild(viewport);
+    }
+    viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    
+    // Prevent context menu on long press
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    return () => {
+      document.removeEventListener('contextmenu', (e) => e.preventDefault());
+    };
+  }, []);
+
   // ===========================================
   // AUDIO SYSTEM (Mobile-compatible)
   // ===========================================
@@ -124,10 +144,16 @@ export default function SpellBrigade() {
       
       // Always try to resume - must be called synchronously during user gesture
       if (ctx.state === 'suspended') {
-        ctx.resume();
+        ctx.resume().then(() => {
+          if (!audioReadyRef.current) {
+            audioReadyRef.current = true;
+            setAudioUnlocked(true);
+            console.log('🔊 Audio unlocked (resume promise)');
+          }
+        }).catch(e => console.log('Resume error:', e));
       }
       
-      // Check if we can play
+      // Check if already running
       if (ctx.state === 'running' && !audioReadyRef.current) {
         audioReadyRef.current = true;
         setAudioUnlocked(true);
@@ -685,6 +711,29 @@ export default function SpellBrigade() {
       }
     });
 
+    socket.on('voidRift', (data) => {
+      effectsRef.current.push({
+        type: 'voidRift',
+        x: data.x,
+        y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: data.duration,
+        playerId: data.playerId,
+      });
+      
+      // Sound effect
+      const me = playerDataRef.current;
+      if (me) {
+        const dx = data.x - me.x;
+        const dy = data.y - me.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 600) {
+          playSound('portalEnter');
+        }
+      }
+    });
+
     socket.on('dashTrail', (data) => {
       effectsRef.current.push({
         type: 'trail',
@@ -766,6 +815,11 @@ export default function SpellBrigade() {
       if (playerInfo) {
         setPlayerInfo(prev => ({ ...prev, selectedSkin: data.skinId }));
       }
+    });
+
+    socket.on('autoAttackToggled', (data) => {
+      setAutoAttack(data.enabled);
+      console.log(`⚔️ Auto-attack ${data.enabled ? 'enabled' : 'disabled'}`);
     });
 
     // Spell drops from boss kills
@@ -958,6 +1012,11 @@ export default function SpellBrigade() {
         initAudio();
         socketRef.current.emit('recall');
         playSound('portalEnter');
+      }
+
+      // Toggle Auto-Attack (X)
+      if (e.code === 'KeyX' && socketRef.current && playerIdRef.current) {
+        socketRef.current.emit('toggleAutoAttack');
       }
 
       // ESC - prompt for main menu (modals close via backdrop click)
@@ -2889,6 +2948,7 @@ export default function SpellBrigade() {
           
           // Dance animation for dance emote (side sway)
           if (player.emote === 'dance') {
+            const sway = Math.sin(emoteTime * 6) * 5;
             // Already drawn player, but add sparkles
             for (let i = 0; i < 3; i++) {
               const sparkleAngle = emoteTime * 4 + i * 2;
@@ -2989,6 +3049,62 @@ export default function SpellBrigade() {
           ctx.arc(ex, ey, cr, 0, Math.PI * 2);
           ctx.strokeStyle = `rgba(78,205,196,${alpha})`;
           ctx.lineWidth = 8 * alpha;
+          ctx.stroke();
+        } else if (ef.type === 'voidRift') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const time = elapsed / 1000;
+          const baseRadius = ef.radius * Math.min(1, progress * 3);
+          
+          // Outer swirling void ring
+          ctx.save();
+          ctx.translate(ex, ey);
+          ctx.rotate(time * 2);
+          
+          // Pulsing gradient background
+          const pulseSize = baseRadius * (0.9 + Math.sin(time * 5) * 0.1);
+          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, pulseSize);
+          gradient.addColorStop(0, 'rgba(139,0,139,0.6)');
+          gradient.addColorStop(0.4, 'rgba(75,0,130,0.4)');
+          gradient.addColorStop(0.7, 'rgba(255,0,255,0.2)');
+          gradient.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(0, 0, pulseSize, 0, Math.PI * 2);
+          ctx.fillStyle = gradient;
+          ctx.fill();
+          
+          // Swirling tendrils
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(angle) * 20, Math.sin(angle) * 20);
+            const cp1x = Math.cos(angle + 0.5) * baseRadius * 0.6;
+            const cp1y = Math.sin(angle + 0.5) * baseRadius * 0.6;
+            const cp2x = Math.cos(angle + 1) * baseRadius * 0.8;
+            const cp2y = Math.sin(angle + 1) * baseRadius * 0.8;
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, Math.cos(angle + 1.5) * baseRadius, Math.sin(angle + 1.5) * baseRadius);
+            ctx.strokeStyle = `rgba(255,0,255,${0.4 * alpha})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+          
+          ctx.restore();
+          
+          // Inner void eye
+          const innerGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, 30);
+          innerGrad.addColorStop(0, 'rgba(0,0,0,0.9)');
+          innerGrad.addColorStop(0.5, 'rgba(75,0,130,0.6)');
+          innerGrad.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(ex, ey, 30, 0, Math.PI * 2);
+          ctx.fillStyle = innerGrad;
+          ctx.fill();
+          
+          // Outer ring
+          ctx.beginPath();
+          ctx.arc(ex, ey, baseRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,0,255,${0.5 * alpha})`;
+          ctx.lineWidth = 4;
           ctx.stroke();
         } else if (ef.type === 'trail') {
           ctx.beginPath();
@@ -3434,6 +3550,24 @@ export default function SpellBrigade() {
           @keyframes pulse { 
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.8; }
+          }
+          /* Mobile-specific styles to prevent zoom and selection */
+          * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+          }
+          body {
+            touch-action: manipulation;
+            overscroll-behavior: none;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+          canvas {
+            touch-action: none;
+          }
+          input, textarea {
+            -webkit-user-select: text;
+            user-select: text;
           }
         `}</style>
         <div style={styles.spinner} />
@@ -3990,6 +4124,10 @@ export default function SpellBrigade() {
                       <span style={{ color: '#fff' }}>B</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
+                      <span style={{ color: autoAttack ? '#fbbf24' : '#666' }}>Auto-Atk</span>
+                      <span style={{ color: '#fff' }}>X</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
                       <span style={{ color: '#ef4444' }}>Menu</span>
                       <span style={{ color: '#fff' }}>Esc</span>
                     </div>
@@ -4140,112 +4278,151 @@ export default function SpellBrigade() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div style={styles.actionButtons}>
-                {/* Ultimate Button */}
-                <div style={{ position: 'relative' }}>
+              {/* Action Buttons - Right side */}
+              <div style={{
+                position: 'absolute',
+                bottom: 30,
+                right: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 10,
+                pointerEvents: 'auto',
+              }}>
+                {/* Row 1: Secondary buttons */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {/* Auto-Attack Toggle (for Voidlord) */}
+                  {playerInfo?.class === 'voidlord' && (
+                    <button
+                      style={{
+                        ...styles.actionButton(autoAttack ? '#fbbf24' : '#666'),
+                        width: 44,
+                        height: 44,
+                      }}
+                      onTouchStart={(e) => { 
+                        e.preventDefault(); 
+                        socketRef.current?.emit('toggleAutoAttack');
+                      }}
+                    >
+                      <span style={{ fontSize: '0.9rem' }}>{autoAttack ? '⚔️' : '🛡️'}</span>
+                    </button>
+                  )}
+                  {/* Emote Button */}
                   <button
                     style={{
-                      ...styles.actionButton('#ff6b35'),
-                      opacity: ultCooldown > 0 ? 0.5 : 1,
+                      ...styles.actionButton('#ffd93d'),
+                      width: 44,
+                      height: 44,
                     }}
-                    onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
+                    onTouchStart={(e) => { e.preventDefault(); setShowEmotes(true); }}
                   >
-                    <span style={styles.actionButtonIcon}>{SVG.warning}</span>
-                    <span style={{ fontSize: '0.6rem', marginTop: 2 }}>ULT</span>
+                    <span style={{ fontSize: '0.9rem' }}>😊</span>
                   </button>
-                  {ultCooldown > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'rgba(0,0,0,0.6)',
-                      borderRadius: '50%',
-                      color: '#fff',
-                      fontSize: '1rem',
-                      fontWeight: 'bold',
-                      pointerEvents: 'none',
-                    }}>
-                      ⏳
-                    </div>
-                  )}
+                  {/* Chat Toggle Button */}
+                  <button
+                    style={{
+                      ...styles.actionButton('#3b82f6'),
+                      width: 44,
+                      height: 44,
+                    }}
+                    onTouchStart={(e) => { e.preventDefault(); setShowChat(prev => !prev); }}
+                  >
+                    <span style={{ fontSize: '0.9rem' }}>💬</span>
+                  </button>
+                  {/* Menu Button */}
+                  <button
+                    style={{
+                      ...styles.actionButton('#ef4444'),
+                      width: 44,
+                      height: 44,
+                    }}
+                    onTouchStart={(e) => { 
+                      e.preventDefault(); 
+                      if (window.confirm('Return to main menu?')) {
+                        if (playerInfo) {
+                          setSavedPlayer({
+                            ...playerInfo,
+                            rank: playerInfo.rank || { title: 'Novice' },
+                          });
+                        }
+                        setScreen('returning');
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: '0.9rem' }}>🏠</span>
+                  </button>
                 </div>
-                {/* Dash Button */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    style={{
-                      ...styles.actionButton('#4ecdc4'),
-                      opacity: dashCooldown > 0 ? 0.5 : 1,
-                    }}
-                    onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
-                  >
-                    <span style={styles.actionButtonIcon}>{SVG.dash}</span>
-                    <span style={{ fontSize: '0.6rem', marginTop: 2 }}>DASH</span>
-                  </button>
-                  {dashCooldown > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'rgba(0,0,0,0.6)',
-                      borderRadius: '50%',
-                      color: '#fff',
-                      fontSize: '1rem',
-                      fontWeight: 'bold',
-                      pointerEvents: 'none',
-                    }}>
-                      ⏳
-                    </div>
-                  )}
+
+                {/* Row 2: Main action buttons */}
+                <div style={{ display: 'flex', gap: 12 }}>
+                  {/* Dash Button */}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      style={{
+                        ...styles.actionButton('#4ecdc4'),
+                        opacity: dashCooldown > 0 ? 0.5 : 1,
+                      }}
+                      onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
+                    >
+                      <span style={styles.actionButtonIcon}>{SVG.dash}</span>
+                      <span style={{ fontSize: '0.6rem', marginTop: 2 }}>DASH</span>
+                    </button>
+                    {dashCooldown > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.6)',
+                        borderRadius: '50%',
+                        color: '#fff',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        pointerEvents: 'none',
+                      }}>
+                        ⏳
+                      </div>
+                    )}
+                  </div>
+                  {/* Ultimate Button */}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      style={{
+                        ...styles.actionButton('#ff6b35'),
+                        opacity: ultCooldown > 0 ? 0.5 : 1,
+                      }}
+                      onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
+                    >
+                      <span style={styles.actionButtonIcon}>{SVG.warning}</span>
+                      <span style={{ fontSize: '0.6rem', marginTop: 2 }}>ULT</span>
+                    </button>
+                    {ultCooldown > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.6)',
+                        borderRadius: '50%',
+                        color: '#fff',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        pointerEvents: 'none',
+                      }}>
+                        ⏳
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Emote Button */}
-              <button
-                style={{
-                  ...styles.actionButton('#ffd93d'),
-                  width: 50,
-                  height: 50,
-                  marginTop: 10,
-                }}
-                onTouchStart={(e) => { e.preventDefault(); setShowEmotes(true); }}
-              >
-                <span style={{ fontSize: '1.2rem' }}>😊</span>
-              </button>
-
-              {/* Menu Button */}
-              <button
-                style={{
-                  ...styles.actionButton('#ef4444'),
-                  width: 50,
-                  height: 50,
-                  marginTop: 10,
-                }}
-                onTouchStart={(e) => { 
-                  e.preventDefault(); 
-                  if (window.confirm('Return to main menu?')) {
-                    if (playerInfo) {
-                      setSavedPlayer({
-                        ...playerInfo,
-                        rank: playerInfo.rank || { title: 'Novice' },
-                      });
-                    }
-                    setScreen('returning');
-                  }
-                }}
-              >
-                <span style={{ fontSize: '1rem' }}>🏠</span>
-              </button>
             </div>
           )}
         </>
@@ -4580,18 +4757,19 @@ export default function SpellBrigade() {
       {screen === 'game' && showChat && (
         <div style={{
           position: 'fixed',
-          bottom: isMobile ? 120 : 20,
-          left: 20,
-          width: isMobile ? 250 : 320,
-          maxHeight: 200,
-          background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(5px)',
-          borderRadius: 10,
-          border: '1px solid rgba(255,255,255,0.1)',
+          bottom: isMobile ? 180 : 20,
+          left: isMobile ? 10 : 20,
+          width: isMobile ? 180 : 320,
+          maxHeight: isMobile ? 120 : 200,
+          background: isMobile ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(3px)',
+          borderRadius: 8,
+          border: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 100,
+          zIndex: 50,
           overflow: 'hidden',
+          pointerEvents: 'auto',
         }}>
           {/* Chat header */}
           <div style={{
@@ -4678,13 +4856,13 @@ export default function SpellBrigade() {
         </div>
       )}
       
-      {/* Chat toggle button (when hidden) */}
-      {screen === 'game' && !showChat && (
+      {/* Chat toggle button (when hidden) - Desktop only */}
+      {screen === 'game' && !showChat && !isMobile && (
         <button
           onClick={() => setShowChat(true)}
           style={{
             position: 'fixed',
-            bottom: isMobile ? 120 : 20,
+            bottom: 20,
             left: 20,
             width: 40,
             height: 40,
