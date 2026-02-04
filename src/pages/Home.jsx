@@ -25,7 +25,6 @@ const Home = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [showAllCommits, setShowAllCommits] = useState(false);
   const [moltbookStatus, setMoltbookStatus] = useState(null);
   const [latestBlog, setLatestBlog] = useState(null);
   const heroRef = useRef(null);
