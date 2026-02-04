@@ -90,6 +90,10 @@ export default function SpellBrigade() {
   const [pvpEnabled, setPvpEnabled] = useState(false); // Voidlord PvP toggle - OFF by default
   const [questComplete, setQuestComplete] = useState(null);
   const [showQuest, setShowQuest] = useState(false);
+  const [npcDialogue, setNpcDialogue] = useState(null); // Current NPC dialogue
+  const [nearbyNpc, setNearbyNpc] = useState(null); // NPC player can interact with
+  const [inDungeon, setInDungeon] = useState(false); // In dungeon mode
+  const [dungeonProgress, setDungeonProgress] = useState(0);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
@@ -587,6 +591,21 @@ export default function SpellBrigade() {
           }
         }
         setNearbyBuilding(foundBuilding);
+        
+        // Check for nearby NPCs
+        let foundNpc = null;
+        if (state.npcs) {
+          for (const npc of state.npcs) {
+            const dx = me.x - npc.x;
+            const dy = me.y - npc.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < (npc.interactRange || 80)) {
+              foundNpc = npc;
+              break;
+            }
+          }
+        }
+        setNearbyNpc(foundNpc);
       }
     });
 
@@ -843,6 +862,35 @@ export default function SpellBrigade() {
       console.log(`🎯 PvP ${data.enabled ? 'enabled' : 'disabled'}`);
     });
 
+    // NPC Dialogue
+    socket.on('npcDialogue', (data) => {
+      console.log('🗣️ NPC Dialogue:', data);
+      setNpcDialogue(data);
+    });
+
+    socket.on('npcError', (data) => {
+      console.log('❌ NPC Error:', data.message);
+    });
+
+    // Dungeon events
+    socket.on('enteredDungeon', (data) => {
+      console.log('⚔️ Entered dungeon!', data);
+      setInDungeon(true);
+      setDungeonProgress(0);
+      playSound('portalEnter');
+    });
+
+    socket.on('exitedDungeon', (data) => {
+      console.log('🏠 Exited dungeon');
+      setInDungeon(false);
+      setDungeonProgress(0);
+      playSound('portalEnter');
+    });
+
+    socket.on('dungeonWarning', (data) => {
+      console.log('⚠️ Dungeon warning:', data.message);
+    });
+
     // Spell drops from boss kills
     socket.on('spellDrops', (data) => {
       console.log('✨ Spell drops received:', data);
@@ -1054,8 +1102,30 @@ export default function SpellBrigade() {
         });
       }
 
-      // Interact (E) - open shop when near building
+      // Interact (E) - NPC dialogue or shop
       if (e.code === 'KeyE') {
+        // Close dialogue if open
+        if (npcDialogue) {
+          setNpcDialogue(null);
+          return;
+        }
+        
+        // Check for nearby NPC first
+        const npcs = gameStateRef.current.npcs || [];
+        const me = playerDataRef.current;
+        if (me && npcs.length > 0) {
+          for (const npc of npcs) {
+            const dx = me.x - npc.x;
+            const dy = me.y - npc.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < (npc.interactRange || 80)) {
+              socketRef.current?.emit('interactNpc', { npcId: npc.id });
+              return;
+            }
+          }
+        }
+        
+        // Otherwise toggle shop
         setShowShop(prev => !prev);
       }
 
@@ -1841,6 +1911,207 @@ export default function SpellBrigade() {
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
         ctx.fillText(building.name, bx, by + 15);
+      }
+
+      // ========== CAMPFIRE ==========
+      {
+        const campX = 2850 - cx;
+        const campY = 2600 - cy;
+        
+        // Only render if on screen
+        if (campX > -100 && campX < width + 100 && campY > -100 && campY < height + 100) {
+          // Fire glow
+          const glowSize = 35 + Math.sin(time * 8) * 5;
+          const gradient = ctx.createRadialGradient(campX, campY - 10, 0, campX, campY - 10, glowSize);
+          gradient.addColorStop(0, 'rgba(255, 150, 50, 0.6)');
+          gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(campX, campY - 10, glowSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Logs
+          ctx.fillStyle = '#5c4033';
+          ctx.beginPath();
+          ctx.ellipse(campX, campY + 5, 20, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Flames
+          for (let i = 0; i < 5; i++) {
+            const fx = campX + (i - 2) * 6;
+            const flameHeight = 15 + Math.sin(time * 10 + i * 2) * 5;
+            const flameWidth = 4 + Math.sin(time * 8 + i) * 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(fx - flameWidth, campY);
+            ctx.quadraticCurveTo(fx, campY - flameHeight * 1.5, fx + flameWidth, campY);
+            ctx.fillStyle = i % 2 === 0 ? '#ff6b35' : '#ffd93d';
+            ctx.fill();
+          }
+          
+          // Sparks
+          for (let i = 0; i < 3; i++) {
+            const sparkX = campX + Math.sin(time * 5 + i * 3) * 10;
+            const sparkY = campY - 20 - (time * 20 + i * 30) % 40;
+            const sparkAlpha = 1 - ((time * 20 + i * 30) % 40) / 40;
+            ctx.beginPath();
+            ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 200, 100, ${sparkAlpha})`;
+            ctx.fill();
+          }
+        }
+      }
+
+      // ========== NPCs ==========
+      const npcs = gameStateRef.current.npcs || [];
+      for (const npc of npcs) {
+        const nx = npc.x - cx;
+        const ny = npc.y - cy;
+        
+        // Skip if off screen
+        if (nx < -50 || nx > width + 50 || ny < -50 || ny > height + 50) continue;
+        
+        if (npc.type === 'guide') {
+          // Ethereal Guide - floating mystical entity
+          const float = Math.sin(time * 2) * 5;
+          const pulseAlpha = 0.5 + Math.sin(time * 3) * 0.2;
+          
+          // Outer glow
+          const glow = ctx.createRadialGradient(nx, ny + float - 10, 0, nx, ny + float - 10, 40);
+          glow.addColorStop(0, `rgba(103, 232, 249, ${pulseAlpha * 0.5})`);
+          glow.addColorStop(0.5, `rgba(103, 232, 249, ${pulseAlpha * 0.2})`);
+          glow.addColorStop(1, 'transparent');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(nx, ny + float - 10, 40, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Body - ethereal robed figure
+          ctx.beginPath();
+          ctx.moveTo(nx, ny + float - 35);
+          ctx.quadraticCurveTo(nx - 20, ny + float, nx - 15, ny + float + 10);
+          ctx.lineTo(nx + 15, ny + float + 10);
+          ctx.quadraticCurveTo(nx + 20, ny + float, nx, ny + float - 35);
+          ctx.fillStyle = `rgba(103, 232, 249, ${pulseAlpha})`;
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          // Face - glowing eyes
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(nx - 5, ny + float - 25, 3, 0, Math.PI * 2);
+          ctx.arc(nx + 5, ny + float - 25, 3, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Floating particles around
+          for (let i = 0; i < 6; i++) {
+            const angle = (time + i * Math.PI / 3) * 0.5;
+            const dist = 25 + Math.sin(time * 2 + i) * 5;
+            const px = nx + Math.cos(angle) * dist;
+            const py = ny + float - 15 + Math.sin(angle) * dist * 0.5;
+            ctx.beginPath();
+            ctx.arc(px, py, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + Math.sin(time * 3 + i) * 0.3})`;
+            ctx.fill();
+          }
+          
+          // Name
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = '#67e8f9';
+          ctx.textAlign = 'center';
+          ctx.fillText('Ethereal Guide', nx, ny + float + 25);
+          
+          // Interaction hint
+          if (nearbyNpc?.id === npc.id) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillText('[E] Talk', nx, ny + float + 38);
+          }
+          
+        } else if (npc.type === 'knight') {
+          // Knight Commander - armored warrior
+          const bobY = Math.sin(time * 3) * 2;
+          
+          // Shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + 15, 12, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Body - armor
+          ctx.fillStyle = '#57534e';
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + bobY, 14, 18, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Armor highlight
+          ctx.fillStyle = '#78716c';
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + bobY - 5, 10, 12, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Helmet
+          ctx.fillStyle = '#44403c';
+          ctx.beginPath();
+          ctx.arc(nx, ny + bobY - 22, 10, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Visor
+          ctx.fillStyle = '#1c1917';
+          ctx.fillRect(nx - 8, ny + bobY - 24, 16, 6);
+          
+          // Helmet plume
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath();
+          ctx.moveTo(nx, ny + bobY - 32);
+          ctx.lineTo(nx - 3, ny + bobY - 40);
+          ctx.lineTo(nx + 8, ny + bobY - 38);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Shield (left side)
+          ctx.fillStyle = '#78716c';
+          ctx.beginPath();
+          ctx.ellipse(nx - 18, ny + bobY, 8, 14, -0.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffd93d';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Sword (right side)
+          ctx.strokeStyle = '#a8a29e';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(nx + 15, ny + bobY - 10);
+          ctx.lineTo(nx + 25, ny + bobY - 30);
+          ctx.stroke();
+          // Hilt
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(nx + 12, ny + bobY - 5);
+          ctx.lineTo(nx + 18, ny + bobY - 15);
+          ctx.stroke();
+          
+          // Name
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = '#a8a29e';
+          ctx.textAlign = 'center';
+          ctx.fillText('Knight Commander', nx, ny + 30);
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#78716c';
+          ctx.fillText('Aldric', nx, ny + 42);
+          
+          // Interaction hint
+          if (nearbyNpc?.id === npc.id) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillText('[E] Talk', nx, ny + 55);
+          }
+        }
       }
 
       // ========== PORTALS ==========
@@ -3018,6 +3289,7 @@ export default function SpellBrigade() {
           
           // Dance animation for dance emote (side sway)
           if (player.emote === 'dance') {
+
             // Already drawn player, but add sparkles
             for (let i = 0; i < 3; i++) {
               const sparkleAngle = emoteTime * 4 + i * 2;
@@ -4724,6 +4996,37 @@ export default function SpellBrigade() {
         </div>
       )}
 
+      {/* NPC Interaction Prompt */}
+      {nearbyNpc && screen === 'game' && !npcDialogue && !nearbyBuilding && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 180 : 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.9)',
+          backdropFilter: 'blur(10px)',
+          padding: '12px 25px',
+          borderRadius: 15,
+          zIndex: 800,
+          border: `2px solid ${nearbyNpc.type === 'guide' ? '#67e8f9' : '#a8a29e'}`,
+          textAlign: 'center',
+          cursor: 'pointer',
+        }}
+        onClick={() => socketRef.current?.emit('interactNpc', { npcId: nearbyNpc.id })}
+        >
+          <div style={{ 
+            color: nearbyNpc.type === 'guide' ? '#67e8f9' : '#a8a29e', 
+            fontWeight: 'bold', 
+            fontSize: '0.9rem' 
+          }}>
+            {nearbyNpc.name}
+          </div>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
+            {isMobile ? 'Tap to talk' : 'Press E to talk'}
+          </div>
+        </div>
+      )}
+
       {/* Shop Modal */}
       {showShop && nearbyBuilding && (
         <>
@@ -5197,6 +5500,174 @@ export default function SpellBrigade() {
             );
           })()}
         </div>
+      )}
+
+      {/* NPC Dialogue Modal */}
+      {npcDialogue && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setNpcDialogue(null)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 450,
+            background: npcDialogue.npcType === 'guide' 
+              ? 'linear-gradient(135deg, rgba(20,30,40,0.98), rgba(30,60,80,0.98))'
+              : 'linear-gradient(135deg, rgba(30,25,20,0.98), rgba(50,40,30,0.98))',
+            border: npcDialogue.npcType === 'guide'
+              ? '2px solid rgba(103, 232, 249, 0.5)'
+              : '2px solid rgba(168, 162, 158, 0.5)',
+          }}>
+            <button style={styles.modalClose} onClick={() => setNpcDialogue(null)}>×</button>
+            
+            {/* NPC Avatar & Name */}
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: npcDialogue.npcType === 'guide'
+                  ? 'linear-gradient(135deg, #67e8f9, #0ea5e9)'
+                  : 'linear-gradient(135deg, #78716c, #44403c)',
+                margin: '0 auto 10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.8rem',
+                boxShadow: npcDialogue.npcType === 'guide'
+                  ? '0 0 20px rgba(103, 232, 249, 0.5)'
+                  : '0 0 15px rgba(0,0,0,0.5)',
+              }}>
+                {npcDialogue.npcType === 'guide' ? '✨' : '⚔️'}
+              </div>
+              <h3 style={{ 
+                margin: 0, 
+                color: npcDialogue.npcType === 'guide' ? '#67e8f9' : '#a8a29e',
+                fontSize: '1.1rem',
+              }}>
+                {npcDialogue.npcName}
+              </h3>
+            </div>
+            
+            {/* Dialogue Text */}
+            <div style={{
+              background: 'rgba(0,0,0,0.3)',
+              borderRadius: 10,
+              padding: 15,
+              marginBottom: 15,
+            }}>
+              {npcDialogue.dialogue?.map((line, i) => (
+                <p key={i} style={{ 
+                  color: '#e5e5e5', 
+                  margin: i === npcDialogue.dialogue.length - 1 ? 0 : '0 0 10px 0',
+                  lineHeight: 1.5,
+                  fontSize: '0.9rem',
+                }}>
+                  "{line}"
+                </p>
+              ))}
+            </div>
+            
+            {/* Follow-up dialogue for knight */}
+            {npcDialogue.followUp && (
+              <div style={{
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: 10,
+                padding: 15,
+                marginBottom: 15,
+                borderLeft: '3px solid #f97316',
+              }}>
+                {npcDialogue.followUp.map((line, i) => (
+                  <p key={i} style={{ 
+                    color: '#fbbf24', 
+                    margin: i === npcDialogue.followUp.length - 1 ? 0 : '0 0 8px 0',
+                    lineHeight: 1.4,
+                    fontSize: '0.85rem',
+                  }}>
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+            
+            {/* Prompt and choices for knight */}
+            {npcDialogue.hasChoice && npcDialogue.prompt && (
+              <div style={{ marginTop: 20 }}>
+                <p style={{ 
+                  color: '#fff', 
+                  textAlign: 'center', 
+                  marginBottom: 15,
+                  fontWeight: 600,
+                }}>
+                  {npcDialogue.prompt}
+                </p>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 10,
+                  justifyContent: 'center',
+                }}>
+                  <button
+                    onClick={() => {
+                      socketRef.current?.emit('enterDungeon');
+                      setNpcDialogue(null);
+                    }}
+                    style={{
+                      padding: '12px 25px',
+                      background: npcDialogue.playerLevel >= npcDialogue.recommendedLevel
+                        ? 'linear-gradient(135deg, #dc2626, #991b1b)'
+                        : 'linear-gradient(135deg, #78716c, #57534e)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Enter the Gauntlet
+                    {npcDialogue.playerLevel < npcDialogue.recommendedLevel && (
+                      <span style={{ display: 'block', fontSize: '0.7rem', color: '#fbbf24', marginTop: 4 }}>
+                        (Lv {npcDialogue.playerLevel} / Rec: {npcDialogue.recommendedLevel})
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setNpcDialogue(null)}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Not yet
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Simple close for guide */}
+            {!npcDialogue.hasChoice && (
+              <div style={{ textAlign: 'center' }}>
+                <button
+                  onClick={() => setNpcDialogue(null)}
+                  style={{
+                    padding: '10px 30px',
+                    background: 'rgba(103, 232, 249, 0.2)',
+                    border: '1px solid rgba(103, 232, 249, 0.4)',
+                    borderRadius: 8,
+                    color: '#67e8f9',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Farewell
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Quest Detail Modal */}

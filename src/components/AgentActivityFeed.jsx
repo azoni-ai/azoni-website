@@ -46,6 +46,23 @@ const ACTIVITY_ICONS = {
       <circle cx="12" cy="12" r="10"/>
       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>
     </svg>
+  ),
+  agent_observing: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+  agent_deciding: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v6l4 2"/>
+    </svg>
+  ),
+  agent_drafting: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+    </svg>
   )
 };
 
@@ -57,7 +74,10 @@ const ACTIVITY_COLORS = {
   project_updated: '#20d9d2',
   rag_chunk_created: '#3b82f6',
   fitness_synced: '#4ade80',
-  chat_answered: '#3b82f6'
+  chat_answered: '#3b82f6',
+  agent_observing: '#f59e0b',
+  agent_deciding: '#ec4899',
+  agent_drafting: '#8b5cf6'
 };
 
 const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false }) => {

@@ -3,8 +3,11 @@ export const WORLD_HEIGHT = 5000;
 
 export const ZONE_POLYGONS = {
   sanctuary: [
-    { x: 2800, y: 2300 }, { x: 3200, y: 2300 }, { x: 3400, y: 2500 },
-    { x: 3200, y: 2700 }, { x: 2800, y: 2700 }, { x: 2600, y: 2500 },
+    { x: 2650, y: 2150 }, { x: 3350, y: 2150 }, { x: 3550, y: 2500 },
+    { x: 3350, y: 2850 }, { x: 2650, y: 2850 }, { x: 2450, y: 2500 },
+  ],
+  dungeon: [
+    { x: 100, y: 100 }, { x: 800, y: 100 }, { x: 800, y: 4900 }, { x: 100, y: 4900 },
   ],
   meadow: [
     { x: 2200, y: 1800 }, { x: 3800, y: 1800 }, { x: 4200, y: 2200 },
@@ -38,6 +41,7 @@ export const ZONE_POLYGONS = {
 
 export const ZONE_INFO = {
   sanctuary: { name: 'Sanctuary', color: '#22c55e', rec: 0 },
+  dungeon: { name: "Dragon's Gauntlet", color: '#991b1b', rec: 30 },
   meadow: { name: 'Peaceful Meadow', color: '#84cc16', rec: 1 },
   forest: { name: 'Dark Forest', color: '#166534', rec: 5 },
   volcanic: { name: 'Volcanic Wastes', color: '#dc2626', rec: 10 },

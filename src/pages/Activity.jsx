@@ -40,6 +40,23 @@ const ACTIVITY_ICONS = {
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
     </svg>
   ),
+  agent_observing: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+  agent_deciding: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v6l4 2"/>
+    </svg>
+  ),
+  agent_drafting: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+    </svg>
+  ),
   agent_thinking: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10"/>
@@ -55,6 +72,9 @@ const ACTIVITY_COLORS = {
   moltbook_upvote: '#8b5cf6',
   rag_chunk_created: '#3b82f6',
   project_updated: '#6366f1',
+  agent_observing: '#f59e0b',
+  agent_deciding: '#ec4899',
+  agent_drafting: '#8b5cf6',
   agent_thinking: '#ec4899'
 };
 
@@ -65,7 +85,10 @@ const ACTIVITY_LABELS = {
   moltbook_upvote: 'Moltbook Upvote',
   rag_chunk_created: 'Knowledge Added',
   project_updated: 'Project Updated',
-  agent_thinking: 'Agent Thinking'
+  agent_observing: 'Observing',
+  agent_deciding: 'Deciding',
+  agent_drafting: 'Drafting',
+  agent_thinking: 'Thinking'
 };
 
 const Activity = () => {
@@ -81,15 +104,22 @@ const Activity = () => {
     const activityRef = collection(db, 'agent_activity');
     let q = query(activityRef, orderBy('timestamp', 'desc'), limit(100));
     
-    if (filter !== 'all') {
+    // For specific filters (except 'thinking' which needs client-side filtering)
+    if (filter !== 'all' && filter !== 'thinking') {
       q = query(activityRef, where('type', '==', filter), orderBy('timestamp', 'desc'), limit(100));
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
+      let items = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Client-side filter for "thinking" types
+      if (filter === 'thinking') {
+        const thinkingTypes = ['agent_observing', 'agent_deciding', 'agent_drafting'];
+        items = items.filter(item => thinkingTypes.includes(item.type));
+      }
       
       // Check for new items
       if (lastCountRef.current > 0 && items.length > lastCountRef.current) {
@@ -159,7 +189,8 @@ const Activity = () => {
     { value: 'moltbook_post', label: 'Posts' },
     { value: 'moltbook_comment', label: 'Comments' },
     { value: 'blog_generated', label: 'Blog' },
-    { value: 'rag_chunk_created', label: 'Knowledge' }
+    { value: 'rag_chunk_created', label: 'Knowledge' },
+    { value: 'thinking', label: 'Thinking' }
   ];
 
   return (
