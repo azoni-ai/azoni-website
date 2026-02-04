@@ -85,6 +85,8 @@ export default function SpellBrigade() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [playersOnline, setPlayersOnline] = useState(0);
   const [autoAttack, setAutoAttack] = useState(true);
+  const [questComplete, setQuestComplete] = useState(null);
+  const [showQuest, setShowQuest] = useState(false);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
   const joystickKnobRef = useRef(null);
@@ -804,6 +806,16 @@ export default function SpellBrigade() {
       }
     });
 
+    socket.on('questComplete', (data) => {
+      console.log(`🏆 Quest complete: ${data.quest}! Reward: ${data.reward}`);
+      setQuestComplete(data);
+      playSound('levelUp');
+      setTimeout(() => playSound('levelUp'), 200);
+      setTimeout(() => playSound('levelUp'), 400);
+      // Auto-hide after 8 seconds
+      setTimeout(() => setQuestComplete(null), 8000);
+    });
+
     socket.on('respawned', () => {
       setScreen('game');
       // Reset input state on respawn
@@ -1373,16 +1385,23 @@ export default function SpellBrigade() {
       ctx.fillStyle = '#0f0f1a';
       ctx.fillRect(0, 0, width, height);
 
-      // Helper: get zone at world position (polygon-based)
+      // PERFORMANCE: Zone cache for this frame (avoid repeated polygon tests)
+      const zoneCache = new Map();
       const getZone = (wx, wy) => {
+        // Round to tile grid for cache efficiency
+        const cacheKey = `${Math.floor(wx / 64)},${Math.floor(wy / 64)}`;
+        if (zoneCache.has(cacheKey)) return zoneCache.get(cacheKey);
+        
         const priorityOrder = ['sanctuary', 'abyss', 'crystal_caves', 'forest', 'volcanic', 'frozen', 'meadow'];
         for (const zoneId of priorityOrder) {
           const polygon = ZONE_POLYGONS[zoneId];
           if (polygon && pointInPolygon(wx, wy, polygon)) {
             if (zoneId === 'meadow' && pointInPolygon(wx, wy, ZONE_POLYGONS.sanctuary)) continue;
+            zoneCache.set(cacheKey, zoneId);
             return zoneId;
           }
         }
+        zoneCache.set(cacheKey, 'meadow');
         return 'meadow';
       };
 
@@ -3550,6 +3569,10 @@ export default function SpellBrigade() {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.8; }
           }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
           /* Mobile-specific styles to prevent zoom and selection */
           * {
             -webkit-tap-highlight-color: transparent;
@@ -4148,6 +4171,24 @@ export default function SpellBrigade() {
                     <div style={{ fontSize: '.85rem', fontWeight: 600 }}>{playerInfo.name}</div>
                     <div style={{ fontSize: '.65rem', color: '#888' }}>Lv {playerInfo.level}</div>
                   </div>
+                  {/* Quest button */}
+                  <button
+                    onClick={() => setShowQuest(true)}
+                    style={{
+                      marginLeft: 'auto',
+                      background: 'rgba(255,215,0,0.2)',
+                      border: '1px solid rgba(255,215,0,0.4)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      color: '#ffd93d',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    🏆 {Object.keys(playerInfo.bossKills || {}).length}/5
+                  </button>
                 </div>
 
                 {/* Compact HP Bar */}
@@ -4290,6 +4331,22 @@ export default function SpellBrigade() {
               }}>
                 {/* Row 1: Secondary buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
+                  {/* Recall Button */}
+                  <button
+                    style={{
+                      ...styles.actionButton('#22c55e'),
+                      width: 44,
+                      height: 44,
+                    }}
+                    onTouchStart={(e) => { 
+                      e.preventDefault(); 
+                      initAudio();
+                      socketRef.current?.emit('recall');
+                      playSound('portalEnter');
+                    }}
+                  >
+                    <span style={{ fontSize: '0.9rem' }}>🏠</span>
+                  </button>
                   {/* Auto-Attack Toggle (for Voidlord) */}
                   {playerInfo?.class === 'voidlord' && (
                     <button
@@ -4911,6 +4968,207 @@ export default function SpellBrigade() {
               </div>
             </div>
             <span style={{ fontSize: isMobile ? '1.8rem' : '2.5rem' }}>{bossAlert.emoji}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Quest Progress Tracker - Desktop */}
+      {screen === 'game' && playerInfo && !isMobile && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 20,
+            right: 20,
+            background: 'rgba(0,0,0,0.8)',
+            backdropFilter: 'blur(10px)',
+            padding: '12px 16px',
+            borderRadius: 12,
+            border: '1px solid rgba(255,215,0,0.3)',
+            zIndex: 100,
+            cursor: 'pointer',
+            minWidth: 200,
+          }}
+          onClick={() => setShowQuest(true)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: '1.2rem' }}>🏆</span>
+            <span style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.85rem' }}>Conquer the Realm</span>
+          </div>
+          {(() => {
+            const bossKills = playerInfo.bossKills || {};
+            const zones = [
+              { id: 'meadow', name: 'Meadow', emoji: '🌸' },
+              { id: 'forest', name: 'Forest', emoji: '🌳' },
+              { id: 'volcanic', name: 'Volcanic', emoji: '🌋' },
+              { id: 'frozen', name: 'Frozen', emoji: '❄️' },
+              { id: 'abyss', name: 'Abyss', emoji: '🌀' },
+            ];
+            const defeated = zones.filter(z => bossKills[z.id]).length;
+            return (
+              <>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                  {zones.map(z => (
+                    <span key={z.id} style={{ 
+                      fontSize: '1rem',
+                      opacity: bossKills[z.id] ? 1 : 0.3,
+                      filter: bossKills[z.id] ? 'none' : 'grayscale(1)',
+                    }}>{z.emoji}</span>
+                  ))}
+                </div>
+                <div style={{ 
+                  height: 4, 
+                  background: 'rgba(255,255,255,0.1)', 
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${(defeated / 5) * 100}%`,
+                    background: defeated === 5 ? '#22c55e' : 'linear-gradient(90deg, #ffd93d, #f97316)',
+                    borderRadius: 2,
+                    transition: 'width 0.5s ease',
+                  }} />
+                </div>
+                <div style={{ color: '#888', fontSize: '0.7rem', marginTop: 4, textAlign: 'right' }}>
+                  {defeated}/5 Bosses
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Quest Detail Modal */}
+      {showQuest && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowQuest(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 400,
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowQuest(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, color: '#ffd93d' }}>
+              <span style={{ fontSize: '1.5rem', marginRight: 10 }}>🏆</span>
+              Conquer the Realm
+            </h3>
+            <p style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: 20, lineHeight: 1.5 }}>
+              Defeat all five Zone Bosses to prove your mastery over the realm. Each boss guards a different zone and has unique abilities.
+            </p>
+            
+            {(() => {
+              const bossKills = playerInfo?.bossKills || {};
+              const zones = [
+                { id: 'meadow', name: 'Blossom Behemoth', zone: 'Meadow', emoji: '🌸', color: '#ec4899', level: 5 },
+                { id: 'forest', name: 'Ancient Treant', zone: 'Forest', emoji: '🌳', color: '#22c55e', level: 10 },
+                { id: 'volcanic', name: 'Magma Titan', zone: 'Volcanic', emoji: '🌋', color: '#f97316', level: 15 },
+                { id: 'frozen', name: 'Frost Wyrm', zone: 'Frozen', emoji: '❄️', color: '#22d3ee', level: 20 },
+                { id: 'abyss', name: 'Void Overlord', zone: 'Abyss', emoji: '🌀', color: '#7c3aed', level: 25 },
+              ];
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {zones.map(z => (
+                    <div key={z.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 12px',
+                      background: bossKills[z.id] ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                      borderRadius: 8,
+                      border: `1px solid ${bossKills[z.id] ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>{z.emoji}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: z.color, fontWeight: 600, fontSize: '0.9rem' }}>{z.name}</div>
+                        <div style={{ color: '#666', fontSize: '0.75rem' }}>{z.zone} • Lv {z.level}+</div>
+                      </div>
+                      {bossKills[z.id] ? (
+                        <span style={{ color: '#22c55e', fontSize: '1.2rem' }}>✓</span>
+                      ) : (
+                        <span style={{ color: '#666', fontSize: '0.8rem' }}>⬜</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            
+            <div style={{ 
+              marginTop: 20, 
+              padding: 12, 
+              background: 'rgba(255,215,0,0.1)', 
+              borderRadius: 8,
+              border: '1px solid rgba(255,215,0,0.3)',
+            }}>
+              <div style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
+                🎁 Reward
+              </div>
+              <div style={{ color: '#aaa', fontSize: '0.8rem' }}>
+                +5000 XP • "Realm Conqueror" Title • Eternal Glory
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Quest Complete Celebration */}
+      {questComplete && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          animation: 'fadeIn 0.5s ease-out',
+        }}>
+          <div style={{
+            textAlign: 'center',
+            animation: 'dropIn 0.6s ease-out',
+          }}>
+            <div style={{ fontSize: '4rem', marginBottom: 20 }}>🏆</div>
+            <div style={{ 
+              color: '#ffd93d', 
+              fontSize: '2rem', 
+              fontWeight: 700,
+              textShadow: '0 0 30px rgba(255,215,0,0.5)',
+              marginBottom: 10,
+            }}>
+              QUEST COMPLETE!
+            </div>
+            <div style={{ 
+              color: '#fff', 
+              fontSize: '1.5rem', 
+              fontWeight: 600,
+              marginBottom: 30,
+            }}>
+              {questComplete.title}
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: 30,
+              justifyContent: 'center',
+              marginBottom: 30,
+            }}>
+              <div>
+                <div style={{ color: '#888', fontSize: '0.8rem' }}>XP REWARD</div>
+                <div style={{ color: '#3b82f6', fontSize: '1.5rem', fontWeight: 700 }}>+{questComplete.xp}</div>
+              </div>
+              <div>
+                <div style={{ color: '#888', fontSize: '0.8rem' }}>TITLE</div>
+                <div style={{ color: '#ffd93d', fontSize: '1.2rem', fontWeight: 600 }}>👑 {questComplete.title}</div>
+              </div>
+            </div>
+            <div style={{ 
+              color: '#22c55e', 
+              fontSize: '1rem',
+              animation: 'pulse 1s infinite',
+            }}>
+              You have conquered all five zone bosses!
+            </div>
           </div>
         </div>
       )}

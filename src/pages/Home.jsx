@@ -196,31 +196,32 @@ const Home = () => {
           </div>
         </section>
 
-        {/* GitHub Activity */}
-        {githubStats && (
-          <section className="activity-section">
-            <div className="container">
-              <div className="activity-card">
+        {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
+        <section className="activity-section">
+          <div className="container">
+            <div className="activity-row">
+              {/* GitHub Commits */}
+              <div className="activity-card activity-half">
                 <div className="activity-header">
                   <div className="activity-stats">
                     <div className="stat">
-                      <span className="stat-num">{githubStats.today}</span>
+                      <span className="stat-num">{githubStats?.today || 0}</span>
                       <span className="stat-label">today</span>
                     </div>
                     <div className="stat">
-                      <span className="stat-num">{githubStats.last7Days}</span>
+                      <span className="stat-num">{githubStats?.last7Days || 0}</span>
                       <span className="stat-label">this week</span>
                     </div>
                     <div className="stat">
-                      <span className="stat-num">{githubStats.last30Days}</span>
+                      <span className="stat-num">{githubStats?.last30Days || 0}</span>
                       <span className="stat-label">this month</span>
                     </div>
                   </div>
                   <span className="activity-label">commits</span>
                 </div>
                 
-                <div className="commits-list">
-                  {githubStats.recentCommits?.slice(0, showAllCommits ? 20 : 6).map((commit, i) => (
+                <div className="commits-list commits-scroll">
+                  {githubStats?.recentCommits?.slice(0, 8).map((commit, i) => (
                     <div key={`${commit.sha}-${i}`} className="commit-row">
                       <span className="commit-msg">{commit.message}</span>
                       <div className="commit-meta">
@@ -239,61 +240,17 @@ const Home = () => {
                     </div>
                   ))}
                 </div>
-                {githubStats.recentCommits?.length > 6 && (
-                  <button 
-                    className="commits-toggle"
-                    onClick={() => setShowAllCommits(!showAllCommits)}
-                  >
-                    {showAllCommits ? 'Show less' : `View more (${Math.min(githubStats.recentCommits.length, 20) - 6})`}
-                  </button>
-                )}
+              </div>
+
+              {/* Agent Activity */}
+              <div className="activity-card activity-half agent-activity-card">
+                <AgentActivityFeed maxItems={6} showReasoning={true} compact={true} />
               </div>
             </div>
-          </section>
-        )}
-
-        {/* AI Ecosystem Section */}
-        {/* Moltbook Agent Banner */}
-        <section className="moltbook-banner-section">
-          <div className="container">
-            <Link to="/moltbook" className="moltbook-banner">
-              <div className="moltbook-banner-bg"></div>
-              <div className="moltbook-banner-content">
-                <div className="moltbook-banner-icon">
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="#ff6b35"/>
-                    <circle cx="20" cy="12" r="2" fill="#0f0f1a"/>
-                    <circle cx="28" cy="12" r="2" fill="#0f0f1a"/>
-                  </svg>
-                </div>
-                <div className="moltbook-banner-text">
-                  <div className="moltbook-banner-header">
-                    <h3>AI Social Agent</h3>
-                    {moltbookStatus?.autonomous_mode && (
-                      <span className="moltbook-status-badge">
-                        <span className="status-dot-live"></span>
-                        Autonomous
-                      </span>
-                    )}
-                  </div>
-                  <p>LangGraph-powered agent that browses, reasons, and posts to Moltbook independently</p>
-                </div>
-                <div className="moltbook-banner-stats">
-                  <div className="moltbook-stat">
-                    <span className="moltbook-stat-value">{moltbookStatus?.posts_today || 0}</span>
-                    <span className="moltbook-stat-label">today</span>
-                  </div>
-                  <div className="moltbook-stat">
-                    <span className="moltbook-stat-value">{moltbookStatus?.total_actions || '∞'}</span>
-                    <span className="moltbook-stat-label">actions</span>
-                  </div>
-                </div>
-                <span className="moltbook-banner-btn">View Agent →</span>
-              </div>
-            </Link>
           </div>
         </section>
 
+        {/* AI Ecosystem Section */}
         <section className="ai-ecosystem-section">
           <div className="container">
             <div className="ecosystem-grid">
@@ -389,9 +346,47 @@ const Home = () => {
                 <span className="ecosystem-arrow">→</span>
               </Link>
             </div>
+          </div>
+        </section>
 
-            {/* Live Agent Activity Feed */}
-            <AgentActivityFeed maxItems={6} showReasoning={true} />
+        {/* Moltbook Agent Banner - moved below ecosystem cards */}
+        <section className="moltbook-banner-section">
+          <div className="container">
+            <Link to="/moltbook" className="moltbook-banner">
+              <div className="moltbook-banner-bg"></div>
+              <div className="moltbook-banner-content">
+                <div className="moltbook-banner-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="#ff6b35"/>
+                    <circle cx="20" cy="12" r="2" fill="#0f0f1a"/>
+                    <circle cx="28" cy="12" r="2" fill="#0f0f1a"/>
+                  </svg>
+                </div>
+                <div className="moltbook-banner-text">
+                  <div className="moltbook-banner-header">
+                    <h3>AI Social Agent</h3>
+                    {moltbookStatus?.autonomous_mode && (
+                      <span className="moltbook-status-badge">
+                        <span className="status-dot-live"></span>
+                        Autonomous
+                      </span>
+                    )}
+                  </div>
+                  <p>LangGraph-powered agent that browses, reasons, and posts to Moltbook independently</p>
+                </div>
+                <div className="moltbook-banner-stats">
+                  <div className="moltbook-stat">
+                    <span className="moltbook-stat-value">{moltbookStatus?.posts_today || 0}</span>
+                    <span className="moltbook-stat-label">today</span>
+                  </div>
+                  <div className="moltbook-stat">
+                    <span className="moltbook-stat-value">{moltbookStatus?.total_actions || '∞'}</span>
+                    <span className="moltbook-stat-label">actions</span>
+                  </div>
+                </div>
+                <span className="moltbook-banner-btn">View Agent →</span>
+              </div>
+            </Link>
           </div>
         </section>
 

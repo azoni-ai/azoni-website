@@ -60,7 +60,7 @@ const ACTIVITY_COLORS = {
   chat_answered: '#3b82f6'
 };
 
-const AgentActivityFeed = ({ maxItems = 8, showReasoning = true }) => {
+const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -153,7 +153,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true }) => {
         <span className="feed-live-badge">Live</span>
       </div>
 
-      <div className="feed-list">
+      <div className={`feed-list agent-feed-list ${compact ? 'compact' : ''}`}>
         {activities.map((activity) => {
           const link = getActivityLink(activity);
           const isExpanded = expandedId === activity.id;
