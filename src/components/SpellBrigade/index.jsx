@@ -1174,6 +1174,11 @@ export default function SpellBrigade() {
     });
 
     socket.on('bossSpawn', (data) => {
+      // Ignore world boss notifications when player is in dungeon
+      if (inDungeonRef.current && data?.zone !== 'dungeon') {
+        return;
+      }
+      
       playSound('bossSpawn');
       console.log(`👑 Boss spawned: ${data?.name} in ${data?.zone}`);
       
@@ -1200,6 +1205,11 @@ export default function SpellBrigade() {
 
     socket.on('bossDefeated', (data) => {
       console.log(`Boss defeated: ${data?.name} by ${data?.killerName}!`);
+      
+      // Ignore world boss notifications when player is in dungeon
+      if (inDungeonRef.current && data.zone !== 'dungeon') {
+        return;
+      }
       
       // Show death banner (not respawn)
       setBossDeathBanner({
@@ -2185,9 +2195,9 @@ export default function SpellBrigade() {
         
         // Different bounds for dungeon vs world
         if (inDungeonRef.current) {
-          // Dungeon bounds: 800 wide, 3200 tall
-          const dungeonWidth = 800;
-          const dungeonHeight = 3200;
+          // Dungeon bounds: 1200 wide, 5000 tall (expanded)
+          const dungeonWidth = 1200;
+          const dungeonHeight = 5000;
           
           // If dungeon is narrower than screen, center it
           if (dungeonWidth < width) {
@@ -2257,21 +2267,22 @@ export default function SpellBrigade() {
       if (inDungeonRef.current) {
         const time = Date.now() / 1000;
         
-        // Dungeon layout constants
-        const DUNGEON_WIDTH = 800;
-        const CORRIDOR_MIN_X = 300;
-        const CORRIDOR_MAX_X = 500;
-        const ROOM_MIN_X = 150;
-        const ROOM_MAX_X = 650;
+        // Dungeon layout constants (expanded: 1200 wide x 5000 tall)
+        const DUNGEON_WIDTH = 1200;
+        const CORRIDOR_MIN_X = 450;
+        const CORRIDOR_MAX_X = 750;
+        const ROOM_MIN_X = 200;
+        const ROOM_MAX_X = 1000;
         
-        // Room definitions
+        // Room definitions (expanded with more rooms)
         const ROOMS = [
-          { name: 'Entrance Chamber', yStart: 0, yEnd: 400, theme: 'stone', minX: 200, maxX: 600 },
-          { name: 'Skeleton Crypt', yStart: 600, yEnd: 1000, theme: 'bones', minX: 150, maxX: 650 },
-          { name: 'Wraith Sanctum', yStart: 1200, yEnd: 1600, theme: 'haunted', minX: 150, maxX: 650 },
-          { name: 'Golem Forge', yStart: 1800, yEnd: 2200, theme: 'rocky', minX: 150, maxX: 650 },
-          { name: 'Demon Pit', yStart: 2400, yEnd: 2800, theme: 'infernal', minX: 150, maxX: 650 },
-          { name: 'Dragon Lair', yStart: 2800, yEnd: 3200, theme: 'dragon', minX: 100, maxX: 700 },
+          { name: 'Entrance Chamber', yStart: 0, yEnd: 400, theme: 'stone', minX: 300, maxX: 900 },
+          { name: 'Skeleton Crypt', yStart: 600, yEnd: 1200, theme: 'bones', minX: 200, maxX: 1000 },
+          { name: 'Wraith Sanctum', yStart: 1400, yEnd: 2000, theme: 'haunted', minX: 200, maxX: 1000 },
+          { name: 'Golem Forge', yStart: 2200, yEnd: 2800, theme: 'rocky', minX: 200, maxX: 1000 },
+          { name: 'Demon Pit', yStart: 3000, yEnd: 3600, theme: 'infernal', minX: 200, maxX: 1000 },
+          { name: 'Shadow Hall', yStart: 3800, yEnd: 4200, theme: 'haunted', minX: 200, maxX: 1000 },
+          { name: 'Dragon Lair', yStart: 4200, yEnd: 5000, theme: 'dragon', minX: 100, maxX: 1100 },
         ];
         
         // Dark background
@@ -6726,8 +6737,8 @@ export default function SpellBrigade() {
         
         if (inDungeonRef.current) {
           // ========== DUNGEON MINIMAP ==========
-          const dungeonHeight = 3200;
-          const dungeonWidth = 800;
+          const dungeonHeight = 5000;
+          const dungeonWidth = 1200;
           const scale = Math.min(mmW / dungeonWidth, mmH / dungeonHeight);
           const offsetX = (mmW - dungeonWidth * scale) / 2;
           const offsetY = 0;
@@ -7845,14 +7856,46 @@ export default function SpellBrigade() {
               
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: 10,
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: 12,
               }}>
                 {Object.entries(classes)
                   .filter(([id, c]) => !c.hidden || adminKey === 'azoni-voidlord-2026')
                   .map(([id, c]) => {
                     const isSelected = selectedClass === id;
                     const spells = c.spells || [];
+                    
+                    // Class abilities that unlock at levels 10, 20, 30
+                    const classAbilities = {
+                      pyromancer: [
+                        { name: 'Flame Shield', level: 10, desc: 'Damage aura' },
+                        { name: 'Meteor Strike', level: 20, desc: 'Targeted AOE' },
+                        { name: 'Inferno', level: 30, desc: 'Massive explosion' },
+                      ],
+                      cryomancer: [
+                        { name: 'Frost Nova', level: 10, desc: 'Freeze nearby' },
+                        { name: 'Ice Lance', level: 20, desc: 'Piercing bolt' },
+                        { name: 'Glacial Storm', level: 30, desc: 'Blizzard zone' },
+                      ],
+                      arcanist: [
+                        { name: 'Blink', level: 10, desc: 'Teleport strike' },
+                        { name: 'Arcane Barrage', level: 20, desc: 'Missile storm' },
+                        { name: 'Time Warp', level: 30, desc: 'Speed boost' },
+                      ],
+                      stormcaller: [
+                        { name: 'Static Field', level: 10, desc: 'Chain damage' },
+                        { name: 'Ball Lightning', level: 20, desc: 'Bouncing orb' },
+                        { name: 'Thunder God', level: 30, desc: 'Storm avatar' },
+                      ],
+                      voidlord: [
+                        { name: 'Void Rift', level: 10, desc: 'Pull enemies' },
+                        { name: 'Soul Drain', level: 20, desc: 'Lifesteal beam' },
+                        { name: 'Apocalypse', level: 30, desc: 'Devastation' },
+                      ],
+                    };
+                    
+                    const abilities = classAbilities[id] || [];
+                    
                     return (
                       <div
                         key={id}
@@ -7904,29 +7947,73 @@ export default function SpellBrigade() {
                           </div>
                         </div>
                         
-                        {/* Spells Preview */}
+                        {/* Stats */}
                         <div style={{ 
                           display: 'flex', 
-                          flexWrap: 'wrap',
-                          gap: 6, 
-                          marginTop: 10,
-                          paddingTop: 10,
+                          gap: 15, 
+                          marginBottom: 10,
+                          padding: '8px 0',
                           borderTop: '1px solid rgba(255,255,255,0.1)',
+                          borderBottom: '1px solid rgba(255,255,255,0.1)',
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: '#888' }}>
-                            <span style={{ color: c.secondaryColor || c.color }}>⚡</span>
-                            {c.dash || 'Dash'}
+                          <div style={{ fontSize: '0.7rem' }}>
+                            <span style={{ color: '#ef4444' }}>❤️</span>
+                            <span style={{ color: '#888', marginLeft: 4 }}>{c.baseHealth || 100} HP</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: '#888' }}>
-                            <span style={{ color: c.secondaryColor || c.color }}>💥</span>
-                            {c.ultimate || 'Ultimate'}
+                          <div style={{ fontSize: '0.7rem' }}>
+                            <span style={{ color: '#3b82f6' }}>⚡</span>
+                            <span style={{ color: '#888', marginLeft: 4 }}>{c.baseSpeed || 150} Speed</span>
                           </div>
-                          {spells.slice(0, 3).map((spellId, i) => (
-                            <div key={spellId} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.65rem', color: '#666' }}>
-                              <span style={{ color: c.color }}>•</span>
-                              {spellId.replace(/_/g, ' ')}
+                        </div>
+                        
+                        {/* Core Abilities */}
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: '0.65rem', color: '#666', marginBottom: 4, textTransform: 'uppercase' }}>Core</div>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <div style={{ 
+                              background: `${c.color}15`, 
+                              padding: '3px 8px', 
+                              borderRadius: 4, 
+                              fontSize: '0.7rem',
+                              color: c.secondaryColor || c.color,
+                              border: `1px solid ${c.color}30`,
+                            }}>
+                              ⚡ {c.dash || 'Dash'}
                             </div>
-                          ))}
+                            <div style={{ 
+                              background: `${c.color}15`, 
+                              padding: '3px 8px', 
+                              borderRadius: 4, 
+                              fontSize: '0.7rem',
+                              color: c.secondaryColor || c.color,
+                              border: `1px solid ${c.color}30`,
+                            }}>
+                              💥 {c.ultimate || 'Ultimate'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Unlockable Abilities */}
+                        <div>
+                          <div style={{ fontSize: '0.65rem', color: '#666', marginBottom: 4, textTransform: 'uppercase' }}>Unlock at Level</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {abilities.map((ability, i) => (
+                              <div key={i} style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 8,
+                                fontSize: '0.65rem',
+                              }}>
+                                <span style={{ 
+                                  color: '#ffd93d', 
+                                  fontWeight: 600,
+                                  minWidth: 35,
+                                }}>Lv{ability.level}</span>
+                                <span style={{ color: '#aaa' }}>{ability.name}</span>
+                                <span style={{ color: '#666', fontSize: '0.6rem' }}>- {ability.desc}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     );
@@ -8092,16 +8179,16 @@ export default function SpellBrigade() {
               </div>
             </div>
 
-            {/* Main Menu Button */}
+            {/* Back to Play Button */}
             <button
               style={{
                 width: '100%',
                 marginTop: 20,
                 padding: '12px 16px',
-                background: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
+                background: 'rgba(255, 215, 61, 0.2)',
+                border: '1px solid rgba(255, 215, 61, 0.4)',
                 borderRadius: 8,
-                color: '#ef4444',
+                color: '#ffd93d',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -8110,21 +8197,10 @@ export default function SpellBrigade() {
                 justifyContent: 'center',
                 gap: 8,
               }}
-              onClick={() => {
-                if (window.confirm('Return to main menu? Your progress is saved.')) {
-                  // Update savedPlayer with current progress so Continue works
-                  if (playerInfo) {
-                    setSavedPlayer({
-                      ...playerInfo,
-                      rank: playerInfo.rank || { title: 'Novice' },
-                    });
-                  }
-                  setScreen('title');
-                }
-              }}
+              onClick={() => setTab('play')}
             >
-              <span style={{ width: 16, height: 16 }}>{SVG.home}</span>
-              Main Menu
+              <span style={{ width: 16, height: 16 }}>{SVG.play}</span>
+              Back to Play
             </button>
           </div>
         )}
@@ -8218,13 +8294,13 @@ export default function SpellBrigade() {
               height: 8,
               background: 'linear-gradient(90deg, #dc2626, #f97316, #fbbf24)',
               borderRadius: 4,
-              width: `${Math.min(100, (playerInfo.y || 200) / 46)}%`,
+              width: `${Math.min(100, (playerInfo.y || 200) / 50)}%`,
               transition: 'width 0.3s ease',
             }} />
           </div>
           
           <div style={{ color: '#a8a29e', fontSize: '0.8rem' }}>
-            Depth: {Math.floor((playerInfo.y || 200) / 500)} / 9
+            Depth: {Math.min(7, Math.floor((playerInfo.y || 200) / 600))} / 7
             {playerInfo.y > 4200 && (
               <span style={{ color: '#f97316', marginLeft: 10 }}>⚠️ DRAGON LAIR</span>
             )}
