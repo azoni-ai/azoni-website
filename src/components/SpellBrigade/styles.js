@@ -471,7 +471,7 @@ export const createStyles = (isMobile, settings, screen) => ({
     },
     joystickArea: {
       position: 'absolute',
-      bottom: 30,
+      bottom: 50,
       left: 30,
       width: 120,
       height: 120,

@@ -71,6 +71,7 @@ export default function SpellBrigade() {
   const [dashCooldown, setDashCooldown] = useState(0); // timestamp when ready
   const [ultCooldown, setUltCooldown] = useState(0);   // timestamp when ready
   const [recallCooldown, setRecallCooldown] = useState(0); // timestamp when ready
+  const [cooldownTick, setCooldownTick] = useState(0); // forces re-render for cooldown display
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [showChat, setShowChat] = useState(() => !(window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
@@ -221,6 +222,25 @@ export default function SpellBrigade() {
     showChatRef.current = showChat;
     if (showChat) setUnreadChat(0);
   }, [showChat]);
+
+  // Tick cooldown display every 250ms while any cooldown is active
+  useEffect(() => {
+    const now = Date.now();
+    const hasActive = dashCooldownRef.current > now || ultCooldownRef.current > now || 
+      Object.values(abilityCooldowns).some(cd => cd > now);
+    if (!hasActive) return;
+    const iv = setInterval(() => {
+      const n = Date.now();
+      const stillActive = dashCooldownRef.current > n || ultCooldownRef.current > n ||
+        Object.values(abilityCooldowns).some(cd => cd > n);
+      if (stillActive) {
+        setCooldownTick(t => t + 1);
+      } else {
+        clearInterval(iv);
+      }
+    }, 250);
+    return () => clearInterval(iv);
+  }, [dashCooldown, ultCooldown, abilityCooldowns]);
 
   // Save settings to server when they change (for logged-in users)
   useEffect(() => {
@@ -467,6 +487,22 @@ export default function SpellBrigade() {
           osc.start(now);
           osc.stop(now + 0.6);
         },
+        gameEnter: () => {
+          // Magical ascending arpeggio - welcome to the game
+          osc.type = 'sine';
+          // C5 -> E5 -> G5 -> C6 (major chord arpeggio)
+          osc.frequency.setValueAtTime(523, now);
+          osc.frequency.setValueAtTime(659, now + 0.12);
+          osc.frequency.setValueAtTime(784, now + 0.24);
+          osc.frequency.setValueAtTime(1047, now + 0.36);
+          osc.frequency.setValueAtTime(1319, now + 0.48);
+          gain.gain.setValueAtTime(vol * 0.6, now);
+          gain.gain.setValueAtTime(vol * 0.8, now + 0.24);
+          gain.gain.setValueAtTime(vol * 1.0, now + 0.36);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+          osc.start(now);
+          osc.stop(now + 0.8);
+        },
       };
 
       if (sounds[type]) sounds[type]();
@@ -664,8 +700,9 @@ export default function SpellBrigade() {
     socket.on('connect', () => {
       setConnected(true);
       // Check for returning player
-      // Check for saved session first
       const savedSession = localStorage.getItem('spellBrigadeSession');
+      const savedId = localStorage.getItem('spellBrigadePlayerId');
+      
       if (savedSession) {
         try {
           const { token, isGuest } = JSON.parse(savedSession);
@@ -699,7 +736,6 @@ export default function SpellBrigade() {
                   setQuestLog(prev => ({ ...prev, ...data.user.quests }));
                 }
                 // Check for saved character
-                const savedId = localStorage.getItem('spellBrigadePlayerId');
                 if (savedId) {
                   socket.emit('getPlayerData', { playerId: savedId });
                 } else if (data.user?.characters?.length > 0) {
@@ -709,25 +745,36 @@ export default function SpellBrigade() {
                   setScreen('title');
                 }
               } else {
-                // Invalid session, go to auth
+                // Session expired but player has been here before - go to title
                 localStorage.removeItem('spellBrigadeSession');
-                setScreen('auth');
+                if (savedId) {
+                  socket.emit('getPlayerData', { playerId: savedId });
+                } else {
+                  setScreen('title');
+                }
               }
             })
             .catch(() => {
-              // On error, just proceed with local character check
-              const savedId = localStorage.getItem('spellBrigadePlayerId');
+              // Network error - still try to load character or go to title
               if (savedId) {
                 socket.emit('getPlayerData', { playerId: savedId });
               } else {
-                setScreen('auth');
+                setScreen('title');
               }
             });
         } catch {
-          setScreen('auth');
+          // Corrupted session data - still go to title if possible
+          if (savedId) {
+            socket.emit('getPlayerData', { playerId: savedId });
+          } else {
+            setScreen('title');
+          }
         }
+      } else if (savedId) {
+        // No session but has a player ID from before - try to load them
+        socket.emit('getPlayerData', { playerId: savedId });
       } else {
-        // No session, go to auth screen
+        // Truly new player - go to auth screen
         setScreen('auth');
       }
     });
@@ -778,6 +825,8 @@ export default function SpellBrigade() {
       localStorage.setItem('spellBrigadePlayerId', data.playerId);
       setPlayerInfo(data.player);
       setScreen('game');
+      // Play login sound
+      setTimeout(() => playSound('gameEnter'), 200);
       if (data.classes) setClasses(data.classes);
       if (data.world) gameStateRef.current.world = data.world;
       
@@ -897,10 +946,28 @@ export default function SpellBrigade() {
           }
           setNearbyPortal(foundPortal);
         } else {
-          // Clear world interactions when in dungeon
+          // In dungeon - check for dungeon-specific portals
           setNearbyBuilding(null);
           setNearbyNpc(null);
-          setNearbyPortal(null);
+          
+          // Dungeon entrance exit portal (y < 300)
+          if (me.y < 300) {
+            setNearbyPortal({ id: 'dungeon_exit', name: 'Exit Dungeon', color: '#22c55e', isDungeonExit: true });
+          } 
+          // Victory portal after dragon defeat
+          else if (dungeonVictoryPortalRef.current && dungeonVictoryPortalRef.current.active) {
+            const vp = dungeonVictoryPortalRef.current;
+            const dx = me.x - vp.x;
+            const dy = me.y - vp.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 150) {
+              setNearbyPortal({ id: 'dungeon_victory', name: 'Victory Portal', color: '#fbbf24', isDungeonExit: true });
+            } else {
+              setNearbyPortal(null);
+            }
+          } else {
+            setNearbyPortal(null);
+          }
         }
       }
     });
@@ -1763,31 +1830,33 @@ export default function SpellBrigade() {
           return;
         }
         
-        // Check for dungeon exit first
-        if (inDungeon) {
+        // Check for dungeon exit first (use ref to avoid stale closure)
+        if (inDungeonRef.current) {
           const me = playerDataRef.current;
-          if (me && me.y < 250) {
+          if (me && me.y < 300) {
             // Near entrance exit portal
             socketRef.current?.emit('exitDungeon');
             return;
           }
           
-          // Check for victory portal (after dragon defeat)
-          if (me && dungeonVictoryPortal && dungeonVictoryPortal.active) {
-            const dx = me.x - dungeonVictoryPortal.x;
-            const dy = me.y - dungeonVictoryPortal.y;
+          // Check for victory portal (after dragon defeat) - use ref
+          const vp = dungeonVictoryPortalRef.current;
+          if (me && vp && vp.active) {
+            const dx = me.x - vp.x;
+            const dy = me.y - vp.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 120) {
+            if (dist < 150) {
               // Use victory portal
               socketRef.current?.emit('exitDungeon');
-              setDungeonVictoryPortal(null); // Clear the portal
+              setDungeonVictoryPortal(null);
+              dungeonVictoryPortalRef.current = null;
               return;
             }
           }
         }
         
         // Check for nearby portal (not in dungeon)
-        if (!inDungeon) {
+        if (!inDungeonRef.current) {
           const me = playerDataRef.current;
           if (me) {
             for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
@@ -1803,7 +1872,7 @@ export default function SpellBrigade() {
         }
         
         // Check for nearby NPC first (not in dungeon)
-        if (!inDungeon) {
+        if (!inDungeonRef.current) {
           const npcs = gameStateRef.current.npcs || [];
           const me = playerDataRef.current;
           if (me && npcs.length > 0) {
@@ -1820,7 +1889,7 @@ export default function SpellBrigade() {
         }
         
         // Otherwise toggle shop (only outside dungeon)
-        if (!inDungeon) {
+        if (!inDungeonRef.current) {
           setShowShop(prev => !prev);
         }
       }
@@ -2022,7 +2091,7 @@ export default function SpellBrigade() {
     
     // On mobile, enter aim mode instead of immediately firing
     if (isMobile) {
-      if (ultCooldown > 0) return; // Don't enter aim mode if on cooldown
+      if (ultCooldownRef.current > Date.now()) return; // Don't enter aim mode if on cooldown
       setUltAimMode(true);
       ultAimModeRef.current = true;
       return;
@@ -2233,9 +2302,9 @@ export default function SpellBrigade() {
         
         // Different bounds for dungeon vs world
         if (inDungeonRef.current) {
-          // Dungeon bounds: 1200 wide, 5000 tall (expanded)
-          const dungeonWidth = 1200;
-          const dungeonHeight = 5000;
+          // Dungeon bounds: 1800 wide, 6000 tall (expanded)
+          const dungeonWidth = 1800;
+          const dungeonHeight = 6000;
           
           // If dungeon is narrower than screen, center it
           if (dungeonWidth < width) {
@@ -2305,22 +2374,22 @@ export default function SpellBrigade() {
       if (inDungeonRef.current) {
         const time = Date.now() / 1000;
         
-        // Dungeon layout constants (expanded: 1200 wide x 5000 tall)
+        // Dungeon layout constants (expanded: 1800 wide x 6000 tall)
         const DUNGEON_WIDTH = 1200;
         const CORRIDOR_MIN_X = 450;
         const CORRIDOR_MAX_X = 750;
         const ROOM_MIN_X = 200;
-        const ROOM_MAX_X = 1000;
+        const ROOM_MAX_X = 1600;
         
-        // Room definitions (expanded with more rooms)
+        // Room definitions (expanded with more rooms - wider dungeon)
         const ROOMS = [
-          { name: 'Entrance Chamber', yStart: 0, yEnd: 400, theme: 'stone', minX: 300, maxX: 900 },
-          { name: 'Skeleton Crypt', yStart: 600, yEnd: 1200, theme: 'bones', minX: 200, maxX: 1000 },
-          { name: 'Wraith Sanctum', yStart: 1400, yEnd: 2000, theme: 'haunted', minX: 200, maxX: 1000 },
-          { name: 'Golem Forge', yStart: 2200, yEnd: 2800, theme: 'rocky', minX: 200, maxX: 1000 },
-          { name: 'Demon Pit', yStart: 3000, yEnd: 3600, theme: 'infernal', minX: 200, maxX: 1000 },
-          { name: 'Shadow Hall', yStart: 3800, yEnd: 4200, theme: 'haunted', minX: 200, maxX: 1000 },
-          { name: 'Dragon Lair', yStart: 4200, yEnd: 5000, theme: 'dragon', minX: 100, maxX: 1100 },
+          { name: 'Entrance Chamber', yStart: 0, yEnd: 500, theme: 'stone', minX: 400, maxX: 1400 },
+          { name: 'Skeleton Crypt', yStart: 700, yEnd: 1500, theme: 'bones', minX: 200, maxX: 1600 },
+          { name: 'Wraith Sanctum', yStart: 1700, yEnd: 2500, theme: 'haunted', minX: 200, maxX: 1600 },
+          { name: 'Golem Forge', yStart: 2700, yEnd: 3500, theme: 'rocky', minX: 200, maxX: 1600 },
+          { name: 'Demon Pit', yStart: 3700, yEnd: 4500, theme: 'infernal', minX: 200, maxX: 1600 },
+          { name: 'Shadow Hall', yStart: 4700, yEnd: 5000, theme: 'haunted', minX: 200, maxX: 1600 },
+          { name: 'Dragon Lair', yStart: 5000, yEnd: 6000, theme: 'dragon', minX: 50, maxX: 1750 },
         ];
         
         // Dark background
@@ -2623,8 +2692,8 @@ export default function SpellBrigade() {
         // Exit portal in entrance chamber
         const exitPortalY = 200;
         const exitScreenY = exitPortalY - cy;
-        if (exitScreenY > -100 && exitScreenY < height + 100 && playerY < 400) {
-          const exitScreenX = 400 - cx;
+        if (exitScreenY > -100 && exitScreenY < height + 100 && playerY < 500) {
+          const exitScreenX = 900 - cx; // Center of wider dungeon
           const portalPulse = 0.8 + Math.sin(time * 3) * 0.2;
           
           // Portal glow
@@ -2666,11 +2735,11 @@ export default function SpellBrigade() {
           ctx.fillText('EXIT', exitScreenX, exitScreenY + 50);
           ctx.font = '10px Arial';
           ctx.fillStyle = '#86efac';
-          ctx.fillText('Press E', exitScreenX, exitScreenY + 62);
+          ctx.fillText(isMobileView ? 'Tap' : 'Press E', exitScreenX, exitScreenY + 62);
         }
         
         // Dragon lair ambient effect
-        if (playerY >= 2800) {
+        if (playerY >= 3500) {
           const lairGlow = ctx.createLinearGradient(0, 0, 0, height);
           lairGlow.addColorStop(0, 'rgba(249, 115, 22, 0.05)');
           lairGlow.addColorStop(1, 'rgba(220, 38, 38, 0.1)');
@@ -7141,18 +7210,20 @@ export default function SpellBrigade() {
             corridor: '#1a1515',
           };
           
-          // Draw dungeon rooms
+          // Draw dungeon rooms (matching expanded 1800x6000 dungeon)
           const rooms = [
-            { yStart: 0, yEnd: 400, minX: 200, maxX: 600, theme: 'stone' },
-            { yStart: 400, yEnd: 600, minX: 300, maxX: 500, theme: 'corridor' },
-            { yStart: 600, yEnd: 1000, minX: 150, maxX: 650, theme: 'bones' },
-            { yStart: 1000, yEnd: 1200, minX: 300, maxX: 500, theme: 'corridor' },
-            { yStart: 1200, yEnd: 1600, minX: 150, maxX: 650, theme: 'haunted' },
-            { yStart: 1600, yEnd: 1800, minX: 300, maxX: 500, theme: 'corridor' },
-            { yStart: 1800, yEnd: 2200, minX: 150, maxX: 650, theme: 'rocky' },
-            { yStart: 2200, yEnd: 2400, minX: 300, maxX: 500, theme: 'corridor' },
-            { yStart: 2400, yEnd: 2800, minX: 150, maxX: 650, theme: 'infernal' },
-            { yStart: 2800, yEnd: 3200, minX: 100, maxX: 700, theme: 'dragon' },
+            { yStart: 0, yEnd: 500, minX: 400, maxX: 1400, theme: 'stone' },
+            { yStart: 500, yEnd: 700, minX: 550, maxX: 1250, theme: 'corridor' },
+            { yStart: 700, yEnd: 1500, minX: 200, maxX: 1600, theme: 'bones' },
+            { yStart: 1500, yEnd: 1700, minX: 550, maxX: 1250, theme: 'corridor' },
+            { yStart: 1700, yEnd: 2500, minX: 200, maxX: 1600, theme: 'haunted' },
+            { yStart: 2500, yEnd: 2700, minX: 550, maxX: 1250, theme: 'corridor' },
+            { yStart: 2700, yEnd: 3500, minX: 200, maxX: 1600, theme: 'rocky' },
+            { yStart: 3500, yEnd: 3700, minX: 550, maxX: 1250, theme: 'corridor' },
+            { yStart: 3700, yEnd: 4500, minX: 200, maxX: 1600, theme: 'infernal' },
+            { yStart: 4500, yEnd: 4700, minX: 550, maxX: 1250, theme: 'corridor' },
+            { yStart: 4700, yEnd: 5000, minX: 200, maxX: 1600, theme: 'haunted' },
+            { yStart: 5000, yEnd: 6000, minX: 50, maxX: 1750, theme: 'dragon' },
           ];
           
           for (const room of rooms) {
@@ -7177,13 +7248,13 @@ export default function SpellBrigade() {
           
           // Draw exit portal at entrance
           mmCtx.beginPath();
-          mmCtx.arc(offsetX + 400 * scale, offsetY + 200 * scale, 4, 0, Math.PI * 2);
+          mmCtx.arc(offsetX + 900 * scale, offsetY + 200 * scale, 4, 0, Math.PI * 2);
           mmCtx.fillStyle = '#22c55e';
           mmCtx.fill();
           
           // Draw dragon lair marker
           mmCtx.beginPath();
-          mmCtx.arc(offsetX + 400 * scale, offsetY + 3000 * scale, 6, 0, Math.PI * 2);
+          mmCtx.arc(offsetX + 900 * scale, offsetY + 5500 * scale, 6, 0, Math.PI * 2);
           mmCtx.fillStyle = '#f97316';
           mmCtx.fill();
           mmCtx.strokeStyle = '#fbbf24';
@@ -8832,20 +8903,20 @@ export default function SpellBrigade() {
               height: 8,
               background: 'linear-gradient(90deg, #dc2626, #f97316, #fbbf24)',
               borderRadius: 4,
-              width: `${Math.min(100, (playerInfo.y || 200) / 50)}%`,
+              width: `${Math.min(100, (playerInfo.y || 200) / 60)}%`,
               transition: 'width 0.3s ease',
             }} />
           </div>
           
           <div style={{ color: '#a8a29e', fontSize: '0.8rem' }}>
-            Depth: {Math.min(7, Math.floor((playerInfo.y || 200) / 600))} / 7
-            {playerInfo.y > 4200 && (
+            Depth: {Math.min(7, Math.floor((playerInfo.y || 200) / 800))} / 7
+            {playerInfo.y > 5000 && (
               <span style={{ color: '#f97316', marginLeft: 10 }}>⚠️ DRAGON LAIR</span>
             )}
           </div>
           
           {/* Exit button (mobile) */}
-          {isMobile && playerInfo.y < 300 && (
+          {isMobile && playerInfo.y < 400 && (
             <button
               style={{
                 marginTop: 10,
@@ -8992,57 +9063,45 @@ export default function SpellBrigade() {
                   </div>
                 )}
 
-                {/* Controls Panel */}
+                {/* Quick Controls Reminder */}
                 <div style={{
-                  marginTop: 15,
-                  paddingTop: 12,
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
+                  marginTop: 12,
+                  paddingTop: 10,
+                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 4,
+                  justifyContent: 'center',
                 }}>
-                  <div style={{ fontSize: '.7rem', color: '#666', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    Controls
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#888' }}>Move</span>
-                      <span style={{ color: '#fff' }}>WASD</span>
+                  {[
+                    { key: 'Space', label: 'Dash', color: classes[playerInfo.class]?.secondaryColor || '#4ecdc4' },
+                    { key: 'Q', label: 'Ult', color: '#ffd93d' },
+                    { key: 'E', label: 'Talk', color: '#888' },
+                    { key: 'C', label: 'Stats', color: '#67e8f9' },
+                    { key: 'T', label: 'Emote', color: '#a78bfa' },
+                    { key: 'X', label: autoAttack ? 'Auto ✓' : 'Auto', color: autoAttack ? '#fbbf24' : '#666' },
+                  ].map(c => (
+                    <div key={c.key} style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      borderRadius: 5,
+                      padding: '3px 6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      fontSize: '.6rem',
+                    }}>
+                      <span style={{ 
+                        background: 'rgba(255,255,255,0.1)', 
+                        borderRadius: 3, 
+                        padding: '1px 4px',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '.55rem',
+                        fontFamily: 'monospace',
+                      }}>{c.key}</span>
+                      <span style={{ color: c.color }}>{c.label}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#888' }}>Attack</span>
-                      <span style={{ color: '#4ade80' }}>Auto</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: classes[playerInfo.class]?.secondaryColor || classes[playerInfo.class]?.color || '#888' }}>Dash</span>
-                      <span style={{ color: dashCooldown > 0 ? '#f87171' : '#fff' }}>
-                        {dashCooldown > 0 ? 'CD' : 'Space'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#ffd93d' }}>Ultimate</span>
-                      <span style={{ color: ultCooldown > 0 ? '#f87171' : '#fff' }}>
-                        {ultCooldown > 0 ? 'CD' : 'Q'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#a78bfa' }}>Emote</span>
-                      <span style={{ color: '#fff' }}>T</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#888' }}>Interact</span>
-                      <span style={{ color: '#fff' }}>E</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: autoAttack ? '#fbbf24' : '#666' }}>Auto-Atk</span>
-                      <span style={{ color: '#fff' }}>X</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#67e8f9' }}>Character</span>
-                      <span style={{ color: '#fff' }}>C</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.75rem' }}>
-                      <span style={{ color: '#888' }}>Settings</span>
-                      <span style={{ color: '#fff' }}>Esc</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -9395,7 +9454,7 @@ export default function SpellBrigade() {
               {/* Action Buttons - Right side */}
               <div style={{
                 position: 'absolute',
-                bottom: 30,
+                bottom: 50,
                 right: 20,
                 display: 'flex',
                 flexDirection: 'column',
@@ -9486,41 +9545,51 @@ export default function SpellBrigade() {
                 <div style={{ display: 'flex', gap: 10 }}>
                   {/* Dash Button */}
                   <div style={{ position: 'relative' }}>
+                    {(() => {
+                      const onCd = dashCooldownRef.current > Date.now();
+                      const cdSec = onCd ? Math.ceil((dashCooldownRef.current - Date.now()) / 1000) : 0;
+                      return (
                     <button
                       style={{
                         width: 58,
                         height: 58,
                         borderRadius: 12,
-                        border: `2px solid ${dashCooldown > 0 ? 'rgba(78,205,196,0.3)' : '#4ecdc4'}`,
-                        background: dashCooldown > 0 ? 'rgba(0,0,0,0.7)' : 'linear-gradient(145deg, rgba(78,205,196,0.25), rgba(78,205,196,0.1))',
+                        border: `2px solid ${onCd ? 'rgba(78,205,196,0.3)' : '#4ecdc4'}`,
+                        background: onCd ? 'rgba(0,0,0,0.7)' : 'linear-gradient(145deg, rgba(78,205,196,0.25), rgba(78,205,196,0.1))',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 2,
-                        boxShadow: dashCooldown > 0 ? 'none' : '0 0 15px rgba(78,205,196,0.3)',
+                        boxShadow: onCd ? 'none' : '0 0 15px rgba(78,205,196,0.3)',
                       }}
                       onTouchStart={(e) => { e.preventDefault(); handleDashButton(); }}
                     >
-                      <span style={{ width: 22, height: 22, color: dashCooldown > 0 ? '#666' : '#4ecdc4' }}>{SVG.dash}</span>
-                      {dashCooldown > 0 ? (
+                      <span style={{ width: 22, height: 22, color: onCd ? '#666' : '#4ecdc4' }}>{SVG.dash}</span>
+                      {onCd ? (
                         <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4ecdc4' }}>
-                          {Math.ceil(dashCooldown / 1000)}
+                          {cdSec}
                         </span>
                       ) : (
                         <span style={{ fontSize: '0.55rem', color: '#4ecdc4', fontWeight: 600 }}>DASH</span>
                       )}
                     </button>
+                      );
+                    })()}
                   </div>
                   {/* Ultimate Button */}
                   <div style={{ position: 'relative' }}>
+                    {(() => {
+                      const onCd = ultCooldownRef.current > Date.now();
+                      const cdSec = onCd ? Math.ceil((ultCooldownRef.current - Date.now()) / 1000) : 0;
+                      return (
                     <button
                       style={{
                         width: 58,
                         height: 58,
                         borderRadius: 12,
-                        border: `2px solid ${ultCooldown > 0 ? 'rgba(255,107,53,0.3)' : ultAimMode ? '#ffd93d' : '#ff6b35'}`,
-                        background: ultCooldown > 0 ? 'rgba(0,0,0,0.7)' : ultAimMode 
+                        border: `2px solid ${onCd ? 'rgba(255,107,53,0.3)' : ultAimMode ? '#ffd93d' : '#ff6b35'}`,
+                        background: onCd ? 'rgba(0,0,0,0.7)' : ultAimMode 
                           ? 'linear-gradient(145deg, rgba(255,215,61,0.4), rgba(255,107,53,0.2))' 
                           : 'linear-gradient(145deg, rgba(255,107,53,0.25), rgba(255,107,53,0.1))',
                         display: 'flex',
@@ -9529,15 +9598,15 @@ export default function SpellBrigade() {
                         justifyContent: 'center',
                         gap: 2,
                         transform: ultAimMode ? 'scale(1.08)' : 'scale(1)',
-                        boxShadow: ultAimMode ? '0 0 20px rgba(255,215,0,0.5)' : ultCooldown > 0 ? 'none' : '0 0 15px rgba(255,107,53,0.3)',
+                        boxShadow: ultAimMode ? '0 0 20px rgba(255,215,0,0.5)' : onCd ? 'none' : '0 0 15px rgba(255,107,53,0.3)',
                         transition: 'all 0.15s',
                       }}
                       onTouchStart={(e) => { e.preventDefault(); handleUltimateButton(); }}
                     >
-                      <span style={{ width: 22, height: 22, color: ultCooldown > 0 ? '#666' : ultAimMode ? '#ffd93d' : '#ff6b35' }}>{SVG.warning}</span>
-                      {ultCooldown > 0 && !ultAimMode ? (
+                      <span style={{ width: 22, height: 22, color: onCd ? '#666' : ultAimMode ? '#ffd93d' : '#ff6b35' }}>{SVG.warning}</span>
+                      {onCd && !ultAimMode ? (
                         <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#ff6b35' }}>
-                          {Math.ceil(ultCooldown / 1000)}
+                          {cdSec}
                         </span>
                       ) : (
                         <span style={{ fontSize: '0.55rem', color: ultAimMode ? '#ffd93d' : '#ff6b35', fontWeight: 600 }}>
@@ -9545,6 +9614,8 @@ export default function SpellBrigade() {
                         </span>
                       )}
                     </button>
+                      );
+                    })()}
                   </div>
                 </div>
                 
@@ -9746,7 +9817,7 @@ export default function SpellBrigade() {
       )}
 
       {/* Building Interaction Prompt */}
-      {nearbyBuilding && screen === 'game' && !showShop && (
+      {nearbyBuilding && screen === 'game' && !showShop && !npcDialogue && !showSkinSelect && (
         <div style={{
           position: 'fixed',
           bottom: isMobile ? 180 : 100,
@@ -9773,7 +9844,7 @@ export default function SpellBrigade() {
       )}
 
       {/* NPC Interaction Prompt */}
-      {nearbyNpc && screen === 'game' && !npcDialogue && !nearbyBuilding && (
+      {nearbyNpc && screen === 'game' && !npcDialogue && !nearbyBuilding && !showSkinSelect && (
         <div style={{
           position: 'fixed',
           bottom: isMobile ? 180 : 100,
@@ -9820,7 +9891,17 @@ export default function SpellBrigade() {
           textAlign: 'center',
           cursor: 'pointer',
         }}
-        onClick={() => socketRef.current?.emit('usePortal', { portalId: nearbyPortal.id })}
+        onClick={() => {
+          if (nearbyPortal.isDungeonExit) {
+            socketRef.current?.emit('exitDungeon');
+            if (nearbyPortal.id === 'dungeon_victory') {
+              setDungeonVictoryPortal(null);
+              dungeonVictoryPortalRef.current = null;
+            }
+          } else {
+            socketRef.current?.emit('usePortal', { portalId: nearbyPortal.id });
+          }
+        }}
         >
           <div style={{ 
             color: nearbyPortal.color || '#a855f7', 
