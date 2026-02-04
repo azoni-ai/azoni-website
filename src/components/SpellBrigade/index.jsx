@@ -1882,10 +1882,13 @@ export default function SpellBrigade() {
         const time = Date.now() / 1000;
         
         // Dungeon layout constants
+        // eslint-disable-next-line no-unused-vars
         const DUNGEON_WIDTH = 800;
         const CORRIDOR_MIN_X = 300;
         const CORRIDOR_MAX_X = 500;
+        // eslint-disable-next-line no-unused-vars
         const ROOM_MIN_X = 150;
+        // eslint-disable-next-line no-unused-vars
         const ROOM_MAX_X = 650;
         
         // Room definitions
@@ -5044,6 +5047,7 @@ export default function SpellBrigade() {
           
           // Dance animation for dance emote (side sway)
           if (player.emote === 'dance') {
+            const sway = Math.sin(emoteTime * 6) * 5;
             // Already drawn player, but add sparkles
             for (let i = 0; i < 3; i++) {
               const sparkleAngle = emoteTime * 4 + i * 2;
