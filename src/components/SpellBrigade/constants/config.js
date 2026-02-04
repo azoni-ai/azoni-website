@@ -32,6 +32,8 @@ export const DEFAULT_CLASSES = {
     description: 'Fire master. High burst damage.',
     dash: 'Fire Dash',
     ultimate: 'Meteor Strike',
+    baseHealth: 80,
+    baseSpeed: 160,
   },
   cryomancer: {
     id: 'cryomancer',
@@ -40,6 +42,8 @@ export const DEFAULT_CLASSES = {
     description: 'Ice wizard. Crowd control specialist.',
     dash: 'Frost Step',
     ultimate: 'Ice Nova',
+    baseHealth: 90,
+    baseSpeed: 150,
   },
   arcanist: {
     id: 'arcanist',
@@ -48,6 +52,8 @@ export const DEFAULT_CLASSES = {
     description: 'Arcane power. Balanced with AOE.',
     dash: 'Blink',
     ultimate: 'Arcane Barrage',
+    baseHealth: 100,
+    baseSpeed: 140,
   },
   voidlord: {
     id: 'voidlord',
@@ -57,6 +63,8 @@ export const DEFAULT_CLASSES = {
     description: 'Master of the void. Admin only.',
     dash: 'Void Shift',
     ultimate: 'Void Rift',
+    baseHealth: 200,
+    baseSpeed: 280,
     isAdmin: true,
     hidden: true, // Don't show in normal class selection
   },
