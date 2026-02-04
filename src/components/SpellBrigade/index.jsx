@@ -81,6 +81,10 @@ export default function SpellBrigade() {
   const lastZoneRef = useRef(null);
   const musicIntervalRef = useRef(null);
   const musicGainRef = useRef(null);
+  const ability1CooldownRef = useRef(0);
+  const ability2CooldownRef = useRef(0);
+  const ability3CooldownRef = useRef(0);
+  const [abilityCooldowns, setAbilityCooldowns] = useState({ 1: 0, 2: 0, 3: 0 });
 
   // Mobile detection and touch state
   const [isMobile, setIsMobile] = useState(false);
@@ -88,6 +92,7 @@ export default function SpellBrigade() {
   const [playersOnline, setPlayersOnline] = useState(0);
   const [autoAttack, setAutoAttack] = useState(true);
   const [pvpEnabled, setPvpEnabled] = useState(false); // Voidlord PvP toggle - OFF by default
+  const [invincible, setInvincible] = useState(false); // Admin invincibility toggle
   const [questComplete, setQuestComplete] = useState(null);
   const [showQuest, setShowQuest] = useState(false);
   const [npcDialogue, setNpcDialogue] = useState(null); // Current NPC dialogue
@@ -340,6 +345,37 @@ export default function SpellBrigade() {
           osc.start(now);
           osc.stop(now + 0.5);
         },
+        ability: () => {
+          // Magical ability activation
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(500, now);
+          osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+          osc.frequency.exponentialRampToValueAtTime(600, now + 0.25);
+          gain.gain.setValueAtTime(vol * 0.8, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        },
+        lightning: () => {
+          // Electric zap
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(2000, now);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+          gain.gain.setValueAtTime(vol * 1.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        },
+        meteor: () => {
+          // Deep explosion
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+          gain.gain.setValueAtTime(vol * 1.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        },
       };
 
       if (sounds[type]) sounds[type]();
@@ -537,6 +573,24 @@ export default function SpellBrigade() {
     socket.on('disconnect', () => {
       setConnected(false);
     });
+    
+    // Handle tab visibility changes - reconnect when tab becomes active
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (!socket.connected && playerIdRef.current) {
+          console.log('Tab visible, reconnecting...');
+          socket.connect();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Heartbeat to keep connection alive (every 30 seconds)
+    const heartbeatInterval = setInterval(() => {
+      if (socket.connected && playerIdRef.current) {
+        socket.emit('heartbeat');
+      }
+    }, 30000);
 
     // Returning player data
     socket.on('playerData', (data) => {
@@ -918,6 +972,128 @@ export default function SpellBrigade() {
       setPvpEnabled(data.enabled);
       console.log(`🎯 PvP ${data.enabled ? 'enabled' : 'disabled'}`);
     });
+    
+    socket.on('invincibleToggled', (data) => {
+      setInvincible(data.enabled);
+      console.log(`✨ Invincibility ${data.enabled ? 'ENABLED' : 'disabled'}`);
+    });
+
+    // Class Ability events
+    socket.on('abilityActivated', (data) => {
+      const slot = data.slot;
+      const cooldownEnd = Date.now() + data.cooldown;
+      if (slot === 1) ability1CooldownRef.current = cooldownEnd;
+      if (slot === 2) ability2CooldownRef.current = cooldownEnd;
+      if (slot === 3) ability3CooldownRef.current = cooldownEnd;
+      setAbilityCooldowns(prev => ({ ...prev, [slot]: cooldownEnd }));
+      playSound('ability');
+    });
+    
+    socket.on('abilityError', (data) => {
+      console.log('❌ Ability Error:', data.message);
+    });
+    
+    socket.on('abilityCooldown', (data) => {
+      console.log(`⏳ Ability ${data.slot} on cooldown: ${Math.ceil(data.remaining / 1000)}s`);
+    });
+    
+    // Ability visual effects
+    socket.on('flameShieldStart', (data) => {
+      effectsRef.current.push({
+        type: 'flameShield',
+        x: data.x, y: data.y,
+        playerId: data.playerId,
+        startTime: Date.now(),
+        duration: data.duration,
+      });
+    });
+    
+    socket.on('frostNova', (data) => {
+      effectsRef.current.push({
+        type: 'frostNova',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 1000,
+      });
+      playSound('iceNova');
+    });
+    
+    socket.on('glacialStorm', (data) => {
+      effectsRef.current.push({
+        type: 'glacialStorm',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: data.duration,
+      });
+      playSound('iceNova');
+    });
+    
+    socket.on('blink', (data) => {
+      effectsRef.current.push({
+        type: 'blink',
+        fromX: data.fromX, fromY: data.fromY,
+        toX: data.toX, toY: data.toY,
+        startTime: Date.now(),
+        duration: 500,
+      });
+      playSound('dash');
+    });
+    
+    socket.on('inferno', (data) => {
+      effectsRef.current.push({
+        type: 'inferno',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 1500,
+      });
+      screenShakeRef.current = { x: 0, y: 0, intensity: 15 };
+      playSound('meteor');
+    });
+    
+    socket.on('staticField', (data) => {
+      effectsRef.current.push({
+        type: 'staticField',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 800,
+      });
+      playSound('lightning');
+    });
+    
+    socket.on('timeWarp', (data) => {
+      effectsRef.current.push({
+        type: 'timeWarp',
+        playerId: data.playerId,
+        startTime: Date.now(),
+        duration: data.duration,
+      });
+    });
+    
+    socket.on('thunderGod', (data) => {
+      effectsRef.current.push({
+        type: 'thunderGod',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        duration: 2000,
+      });
+      screenShakeRef.current = { x: 0, y: 0, intensity: 20 };
+      playSound('lightning');
+    });
+    
+    socket.on('lightningBolt', (data) => {
+      effectsRef.current.push({
+        type: 'lightningBolt',
+        fromX: data.fromX, fromY: data.fromY,
+        toX: data.toX, toY: data.toY,
+        startTime: Date.now(),
+        duration: 300,
+      });
+    });
 
     // NPC Dialogue
     socket.on('npcDialogue', (data) => {
@@ -1089,6 +1265,8 @@ export default function SpellBrigade() {
     });
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(heartbeatInterval);
       socket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1209,6 +1387,29 @@ export default function SpellBrigade() {
       // Toggle PvP (Z) - Voidlord only
       if (e.code === 'KeyZ' && socketRef.current && playerIdRef.current) {
         socketRef.current.emit('togglePvP');
+      }
+      
+      // Toggle Invincibility (I) - Admin Voidlord only
+      if (e.code === 'KeyI' && socketRef.current && playerIdRef.current && adminKey === 'azoni-voidlord-2026') {
+        socketRef.current.emit('toggleInvincible');
+      }
+
+      // Class Abilities (1, 2, 3)
+      if ((e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') && socketRef.current && playerIdRef.current) {
+        const slot = parseInt(e.code.replace('Digit', ''));
+        const me = playerDataRef.current;
+        const levelReqs = { 1: 10, 2: 20, 3: 30 };
+        
+        if (me && me.level >= levelReqs[slot]) {
+          // Get mouse position for targeted abilities
+          const canvas = canvasRef.current;
+          const cx = (me.x || 0) - (canvas?.width || 800) / 2;
+          const cy = (me.y || 0) - (canvas?.height || 600) / 2;
+          const targetX = mouseRef.current ? cx + mouseRef.current.x : me.x;
+          const targetY = mouseRef.current ? cy + mouseRef.current.y : me.y;
+          
+          socketRef.current.emit('classAbility', { abilitySlot: slot, targetX, targetY });
+        }
       }
 
       // ESC - prompt for main menu (modals close via backdrop click)
@@ -1923,179 +2124,180 @@ export default function SpellBrigade() {
             const decorRand = seededRandom(x, y, 1);
             
             if (zone === 'sanctuary') {
-            // Flowers
-            ctx.fillStyle = decorRand > 0.5 ? '#fcd34d' : '#f472b6';
-            ctx.beginPath();
-            ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(screenX, screenY, 2, 0, Math.PI * 2);
-            ctx.fill();
-          } else if (zone === 'meadow') {
-            // Bushes and small flowers
-            if (decorRand > 0.6) {
-              // Bush
-              ctx.fillStyle = '#22c55e';
+              // Flowers
+              ctx.fillStyle = decorRand > 0.5 ? '#fcd34d' : '#f472b6';
               ctx.beginPath();
-              ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#16a34a';
-              ctx.beginPath();
-              ctx.arc(screenX - 3, screenY - 2, 5, 0, Math.PI * 2);
-              ctx.fill();
-            } else {
-              // Grass tuft
-              ctx.strokeStyle = '#4ade80';
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.moveTo(screenX - 4, screenY + 5);
-              ctx.lineTo(screenX - 2, screenY - 5);
-              ctx.moveTo(screenX, screenY + 5);
-              ctx.lineTo(screenX, screenY - 7);
-              ctx.moveTo(screenX + 4, screenY + 5);
-              ctx.lineTo(screenX + 2, screenY - 5);
-              ctx.stroke();
-            }
-          } else if (zone === 'forest') {
-            // Trees and mushrooms
-            if (decorRand > 0.5) {
-              // Tree
-              ctx.fillStyle = '#4a2c17';
-              ctx.fillRect(screenX - 4, screenY - 5, 8, 20);
-              ctx.fillStyle = '#166534';
-              ctx.beginPath();
-              ctx.moveTo(screenX, screenY - 25);
-              ctx.lineTo(screenX - 15, screenY - 5);
-              ctx.lineTo(screenX + 15, screenY - 5);
-              ctx.closePath();
-              ctx.fill();
-              ctx.fillStyle = '#14532d';
-              ctx.beginPath();
-              ctx.moveTo(screenX, screenY - 35);
-              ctx.lineTo(screenX - 12, screenY - 18);
-              ctx.lineTo(screenX + 12, screenY - 18);
-              ctx.closePath();
-              ctx.fill();
-            } else {
-              // Mushroom
-              ctx.fillStyle = '#fef3c7';
-              ctx.fillRect(screenX - 2, screenY, 4, 8);
-              ctx.fillStyle = decorRand > 0.25 ? '#ef4444' : '#a855f7';
-              ctx.beginPath();
-              ctx.arc(screenX, screenY, 7, Math.PI, 0);
+              ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
               ctx.fill();
               ctx.fillStyle = '#fff';
               ctx.beginPath();
-              ctx.arc(screenX - 3, screenY - 2, 2, 0, Math.PI * 2);
-              ctx.arc(screenX + 2, screenY - 3, 1.5, 0, Math.PI * 2);
+              ctx.arc(screenX, screenY, 2, 0, Math.PI * 2);
               ctx.fill();
-            }
-          } else if (zone === 'volcanic') {
-            // Lava pools, rocks, embers
-            if (decorRand > 0.6) {
-              // Lava pool
-              ctx.fillStyle = '#dc2626';
-              ctx.beginPath();
-              ctx.ellipse(screenX, screenY, 12, 8, 0, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#f97316';
-              ctx.beginPath();
-              ctx.ellipse(screenX, screenY, 8, 5, 0, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#fbbf24';
-              ctx.beginPath();
-              ctx.ellipse(screenX, screenY, 4, 2, 0, 0, Math.PI * 2);
-              ctx.fill();
-            } else if (decorRand > 0.3) {
-              // Rock
-              ctx.fillStyle = '#44403c';
-              ctx.beginPath();
-              ctx.moveTo(screenX - 8, screenY + 5);
-              ctx.lineTo(screenX - 5, screenY - 8);
-              ctx.lineTo(screenX + 3, screenY - 6);
-              ctx.lineTo(screenX + 8, screenY + 5);
-              ctx.closePath();
-              ctx.fill();
-            } else {
-              // Ember particles
-              ctx.fillStyle = '#f97316';
-              ctx.beginPath();
-              ctx.arc(screenX + Math.sin(Date.now()/500 + x) * 3, screenY - 5, 3, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          } else if (zone === 'frozen') {
-            // Ice crystals, snow piles
-            if (decorRand > 0.5) {
-              // Ice crystal
-              ctx.fillStyle = '#bfdbfe';
-              ctx.beginPath();
-              ctx.moveTo(screenX, screenY - 15);
-              ctx.lineTo(screenX - 6, screenY + 5);
-              ctx.lineTo(screenX + 6, screenY + 5);
-              ctx.closePath();
-              ctx.fill();
-              ctx.fillStyle = '#93c5fd';
-              ctx.beginPath();
-              ctx.moveTo(screenX, screenY - 15);
-              ctx.lineTo(screenX, screenY + 5);
-              ctx.lineTo(screenX + 6, screenY + 5);
-              ctx.closePath();
-              ctx.fill();
-              ctx.strokeStyle = '#dbeafe';
-              ctx.lineWidth = 1;
-              ctx.stroke();
-            } else {
-              // Snow pile
-              ctx.fillStyle = '#f1f5f9';
-              ctx.beginPath();
-              ctx.ellipse(screenX, screenY, 10, 5, 0, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#e2e8f0';
-              ctx.beginPath();
-              ctx.ellipse(screenX - 5, screenY - 2, 6, 4, -0.3, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          } else if (zone === 'abyss') {
-            // Void crystals, floating runes
-            if (decorRand > 0.6) {
-              // Void crystal
-              ctx.fillStyle = '#581c87';
-              ctx.beginPath();
-              ctx.moveTo(screenX, screenY - 18);
-              ctx.lineTo(screenX - 8, screenY + 6);
-              ctx.lineTo(screenX + 8, screenY + 6);
-              ctx.closePath();
-              ctx.fill();
-              ctx.fillStyle = '#7c3aed';
-              ctx.beginPath();
-              ctx.moveTo(screenX, screenY - 18);
-              ctx.lineTo(screenX, screenY + 6);
-              ctx.lineTo(screenX + 8, screenY + 6);
-              ctx.closePath();
-              ctx.fill();
-              // Glow
-              ctx.shadowColor = '#a855f7';
-              ctx.shadowBlur = 10;
-              ctx.fillStyle = '#c084fc';
-              ctx.beginPath();
-              ctx.arc(screenX, screenY - 5, 3, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.shadowBlur = 0;
-            } else {
-              // Floating rune
-              const floatY = Math.sin(Date.now()/800 + x + y) * 3;
-              ctx.strokeStyle = '#a855f7';
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.arc(screenX, screenY + floatY, 8, 0, Math.PI * 2);
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.moveTo(screenX - 4, screenY + floatY);
-              ctx.lineTo(screenX + 4, screenY + floatY);
-              ctx.moveTo(screenX, screenY - 4 + floatY);
-              ctx.lineTo(screenX, screenY + 4 + floatY);
-              ctx.stroke();
+            } else if (zone === 'meadow') {
+              // Bushes and small flowers
+              if (decorRand > 0.6) {
+                // Bush
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#16a34a';
+                ctx.beginPath();
+                ctx.arc(screenX - 3, screenY - 2, 5, 0, Math.PI * 2);
+                ctx.fill();
+              } else {
+                // Grass tuft
+                ctx.strokeStyle = '#4ade80';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(screenX - 4, screenY + 5);
+                ctx.lineTo(screenX - 2, screenY - 5);
+                ctx.moveTo(screenX, screenY + 5);
+                ctx.lineTo(screenX, screenY - 7);
+                ctx.moveTo(screenX + 4, screenY + 5);
+                ctx.lineTo(screenX + 2, screenY - 5);
+                ctx.stroke();
+              }
+            } else if (zone === 'forest') {
+              // Trees and mushrooms
+              if (decorRand > 0.5) {
+                // Tree
+                ctx.fillStyle = '#4a2c17';
+                ctx.fillRect(screenX - 4, screenY - 5, 8, 20);
+                ctx.fillStyle = '#166534';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 25);
+                ctx.lineTo(screenX - 15, screenY - 5);
+                ctx.lineTo(screenX + 15, screenY - 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#14532d';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 35);
+                ctx.lineTo(screenX - 12, screenY - 18);
+                ctx.lineTo(screenX + 12, screenY - 18);
+                ctx.closePath();
+                ctx.fill();
+              } else {
+                // Mushroom
+                ctx.fillStyle = '#fef3c7';
+                ctx.fillRect(screenX - 2, screenY, 4, 8);
+                ctx.fillStyle = decorRand > 0.25 ? '#ef4444' : '#a855f7';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 7, Math.PI, 0);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(screenX - 3, screenY - 2, 2, 0, Math.PI * 2);
+                ctx.arc(screenX + 2, screenY - 3, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            } else if (zone === 'volcanic') {
+              // Lava pools, rocks, embers
+              if (decorRand > 0.6) {
+                // Lava pool
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.ellipse(screenX, screenY, 12, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                ctx.ellipse(screenX, screenY, 8, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.ellipse(screenX, screenY, 4, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+              } else if (decorRand > 0.3) {
+                // Rock
+                ctx.fillStyle = '#44403c';
+                ctx.beginPath();
+                ctx.moveTo(screenX - 8, screenY + 5);
+                ctx.lineTo(screenX - 5, screenY - 8);
+                ctx.lineTo(screenX + 3, screenY - 6);
+                ctx.lineTo(screenX + 8, screenY + 5);
+                ctx.closePath();
+                ctx.fill();
+              } else {
+                // Ember particles
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                ctx.arc(screenX + Math.sin(Date.now()/500 + x) * 3, screenY - 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            } else if (zone === 'frozen') {
+              // Ice crystals, snow piles
+              if (decorRand > 0.5) {
+                // Ice crystal
+                ctx.fillStyle = '#bfdbfe';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 15);
+                ctx.lineTo(screenX - 6, screenY + 5);
+                ctx.lineTo(screenX + 6, screenY + 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#93c5fd';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 15);
+                ctx.lineTo(screenX, screenY + 5);
+                ctx.lineTo(screenX + 6, screenY + 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#dbeafe';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+              } else {
+                // Snow pile
+                ctx.fillStyle = '#f1f5f9';
+                ctx.beginPath();
+                ctx.ellipse(screenX, screenY, 10, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.ellipse(screenX - 5, screenY - 2, 6, 4, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            } else if (zone === 'abyss') {
+              // Void crystals, floating runes
+              if (decorRand > 0.6) {
+                // Void crystal
+                ctx.fillStyle = '#581c87';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 18);
+                ctx.lineTo(screenX - 8, screenY + 6);
+                ctx.lineTo(screenX + 8, screenY + 6);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#7c3aed';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY - 18);
+                ctx.lineTo(screenX, screenY + 6);
+                ctx.lineTo(screenX + 8, screenY + 6);
+                ctx.closePath();
+                ctx.fill();
+                // Glow
+                ctx.shadowColor = '#a855f7';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#c084fc';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY - 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+              } else {
+                // Floating rune
+                const floatY = Math.sin(Date.now()/800 + x + y) * 3;
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY + floatY, 8, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(screenX - 4, screenY + floatY);
+                ctx.lineTo(screenX + 4, screenY + floatY);
+                ctx.moveTo(screenX, screenY - 4 + floatY);
+                ctx.lineTo(screenX, screenY + 4 + floatY);
+                ctx.stroke();
+              }
             }
           }
         }
@@ -2578,6 +2780,7 @@ export default function SpellBrigade() {
         if (px < -80 || px > width + 80 || py < -80 || py > height + 80) continue;
         
         const size = 45;
+        const time = Date.now() / 1000;
         const pulse = Math.sin(time * 3) * 0.2 + 1;
         
         // Outer glow
@@ -4729,6 +4932,284 @@ export default function SpellBrigade() {
             ctx.fill();
           }
         }
+        
+        // === CLASS ABILITY EFFECTS ===
+        else if (ef.type === 'flameShield') {
+          // Find the player to draw around
+          const player = players?.find(p => p.id === ef.playerId);
+          if (player) {
+            const px = player.x - cx;
+            const py = player.y - cy;
+            const pulseSize = 80 + Math.sin(elapsed / 100) * 10;
+            
+            // Rotating flames
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(elapsed / 500);
+            
+            for (let i = 0; i < 12; i++) {
+              const angle = (i / 12) * Math.PI * 2;
+              const flameX = Math.cos(angle) * pulseSize;
+              const flameY = Math.sin(angle) * pulseSize;
+              const flameH = 20 + Math.sin(elapsed / 100 + i) * 8;
+              
+              ctx.beginPath();
+              ctx.moveTo(flameX, flameY);
+              ctx.quadraticCurveTo(flameX * 1.2, flameY * 1.2 - flameH, flameX * 1.3, flameY * 1.3);
+              ctx.strokeStyle = `rgba(255, ${100 + i * 10}, 0, ${0.8 * alpha})`;
+              ctx.lineWidth = 4;
+              ctx.stroke();
+            }
+            ctx.restore();
+            
+            // Inner glow
+            const gradient = ctx.createRadialGradient(px, py, 0, px, py, pulseSize);
+            gradient.addColorStop(0, 'rgba(255, 150, 50, 0.3)');
+            gradient.addColorStop(0.7, 'rgba(255, 100, 0, 0.1)');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(px, py, pulseSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        
+        else if (ef.type === 'frostNova') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const cr = ef.radius * progress;
+          
+          // Expanding ice ring
+          ctx.beginPath();
+          ctx.arc(ex, ey, cr, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
+          ctx.lineWidth = 10 * alpha;
+          ctx.stroke();
+          
+          // Ice crystals
+          for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2 + elapsed / 200;
+            const crystalX = ex + Math.cos(angle) * cr * 0.8;
+            const crystalY = ey + Math.sin(angle) * cr * 0.8;
+            
+            ctx.beginPath();
+            ctx.moveTo(crystalX, crystalY - 8);
+            ctx.lineTo(crystalX - 4, crystalY + 4);
+            ctx.lineTo(crystalX + 4, crystalY + 4);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(135, 206, 235, ${alpha})`;
+            ctx.fill();
+          }
+        }
+        
+        else if (ef.type === 'glacialStorm') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const time = elapsed / 1000;
+          
+          // Swirling blizzard
+          ctx.save();
+          ctx.translate(ex, ey);
+          ctx.rotate(time * 2);
+          
+          // Outer storm
+          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, ef.radius);
+          gradient.addColorStop(0, 'rgba(135, 206, 250, 0.4)');
+          gradient.addColorStop(0.5, 'rgba(100, 180, 255, 0.2)');
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(0, 0, ef.radius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Snow particles
+          for (let i = 0; i < 30; i++) {
+            const particleAngle = (i / 30) * Math.PI * 2 + time * 3;
+            const particleDist = 30 + (i % 3) * (ef.radius / 3);
+            const px = Math.cos(particleAngle) * particleDist;
+            const py = Math.sin(particleAngle) * particleDist;
+            
+            ctx.beginPath();
+            ctx.arc(px, py, 2 + Math.sin(time * 10 + i) * 1, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+        
+        else if (ef.type === 'blink') {
+          // Start position - fading purple cloud
+          const fromX = ef.fromX - cx;
+          const fromY = ef.fromY - cy;
+          const toX = ef.toX - cx;
+          const toY = ef.toY - cy;
+          
+          // Trail between positions
+          ctx.beginPath();
+          ctx.moveTo(fromX, fromY);
+          ctx.lineTo(toX, toY);
+          ctx.strokeStyle = `rgba(155, 93, 229, ${alpha * 0.5})`;
+          ctx.lineWidth = 20 * alpha;
+          ctx.stroke();
+          
+          // Arrival sparkles
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = 30 * progress;
+            ctx.beginPath();
+            ctx.arc(toX + Math.cos(angle) * dist, toY + Math.sin(angle) * dist, 3 * alpha, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(224, 86, 253, ${alpha})`;
+            ctx.fill();
+          }
+        }
+        
+        else if (ef.type === 'inferno') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const pulseProgress = Math.min(1, progress * 3);
+          const size = ef.radius * pulseProgress;
+          
+          // Massive fire explosion
+          const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, size);
+          gradient.addColorStop(0, `rgba(255, 255, 200, ${alpha})`);
+          gradient.addColorStop(0.2, `rgba(255, 150, 50, ${alpha * 0.8})`);
+          gradient.addColorStop(0.5, `rgba(255, 50, 0, ${alpha * 0.5})`);
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(ex, ey, size, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Fire tongues
+          for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const tongueLen = size * 0.3 + Math.sin(elapsed / 50 + i * 2) * 20;
+            const tx = ex + Math.cos(angle) * size;
+            const ty = ey + Math.sin(angle) * size;
+            
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + Math.cos(angle) * tongueLen, ty + Math.sin(angle) * tongueLen);
+            ctx.strokeStyle = `rgba(255, ${100 + i * 5}, 0, ${alpha})`;
+            ctx.lineWidth = 6 * alpha;
+            ctx.stroke();
+          }
+        }
+        
+        else if (ef.type === 'staticField') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const pulseSize = ef.radius * (0.5 + progress * 0.5);
+          
+          // Electric field
+          ctx.beginPath();
+          ctx.arc(ex, ey, pulseSize, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 255, 0, ${alpha})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          
+          // Lightning bolts
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + elapsed / 100;
+            const startX = ex + Math.cos(angle) * 20;
+            const startY = ey + Math.sin(angle) * 20;
+            const endX = ex + Math.cos(angle) * pulseSize;
+            const endY = ey + Math.sin(angle) * pulseSize;
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            // Jagged lightning
+            let px = startX, py = startY;
+            for (let j = 0; j < 5; j++) {
+              const nextX = startX + (endX - startX) * ((j + 1) / 5) + (Math.random() - 0.5) * 15;
+              const nextY = startY + (endY - startY) * ((j + 1) / 5) + (Math.random() - 0.5) * 15;
+              ctx.lineTo(nextX, nextY);
+              px = nextX; py = nextY;
+            }
+            ctx.strokeStyle = `rgba(255, 255, ${150 + Math.random() * 105}, ${alpha})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+        
+        else if (ef.type === 'timeWarp') {
+          const player = players?.find(p => p.id === ef.playerId);
+          if (player) {
+            const px = player.x - cx;
+            const py = player.y - cy;
+            
+            // Golden time aura
+            const gradient = ctx.createRadialGradient(px, py, 0, px, py, 60);
+            gradient.addColorStop(0, 'rgba(212, 175, 55, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.15)');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(px, py, 60, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Clock hands
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(elapsed / 100);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${0.5 * alpha})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -25);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(15, 0);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+        
+        else if (ef.type === 'thunderGod') {
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          
+          // Massive lightning storm
+          const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, ef.radius);
+          gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.5})`);
+          gradient.addColorStop(0.3, `rgba(255, 255, 100, ${alpha * 0.3})`);
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(ex, ey, ef.radius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Flash effect
+          if (Math.random() > 0.7) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+            ctx.fillRect(0, 0, width, height);
+          }
+        }
+        
+        else if (ef.type === 'lightningBolt') {
+          const fromX = ef.fromX - cx;
+          const fromY = ef.fromY - cy;
+          const toX = ef.toX - cx;
+          const toY = ef.toY - cy;
+          
+          // Jagged lightning bolt
+          ctx.beginPath();
+          ctx.moveTo(fromX, fromY);
+          let px = fromX, py = fromY;
+          for (let j = 0; j < 6; j++) {
+            const nextX = fromX + (toX - fromX) * ((j + 1) / 6) + (Math.random() - 0.5) * 20;
+            const nextY = fromY + (toY - fromY) * ((j + 1) / 6) + (Math.random() - 0.5) * 20;
+            ctx.lineTo(nextX, nextY);
+          }
+          ctx.lineTo(toX, toY);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.lineWidth = 4;
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(255, 255, 100, ${alpha})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
 
         return true;
       });
@@ -5605,6 +6086,117 @@ export default function SpellBrigade() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Class Ability Bar - Desktop */}
+          {!isMobile && playerInfo && playerInfo.class !== 'voidlord' && (
+            <div style={{
+              position: 'fixed',
+              bottom: 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: 10,
+              zIndex: 100,
+            }}>
+              {[1, 2, 3].map(slot => {
+                const levelReqs = { 1: 10, 2: 20, 3: 30 };
+                const abilityNames = {
+                  pyromancer: { 1: 'Flame Shield', 2: 'Meteor Strike', 3: 'Inferno' },
+                  cryomancer: { 1: 'Frost Nova', 2: 'Ice Lance', 3: 'Glacial Storm' },
+                  arcanist: { 1: 'Blink', 2: 'Arcane Barrage', 3: 'Time Warp' },
+                  stormcaller: { 1: 'Static Field', 2: 'Ball Lightning', 3: 'Thunder God' },
+                };
+                const abilityColors = {
+                  pyromancer: '#ff6b35',
+                  cryomancer: '#00ffff',
+                  arcanist: '#9b5de5',
+                  stormcaller: '#ffff00',
+                };
+                
+                const unlocked = playerInfo.level >= levelReqs[slot];
+                const cooldownEnd = abilityCooldowns[slot] || 0;
+                const onCooldown = cooldownEnd > Date.now();
+                const cdRemaining = onCooldown ? Math.ceil((cooldownEnd - Date.now()) / 1000) : 0;
+                const abilityName = abilityNames[playerInfo.class]?.[slot] || `Ability ${slot}`;
+                const color = abilityColors[playerInfo.class] || '#888';
+                
+                return (
+                  <div
+                    key={slot}
+                    onClick={() => {
+                      if (unlocked && !onCooldown && socketRef.current) {
+                        const me = playerDataRef.current;
+                        const canvas = canvasRef.current;
+                        const cx = (me?.x || 0) - (canvas?.width || 800) / 2;
+                        const cy = (me?.y || 0) - (canvas?.height || 600) / 2;
+                        const targetX = mouseRef.current ? cx + mouseRef.current.x : me?.x;
+                        const targetY = mouseRef.current ? cy + mouseRef.current.y : me?.y;
+                        socketRef.current.emit('classAbility', { abilitySlot: slot, targetX, targetY });
+                      }
+                    }}
+                    style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 10,
+                      background: unlocked 
+                        ? (onCooldown ? 'rgba(50,50,50,0.9)' : `linear-gradient(135deg, ${color}40, ${color}20)`)
+                        : 'rgba(30,30,30,0.9)',
+                      border: `2px solid ${unlocked ? color : '#333'}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: unlocked && !onCooldown ? 'pointer' : 'not-allowed',
+                      opacity: unlocked ? 1 : 0.5,
+                      position: 'relative',
+                      transition: 'transform 0.1s',
+                    }}
+                  >
+                    {/* Hotkey */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 2,
+                      left: 4,
+                      fontSize: '0.65rem',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                    }}>
+                      {slot}
+                    </div>
+                    
+                    {/* Ability name */}
+                    <div style={{
+                      fontSize: '0.6rem',
+                      color: unlocked ? '#fff' : '#666',
+                      textAlign: 'center',
+                      padding: '0 2px',
+                      lineHeight: 1.1,
+                    }}>
+                      {unlocked ? abilityName : `Lv${levelReqs[slot]}`}
+                    </div>
+                    
+                    {/* Cooldown overlay */}
+                    {onCooldown && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.6)',
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.2rem',
+                        fontWeight: 'bold',
+                        color: '#f87171',
+                      }}>
+                        {cdRemaining}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
