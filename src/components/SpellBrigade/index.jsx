@@ -1,10 +1,11 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { io } from 'socket.io-client';
 
 // Local imports
 import { SVG, CLASS_SVG } from './constants/icons';
 import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/config';
-import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, SANCTUARY_FEATURES, pointInPolygon, getZoneAtPosition } from './constants/zones';
+import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
 
@@ -69,7 +70,6 @@ export default function SpellBrigade() {
   });
   const [dashCooldown, setDashCooldown] = useState(0); // timestamp when ready
   const [ultCooldown, setUltCooldown] = useState(0);   // timestamp when ready
-  // eslint-disable-next-line no-unused-vars
   const [recallCooldown, setRecallCooldown] = useState(0); // timestamp when ready
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -93,7 +93,6 @@ export default function SpellBrigade() {
   const [playersOnline, setPlayersOnline] = useState(0);
   const [autoAttack, setAutoAttack] = useState(true);
   const [pvpEnabled, setPvpEnabled] = useState(false); // Voidlord PvP toggle - OFF by default
-  // eslint-disable-next-line no-unused-vars
   const [invincible, setInvincible] = useState(false); // Admin invincibility toggle
   const [questComplete, setQuestComplete] = useState(null);
   const [npcDialogue, setNpcDialogue] = useState(null); // Current NPC dialogue
@@ -102,7 +101,6 @@ export default function SpellBrigade() {
   const inDungeonRef = useRef(false); // Ref version for render loop
   const [dungeonVictoryPortal, setDungeonVictoryPortal] = useState(null); // Portal after dragon death
   const dungeonVictoryPortalRef = useRef(null); // Ref version for render loop
-  // eslint-disable-next-line no-unused-vars
   const [dungeonProgress, setDungeonProgress] = useState(0);
   const joystickRef = useRef({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 });
   const joystickBaseRef = useRef(null);
@@ -436,6 +434,10 @@ export default function SpellBrigade() {
 
   const updateZone = (me) => {
     if (!me) return;
+    
+    // Don't update zone info when in dungeon
+    if (inDungeonRef.current) return;
+    
     const zoneName = getZoneAtPosition(me.x, me.y);
     
     setCurrentZone(ZONE_INFO[zoneName] || ZONE_INFO.sanctuary);
@@ -499,6 +501,13 @@ export default function SpellBrigade() {
       tempo: 0.5,
       waveType: 'sine',
       volume: 0.08,
+    },
+    dungeon: {
+      baseFreq: 98, // Low G - ominous
+      scale: [0, 1, 5, 6, 7, 12], // Diminished/chromatic - tension
+      tempo: 1.2, // Faster, urgent
+      waveType: 'sawtooth',
+      volume: 0.1,
     },
   };
 
@@ -1356,17 +1365,19 @@ export default function SpellBrigade() {
 
     // Dungeon events
     socket.on('enteredDungeon', (data) => {
-      console.log('⚔️ Entered dungeon!', data);
+      console.log('Entered dungeon!', data);
       inDungeonRef.current = true; // Update ref immediately for render loop
       setInDungeon(true);
       setDungeonProgress(0);
       // Reset camera to dungeon start position
       cameraRef.current = { x: data.x - 400, y: data.y - 300 };
       playSound('portalEnter');
+      // Start dungeon music
+      startZoneMusic('dungeon');
     });
 
     socket.on('exitedDungeon', (data) => {
-      console.log('🏠 Exited dungeon');
+      console.log('Exited dungeon');
       inDungeonRef.current = false; // Update ref immediately for render loop
       setInDungeon(false);
       // Reset camera to exit position
@@ -1377,6 +1388,8 @@ export default function SpellBrigade() {
       dungeonVictoryPortalRef.current = null; // Clear ref immediately
       setDungeonVictoryPortal(null); // Clear victory portal
       playSound('portalEnter');
+      // Restore sanctuary music
+      startZoneMusic('sanctuary');
     });
 
     socket.on('dungeonWarning', (data) => {
@@ -2106,13 +2119,10 @@ export default function SpellBrigade() {
         const time = Date.now() / 1000;
         
         // Dungeon layout constants
-        // eslint-disable-next-line no-unused-vars
         const DUNGEON_WIDTH = 800;
         const CORRIDOR_MIN_X = 300;
         const CORRIDOR_MAX_X = 500;
-        // eslint-disable-next-line no-unused-vars
         const ROOM_MIN_X = 150;
-        // eslint-disable-next-line no-unused-vars
         const ROOM_MAX_X = 650;
         
         // Room definitions
@@ -5469,10 +5479,9 @@ export default function SpellBrigade() {
             ctx.translate(-px, -py);
           }
           
-          // Dance animation for dance emote (side sway)
+          // Dance animation for dance emote (sparkles)
           if (player.emote === 'dance') {
-            const sway = Math.sin(emoteTime * 6) * 5;
-            // Already drawn player, but add sparkles
+            // Add sparkles around dancing player
             for (let i = 0; i < 3; i++) {
               const sparkleAngle = emoteTime * 4 + i * 2;
               const sparkleX = px + Math.cos(sparkleAngle) * 25;
