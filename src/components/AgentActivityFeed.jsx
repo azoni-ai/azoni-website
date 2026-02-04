@@ -64,6 +64,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   useEffect(() => {
     // Real-time listener for agent activity
@@ -77,13 +78,22 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
       }));
       setActivities(items);
       setLoading(false);
+      
+      // Auto-expand first item with reasoning on first load
+      if (firstLoad && items.length > 0) {
+        const firstWithReasoning = items.find(item => item.reasoning);
+        if (firstWithReasoning) {
+          setExpandedId(firstWithReasoning.id);
+        }
+        setFirstLoad(false);
+      }
     }, (error) => {
       console.error('Failed to fetch agent activity:', error);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [maxItems]);
+  }, [maxItems, firstLoad]);
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '';
@@ -158,12 +168,22 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
           const link = getActivityLink(activity);
           const isExpanded = expandedId === activity.id;
           const color = ACTIVITY_COLORS[activity.type] || '#888';
+          const hasReasoning = showReasoning && activity.reasoning;
+
+          const handleItemClick = (e) => {
+            // Don't toggle if clicking a link
+            if (e.target.tagName === 'A') return;
+            if (hasReasoning) {
+              setExpandedId(isExpanded ? null : activity.id);
+            }
+          };
 
           return (
             <div 
               key={activity.id} 
-              className={`feed-item ${isExpanded ? 'expanded' : ''}`}
+              className={`feed-item ${isExpanded ? 'expanded' : ''} ${hasReasoning ? 'clickable' : ''}`}
               style={{ '--activity-color': color }}
+              onClick={handleItemClick}
             >
               <div className="feed-item-main">
                 <div className="feed-icon" style={{ color }}>
@@ -173,7 +193,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
                 <div className="feed-content">
                   <div className="feed-text">
                     {link ? (
-                      <Link to={link} className="feed-title-link">
+                      <Link to={link} className="feed-title-link" onClick={(e) => e.stopPropagation()}>
                         {activity.title}
                       </Link>
                     ) : (
@@ -191,12 +211,8 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
                   </div>
                 </div>
 
-                {showReasoning && activity.reasoning && (
-                  <button 
-                    className="feed-expand-btn"
-                    onClick={() => setExpandedId(isExpanded ? null : activity.id)}
-                    aria-label={isExpanded ? 'Hide reasoning' : 'Show reasoning'}
-                  >
+                {hasReasoning && (
+                  <div className="feed-expand-btn" aria-label={isExpanded ? 'Hide reasoning' : 'Show reasoning'}>
                     <svg 
                       width="16" 
                       height="16" 
@@ -208,11 +224,11 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
                     >
                       <path d="M6 9l6 6 6-6"/>
                     </svg>
-                  </button>
+                  </div>
                 )}
               </div>
 
-              {showReasoning && activity.reasoning && isExpanded && (
+              {hasReasoning && isExpanded && (
                 <div className="feed-reasoning">
                   <div className="reasoning-label">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -229,7 +245,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
         })}
       </div>
 
-      <Link to="/moltbook" className="feed-view-all">
+      <Link to="/activity" className="feed-view-all">
         View full activity log →
       </Link>
     </div>

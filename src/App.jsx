@@ -17,6 +17,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
+const Activity = lazy(() => import("./pages/Activity"));
 
 const App = () => {
   return (
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="/game" element={<SpellBrigade />} />
               {/* Redirects for old routes */}
               <Route path="/aboutme" element={<About />} />
+              <Route path="/activity" element={<Activity />} />
               
               {/* 404 catch-all */}
               <Route path="*" element={<NotFound />} />
