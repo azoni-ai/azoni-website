@@ -561,58 +561,7 @@ export default function SpellBrigade() {
     });
 
     socket.on('gameState', (state) => {
-      // Store previous state for interpolation
-      const prevState = gameStateRef.current;
-      
-      // Interpolate entity positions for smoother movement
-      // Skip interpolation for large jumps (teleportation)
-      const TELEPORT_THRESHOLD = 200; // If moved more than this, snap don't lerp
-      
-      if (state.players && prevState.players) {
-        state.players = state.players.map(p => {
-          const prev = prevState.players?.find(pp => pp.id === p.id);
-          if (prev) {
-            const dx = Math.abs(p.x - prev.x);
-            const dy = Math.abs(p.y - prev.y);
-            
-            // If teleported (large distance), snap to new position
-            if (dx > TELEPORT_THRESHOLD || dy > TELEPORT_THRESHOLD) {
-              p._targetX = p.x;
-              p._targetY = p.y;
-              // Don't set prev position - keep current
-            } else {
-              // Normal movement - interpolate
-              p._targetX = p.x;
-              p._targetY = p.y;
-              p.x = prev.x;
-              p.y = prev.y;
-            }
-          }
-          return p;
-        });
-      }
-      
-      if (state.enemies && prevState.enemies) {
-        state.enemies = state.enemies.map(e => {
-          const prev = prevState.enemies?.find(pe => pe.id === e.id);
-          if (prev) {
-            const dx = Math.abs(e.x - prev.x);
-            const dy = Math.abs(e.y - prev.y);
-            
-            if (dx > TELEPORT_THRESHOLD || dy > TELEPORT_THRESHOLD) {
-              e._targetX = e.x;
-              e._targetY = e.y;
-            } else {
-              e._targetX = e.x;
-              e._targetY = e.y;
-              e.x = prev.x;
-              e.y = prev.y;
-            }
-          }
-          return e;
-        });
-      }
-      
+      // Store state directly - no interpolation (was causing freeze on teleport)
       gameStateRef.current = { ...gameStateRef.current, ...state };
       
       // Update players online count
@@ -1440,25 +1389,6 @@ export default function SpellBrigade() {
 
     const render = () => {
       const { world, players, enemies, projectiles, xpOrbs, particles, damageNumbers } = gameStateRef.current;
-      
-      // Interpolate entity positions for smooth movement (60fps feels smooth)
-      const LERP_SPEED = 0.25; // Higher = snappier, lower = smoother
-      if (players) {
-        for (const p of players) {
-          if (p._targetX !== undefined) {
-            p.x = lerp(p.x, p._targetX, LERP_SPEED);
-            p.y = lerp(p.y, p._targetY, LERP_SPEED);
-          }
-        }
-      }
-      if (enemies) {
-        for (const e of enemies) {
-          if (e._targetX !== undefined) {
-            e.x = lerp(e.x, e._targetX, LERP_SPEED);
-            e.y = lerp(e.y, e._targetY, LERP_SPEED);
-          }
-        }
-      }
       
       const me = players?.find(p => p.id === playerIdRef.current);
       const cam = cameraRef.current;
@@ -4378,7 +4308,6 @@ export default function SpellBrigade() {
                   }}>
                     <span style={{ ...styles.zoneIcon(currentZone.color), width: 12, height: 12 }}>{SVG.home}</span>
                     <span style={{ fontSize: '.7rem', color: currentZone.color }}>{currentZone.name}</span>
-                    <span style={{ marginLeft: 'auto', fontSize: '.65rem', color: '#4ade80' }}>● {playersOnline}</span>
                   </div>
                 )}
                 <div style={styles.mobilePlayerHeader}>
@@ -4502,13 +4431,6 @@ export default function SpellBrigade() {
                 style={{ ...styles.volumeSlider, width: 60 }}
                 title="Music Volume"
               />
-            </div>
-          )}
-
-          {/* Controls Hint - Desktop only */}
-          {!isMobile && (
-            <div style={styles.controlsHint}>
-              WASD or Click to move • SPACE dash • Q ultimate • B recall • X auto-attack • Z pvp
             </div>
           )}
 
@@ -5216,8 +5138,8 @@ export default function SpellBrigade() {
         <div 
           style={{
             position: 'fixed',
-            top: 80,
-            right: 20,
+            top: 20,
+            left: 20,
             background: 'rgba(0,0,0,0.8)',
             backdropFilter: 'blur(10px)',
             padding: '12px 16px',

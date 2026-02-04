@@ -1,7 +1,7 @@
 /* ============ ACTIVITY PAGE ============ */
 .activity-page {
   min-height: 100vh;
-  padding: var(--space-xl) 0;
+  padding: calc(var(--space-xl) + 60px) 0 var(--space-xl);
   background: var(--bg-primary);
 }
 

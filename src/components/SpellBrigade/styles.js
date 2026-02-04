@@ -318,10 +318,8 @@ export const createStyles = (isMobile, settings, screen) => ({
     // Connection status
     connection: (connected) => ({
       position: 'absolute',
-      top: isMobile ? 45 : 70,
-      right: isMobile ? 'auto' : 20,
-      left: isMobile ? '50%' : 'auto',
-      transform: isMobile ? 'translateX(-50%)' : 'none',
+      top: 10,
+      right: 10,
       padding: '4px 10px',
       borderRadius: 15,
       fontSize: '.7rem',
