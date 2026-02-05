@@ -35,6 +35,7 @@ export default function SpellBrigade() {
   const zoomRef = useRef(1);
   const effectsRef = useRef([]);
   const meteorWarningsRef = useRef([]);
+  const pendingCustomWizardRef = useRef(null); // Custom wizard to apply after joining game
   const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, musicEnabled: true, musicVolume: 0.3, showZoneNames: true, showMinimap: true });
 
   // State
@@ -928,6 +929,16 @@ export default function SpellBrigade() {
             }).catch(() => {});
           }
         } catch {}
+      }
+      
+      // Auto-apply pending custom wizard if one was selected before joining
+      if (pendingCustomWizardRef.current) {
+        const classId = pendingCustomWizardRef.current;
+        pendingCustomWizardRef.current = null;
+        // Small delay to ensure player is fully initialized on server
+        setTimeout(() => {
+          socket.emit('selectCustomWizard', { classId });
+        }, 500);
       }
     });
 
@@ -8998,51 +9009,118 @@ export default function SpellBrigade() {
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-y',
+        background: 'radial-gradient(ellipse at top, #1a1a2e 0%, #0f0f1a 50%, #080812 100%)',
       }}>
+        {/* Ambient particles background */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          {[...Array(12)].map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              width: 4 + Math.random() * 4,
+              height: 4 + Math.random() * 4,
+              borderRadius: '50%',
+              background: ['#ffd93d', '#a78bfa', '#60a5fa', '#f87171'][i % 4],
+              opacity: 0.15 + Math.random() * 0.2,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`,
+            }} />
+          ))}
+        </div>
+
         {/* Header */}
         <div style={{
+          position: 'relative',
           flexShrink: 0,
-          padding: isMobile ? '20px 15px 15px' : '25px 30px 20px',
-          background: 'linear-gradient(180deg, rgba(15,15,26,1) 0%, rgba(15,15,26,0.9) 100%)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          padding: isMobile ? '30px 20px 20px' : '40px 40px 25px',
+          textAlign: 'center',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 8 }}>
-            <svg width={isMobile ? 32 : 40} height={isMobile ? 32 : 40} viewBox="0 0 48 48">
-              <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
-              <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
-            </svg>
-            <h1 style={{ color: '#ffd93d', fontSize: isMobile ? '1.6rem' : '2rem', fontWeight: 700, margin: 0 }}>Spell Brigade</h1>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 15, marginBottom: 6 }}>
+            <div style={{ position: 'relative' }}>
+              <svg width={isMobile ? 44 : 56} height={isMobile ? 44 : 56} viewBox="0 0 48 48">
+                <defs>
+                  <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#ffd93d"/>
+                    <stop offset="100%" stopColor="#f59e0b"/>
+                  </linearGradient>
+                  <filter id="starGlow">
+                    <feGaussianBlur stdDeviation="2" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="url(#starGrad)" filter="url(#starGlow)"/>
+                <circle cx="24" cy="22" r="5" fill="#ff6b35"/>
+              </svg>
+            </div>
+            <div>
+              <h1 style={{ 
+                color: '#ffd93d', 
+                fontSize: isMobile ? '2rem' : '2.8rem', 
+                fontWeight: 800, 
+                margin: 0,
+                textShadow: '0 0 30px rgba(255,217,61,0.4), 0 2px 10px rgba(0,0,0,0.5)',
+                letterSpacing: '-0.02em',
+              }}>Spell Brigade</h1>
+            </div>
           </div>
+          <p style={{ color: '#666', fontSize: isMobile ? '0.75rem' : '0.85rem', margin: 0 }}>
+            Multiplayer Wizard Arena
+          </p>
           
-          {/* Tabs */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 15 }}>
-            {['play', 'create', 'tutorial', 'settings'].map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{
-                padding: isMobile ? '8px 12px' : '10px 20px',
-                background: tab === t ? 'rgba(255,215,61,0.15)' : 'rgba(255,255,255,0.03)',
-                border: tab === t ? '1px solid rgba(255,215,61,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                color: tab === t ? '#ffd93d' : '#888',
-                fontSize: isMobile ? '0.75rem' : '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}>
-                {t === 'play' ? (
-                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M6.92 5H5L14 14l-1.5 1.5L5 8v1.92l8 8L22 9l-3-3-7.08 7.08L6.92 5z"/></svg> Play</>
-                ) : t === 'create' ? (
-                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg> Create</>
-                ) : t === 'tutorial' ? (
-                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg> Guide</>
-                ) : (
-                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg> Settings</>
-                )}
-              </button>
-            ))}
+          {/* Online indicator */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 12,
+            padding: '6px 14px',
+            background: 'rgba(34,197,94,0.1)',
+            border: '1px solid rgba(34,197,94,0.3)',
+            borderRadius: 20,
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+            <span style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 600 }}>{playersOnline} Online</span>
           </div>
+        </div>
+        
+        {/* Navigation Tabs */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: isMobile ? 6 : 10,
+          padding: '0 20px 20px',
+        }}>
+          {[
+            { id: 'play', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>, label: 'Play' },
+            { id: 'create', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>, label: 'Create' },
+            { id: 'tutorial', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>, label: 'Guide' },
+            { id: 'settings', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>, label: 'Settings' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: tab === t.id 
+                ? 'linear-gradient(180deg, rgba(255,217,61,0.2) 0%, rgba(255,217,61,0.05) 100%)' 
+                : 'rgba(255,255,255,0.03)',
+              border: tab === t.id 
+                ? '1px solid rgba(255,217,61,0.5)' 
+                : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 10,
+              color: tab === t.id ? '#ffd93d' : '#666',
+              fontSize: isMobile ? '0.8rem' : '0.9rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: tab === t.id ? '0 4px 20px rgba(255,217,61,0.15)' : 'none',
+            }}>
+              <span style={{ opacity: tab === t.id ? 1 : 0.6 }}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
         </div>
         
         {/* Content Area */}
@@ -9050,274 +9128,453 @@ export default function SpellBrigade() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: isMobile ? '15px' : '20px 30px',
-          overflow: 'visible',
-          paddingBottom: isMobile ? 80 : 40,
+          padding: isMobile ? '0 15px 80px' : '0 40px 40px',
+          maxWidth: 1200,
+          margin: '0 auto',
+          width: '100%',
         }}>
 
-        {/* AI Wizard Creator - shown on play and create tabs */}
-        {(tab === 'play' || tab === 'create') && (
-          <div style={{
-            marginBottom: 20,
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.06))',
-            border: '1px solid rgba(139,92,246,0.25)',
-            borderRadius: 16,
-            padding: isMobile ? 16 : 20,
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <span style={{ width: 24, height: 24, color: '#a78bfa' }}>{SVG.wand}</span>
-              <div>
-                <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '0.95rem' }}>AI Wizard Creator</div>
-                <div style={{ color: '#666', fontSize: '0.7rem' }}>Describe your dream wizard and AI will bring it to life</div>
-              </div>
-              {adminKey === 'azoni-voidlord-2026' && (
-                <span style={{ marginLeft: 'auto', padding: '2px 8px', background: 'rgba(139,92,246,0.2)', borderRadius: 4, color: '#a78bfa', fontSize: '0.6rem', fontWeight: 600 }}>ADMIN</span>
-              )}
-            </div>
+        {/* ===== CREATE TAB ===== */}
+        {tab === 'create' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             
-            {/* Prompt Input */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'flex-end' }}>
-              <textarea
-                value={wizardPrompt}
-                onChange={(e) => { setWizardPrompt(e.target.value); setWizardError(''); }}
-                placeholder="A frost necromancer who commands ice and death... Be as detailed as you want about spells, lore, and abilities!"
-                maxLength={500}
-                disabled={wizardGenerating}
-                rows={2}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && wizardPrompt.trim().length >= 3 && !wizardGenerating && socketRef.current) {
-                    e.preventDefault();
-                    setWizardGenerating(true);
-                    setWizardError('');
-                    setGeneratedWizard(null);
-                    socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  background: 'rgba(0,0,0,0.4)',
-                  border: `1px solid ${wizardError ? 'rgba(239,68,68,0.4)' : 'rgba(139,92,246,0.2)'}`,
-                  borderRadius: 8,
-                  color: '#fff',
-                  fontSize: '0.85rem',
-                  outline: 'none',
-                  resize: 'none',
-                  fontFamily: 'inherit',
-                }}
-              />
-              <button
-                disabled={wizardGenerating || wizardPrompt.trim().length < 3}
-                onClick={() => {
-                  if (socketRef.current && wizardPrompt.trim().length >= 3) {
-                    setWizardGenerating(true);
-                    setWizardError('');
-                    setGeneratedWizard(null);
-                    socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
-                  }
-                }}
-                style={{
-                  padding: '12px 20px',
-                  background: wizardGenerating ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                  border: 'none',
-                  borderRadius: 8,
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  opacity: (wizardGenerating || wizardPrompt.trim().length < 3) ? 0.5 : 1,
-                  cursor: wizardGenerating ? 'not-allowed' : 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {wizardGenerating ? <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.hourglass}</span> Generating...</> : <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.sparkle}</span> Generate</>}
-              </button>
-            </div>
-
-            {/* Status / Error messages */}
-            {wizardStatus && (
-              <div style={{ color: '#a78bfa', fontSize: '0.8rem', marginBottom: 10, padding: '8px 12px', background: 'rgba(139,92,246,0.1)', borderRadius: 6 }}>
-                {wizardStatus}
+            {/* AI Wizard Creator - Featured Section */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(236,72,153,0.08) 50%, rgba(59,130,246,0.08) 100%)',
+              border: '1px solid rgba(139,92,246,0.3)',
+              borderRadius: 16,
+              padding: isMobile ? 16 : 24,
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              {/* Decorative gradient orbs */}
+              <div style={{ position: 'absolute', top: -50, right: -50, width: 150, height: 150, background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, background: 'radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              
+              {/* Header Row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, position: 'relative' }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 15px rgba(139,92,246,0.3)',
+                }}>
+                  <span style={{ width: 24, height: 24, color: '#fff' }}>{SVG.wand}</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem', marginBottom: 2 }}>AI Wizard Creator</div>
+                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Describe your wizard and AI brings it to life</div>
+                </div>
+                {adminKey === 'azoni-voidlord-2026' && (
+                  <span style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', borderRadius: 6, color: '#fff', fontSize: '0.65rem', fontWeight: 700 }}>ADMIN</span>
+                )}
               </div>
-            )}
-            {wizardError && (
-              <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: 10, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 6 }}>
-                {wizardError}
-              </div>
-            )}
-            
-            {/* Preset Ideas */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: generatedWizard ? 14 : 0 }}>
-              {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Lava Berserker', 'Frost Assassin', 'Crystal Sage'].map(preset => (
-                <span 
-                  key={preset}
-                  onClick={() => {
-                    if (!wizardGenerating) {
-                      setWizardPrompt(preset);
+              
+              {/* Input Row */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <input
+                  type="text"
+                  value={wizardPrompt}
+                  onChange={(e) => { setWizardPrompt(e.target.value); setWizardError(''); }}
+                  placeholder="A shadow assassin with poison daggers..."
+                  maxLength={500}
+                  disabled={wizardGenerating}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && wizardPrompt.trim().length >= 3 && !wizardGenerating && socketRef.current) {
+                      e.preventDefault();
+                      setWizardGenerating(true);
+                      setWizardError('');
+                      setGeneratedWizard(null);
+                      socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
                     }
                   }}
                   style={{
-                    padding: '4px 10px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: 6,
-                    color: '#aaa',
-                    fontSize: '0.65rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
+                    flex: 1,
+                    padding: '14px 18px',
+                    background: 'rgba(0,0,0,0.4)',
+                    border: `1px solid ${wizardError ? 'rgba(239,68,68,0.5)' : 'rgba(139,92,246,0.3)'}`,
+                    borderRadius: 10,
+                    color: '#fff',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  disabled={wizardGenerating || wizardPrompt.trim().length < 3}
+                  onClick={() => {
+                    if (socketRef.current && wizardPrompt.trim().length >= 3) {
+                      setWizardGenerating(true);
+                      setWizardError('');
+                      setGeneratedWizard(null);
+                      socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
+                    }
+                  }}
+                  style={{
+                    padding: '14px 24px',
+                    background: wizardGenerating 
+                      ? 'rgba(139,92,246,0.3)' 
+                      : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                    border: 'none',
+                    borderRadius: 10,
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    opacity: (wizardGenerating || wizardPrompt.trim().length < 3) ? 0.5 : 1,
+                    cursor: wizardGenerating ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: wizardGenerating ? 'none' : '0 4px 15px rgba(139,92,246,0.3)',
+                    transition: 'all 0.2s',
                   }}
                 >
-                  {preset}
-                </span>
-              ))}
+                  {wizardGenerating ? '✨ Creating...' : '✨ Generate'}
+                </button>
+              </div>
+
+              {/* Quick Ideas */}
+              {!generatedWizard && !wizardGenerating && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ color: '#666', fontSize: '0.75rem', marginRight: 4 }}>Try:</span>
+                  {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Frost Assassin'].map(preset => (
+                    <button 
+                      key={preset}
+                      onClick={() => setWizardPrompt(preset)}
+                      style={{
+                        padding: '5px 12px',
+                        background: 'rgba(139,92,246,0.1)',
+                        border: '1px solid rgba(139,92,246,0.2)',
+                        borderRadius: 6,
+                        color: '#a78bfa',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Status Messages */}
+              {wizardStatus && (
+                <div style={{ color: '#a78bfa', fontSize: '0.85rem', marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 16, height: 16, border: '2px solid #a78bfa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  {wizardStatus}
+                </div>
+              )}
+              {wizardError && (
+                <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: 12 }}>⚠️ {wizardError}</div>
+              )}
+
+              {/* Generated Result */}
+              {generatedWizard && generatedWizard.classDef && (
+                <div style={{
+                  marginTop: 16,
+                  padding: 16,
+                  background: 'rgba(0,0,0,0.5)',
+                  borderRadius: 12,
+                  border: `2px solid ${generatedWizard.classDef.color}60`,
+                }}>
+                  {/* Wizard Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 14,
+                      background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
+                      boxShadow: `0 4px 20px ${generatedWizard.classDef.color}40`,
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: generatedWizard.classDef.color, fontWeight: 700, fontSize: '1.2rem' }}>
+                        {generatedWizard.classDef.name}
+                      </div>
+                      <div style={{ color: '#888', fontSize: '0.8rem' }}>{generatedWizard.classDef.description}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ color: '#f87171', fontSize: '0.85rem', fontWeight: 600 }}>❤️ {generatedWizard.classDef.baseHealth}</div>
+                      <div style={{ color: '#60a5fa', fontSize: '0.85rem', fontWeight: 600 }}>⚡ {generatedWizard.classDef.baseSpeed}</div>
+                    </div>
+                  </div>
+                  
+                  {/* Spells Grid */}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                    {Object.values(generatedWizard.spellDefs).slice(0, 5).map(spell => (
+                      <div key={spell.id} style={{
+                        padding: '6px 10px',
+                        background: `${spell.color}15`,
+                        border: `1px solid ${spell.color}40`,
+                        borderRadius: 6,
+                        fontSize: '0.75rem',
+                        color: '#ccc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: spell.color, boxShadow: `0 0 6px ${spell.color}` }} />
+                        {spell.name}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Play Button */}
+                  {adminKey === 'azoni-voidlord-2026' ? (
+                    <button
+                      onClick={() => {
+                        if (generatedWizard.classId) {
+                          pendingCustomWizardRef.current = generatedWizard.classId;
+                          if (screenRef.current === 'game' && socketRef.current) {
+                            pendingCustomWizardRef.current = null;
+                            socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
+                          } else {
+                            handleJoin();
+                          }
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '14px',
+                        background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
+                        border: 'none',
+                        borderRadius: 10,
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        boxShadow: `0 4px 20px ${generatedWizard.classDef.color}40`,
+                      }}
+                    >
+                      ▶ Play as {generatedWizard.classDef.name}
+                    </button>
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      padding: '14px',
+                      background: 'rgba(139,92,246,0.1)',
+                      border: '1px solid rgba(139,92,246,0.3)',
+                      borderRadius: 10,
+                      textAlign: 'center',
+                      color: '#a78bfa',
+                      fontSize: '0.9rem',
+                    }}>
+                      🔒 Custom Wizard Gameplay — Coming Soon
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Generated Wizard Result */}
-            {generatedWizard && generatedWizard.classDef && (
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
+              <span style={{ color: '#444', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 2 }}>or choose a class</span>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
+            </div>
+            
+            {/* Character Creation Section */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 24,
+            }}>
+              {/* Left - Character Preview & Name */}
               <div style={{
-                marginTop: 14,
-                padding: 16,
-                background: 'rgba(0,0,0,0.4)',
-                borderRadius: 12,
-                border: `1px solid ${generatedWizard.classDef.color}40`,
+                flex: isMobile ? 'none' : '0 0 280px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{
+                  background: 'rgba(0,0,0,0.4)',
+                  border: `2px solid ${classes[selectedClass]?.color || '#888'}40`,
+                  borderRadius: 16,
+                  padding: 24,
+                  textAlign: 'center',
+                }}>
+                  {/* Class Icon */}
                   <div style={{
-                    width: 40, height: 40, borderRadius: 10,
-                    background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
-                    boxShadow: `0 0 15px ${generatedWizard.classDef.color}40`,
-                  }} />
-                  <div>
-                    <div style={{ color: generatedWizard.classDef.color, fontWeight: 700, fontSize: '1rem' }}>
-                      {generatedWizard.classDef.name}
+                    width: 80,
+                    height: 80,
+                    margin: '0 auto 16px',
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#888'}30, ${classes[selectedClass]?.color || '#888'}10)`,
+                    border: `3px solid ${classes[selectedClass]?.color || '#888'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 4px 20px ${classes[selectedClass]?.color || '#888'}30`,
+                  }}>
+                    <span style={{ width: 44, height: 44, color: classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color }}>
+                      {CLASS_SVG[selectedClass] || SVG.arcane}
+                    </span>
+                  </div>
+                  
+                  <div style={{ color: classes[selectedClass]?.color, fontWeight: 700, fontSize: '1.2rem', marginBottom: 4 }}>
+                    {classes[selectedClass]?.name || 'Select a Class'}
+                  </div>
+                  <div style={{ color: '#666', fontSize: '0.8rem', marginBottom: 16 }}>
+                    {classes[selectedClass]?.description || ''}
+                  </div>
+                  
+                  {/* Stats */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 16 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: '1.1rem' }}>{classes[selectedClass]?.baseHealth || 100}</div>
+                      <div style={{ color: '#666', fontSize: '0.7rem' }}>HP</div>
                     </div>
-                    <div style={{ color: '#888', fontSize: '0.7rem' }}>{generatedWizard.classDef.description}</div>
-                  </div>
-                </div>
-                
-                {/* Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10, fontSize: '0.75rem' }}>
-                  <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#f87171' }}>{SVG.heart}</span> HP: <span style={{ color: '#f87171' }}>{generatedWizard.classDef.baseHealth}</span></div>
-                  <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#60a5fa' }}>{SVG.lightning}</span> Speed: <span style={{ color: '#60a5fa' }}>{generatedWizard.classDef.baseSpeed}</span></div>
-                </div>
-                
-                {/* Spells */}
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ color: '#666', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Spells</div>
-                  {Object.values(generatedWizard.spellDefs).map(spell => (
-                    <div key={spell.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: '0.75rem' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: 4, background: spell.color }} />
-                      <span style={{ color: '#ccc' }}>{spell.name}</span>
-                      <span style={{ color: '#666', fontSize: '0.65rem' }}>
-                        {spell.damage}dmg / {(spell.cooldown/1000).toFixed(1)}s
-                        {spell.isAoe ? ' AOE' : ''}
-                        {spell.piercing ? ' Pierce' : ''}
-                        {spell.homing ? ' Homing' : ''}
-                        {spell.slowEffect ? ' Slow' : ''}
-                      </span>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '1.1rem' }}>{classes[selectedClass]?.baseSpeed || 150}</div>
+                      <div style={{ color: '#666', fontSize: '0.7rem' }}>Speed</div>
                     </div>
-                  ))}
-                </div>
-
-                {/* Abilities */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: '0.7rem' }}>
-                  <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-                    <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.dash}</span> {generatedWizard.classDef.dashAbility?.name}</div>
-                    <div style={{ color: '#666' }}>{generatedWizard.classDef.dashAbility?.distance}px / {(generatedWizard.classDef.dashAbility?.cooldown/1000).toFixed(0)}s cd</div>
                   </div>
-                  <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-                    <div style={{ color: '#fbbf24', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.star}</span> {generatedWizard.classDef.ultimateAbility?.name}</div>
-                    <div style={{ color: '#666' }}>{generatedWizard.classDef.ultimateAbility?.damage}dmg / {(generatedWizard.classDef.ultimateAbility?.cooldown/1000).toFixed(0)}s cd</div>
-                  </div>
-                </div>
-
-                {/* Lore */}
-                {generatedWizard.classDef.lore && (
-                  <div style={{ color: '#777', fontSize: '0.7rem', fontStyle: 'italic', marginBottom: 12, lineHeight: 1.4 }}>
-                    "{generatedWizard.classDef.lore}"
-                  </div>
-                )}
-                
-                {/* Use This Wizard button - admin only for now */}
-                {adminKey === 'azoni-voidlord-2026' ? (
-                  <button
-                    onClick={() => {
-                      if (socketRef.current && generatedWizard.classId) {
-                        socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
-                      }
-                    }}
-                    style={{
+                  
+                  <input
+                    style={{ 
                       width: '100%',
-                      padding: '12px',
-                      background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
-                      border: 'none',
-                      borderRadius: 8,
+                      padding: '12px 16px',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
                       color: '#fff',
+                      fontSize: '0.95rem',
+                      textAlign: 'center',
+                      marginBottom: 16,
+                      outline: 'none',
+                    }}
+                    type="text"
+                    placeholder="Wizard name (or random)"
+                    maxLength={20}
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                  />
+                  
+                  <button 
+                    onClick={handleJoin}
+                    style={{ 
+                      width: '100%',
+                      padding: '16px',
+                      fontSize: '1.05rem',
                       fontWeight: 700,
-                      fontSize: '0.9rem',
+                      background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#22c55e'}, ${classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color || '#22c55e'})`,
+                      border: 'none',
+                      borderRadius: 10,
+                      color: '#fff',
                       cursor: 'pointer',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 10,
+                      boxShadow: `0 4px 20px ${classes[selectedClass]?.color || '#22c55e'}40`,
                     }}
                   >
-                    <span style={{ display: 'inline-flex', width: 18, height: 18 }}>{SVG.wand}</span> Play as {generatedWizard.classDef.name}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                    Create & Play
                   </button>
-                ) : (
-                  <div style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(139,92,246,0.2)',
-                    borderRadius: 8,
-                    textAlign: 'center',
-                  }}>
-                    <div style={{ color: '#a78bfa', fontWeight: 600, fontSize: '0.85rem', marginBottom: 2 }}>
-                      <span style={{ display: 'inline-flex', width: 16, height: 16 }}>{SVG.lock}</span> Play as Custom Wizard — Coming Soon!
-                    </div>
-                    <div style={{ color: '#666', fontSize: '0.7rem' }}>Custom wizard gameplay is being tested. Stay tuned!</div>
-                  </div>
+                </div>
+                
+                {savedPlayer && (
+                  <button
+                    onClick={() => { setSavedPlayer(null); setTab('play'); }}
+                    style={{
+                      padding: '12px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: '#666',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ← Back to {savedPlayer.name}
+                  </button>
                 )}
               </div>
-            )}
-            
-            {/* Preview of what AI generates - shown when no result yet */}
-            {!generatedWizard && (
-              <div style={{
-                marginTop: 14,
-                padding: '12px 16px',
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: 10,
-                border: '1px solid rgba(255,255,255,0.05)',
-              }}>
-                <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                  AI will generate
+              
+              {/* Right - Class Selection Grid */}
+              <div style={{ flex: 1 }}>
+                <div style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+                  Choose Your Class
                 </div>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  {['Custom Name & Lore', 'Unique Spell Set', 'Balanced Stats', 'Matching Colors', 'Dash & Ultimate'].map(item => (
-                    <div key={item} style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      color: '#888', fontSize: '0.7rem',
-                    }}>
-                      <span style={{ color: '#a78bfa' }}>✓</span> {item}
-                    </div>
-                  ))}
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
+                  gap: 12,
+                }}>
+                  {Object.entries(classes)
+                    .filter(([id, c]) => {
+                      if (adminKey === 'azoni-voidlord-2026') return true;
+                      if (id === 'voidlord') {
+                        const hasDragonKill = savedPlayer?.bossKills?.dragon || 
+                          characters?.some(ch => ch.bossKills?.dragon) ||
+                          authState?.user?.characters?.some(ch => ch.bossKills?.dragon) ||
+                          playerInfo?.bossKills?.dragon;
+                        return hasDragonKill;
+                      }
+                      if ((c.hidden || c.isAdmin) && adminKey !== 'azoni-voidlord-2026') return false;
+                      return true;
+                    })
+                    .map(([id, c]) => {
+                      const isSelected = selectedClass === id;
+                      return (
+                        <div
+                          key={id}
+                          onClick={() => handleClassChange(id)}
+                          style={{
+                            background: isSelected 
+                              ? `linear-gradient(135deg, ${c.color}25, ${c.color}10)` 
+                              : 'rgba(0,0,0,0.3)',
+                            border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: 12,
+                            padding: 14,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            position: 'relative',
+                          }}
+                        >
+                          {c.isAdmin && (
+                            <div style={{ 
+                              position: 'absolute', top: 8, right: 8, 
+                              fontSize: '.55rem', background: '#ff00ff',
+                              color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold',
+                            }}>ADMIN</div>
+                          )}
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{
+                              width: 44, height: 44, borderRadius: 10,
+                              background: `${c.color}20`,
+                              border: `2px solid ${c.color}50`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0,
+                            }}>
+                              <span style={{ width: 24, height: 24, color: c.secondaryColor || c.color }}>
+                                {CLASS_SVG[id] || SVG.arcane}
+                              </span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ color: isSelected ? c.color : '#fff', fontWeight: 600, fontSize: '0.95rem' }}>
+                                {c.name}
+                              </div>
+                              <div style={{ color: '#666', fontSize: '0.75rem' }}>{c.description}</div>
+                              <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: '0.7rem' }}>
+                                <span style={{ color: '#f87171' }}>❤️ {c.baseHealth}</span>
+                                <span style={{ color: '#60a5fa' }}>⚡ {c.baseSpeed}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* Play Tab - Character Select */}
+        {/* ===== PLAY TAB ===== */}
         {tab === 'play' && (
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 15,
-            height: isMobile ? 'auto' : '100%',
-            padding: isMobile ? 15 : 20,
-            overflowY: isMobile ? 'visible' : 'auto',
+            gap: 20,
           }}>
             
             {(characters.length > 0 || savedPlayer) ? (() => {
@@ -9667,295 +9924,6 @@ export default function SpellBrigade() {
             )}
           </div>
         )}        
-        {/* Create Tab - Character Creation */}
-        {tab === 'create' && (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: 20,
-            height: isMobile ? 'auto' : '100%',
-            overflow: isMobile ? 'visible' : 'hidden',
-          }}>
-            
-            {/* Left Panel - Name and Create */}
-            <div style={{
-              flex: isMobile ? 'none' : '0 0 300px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 15,
-            }}>
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(0,0,0,0.6), rgba(30,30,50,0.6))',
-                border: `2px solid ${classes[selectedClass]?.color || '#888'}50`,
-                borderRadius: 16,
-                padding: 20,
-              }}>
-                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <div style={{
-                    width: 70,
-                    height: 70,
-                    margin: '0 auto 12px',
-                    borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#888'}40, ${classes[selectedClass]?.color || '#888'}20)`,
-                    border: `3px solid ${classes[selectedClass]?.color || '#888'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <span style={{ width: 40, height: 40, color: classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color }}>
-                      {CLASS_SVG[selectedClass] || SVG.arcane}
-                    </span>
-                  </div>
-                  <div style={{ color: classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color, fontWeight: 700, fontSize: '1.1rem' }}>
-                    {classes[selectedClass]?.name || 'Select a Class'}
-                  </div>
-                </div>
-                
-                <input
-                  style={{ 
-                    ...styles.input, 
-                    marginBottom: 15,
-                    textAlign: 'center',
-                    fontSize: '1rem',
-                    padding: '14px',
-                  }}
-                  type="text"
-                  placeholder="Wizard name (or random)"
-                  maxLength={20}
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                />
-                
-                <button 
-                  style={{ 
-                    width: '100%',
-                    padding: '16px 20px',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#22c55e'}, ${classes[selectedClass]?.color || '#22c55e'}cc)`,
-                    border: 'none',
-                    borderRadius: 10,
-                    color: '#fff',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: `0 4px 20px ${classes[selectedClass]?.color || '#22c55e'}40`,
-                  }} 
-                  onClick={handleJoin}
-                >
-                  <span style={{ width: 20, height: 20 }}>{SVG.dash}</span>
-                  Create & Play
-                </button>
-              </div>
-              
-              {savedPlayer && (
-                <button
-                  onClick={() => setTab('play')}
-                  style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    padding: '10px 16px',
-                    color: '#888',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ← Back to {savedPlayer.name}
-                </button>
-              )}
-            </div>
-            
-            {/* Right Panel - Class Selection */}
-            <div style={{
-              flex: 1,
-              overflow: isMobile ? 'visible' : 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-              paddingRight: isMobile ? 0 : 5,
-            }}>
-              <div style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 }}>
-                Choose Your Class
-              </div>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: 12,
-              }}>
-                {Object.entries(classes)
-                  .filter(([id, c]) => {
-                    // Admin sees everything
-                    if (adminKey === 'azoni-voidlord-2026') return true;
-                    // Voidlord unlocked by dragon kill
-                    if (id === 'voidlord') {
-                      const hasDragonKill = savedPlayer?.bossKills?.dragon || 
-                        characters?.some(ch => ch.bossKills?.dragon) ||
-                        authState?.user?.characters?.some(ch => ch.bossKills?.dragon) ||
-                        playerInfo?.bossKills?.dragon;
-                      return hasDragonKill;
-                    }
-                    // Hide admin/hidden classes from non-admins
-                    if ((c.hidden || c.isAdmin) && adminKey !== 'azoni-voidlord-2026') return false;
-                    return true;
-                  })
-                  .map(([id, c]) => {
-                    const isSelected = selectedClass === id;
-                    
-                    // Class abilities that unlock at levels 10, 20, 30
-                    const classAbilities = {
-                      pyromancer: [
-                        { name: 'Flame Shield', level: 10, desc: 'Damage aura' },
-                        { name: 'Meteor Strike', level: 20, desc: 'Targeted AOE' },
-                        { name: 'Inferno', level: 30, desc: 'Massive explosion' },
-                      ],
-                      cryomancer: [
-                        { name: 'Frost Nova', level: 10, desc: 'Freeze nearby' },
-                        { name: 'Ice Lance', level: 20, desc: 'Piercing bolt' },
-                        { name: 'Glacial Storm', level: 30, desc: 'Blizzard zone' },
-                      ],
-                      arcanist: [
-                        { name: 'Blink', level: 10, desc: 'Teleport strike' },
-                        { name: 'Arcane Barrage', level: 20, desc: 'Missile storm' },
-                        { name: 'Time Warp', level: 30, desc: 'Speed boost' },
-                      ],
-                      stormcaller: [
-                        { name: 'Static Field', level: 10, desc: 'Chain damage' },
-                        { name: 'Ball Lightning', level: 20, desc: 'Bouncing orb' },
-                        { name: 'Thunder God', level: 30, desc: 'Storm avatar' },
-                      ],
-                      voidlord: [
-                        { name: 'Void Rift', level: 10, desc: 'Pull enemies' },
-                        { name: 'Soul Drain', level: 20, desc: 'Lifesteal beam' },
-                        { name: 'Apocalypse', level: 30, desc: 'Devastation' },
-                      ],
-                      shadowarcher: [
-                        { name: "Hunter's Mark", level: 10, desc: 'Piercing shot' },
-                        { name: 'Multishot', level: 20, desc: 'Arrow burst' },
-                        { name: 'Death Arrow', level: 30, desc: 'One-shot kill' },
-                      ],
-                    };
-                    
-                    const abilities = classAbilities[id] || [];
-                    
-                    return (
-                      <div
-                        key={id}
-                        onClick={() => handleClassChange(id)}
-                        style={{
-                          position: 'relative',
-                          background: isSelected 
-                            ? `linear-gradient(135deg, ${c.color}20, ${c.color}08)` 
-                            : 'rgba(0,0,0,0.3)',
-                          border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: 12,
-                          padding: 15,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {c.isAdmin && (
-                          <div style={{ 
-                            position: 'absolute', 
-                            top: 8, 
-                            right: 8, 
-                            fontSize: '.6rem', 
-                            background: '#ff00ff',
-                            color: '#000',
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            fontWeight: 'bold',
-                          }}>ADMIN</div>
-                        )}
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                          <div style={{
-                            width: 45,
-                            height: 45,
-                            borderRadius: 10,
-                            background: `${c.color}25`,
-                            border: `2px solid ${c.color}50`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}>
-                            <span style={{ width: 26, height: 26, color: c.secondaryColor || c.color }}>
-                              {CLASS_SVG[id] || SVG.arcane}
-                            </span>
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ color: c.secondaryColor || c.color, fontWeight: 700, fontSize: '1rem' }}>{c.name}</div>
-                            <div style={{ color: '#777', fontSize: '0.7rem' }}>{c.description}</div>
-                          </div>
-                        </div>
-                        
-                        {/* Stats */}
-                        <div style={{ 
-                          display: 'flex', 
-                          gap: 12, 
-                          marginBottom: 8,
-                          padding: '6px 0',
-                          borderTop: '1px solid rgba(255,255,255,0.06)',
-                        }}>
-                          <div style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <span style={{ width: 12, height: 12, color: '#ef4444' }}>{SVG.heart}</span>
-                            <span style={{ color: '#777' }}>{c.baseHealth || 100}</span>
-                          </div>
-                          <div style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <span style={{ width: 12, height: 12, color: '#3b82f6' }}>{SVG.lightning}</span>
-                            <span style={{ color: '#777' }}>{c.baseSpeed || 150}</span>
-                          </div>
-                        </div>
-                        
-                        {/* Core Abilities */}
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
-                          <div style={{ 
-                            background: `${c.color}12`, 
-                            padding: '2px 6px', 
-                            borderRadius: 4, 
-                            fontSize: '0.65rem',
-                            color: c.secondaryColor || c.color,
-                            border: `1px solid ${c.color}25`,
-                          }}>
-                            <span style={{ display: 'inline-flex', width: 10, height: 10, verticalAlign: 'middle' }}>{SVG.dash}</span> {c.dash || 'Dash'}
-                          </div>
-                          <div style={{ 
-                            background: `${c.color}12`, 
-                            padding: '2px 6px', 
-                            borderRadius: 4, 
-                            fontSize: '0.65rem',
-                            color: c.secondaryColor || c.color,
-                            border: `1px solid ${c.color}25`,
-                          }}>
-                            <span style={{ display: 'inline-flex', width: 10, height: 10, verticalAlign: 'middle' }}>{SVG.star}</span> {c.ultimate || 'Ultimate'}
-                          </div>
-                        </div>
-                        
-                        {/* Unlockable Abilities */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          {abilities.map((ability, i) => (
-                            <div key={i} style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 6,
-                              fontSize: '0.6rem',
-                            }}>
-                              <span style={{ color: '#ffd93d', fontWeight: 600, minWidth: 28 }}>Lv{ability.level}</span>
-                              <span style={{ color: '#999' }}>{ability.name}</span>
-                              <span style={{ color: '#555' }}>- {ability.desc}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Tutorial Tab */}
         {tab === 'tutorial' && (
