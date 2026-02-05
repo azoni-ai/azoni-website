@@ -94,9 +94,12 @@ export const CLASS_SVG = {
   arcanist: SVG.arcane,
   voidlord: (
     <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-      <circle cx="12" cy="8" r="2" fill="none" stroke="currentColor" strokeWidth="1"/>
-      <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="0.5" fill="none"/>
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" strokeWidth="1.2"/>
+      <ellipse cx="12" cy="12" rx="3" ry="6" fill="currentColor"/>
+      <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8"/>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M5.64 5.64l2.12 2.12M16.24 16.24l2.12 2.12M5.64 18.36l2.12-2.12M16.24 7.76l2.12-2.12" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
     </svg>
   ),
   shadowarcher: (

@@ -4793,6 +4793,164 @@ export default function SpellBrigade() {
             // Skip default health bar for dragon (we drew our own)
             continue;
           }
+          else if (bossType === 'custom_boss') {
+            // ========== CUSTOM DUNGEON BOSS - Themed creature ==========
+            const bossColor = enemy.color || color;
+            const bossRadius = Math.min(enemy.radius || 80, 100); // Cap visual size
+            const sc = bossRadius / 50;
+            const breathe = Math.sin(time * 1.8) * 3 * sc;
+            const bodyBob = Math.sin(time * 2.2) * 2 * sc;
+            
+            // Aura glow
+            const auraGrad = ctx.createRadialGradient(sx, sy - bodyBob, bossRadius * 0.3, sx, sy - bodyBob, bossRadius * 1.8);
+            auraGrad.addColorStop(0, bossColor + '60');
+            auraGrad.addColorStop(0.5, bossColor + '20');
+            auraGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = auraGrad;
+            ctx.beginPath();
+            ctx.arc(sx, sy - bodyBob, bossRadius * 1.8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Orbiting rune particles
+            for (let i = 0; i < 6; i++) {
+              const oAngle = time * 1.5 + (i * Math.PI * 2 / 6);
+              const oDist = bossRadius * 1.2 + Math.sin(time * 3 + i) * 8;
+              const ox = sx + Math.cos(oAngle) * oDist;
+              const oy = sy - bodyBob + Math.sin(oAngle) * oDist * 0.4;
+              ctx.beginPath();
+              ctx.arc(ox, oy, 3 * sc, 0, Math.PI * 2);
+              ctx.fillStyle = bossColor + 'aa';
+              ctx.fill();
+            }
+            
+            // Shadow
+            ctx.beginPath();
+            ctx.ellipse(sx, sy + 30 * sc, 40 * sc, 12 * sc, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fill();
+
+            // Wings (behind body)
+            for (let wing = -1; wing <= 1; wing += 2) {
+              ctx.save();
+              ctx.translate(sx + wing * 30 * sc, sy - 15 * sc - bodyBob);
+              ctx.rotate(wing * (0.4 + Math.sin(time * 2.5) * 0.2));
+              ctx.fillStyle = bossColor + '66';
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.quadraticCurveTo(wing * 40 * sc, -50 * sc, wing * 70 * sc, -20 * sc);
+              ctx.quadraticCurveTo(wing * 50 * sc, 10 * sc, 0, 5 * sc);
+              ctx.closePath();
+              ctx.fill();
+              ctx.strokeStyle = bossColor + '88';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+              ctx.restore();
+            }
+            
+            // Body
+            const bodyGrad = ctx.createRadialGradient(sx, sy - bodyBob, 0, sx, sy - bodyBob, 40 * sc);
+            bodyGrad.addColorStop(0, bossColor);
+            bodyGrad.addColorStop(0.7, bossColor + 'cc');
+            bodyGrad.addColorStop(1, bossColor + '88');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bodyBob + breathe, 38 * sc, 32 * sc, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2 * sc;
+            ctx.stroke();
+            
+            // Belly lighter area
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy + 8 * sc - bodyBob + breathe, 22 * sc, 16 * sc, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Horns/Crown
+            for (let h = -1; h <= 1; h += 2) {
+              ctx.fillStyle = bossColor + 'dd';
+              ctx.beginPath();
+              ctx.moveTo(sx + h * 14 * sc, sy - 28 * sc - bodyBob);
+              ctx.lineTo(sx + h * 22 * sc, sy - 55 * sc - bodyBob + Math.sin(time * 4 + h) * 3);
+              ctx.lineTo(sx + h * 8 * sc, sy - 32 * sc - bodyBob);
+              ctx.closePath();
+              ctx.fill();
+            }
+            // Center horn
+            ctx.fillStyle = bossColor;
+            ctx.beginPath();
+            ctx.moveTo(sx - 5 * sc, sy - 30 * sc - bodyBob);
+            ctx.lineTo(sx, sy - 60 * sc - bodyBob + Math.sin(time * 3) * 2);
+            ctx.lineTo(sx + 5 * sc, sy - 30 * sc - bodyBob);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Eyes - menacing
+            const eyeGlow = 0.6 + Math.sin(time * 4) * 0.4;
+            for (let e = -1; e <= 1; e += 2) {
+              // Eye socket
+              ctx.fillStyle = 'rgba(0,0,0,0.6)';
+              ctx.beginPath();
+              ctx.ellipse(sx + e * 12 * sc, sy - 12 * sc - bodyBob, 8 * sc, 7 * sc, 0, 0, Math.PI * 2);
+              ctx.fill();
+              // Glowing eye
+              ctx.fillStyle = `rgba(255,255,255,${eyeGlow})`;
+              ctx.beginPath();
+              ctx.ellipse(sx + e * 12 * sc, sy - 12 * sc - bodyBob, 5 * sc, 4 * sc, 0, 0, Math.PI * 2);
+              ctx.fill();
+              // Pupil slit
+              ctx.fillStyle = bossColor;
+              ctx.beginPath();
+              ctx.ellipse(sx + e * 12 * sc, sy - 12 * sc - bodyBob, 2 * sc, 5 * sc, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            
+            // Mouth - jagged grin
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+            ctx.lineWidth = 1.5 * sc;
+            ctx.beginPath();
+            ctx.moveTo(sx - 15 * sc, sy + 2 * sc - bodyBob);
+            for (let t = 0; t < 6; t++) {
+              const tx = sx - 15 * sc + t * 6 * sc;
+              ctx.lineTo(tx + 3 * sc, sy + (t % 2 === 0 ? 6 : -1) * sc - bodyBob);
+            }
+            ctx.stroke();
+            
+            // Phase indicator particles
+            const phase = enemy.phase || 1;
+            if (phase >= 2) {
+              for (let i = 0; i < 4 * phase; i++) {
+                const pAngle = time * 2 + i * 0.7;
+                const pDist = bossRadius * 0.8 + Math.sin(time * 5 + i * 2) * 15;
+                ctx.beginPath();
+                ctx.arc(
+                  sx + Math.cos(pAngle) * pDist,
+                  sy - bodyBob + Math.sin(pAngle) * pDist * 0.5,
+                  2 * sc, 0, Math.PI * 2
+                );
+                ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(time * 8 + i) * 0.2})`;
+                ctx.fill();
+              }
+            }
+            
+            // Custom boss health bar (larger than default)
+            const cbhW = 80;
+            const cbhY = sy - 75 * sc;
+            ctx.fillStyle = 'rgba(0,0,0,0.8)';
+            ctx.fillRect(sx - cbhW / 2 - 2, cbhY - 2, cbhW + 4, 12);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(sx - cbhW / 2, cbhY, cbhW, 8);
+            const hpRatio = enemy.health / enemy.maxHealth;
+            const hpColor = hpRatio > 0.5 ? bossColor : hpRatio > 0.25 ? '#f59e0b' : '#ef4444';
+            ctx.fillStyle = hpColor;
+            ctx.fillRect(sx - cbhW / 2, cbhY, cbhW * hpRatio, 8);
+            
+            // Boss name
+            ctx.fillStyle = bossColor;
+            ctx.font = `bold ${12 * sc}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(enemy.name || 'BOSS', sx, cbhY - 6);
+          }
           else {
             // Default boss (fallback)
             ctx.beginPath();
@@ -8823,12 +8981,16 @@ export default function SpellBrigade() {
                   {/* Character Roster */}
                   {characters.length > 1 && (
                     <div style={{ 
-                      display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', 
-                      maxWidth: 500, width: '100%', marginBottom: 5,
+                      display: 'grid', 
+                      gridTemplateColumns: characters.length <= 3 ? `repeat(${characters.length}, 1fr)` : 'repeat(3, 1fr)',
+                      gap: 8, 
+                      maxWidth: 560, width: '100%', marginBottom: 8,
                     }}>
                       {characters.map((c, idx) => {
                         const cc = classes[c.class] || DEFAULT_CLASSES[c.class] || {};
                         const isActive = c.id === char.id;
+                        const iconColor = cc.secondaryColor || cc.color || '#888';
+                        const bgColor = cc.color || '#888';
                         return (
                           <button key={c.id} onClick={() => {
                             setSavedPlayer(c);
@@ -8836,20 +8998,50 @@ export default function SpellBrigade() {
                             setSelectedSkin(c.selectedSkin || `${c.class}_default`);
                           }}
                             style={{
-                              background: isActive ? `${cc.color || '#888'}25` : 'rgba(255,255,255,0.03)',
-                              border: isActive ? `2px solid ${cc.color || '#888'}` : '1px solid rgba(255,255,255,0.08)',
-                              borderRadius: 10, padding: '8px 14px', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', gap: 8,
+                              background: isActive 
+                                ? `linear-gradient(135deg, ${bgColor}30, ${bgColor}15)` 
+                                : 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                              border: isActive ? `2px solid ${bgColor}90` : '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: 12, padding: '10px 12px', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 10,
                               transition: 'all 0.2s',
+                              boxShadow: isActive ? `0 4px 16px ${bgColor}25` : 'none',
+                              position: 'relative',
+                              overflow: 'hidden',
                             }}
                           >
-                            <span style={{ width: 22, height: 22, color: cc.color }}>
-                              {CLASS_SVG[c.class] || SVG.arcane}
-                            </span>
-                            <div style={{ textAlign: 'left' }}>
-                              <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600 }}>{c.name}</div>
-                              <div style={{ color: '#888', fontSize: '0.65rem' }}>Lv.{c.level || 1} {cc.name || c.class}</div>
+                            {/* Class icon with glow ring */}
+                            <div style={{
+                              width: 36, height: 36, borderRadius: 10,
+                              background: `radial-gradient(circle at 40% 35%, ${bgColor}40, ${bgColor}15)`,
+                              border: `1.5px solid ${bgColor}50`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0,
+                            }}>
+                              <span style={{ width: 20, height: 20, color: iconColor, filter: `drop-shadow(0 0 3px ${iconColor}60)` }}>
+                                {CLASS_SVG[c.class] || SVG.arcane}
+                              </span>
                             </div>
+                            <div style={{ textAlign: 'left', minWidth: 0 }}>
+                              <div style={{ 
+                                color: isActive ? '#fff' : '#ccc', 
+                                fontSize: '0.8rem', fontWeight: 600,
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}>{c.name}</div>
+                              <div style={{ 
+                                color: isActive ? iconColor : '#777', 
+                                fontSize: '0.65rem', fontWeight: 500,
+                              }}>Lv.{c.level || 1} {cc.name || c.class}</div>
+                            </div>
+                            {/* Active indicator dot */}
+                            {isActive && (
+                              <div style={{
+                                position: 'absolute', top: 6, right: 6,
+                                width: 6, height: 6, borderRadius: 3,
+                                background: bgColor,
+                                boxShadow: `0 0 6px ${bgColor}`,
+                              }} />
+                            )}
                           </button>
                         );
                       })}
@@ -10064,8 +10256,8 @@ export default function SpellBrigade() {
                   </span>
                 </div>
 
-                {/* Skin Change - only on mobile or mention NPC */}
-                {isMobile ? (
+                {/* Skin Change - mobile only button */}
+                {isMobile && (
                   <button
                     style={{
                       marginTop: 12,
@@ -10087,59 +10279,7 @@ export default function SpellBrigade() {
                     <span style={{ width: 14, height: 14 }}>{SVG.star}</span>
                     Change Skin
                   </button>
-                ) : (
-                  <div style={{
-                    marginTop: 12,
-                    padding: '8px 12px',
-                    background: 'rgba(236,72,153,0.1)',
-                    border: '1px solid rgba(236,72,153,0.2)',
-                    borderRadius: 8,
-                    fontSize: '.7rem',
-                    color: '#888',
-                    textAlign: 'center',
-                  }}>
-                    Visit <span style={{ color: '#ec4899' }}>🦋 Mirage</span> in Sanctuary to change skins
-                  </div>
                 )}
-
-                {/* Quick Controls Reminder */}
-                <div style={{
-                  marginTop: 12,
-                  paddingTop: 10,
-                  borderTop: '1px solid rgba(255,255,255,0.08)',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 4,
-                  justifyContent: 'center',
-                }}>
-                  {[
-                    { key: 'E', label: 'Talk', color: '#888' },
-                    { key: 'C', label: 'Stats', color: '#67e8f9' },
-                    { key: 'T', label: 'Emote', color: '#a78bfa' },
-                    { key: 'X', label: autoAttack ? 'Auto ✓' : 'Auto', color: autoAttack ? '#fbbf24' : '#666' },
-                  ].map(c => (
-                    <div key={c.key} style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      borderRadius: 5,
-                      padding: '3px 6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      fontSize: '.6rem',
-                    }}>
-                      <span style={{ 
-                        background: 'rgba(255,255,255,0.1)', 
-                        borderRadius: 3, 
-                        padding: '1px 4px',
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: '.55rem',
-                        fontFamily: 'monospace',
-                      }}>{c.key}</span>
-                      <span style={{ color: c.color }}>{c.label}</span>
-                    </div>
-                  ))}
-                </div>
 
                 {/* Quest Progress - Compact */}
                 <div 
@@ -12212,6 +12352,47 @@ export default function SpellBrigade() {
                     transition: 'left 0.2s',
                   }} />
                 </button>
+              </div>
+            </div>
+            
+            {/* Controls Section */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Controls</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {[
+                  { key: 'WASD', label: 'Move' },
+                  { key: 'Click', label: 'Attack' },
+                  { key: 'E', label: 'Interact / Talk' },
+                  { key: 'Space', label: 'Dash' },
+                  { key: 'Q', label: 'Ultimate' },
+                  { key: 'X', label: 'Auto-Attack' },
+                  { key: 'C', label: 'Character Stats' },
+                  { key: 'T', label: 'Emote Wheel' },
+                  { key: 'M', label: 'Minimap' },
+                  { key: 'ESC', label: 'Settings' },
+                  { key: '1-4', label: 'Class Abilities' },
+                  { key: 'Tab', label: 'Leaderboard' },
+                ].map(c => (
+                  <div key={c.key} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '5px 8px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: 6,
+                  }}>
+                    <span style={{ 
+                      background: 'rgba(255,255,255,0.1)', 
+                      borderRadius: 4, 
+                      padding: '2px 6px',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '.65rem',
+                      fontFamily: 'monospace',
+                      minWidth: 36,
+                      textAlign: 'center',
+                    }}>{c.key}</span>
+                    <span style={{ color: '#aaa', fontSize: '0.8rem' }}>{c.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
             
