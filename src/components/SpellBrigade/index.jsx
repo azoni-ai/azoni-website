@@ -752,6 +752,17 @@ export default function SpellBrigade() {
                   setSelectedSkin('shadowarcher_default');
                   // Pre-authenticate socket for wizard creator before joining game
                   socket.emit('authenticateAdmin', { sessionToken: token });
+                  // Listen for auth result - retry if it fails
+                  socket.on('adminAuthenticated', (result) => {
+                    if (result.success) {
+                      console.log('🔑 Admin pre-auth confirmed');
+                    } else {
+                      console.log('🔑 Admin pre-auth failed, retrying in 1s...');
+                      setTimeout(() => {
+                        socket.emit('authenticateAdmin', { sessionToken: token });
+                      }, 1000);
+                    }
+                  });
                 }
                 // Restore user settings if present
                 if (data.user?.settings) {
@@ -1740,7 +1751,7 @@ export default function SpellBrigade() {
 
     // Custom wizard ability visual effects
     socket.on('customAbilityEffect', (data) => {
-      setEffects(prev => [...prev, {
+      effectsRef.current.push({
         type: 'customAbility',
         x: data.x,
         y: data.y,
@@ -1749,7 +1760,7 @@ export default function SpellBrigade() {
         name: data.name,
         startTime: Date.now(),
         duration: data.duration || 3000,
-      }]);
+      });
     });
 
     // Spell drops from boss kills
@@ -9725,7 +9736,7 @@ export default function SpellBrigade() {
                         setWizardGenerating(true);
                         setWizardError('');
                         setGeneratedWizard(null);
-                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim() });
+                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: authState.sessionToken });
                       }
                     }}
                     style={{
@@ -9747,7 +9758,7 @@ export default function SpellBrigade() {
                         setWizardGenerating(true);
                         setWizardError('');
                         setGeneratedWizard(null);
-                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim() });
+                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: authState.sessionToken });
                       }
                     }}
                     style={{
