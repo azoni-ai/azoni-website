@@ -9,9 +9,6 @@ import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, 
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
 
-// Extracted UI Components
-import { GlobalStyles, LoadingScreen, AuthScreen, DeathScreen, TitleScreen, GameModals } from './components';
-
 // MAIN COMPONENT
 // ===========================================
 export default function SpellBrigade() {
@@ -541,6 +538,7 @@ export default function SpellBrigade() {
     }
   };
 
+
   const updateZone = (me) => {
     if (!me) return;
     
@@ -936,11 +934,9 @@ export default function SpellBrigade() {
       // Auto-apply pending custom wizard if one was selected before joining
       if (pendingCustomWizardRef.current) {
         const classId = pendingCustomWizardRef.current;
-        console.log('🧙 Applying pending custom wizard:', classId);
         pendingCustomWizardRef.current = null;
         // Small delay to ensure player is fully initialized on server
         setTimeout(() => {
-          console.log('🧙 Emitting selectCustomWizard for:', classId);
           socket.emit('selectCustomWizard', { classId });
         }, 500);
       }
@@ -8478,155 +8474,1728 @@ export default function SpellBrigade() {
         </button>
       )}
 
-      {/* Global Styles */}
-
-      <GlobalStyles screen={screen} />
       {/* Loading Screen */}
+      <div style={{ ...styles.overlay, ...(screen !== 'loading' ? styles.hidden : {}) }}>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes dropIn { 
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          }
+          @keyframes slideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+          }
+          @keyframes pulse { 
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+          @keyframes floatSlow {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+          }
+          /* Mobile-specific styles to prevent zoom and selection */
+          * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+          }
+          html, body {
+            touch-action: manipulation;
+            overscroll-behavior: none;
+            -webkit-user-select: none;
+            user-select: none;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            ${screen === 'game' ? `
+              overflow: hidden;
+              position: fixed;
+              height: 100%;
+            ` : `
+              overflow: visible;
+              position: relative;
+              min-height: 100%;
+            `}
+          }
+          canvas {
+            touch-action: none;
+          }
+          input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
+            touch-action: manipulation;
+          }
+          @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .mobile-controls-area {
+              padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+          }
+        `}</style>
+        <div style={styles.spinner} />
+        <p style={styles.loadingText}>Connecting to server...</p>
+      </div>
 
-      <LoadingScreen visible={screen === 'loading'} styles={styles} />
       {/* Auth Screen */}
-
-      <AuthScreen
-
-        visible={screen === 'auth'}
-        styles={styles}
-        isMobile={isMobile}
-        authScreen={authScreen}
-        setAuthScreen={setAuthScreen}
-        authLoading={authLoading}
-        setAuthLoading={setAuthLoading}
-        authError={authError}
-        setAuthError={setAuthError}
-        setAuthState={setAuthState}
-        setAdminKey={setAdminKey}
-        setSelectedClass={setSelectedClass}
-        setSelectedSkin={setSelectedSkin}
-        setSettings={setSettings}
-        setQuestLog={setQuestLog}
-        setCharacters={setCharacters}
-        setSavedPlayer={setSavedPlayer}
-        setSelectedCharIdx={setSelectedCharIdx}
-        setScreen={setScreen}
-        playersOnline={playersOnline}
-        socketRef={socketRef}
-        sessionTokenRef={sessionTokenRef}
-        SERVER_URL={SERVER_URL}
-      />
+      <div style={{ ...styles.overlay, ...(screen !== 'auth' ? styles.hidden : {}), overflow: isMobile ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+        {/* Monster Background Decorations */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          {/* Slime - bottom left */}
+          <svg style={{ position: 'absolute', bottom: '10%', left: '5%', width: 80, height: 80, opacity: 0.15, animation: 'float 3s ease-in-out infinite' }} viewBox="0 0 40 40">
+            <ellipse cx="20" cy="28" rx="16" ry="10" fill="#22c55e"/>
+            <ellipse cx="20" cy="22" rx="14" ry="12" fill="#4ade80"/>
+            <circle cx="14" cy="20" r="3" fill="#000"/>
+            <circle cx="26" cy="20" r="3" fill="#000"/>
+            <ellipse cx="20" cy="26" rx="4" ry="2" fill="#166534"/>
+          </svg>
+          
+          {/* Skeleton - top right */}
+          <svg style={{ position: 'absolute', top: '15%', right: '8%', width: 70, height: 90, opacity: 0.12, animation: 'floatSlow 4s ease-in-out infinite' }} viewBox="0 0 40 50">
+            <ellipse cx="20" cy="12" rx="10" ry="8" fill="#e5e5e5"/>
+            <circle cx="15" cy="10" r="3" fill="#000"/>
+            <circle cx="25" cy="10" r="3" fill="#000"/>
+            <path d="M15 16 L17 18 L20 16 L23 18 L25 16" stroke="#000" strokeWidth="1" fill="none"/>
+            <rect x="18" y="20" width="4" height="15" fill="#d4d4d4"/>
+            <rect x="12" y="22" width="16" height="8" rx="2" fill="#e5e5e5"/>
+            <rect x="16" y="35" width="3" height="12" fill="#d4d4d4"/>
+            <rect x="21" y="35" width="3" height="12" fill="#d4d4d4"/>
+          </svg>
+          
+          {/* Fire Elemental - bottom right */}
+          <svg style={{ position: 'absolute', bottom: '20%', right: '12%', width: 90, height: 100, opacity: 0.15, animation: 'float 2.5s ease-in-out infinite' }} viewBox="0 0 40 50">
+            <path d="M20 5 Q30 15 28 25 Q32 30 25 40 Q20 45 15 40 Q8 30 12 25 Q10 15 20 5" fill="#f97316"/>
+            <path d="M20 10 Q26 18 24 25 Q27 28 22 35 Q20 38 18 35 Q13 28 16 25 Q14 18 20 10" fill="#fbbf24"/>
+            <path d="M20 15 Q23 20 22 25 Q18 28 20 32 Q17 25 18 22 Q17 18 20 15" fill="#fef3c7"/>
+            <circle cx="16" cy="22" r="2" fill="#000"/>
+            <circle cx="24" cy="22" r="2" fill="#000"/>
+          </svg>
+          
+          {/* Ghost - top left */}
+          <svg style={{ position: 'absolute', top: '20%', left: '10%', width: 70, height: 80, opacity: 0.1, animation: 'floatSlow 5s ease-in-out infinite' }} viewBox="0 0 40 50">
+            <path d="M8 45 L8 20 Q8 5 20 5 Q32 5 32 20 L32 45 L28 40 L24 45 L20 40 L16 45 L12 40 L8 45" fill="#e0e7ff"/>
+            <circle cx="14" cy="20" r="4" fill="#1e1b4b"/>
+            <circle cx="26" cy="20" r="4" fill="#1e1b4b"/>
+            <ellipse cx="20" cy="30" rx="4" ry="3" fill="#c7d2fe"/>
+          </svg>
+          
+          {/* Dragon silhouette - center background */}
+          <svg style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, height: 300, opacity: 0.03 }} viewBox="0 0 100 80">
+            <path d="M10 60 L15 50 L20 55 L30 40 L40 45 L50 30 L60 35 L70 25 L75 30 L85 20 L90 25 L95 15 L90 30 L80 35 L70 45 L60 50 L50 55 L40 60 L30 58 L20 62 L10 60" fill="#991b1b"/>
+            <ellipse cx="50" cy="55" rx="35" ry="15" fill="#7f1d1d"/>
+            <path d="M15 60 L5 70 L20 65" fill="#991b1b"/>
+            <path d="M85 60 L95 70 L80 65" fill="#991b1b"/>
+          </svg>
+          
+          {/* Ice crystal - bottom center */}
+          <svg style={{ position: 'absolute', bottom: '5%', left: '45%', width: 60, height: 80, opacity: 0.1, animation: 'float 4s ease-in-out infinite' }} viewBox="0 0 30 40">
+            <path d="M15 0 L22 15 L30 20 L22 25 L15 40 L8 25 L0 20 L8 15 Z" fill="#0ea5e9"/>
+            <path d="M15 5 L20 15 L25 20 L20 25 L15 35 L10 25 L5 20 L10 15 Z" fill="#38bdf8"/>
+            <path d="M15 10 L18 18 L15 30 L12 18 Z" fill="#bae6fd"/>
+          </svg>
+        </div>
+        
+        {/* Auth Content */}
+        <div style={styles.title}>
+          <svg width={isMobile ? 42 : 56} height={isMobile ? 42 : 56} viewBox="0 0 48 48">
+            <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
+            <circle cx="24" cy="24" r="6" fill="#ff6b35"/>
+          </svg>
+          <h1 style={styles.titleText}>Spell Brigade</h1>
+        </div>
+        <p style={{ ...styles.subtitle, marginBottom: 30 }}>Survive the magical wilderness</p>
+        
+        {/* Auth Forms Container */}
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(10px)',
+          padding: isMobile ? 20 : 30,
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.1)',
+          width: isMobile ? '90%' : 380,
+          maxWidth: 400,
+        }}>
+          {authScreen === 'main' && (
+            <>
+              <h2 style={{ textAlign: 'center', marginBottom: 20, fontSize: '1.3rem', color: '#fff' }}>Welcome</h2>
+              
+              <button
+                onClick={async () => {
+                  setAuthLoading(true);
+                  try {
+                    const res = await fetch(`${SERVER_URL}/auth/guest`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      setAuthState({ isAuthenticated: true, isGuest: true, user: null, sessionToken: data.sessionToken });
+                      localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: true }));
+                      setScreen('title');
+                    }
+                  } catch (err) {
+                    console.error('Guest auth error:', err);
+                    setScreen('title');
+                  }
+                  setAuthLoading(false);
+                }}
+                disabled={authLoading}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: 'linear-gradient(135deg, #ffd93d, #f97316)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#000',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginBottom: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                Play as Guest
+              </button>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+                <span style={{ color: '#666', fontSize: '0.8rem' }}>or</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+              </div>
+              
+              <button
+                onClick={() => { setAuthScreen('login'); setAuthError(null); }}
+                style={{
+                  width: '100%',
+                  padding: '12px 20px',
+                  background: 'rgba(59,130,246,0.2)',
+                  border: '1px solid rgba(59,130,246,0.4)',
+                  borderRadius: 10,
+                  color: '#3b82f6',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  marginBottom: 10,
+                }}
+              >
+                Log In
+              </button>
+              
+              <button
+                onClick={() => { setAuthScreen('signup'); setAuthError(null); }}
+                style={{
+                  width: '100%',
+                  padding: '12px 20px',
+                  background: 'rgba(34,197,94,0.2)',
+                  border: '1px solid rgba(34,197,94,0.4)',
+                  borderRadius: 10,
+                  color: '#22c55e',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Create Account
+              </button>
+              
+              <p style={{ textAlign: 'center', color: '#666', fontSize: '0.75rem', marginTop: 16 }}>
+                Create an account to save your progress across devices
+              </p>
+            </>
+          )}
+          
+          {authScreen === 'login' && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setAuthLoading(true);
+              setAuthError(null);
+              const formData = new FormData(e.target);
+              try {
+                const res = await fetch(`${SERVER_URL}/auth/login`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    username: formData.get('username'),
+                    password: formData.get('password'),
+                  }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setAuthState({ isAuthenticated: true, isGuest: false, user: data.user, sessionToken: data.sessionToken });
+                  localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: false }));
+                  // Auto-enable admin for azoni
+                  if (data.user.username?.toLowerCase() === 'azoni') {
+                    setAdminKey('azoni-voidlord-2026');
+                    setSelectedClass('shadowarcher');
+                    setSelectedSkin('shadowarcher_default');
+                    // Pre-authenticate socket for wizard creator
+                    if (socketRef.current) {
+                      socketRef.current.emit('authenticateAdmin', { sessionToken: data.sessionToken });
+                    }
+                  }
+                  // Restore user settings if present
+                  if (data.user.settings) {
+                    setSettings(prev => ({ ...prev, ...data.user.settings }));
+                  }
+                  // Restore quest progress
+                  if (data.user.quests) {
+                    setQuestLog(prev => ({ ...prev, ...data.user.quests }));
+                  }
+                  // Check if user has characters
+                  if (data.user.characters?.length > 0) {
+                    setCharacters(data.user.characters);
+                    setSavedPlayer(data.user.characters[0]);
+                    setSelectedCharIdx(0);
+                    setScreen('title');
+                  } else {
+                    setCharacters([]);
+                    setSavedPlayer(null);
+                    setScreen('title');
+                  }
+                } else {
+                  setAuthError(data.error || 'Login failed');
+                }
+              } catch (err) {
+                setAuthError('Connection error. Please try again.');
+              }
+              setAuthLoading(false);
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <button
+                  type="button"
+                  onClick={() => setAuthScreen('main')}
+                  style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 0 }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                  </svg>
+                </button>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>Log In</h2>
+              </div>
+              
+              {authError && (
+                <div style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#ef4444', fontSize: '0.85rem' }}>
+                  {authError}
+                </div>
+              )}
+              
+              <input
+                name="username"
+                type="text"
+                placeholder="Username"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 20,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <button
+                type="submit"
+                disabled={authLoading}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: authLoading ? '#666' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: authLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {authLoading ? 'Logging in...' : 'Log In'}
+              </button>
+            </form>
+          )}
+          
+          {authScreen === 'signup' && (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setAuthLoading(true);
+              setAuthError(null);
+              const formData = new FormData(e.target);
+              const password = formData.get('password');
+              const confirmPassword = formData.get('confirmPassword');
+              
+              if (password !== confirmPassword) {
+                setAuthError('Passwords do not match');
+                setAuthLoading(false);
+                return;
+              }
+              
+              try {
+                const res = await fetch(`${SERVER_URL}/auth/signup`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    username: formData.get('username'),
+                    password: password,
+                  }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setAuthState({ isAuthenticated: true, isGuest: false, user: data.user, sessionToken: data.sessionToken });
+                  localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: false }));
+                  setCharacters([]);
+                  setSavedPlayer(null);
+                  setScreen('title');
+                } else {
+                  setAuthError(data.error || 'Signup failed');
+                }
+              } catch (err) {
+                setAuthError('Connection error. Please try again.');
+              }
+              setAuthLoading(false);
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <button
+                  type="button"
+                  onClick={() => setAuthScreen('main')}
+                  style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 0 }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                  </svg>
+                </button>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>Create Account</h2>
+              </div>
+              
+              {authError && (
+                <div style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#ef4444', fontSize: '0.85rem' }}>
+                  {authError}
+                </div>
+              )}
+              
+              <input
+                name="username"
+                type="text"
+                placeholder="Username (3-20 characters)"
+                required
+                minLength={3}
+                maxLength={20}
+                pattern="[a-zA-Z0-9_]+"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <input
+                name="password"
+                type="password"
+                placeholder="Password (6+ characters)"
+                required
+                minLength={6}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <input
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm Password"
+                required
+                minLength={6}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  marginBottom: 20,
+                  boxSizing: 'border-box',
+                }}
+              />
+              
+              <button
+                type="submit"
+                disabled={authLoading}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: authLoading ? '#666' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: authLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {authLoading ? 'Creating...' : 'Create Account'}
+              </button>
+              
+              <p style={{ textAlign: 'center', color: '#666', fontSize: '0.7rem', marginTop: 12 }}>
+                Letters, numbers, and underscores only
+              </p>
+            </form>
+          )}
+        </div>
+        
+        {/* Players Online */}
+        {playersOnline > 0 && (
+          <div style={{ marginTop: 20, color: '#4ade80', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, background: '#4ade80', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+            {playersOnline} wizard{playersOnline !== 1 ? 's' : ''} online
+          </div>
+        )}
+      </div>
 
       {/* Title Screen */}
+      <div style={{ 
+        ...styles.overlay, 
+        ...(screen !== 'title' ? styles.hidden : {}), 
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        padding: 0,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
+        background: 'radial-gradient(ellipse at top, #1a1a2e 0%, #0f0f1a 50%, #080812 100%)',
+      }}>
+        {/* Ambient particles background */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          {[...Array(12)].map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              width: 4 + Math.random() * 4,
+              height: 4 + Math.random() * 4,
+              borderRadius: '50%',
+              background: ['#ffd93d', '#a78bfa', '#60a5fa', '#f87171'][i % 4],
+              opacity: 0.15 + Math.random() * 0.2,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`,
+            }} />
+          ))}
+        </div>
 
-      <TitleScreen
-        visible={screen === 'title'}
-        styles={styles}
-        isMobile={isMobile}
-        tab={tab}
-        setTab={setTab}
-        playersOnline={playersOnline}
-        classes={classes}
-        selectedClass={selectedClass}
-        playerName={playerName}
-        setPlayerName={setPlayerName}
-        savedPlayer={savedPlayer}
-        setSavedPlayer={setSavedPlayer}
-        characters={characters}
-        setCharacters={setCharacters}
-        selectedCharIdx={selectedCharIdx}
-        setSelectedCharIdx={setSelectedCharIdx}
-        authState={authState}
-        setAuthState={setAuthState}
-        playerInfo={playerInfo}
-        adminKey={adminKey}
-        setAdminKey={setAdminKey}
-        wizardPrompt={wizardPrompt}
-        setWizardPrompt={setWizardPrompt}
-        wizardGenerating={wizardGenerating}
-        setWizardGenerating={setWizardGenerating}
-        wizardStatus={wizardStatus}
-        wizardError={wizardError}
-        setWizardError={setWizardError}
-        generatedWizard={generatedWizard}
-        setGeneratedWizard={setGeneratedWizard}
-        socketRef={socketRef}
-        sessionTokenRef={sessionTokenRef}
-        screenRef={screenRef}
-        pendingCustomWizardRef={pendingCustomWizardRef}
-        handleJoin={handleJoin}
-        handleClassChange={handleClassChange}
-        selectedSkin={selectedSkin}
-        setSelectedSkin={setSelectedSkin}
-        confirmDeleteId={confirmDeleteId}
-        setConfirmDeleteId={setConfirmDeleteId}
-        setScreen={setScreen}
-        playerIdRef={playerIdRef}
-        handleNewCharacter={() => { setSavedPlayer(null); setTab('create'); }}
-        settings={settings}
-        setSettings={setSettings}
-        SVG={SVG}
-        CLASS_SVG={CLASS_SVG}
-        DEFAULT_CLASSES={DEFAULT_CLASSES}
-        DEFAULT_SKINS={DEFAULT_SKINS}
-        SERVER_URL={SERVER_URL}
-      />
+        {/* Header */}
+        <div style={{
+          position: 'relative',
+          flexShrink: 0,
+          padding: isMobile ? '30px 20px 20px' : '40px 40px 25px',
+          textAlign: 'center',
+        }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 15, marginBottom: 6 }}>
+            <div style={{ position: 'relative' }}>
+              <svg width={isMobile ? 44 : 56} height={isMobile ? 44 : 56} viewBox="0 0 48 48">
+                <defs>
+                  <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#ffd93d"/>
+                    <stop offset="100%" stopColor="#f59e0b"/>
+                  </linearGradient>
+                  <filter id="starGlow">
+                    <feGaussianBlur stdDeviation="2" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="url(#starGrad)" filter="url(#starGlow)"/>
+                <circle cx="24" cy="22" r="5" fill="#ff6b35"/>
+              </svg>
+            </div>
+            <div>
+              <h1 style={{ 
+                color: '#ffd93d', 
+                fontSize: isMobile ? '2rem' : '2.8rem', 
+                fontWeight: 800, 
+                margin: 0,
+                textShadow: '0 0 30px rgba(255,217,61,0.4), 0 2px 10px rgba(0,0,0,0.5)',
+                letterSpacing: '-0.02em',
+              }}>Spell Brigade</h1>
+            </div>
+          </div>
+          <p style={{ color: '#666', fontSize: isMobile ? '0.75rem' : '0.85rem', margin: 0 }}>
+            Multiplayer Wizard Arena
+          </p>
+          
+          {/* Online indicator */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 12,
+            padding: '6px 14px',
+            background: 'rgba(34,197,94,0.1)',
+            border: '1px solid rgba(34,197,94,0.3)',
+            borderRadius: 20,
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+            <span style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 600 }}>{playersOnline} Online</span>
+          </div>
+        </div>
+        
+        {/* Navigation Tabs */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: isMobile ? 6 : 10,
+          padding: '0 20px 20px',
+        }}>
+          {[
+            { id: 'play', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>, label: 'Play' },
+            { id: 'create', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>, label: 'Create' },
+            { id: 'tutorial', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>, label: 'Guide' },
+            { id: 'settings', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>, label: 'Settings' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: tab === t.id 
+                ? 'linear-gradient(180deg, rgba(255,217,61,0.2) 0%, rgba(255,217,61,0.05) 100%)' 
+                : 'rgba(255,255,255,0.03)',
+              border: tab === t.id 
+                ? '1px solid rgba(255,217,61,0.5)' 
+                : '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 10,
+              color: tab === t.id ? '#ffd93d' : '#666',
+              fontSize: isMobile ? '0.8rem' : '0.9rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: tab === t.id ? '0 4px 20px rgba(255,217,61,0.15)' : 'none',
+            }}>
+              <span style={{ opacity: tab === t.id ? 1 : 0.6 }}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        
+        {/* Content Area */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: isMobile ? '0 15px 80px' : '0 40px 40px',
+          maxWidth: 1200,
+          margin: '0 auto',
+          width: '100%',
+        }}>
+
+        {/* ===== CREATE TAB ===== */}
+        {tab === 'create' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
+            
+            {/* AI Wizard Creator */}
+            <div style={{
+              background: 'rgba(15,15,30,0.8)',
+              border: '1px solid rgba(139,92,246,0.2)',
+              borderRadius: 16,
+              padding: isMobile ? 20 : 28,
+              position: 'relative',
+            }}>
+              {/* Magical accent line */}
+              <div style={{ 
+                position: 'absolute', top: 0, left: 24, right: 24, height: 2,
+                background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.5), rgba(236,72,153,0.5), transparent)',
+              }} />
+              
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(139,92,246,0.15)',
+                  border: '1px solid rgba(139,92,246,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <span style={{ width: 26, height: 26, color: '#a78bfa' }}>{SVG.wand}</span>
+                </div>
+                <div>
+                  <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.15rem' }}>AI Wizard Creator</div>
+                  <div style={{ color: '#666', fontSize: '0.8rem' }}>Describe your wizard in detail - the more you write, the better!</div>
+                </div>
+              </div>
+              
+              {/* Prompt Textarea */}
+              <textarea
+                value={wizardPrompt}
+                onChange={(e) => { setWizardPrompt(e.target.value); setWizardError(''); }}
+                placeholder="A storm samurai who channels lightning through his blade. His primary attack shoots electric slashes. His dash leaves a trail of sparks. His ultimate calls down a devastating thunder strike..."
+                maxLength={600}
+                disabled={wizardGenerating}
+                rows={3}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && wizardPrompt.trim().length >= 3 && !wizardGenerating && socketRef.current) {
+                    e.preventDefault();
+                    setWizardGenerating(true);
+                    setWizardError('');
+                    setGeneratedWizard(null);
+                    socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'rgba(0,0,0,0.4)',
+                  border: `1px solid ${wizardError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  resize: 'none',
+                  fontFamily: 'inherit',
+                  lineHeight: 1.5,
+                  marginBottom: 12,
+                }}
+              />
+              
+              {/* Generate Button + Quick Ideas */}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <button
+                  disabled={wizardGenerating || wizardPrompt.trim().length < 3}
+                  onClick={() => {
+                    if (socketRef.current && wizardPrompt.trim().length >= 3) {
+                      setWizardGenerating(true);
+                      setWizardError('');
+                      setGeneratedWizard(null);
+                      socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
+                    }
+                  }}
+                  style={{
+                    padding: '12px 28px',
+                    background: wizardGenerating 
+                      ? 'rgba(139,92,246,0.2)' 
+                      : 'rgba(139,92,246,0.3)',
+                    border: '1px solid rgba(139,92,246,0.4)',
+                    borderRadius: 8,
+                    color: '#a78bfa',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    opacity: (wizardGenerating || wizardPrompt.trim().length < 3) ? 0.5 : 1,
+                    cursor: wizardGenerating ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {wizardGenerating ? 'Generating...' : 'Generate Wizard'}
+                </button>
+                
+                {!generatedWizard && !wizardGenerating && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ color: '#555', fontSize: '0.75rem' }}>Ideas:</span>
+                    {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Lava Berserker'].map(preset => (
+                      <button 
+                        key={preset}
+                        onClick={() => setWizardPrompt(preset)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'transparent',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: 6,
+                          color: '#777',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Status */}
+              {wizardStatus && (
+                <div style={{ color: '#a78bfa', fontSize: '0.85rem', marginTop: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 14, height: 14, border: '2px solid #a78bfa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  {wizardStatus}
+                </div>
+              )}
+              {wizardError && (
+                <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: 16 }}>{wizardError}</div>
+              )}
+
+              {/* Generated Wizard Result - Detailed */}
+              {generatedWizard && generatedWizard.classDef && (
+                <div style={{
+                  marginTop: 20,
+                  padding: 20,
+                  background: 'rgba(0,0,0,0.5)',
+                  borderRadius: 12,
+                  border: `1px solid ${generatedWizard.classDef.color}40`,
+                }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
+                    <div style={{
+                      width: 64, height: 64, borderRadius: 14,
+                      background: `linear-gradient(135deg, ${generatedWizard.classDef.color}40, ${generatedWizard.classDef.color}15)`,
+                      border: `2px solid ${generatedWizard.classDef.color}`,
+                      flexShrink: 0,
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: generatedWizard.classDef.color, fontWeight: 700, fontSize: '1.3rem', marginBottom: 4 }}>
+                        {generatedWizard.classDef.name}
+                      </div>
+                      <div style={{ color: '#999', fontSize: '0.85rem', marginBottom: 8 }}>{generatedWizard.classDef.description}</div>
+                      <div style={{ display: 'flex', gap: 16, fontSize: '0.85rem' }}>
+                        <span style={{ color: '#f87171' }}>HP {generatedWizard.classDef.baseHealth}</span>
+                        <span style={{ color: '#60a5fa' }}>Speed {generatedWizard.classDef.baseSpeed}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Lore */}
+                  {generatedWizard.classDef.lore && (
+                    <div style={{ 
+                      color: '#888', fontSize: '0.85rem', fontStyle: 'italic', 
+                      marginBottom: 16, padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.02)',
+                      borderLeft: `3px solid ${generatedWizard.classDef.color}40`,
+                      borderRadius: '0 8px 8px 0',
+                    }}>
+                      "{generatedWizard.classDef.lore}"
+                    </div>
+                  )}
+                  
+                  {/* Spells Grid */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Spells</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
+                      {Object.values(generatedWizard.spellDefs).slice(0, 2).map(spell => (
+                        <div key={spell.id} style={{
+                          padding: '10px 14px',
+                          background: `${spell.color}10`,
+                          border: `1px solid ${spell.color}30`,
+                          borderRadius: 8,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: spell.color }} />
+                            <span style={{ color: '#ddd', fontWeight: 600, fontSize: '0.9rem' }}>{spell.name}</span>
+                          </div>
+                          <div style={{ color: '#888', fontSize: '0.75rem' }}>
+                            {spell.damage} dmg · {(spell.cooldown/1000).toFixed(1)}s cd · {spell.range} range
+                            {spell.isAoe && ' · AOE'}
+                            {spell.piercing && ' · Pierce'}
+                            {spell.slowEffect && ' · Slow'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Abilities */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                    <div style={{ padding: '10px 14px', background: 'rgba(139,92,246,0.08)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.2)' }}>
+                      <div style={{ color: '#a78bfa', fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
+                        {generatedWizard.classDef.dashAbility?.name || 'Dash'}
+                      </div>
+                      <div style={{ color: '#666', fontSize: '0.75rem' }}>
+                        {generatedWizard.classDef.dashAbility?.distance}px · {(generatedWizard.classDef.dashAbility?.cooldown/1000).toFixed(0)}s cd
+                      </div>
+                    </div>
+                    <div style={{ padding: '10px 14px', background: 'rgba(251,191,36,0.08)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.2)' }}>
+                      <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
+                        {generatedWizard.classDef.ultimateAbility?.name || 'Ultimate'}
+                      </div>
+                      <div style={{ color: '#666', fontSize: '0.75rem' }}>
+                        {generatedWizard.classDef.ultimateAbility?.damage} dmg · {(generatedWizard.classDef.ultimateAbility?.cooldown/1000).toFixed(0)}s cd
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Play Button */}
+                  <button
+                    onClick={() => {
+                      if (generatedWizard.classId) {
+                        pendingCustomWizardRef.current = generatedWizard.classId;
+                        if (screenRef.current === 'game' && socketRef.current) {
+                          pendingCustomWizardRef.current = null;
+                          socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
+                        } else {
+                          handleJoin();
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      background: `${generatedWizard.classDef.color}25`,
+                      border: `1px solid ${generatedWizard.classDef.color}`,
+                      borderRadius: 10,
+                      color: generatedWizard.classDef.color,
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Play as {generatedWizard.classDef.name}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+              <span style={{ color: '#444', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 2 }}>or choose a class</span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            </div>
+            
+            {/* Character Creation Section */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 24,
+            }}>
+              {/* Left - Character Preview & Name */}
+              <div style={{
+                flex: isMobile ? 'none' : '0 0 280px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+              }}>
+                <div style={{
+                  background: 'rgba(0,0,0,0.4)',
+                  border: `2px solid ${classes[selectedClass]?.color || '#888'}40`,
+                  borderRadius: 16,
+                  padding: 24,
+                  textAlign: 'center',
+                }}>
+                  {/* Class Icon */}
+                  <div style={{
+                    width: 80,
+                    height: 80,
+                    margin: '0 auto 16px',
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#888'}30, ${classes[selectedClass]?.color || '#888'}10)`,
+                    border: `3px solid ${classes[selectedClass]?.color || '#888'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 4px 20px ${classes[selectedClass]?.color || '#888'}30`,
+                  }}>
+                    <span style={{ width: 44, height: 44, color: classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color }}>
+                      {CLASS_SVG[selectedClass] || SVG.arcane}
+                    </span>
+                  </div>
+                  
+                  <div style={{ color: classes[selectedClass]?.color, fontWeight: 700, fontSize: '1.2rem', marginBottom: 4 }}>
+                    {classes[selectedClass]?.name || 'Select a Class'}
+                  </div>
+                  <div style={{ color: '#666', fontSize: '0.8rem', marginBottom: 16 }}>
+                    {classes[selectedClass]?.description || ''}
+                  </div>
+                  
+                  {/* Stats */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 16 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: '1.1rem' }}>{classes[selectedClass]?.baseHealth || 100}</div>
+                      <div style={{ color: '#666', fontSize: '0.7rem' }}>HP</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '1.1rem' }}>{classes[selectedClass]?.baseSpeed || 150}</div>
+                      <div style={{ color: '#666', fontSize: '0.7rem' }}>Speed</div>
+                    </div>
+                  </div>
+                  
+                  <input
+                    style={{ 
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: '#fff',
+                      fontSize: '0.95rem',
+                      textAlign: 'center',
+                      marginBottom: 16,
+                      outline: 'none',
+                    }}
+                    type="text"
+                    placeholder="Wizard name (or random)"
+                    maxLength={20}
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                  />
+                  
+                  <button 
+                    onClick={handleJoin}
+                    style={{ 
+                      width: '100%',
+                      padding: '16px',
+                      fontSize: '1.05rem',
+                      fontWeight: 700,
+                      background: `linear-gradient(135deg, ${classes[selectedClass]?.color || '#22c55e'}, ${classes[selectedClass]?.secondaryColor || classes[selectedClass]?.color || '#22c55e'})`,
+                      border: 'none',
+                      borderRadius: 10,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 10,
+                      boxShadow: `0 4px 20px ${classes[selectedClass]?.color || '#22c55e'}40`,
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                    Create & Play
+                  </button>
+                </div>
+                
+                {savedPlayer && (
+                  <button
+                    onClick={() => { setSavedPlayer(null); setTab('play'); }}
+                    style={{
+                      padding: '12px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: '#666',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ← Back to {savedPlayer.name}
+                  </button>
+                )}
+              </div>
+              
+              {/* Right - Class Selection */}
+              <div style={{ flex: 1 }}>
+                <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
+                  Choose Your Class
+                </div>
+                
+                {/* Horizontal scrolling class cards */}
+                <div style={{ 
+                  display: 'flex',
+                  gap: 16,
+                  overflowX: isMobile ? 'auto' : 'visible',
+                  flexWrap: isMobile ? 'nowrap' : 'wrap',
+                  paddingBottom: isMobile ? 12 : 0,
+                  WebkitOverflowScrolling: 'touch',
+                }}>
+                  {Object.entries(classes)
+                    .filter(([id, c]) => {
+                      if (adminKey === 'azoni-voidlord-2026') return true;
+                      if (id === 'voidlord') {
+                        const hasDragonKill = savedPlayer?.bossKills?.dragon || 
+                          characters?.some(ch => ch.bossKills?.dragon) ||
+                          authState?.user?.characters?.some(ch => ch.bossKills?.dragon) ||
+                          playerInfo?.bossKills?.dragon;
+                        return hasDragonKill;
+                      }
+                      if ((c.hidden || c.isAdmin) && adminKey !== 'azoni-voidlord-2026') return false;
+                      return true;
+                    })
+                    .map(([id, c]) => {
+                      const isSelected = selectedClass === id;
+                      return (
+                        <div
+                          key={id}
+                          onClick={() => handleClassChange(id)}
+                          style={{
+                            flex: isMobile ? '0 0 200px' : '0 0 180px',
+                            background: isSelected 
+                              ? `linear-gradient(180deg, ${c.color}20 0%, rgba(0,0,0,0.4) 100%)` 
+                              : 'rgba(0,0,0,0.4)',
+                            border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: 14,
+                            padding: 16,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {/* Icon */}
+                          <div style={{
+                            width: 56, height: 56, margin: '0 auto 12px',
+                            borderRadius: 14,
+                            background: isSelected ? `${c.color}30` : 'rgba(255,255,255,0.05)',
+                            border: `2px solid ${isSelected ? c.color : 'rgba(255,255,255,0.1)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <span style={{ width: 30, height: 30, color: c.secondaryColor || c.color }}>
+                              {CLASS_SVG[id] || SVG.arcane}
+                            </span>
+                          </div>
+                          
+                          {/* Name */}
+                          <div style={{ color: isSelected ? c.color : '#fff', fontWeight: 700, fontSize: '0.95rem', marginBottom: 4 }}>
+                            {c.name}
+                          </div>
+                          
+                          {/* Description */}
+                          <div style={{ color: '#666', fontSize: '0.7rem', marginBottom: 10, minHeight: 28 }}>
+                            {c.description}
+                          </div>
+                          
+                          {/* Stats */}
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: '0.75rem' }}>
+                            <span style={{ color: '#f87171' }}>HP {c.baseHealth}</span>
+                            <span style={{ color: '#60a5fa' }}>SPD {c.baseSpeed}</span>
+                          </div>
+                          
+                          {c.isAdmin && (
+                            <div style={{ 
+                              marginTop: 8,
+                              fontSize: '.55rem', background: '#ff00ff',
+                              color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold',
+                              display: 'inline-block',
+                            }}>ADMIN</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PLAY TAB ===== */}
+        {tab === 'play' && (
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 20,
+          }}>
+            
+            {(characters.length > 0 || savedPlayer) ? (() => {
+              const char = savedPlayer || characters[0];
+              if (!char) return null;
+              const charClass = classes[char.class] || DEFAULT_CLASSES[char.class] || {};
+              const charColor = charClass.color || '#888';
+              const charSkin = DEFAULT_SKINS.find(s => s.id === (selectedSkin || char.selectedSkin));
+              const skinColor = charSkin?.color || charColor;
+              
+              return (
+                <>
+                  {/* Character Roster */}
+                  {characters.length > 1 && (
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: characters.length <= 3 ? `repeat(${characters.length}, 1fr)` : 'repeat(3, 1fr)',
+                      gap: 8, 
+                      maxWidth: 560, width: '100%', marginBottom: 8,
+                    }}>
+                      {characters.map((c, idx) => {
+                        const cc = classes[c.class] || DEFAULT_CLASSES[c.class] || {};
+                        const isActive = c.id === char.id;
+                        const iconColor = cc.secondaryColor || cc.color || '#888';
+                        const bgColor = cc.color || '#888';
+                        return (
+                          <button key={c.id} onClick={() => {
+                            setSavedPlayer(c);
+                            setSelectedCharIdx(idx);
+                            setSelectedSkin(c.selectedSkin || `${c.class}_default`);
+                          }}
+                            style={{
+                              background: isActive 
+                                ? `linear-gradient(135deg, ${bgColor}30, ${bgColor}15)` 
+                                : 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                              border: isActive ? `2px solid ${bgColor}90` : '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: 12, padding: '10px 12px', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              transition: 'all 0.2s',
+                              boxShadow: isActive ? `0 4px 16px ${bgColor}25` : 'none',
+                              position: 'relative',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {/* Class icon with glow ring */}
+                            <div style={{
+                              width: 36, height: 36, borderRadius: 10,
+                              background: `radial-gradient(circle at 40% 35%, ${bgColor}40, ${bgColor}15)`,
+                              border: `1.5px solid ${bgColor}50`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0,
+                            }}>
+                              <span style={{ width: 20, height: 20, color: iconColor, filter: `drop-shadow(0 0 3px ${iconColor}60)` }}>
+                                {CLASS_SVG[c.class] || SVG.arcane}
+                              </span>
+                            </div>
+                            <div style={{ textAlign: 'left', minWidth: 0 }}>
+                              <div style={{ 
+                                color: isActive ? '#fff' : '#ccc', 
+                                fontSize: '0.8rem', fontWeight: 600,
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}>{c.name}</div>
+                              <div style={{ 
+                                color: isActive ? iconColor : '#777', 
+                                fontSize: '0.65rem', fontWeight: 500,
+                              }}>Lv.{c.level || 1} {cc.name || c.class}</div>
+                            </div>
+                            {/* Active indicator dot */}
+                            {isActive && (
+                              <div style={{
+                                position: 'absolute', top: 6, right: 6,
+                                width: 6, height: 6, borderRadius: 3,
+                                background: bgColor,
+                                boxShadow: `0 0 6px ${bgColor}`,
+                              }} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Selected Character Card */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(30,30,50,0.7))',
+                    border: `2px solid ${charColor}`,
+                    borderRadius: 20,
+                    padding: isMobile ? 20 : 30,
+                    maxWidth: 420,
+                    width: '100%',
+                    boxShadow: `0 20px 60px ${charColor}30`,
+                    position: 'relative',
+                  }}>
+                    {/* Delete button */}
+                    {!authState.isGuest && (
+                      <button onClick={() => setConfirmDeleteId(char.id)} style={{
+                        position: 'absolute', top: 12, right: 12,
+                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: 6, padding: '4px 8px', color: '#ef4444',
+                        fontSize: '0.7rem', cursor: 'pointer',
+                      }}>
+                        <span style={{ width: 14, height: 14, display: 'inline-flex' }}>{SVG.trash}</span>
+                      </button>
+                    )}
+                    
+                    {/* Avatar with skin preview */}
+                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                      <div style={{
+                        width: 110, height: 110, margin: '0 auto 15px', borderRadius: '50%',
+                        background: `radial-gradient(circle at 40% 35%, ${skinColor}50, ${skinColor}15)`,
+                        border: `4px solid ${skinColor}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: `0 0 40px ${skinColor}40, inset 0 0 30px ${skinColor}20`,
+                        position: 'relative', overflow: 'hidden',
+                      }}>
+                        {charSkin?.trail && (
+                          <div style={{
+                            position: 'absolute', inset: 0, borderRadius: '50%',
+                            background: `radial-gradient(circle, ${charSkin.trail}30 0%, transparent 70%)`,
+                            animation: 'pulse 2s ease-in-out infinite',
+                          }} />
+                        )}
+                        <span style={{ width: 60, height: 60, color: charSkin?.secondaryColor || charClass.secondaryColor || skinColor, position: 'relative', zIndex: 1, filter: `drop-shadow(0 0 8px ${skinColor}80)` }}>
+                          {CLASS_SVG[char.class] || SVG.arcane}
+                        </span>
+                      </div>
+                      <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.5rem' }}>{char.name}</div>
+                      <div style={{ 
+                        color: charClass.secondaryColor || charColor, fontSize: '0.95rem', marginTop: 4,
+                        textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600,
+                      }}>
+                        {charClass.name || char.class}
+                      </div>
+                      {charSkin && charSkin.id !== `${char.class}_default` && (
+                        <div style={{ color: skinColor, fontSize: '0.7rem', marginTop: 3, opacity: 0.8 }}>
+                          ✦ {charSkin.name}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Stats Row */}
+                    <div style={{ 
+                      display: 'flex', justifyContent: 'space-around', marginBottom: 15, 
+                      padding: '14px 0', background: 'rgba(0,0,0,0.4)', borderRadius: 12,
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#ffd93d', fontSize: '1.6rem', fontWeight: 700 }}>{char.level || 1}</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1 }}>Level</div>
+                      </div>
+                      <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#22c55e', fontSize: '1.6rem', fontWeight: 700 }}>{((char.totalXp || 0) / 1000).toFixed(1)}k</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1 }}>XP</div>
+                      </div>
+                      <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#ef4444', fontSize: '1.6rem', fontWeight: 700 }}>{char.kills || 0}</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1 }}>Kills</div>
+                      </div>
+                    </div>
+                    
+                    {/* Skin Selector */}
+                    <div style={{ marginBottom: 15 }}>
+                      <div style={{ color: '#666', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, textAlign: 'center' }}>
+                        Skins
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {DEFAULT_SKINS.filter(s => s.class === char.class).map(skin => {
+                          const isUnlocked = skin.requiredXp >= 0 && skin.requiredXp <= (char.totalXp || 0) && !skin.locked;
+                          const isSel = (selectedSkin || char.selectedSkin) === skin.id;
+                          return (
+                            <div key={skin.id}
+                              onClick={() => isUnlocked && setSelectedSkin(skin.id)}
+                              title={isUnlocked ? skin.name : `${skin.name} - ${skin.locked ? 'COMING SOON' : `${skin.requiredXp.toLocaleString()} XP`}`}
+                              style={{
+                                width: 36, height: 36, borderRadius: 8,
+                                background: isUnlocked ? `linear-gradient(135deg, ${skin.color}60, ${skin.color}30)` : 'rgba(0,0,0,0.4)',
+                                border: isSel ? `3px solid ${skin.color}` : '2px solid rgba(255,255,255,0.1)',
+                                cursor: isUnlocked ? 'pointer' : 'not-allowed',
+                                opacity: isUnlocked ? 1 : 0.4,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.65rem', transition: 'all 0.2s',
+                                boxShadow: isSel ? `0 0 12px ${skin.color}50` : 'none',
+                              }}
+                            >
+                              {!isUnlocked && <span style={{ width: 12, height: 12, display: 'inline-flex' }}>{skin.locked ? SVG.crystal : SVG.lock}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* Enter World Button */}
+                    <button 
+                      style={{ 
+                        width: '100%', padding: '16px 24px', fontSize: '1.1rem', fontWeight: 700,
+                        background: `linear-gradient(135deg, ${charColor}, ${charColor}cc)`,
+                        border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                        boxShadow: `0 4px 20px ${charColor}50`, transition: 'all 0.2s',
+                      }} 
+                      onClick={handleContinue}
+                    >
+                      <span style={{ width: 24, height: 24 }}>{SVG.play}</span>
+                      Enter World
+                    </button>
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button onClick={handleNewCharacter}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 8, padding: '10px 20px', color: '#888', fontSize: '0.8rem', cursor: 'pointer',
+                      }}
+                    >+ New Character</button>
+                    <button onClick={() => {
+                      setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                      localStorage.removeItem('spellBrigadeSession');
+                      localStorage.removeItem('spellBrigadePlayerId');
+                      setSavedPlayer(null);
+                      setCharacters([]);
+                      setAdminKey('');
+                      setScreen('auth');
+                    }}
+                      style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+                    >Logout</button>
+                  </div>
+                  
+                  {/* Delete Confirmation Modal */}
+                  {confirmDeleteId && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000 }} onClick={() => setConfirmDeleteId(null)} />
+                      <div style={{
+                        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                        background: '#1a1a2e', border: '2px solid #ef4444', borderRadius: 16, padding: 30,
+                        zIndex: 2001, maxWidth: 350, width: '90%', textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: '2rem', marginBottom: 12 }}>⚠️</div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>Delete Character?</div>
+                        <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 20 }}>
+                          This will permanently delete <strong style={{ color: '#ef4444' }}>{characters.find(c => c.id === confirmDeleteId)?.name || 'this character'}</strong> and all progress.
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button onClick={() => setConfirmDeleteId(null)} style={{
+                            flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600,
+                          }}>Cancel</button>
+                          <button onClick={() => { handleDeleteCharacter(confirmDeleteId); setConfirmDeleteId(null); }} style={{
+                            flex: 1, padding: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                            border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600,
+                          }}>Delete Forever</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+            })() : (
+              /* No Character - Custom Wizard */
+              <div style={{ textAlign: 'center', padding: isMobile ? 20 : 40, maxWidth: 500 }}>
+                <div style={{
+                  width: 140, height: 140, margin: '0 auto 25px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(155,93,229,0.2), rgba(255,107,53,0.15))',
+                  border: '3px dashed rgba(155,93,229,0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: 'pulse 2s ease-in-out infinite',
+                }}>
+                  <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+                    <path d="M45 2L26 42H64L45 2Z" fill="url(#wizHatG)" stroke="#c084fc" strokeWidth="1.5"/>
+                    <ellipse cx="45" cy="42" rx="24" ry="5" fill="#7c3aed" stroke="#c084fc" strokeWidth="1"/>
+                    <path d="M45 12L47.5 19L54 19L49 23.5L51 30L45 25.5L39 30L41 23.5L36 19L42.5 19Z" fill="#ffd93d"/>
+                    <circle cx="45" cy="51" r="11" fill="#fcd5ce"/>
+                    <circle cx="41" cy="49" r="2.5" fill="#1e1b4b">
+                      <animate attributeName="r" values="2.5;1;2.5" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="49" cy="49" r="2.5" fill="#1e1b4b">
+                      <animate attributeName="r" values="2.5;1;2.5" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="42" cy="46" r="0.8" fill="#fff"/>
+                    <circle cx="50" cy="46" r="0.8" fill="#fff"/>
+                    <path d="M41 54Q45 58 49 54" stroke="#6b4c3b" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                    <path d="M36 55Q39 66 45 70Q51 66 54 55" fill="#e5e7eb" stroke="#d1d5db" strokeWidth="0.8"/>
+                    <path d="M30 62L45 57L60 62L56 84H34L30 62Z" fill="url(#wizRobeG)"/>
+                    <line x1="67" y1="30" x2="67" y2="84" stroke="#78350f" strokeWidth="3" strokeLinecap="round"/>
+                    <circle cx="67" cy="28" r="6.5" fill="none" stroke="#c084fc" strokeWidth="2"/>
+                    <circle cx="67" cy="28" r="3.5" fill="#a855f7">
+                      <animate attributeName="opacity" values="1;0.3;1" dur="1.8s" repeatCount="indefinite"/>
+                    </circle>
+                    <g>
+                      <circle cx="18" cy="22" r="1.5" fill="#ffd93d">
+                        <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.5s" repeatCount="indefinite"/>
+                      </circle>
+                      <circle cx="76" cy="16" r="1.2" fill="#ffd93d">
+                        <animate attributeName="opacity" values="0.6;0.1;0.6" dur="2s" repeatCount="indefinite"/>
+                      </circle>
+                      <circle cx="26" cy="78" r="1.3" fill="#c084fc">
+                        <animate attributeName="opacity" values="0.7;0.15;0.7" dur="1.8s" repeatCount="indefinite"/>
+                      </circle>
+                      <circle cx="12" cy="55" r="1" fill="#ffd93d">
+                        <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.2s" repeatCount="indefinite"/>
+                      </circle>
+                    </g>
+                    <defs>
+                      <linearGradient id="wizHatG" x1="45" y1="2" x2="45" y2="42">
+                        <stop offset="0%" stopColor="#9b5de5"/>
+                        <stop offset="100%" stopColor="#4c1d95"/>
+                      </linearGradient>
+                      <linearGradient id="wizRobeG" x1="30" y1="62" x2="60" y2="84">
+                        <stop offset="0%" stopColor="#4c1d95"/>
+                        <stop offset="100%" stopColor="#1e1b4b"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                
+                <h2 style={{ color: '#c084fc', fontSize: '1.5rem', marginBottom: 10 }}>Begin Your Journey!</h2>
+                <p style={{ color: '#888', fontSize: '0.95rem', marginBottom: 30, lineHeight: 1.6 }}>
+                  Create your first wizard and enter the arena.<br/>
+                  <span style={{ color: '#666' }}>Master spells, defeat bosses, conquer dungeons!</span>
+                </p>
+                
+                <button onClick={() => setTab('create')}
+                  style={{
+                    padding: '16px 40px', fontSize: '1.1rem', fontWeight: 700,
+                    background: 'linear-gradient(135deg, #9b5de5, #7c3aed)',
+                    border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 10,
+                    boxShadow: '0 4px 20px rgba(155,93,229,0.4)',
+                  }}
+                >
+                  <span style={{ width: 20, height: 20, display: 'inline-flex' }}>{SVG.sparkle}</span> Create Your Wizard
+                </button>
+                
+                <div style={{ marginTop: 20 }}>
+                  <button onClick={() => {
+                    setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                    localStorage.removeItem('spellBrigadeSession');
+                    localStorage.removeItem('spellBrigadePlayerId');
+                    setAdminKey('');
+                    setScreen('auth');
+                  }}
+                    style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                  >Switch Account</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}        
+
+        {/* Tutorial Tab */}
+        {tab === 'tutorial' && (
+          <div style={{ ...styles.content, ...styles.tutorial, maxWidth: 600 }}>
+            <div style={styles.tutorialSection}>
+              <h3 style={styles.tutorialTitle}>
+                <span style={styles.tutorialIcon}>{SVG.controls}</span> Controls
+              </h3>
+              <p style={styles.tutorialText}>
+                <span style={styles.key}>WASD</span> Move wizard<br/>
+                <span style={styles.key}>Click</span> Click to move<br/>
+                <span style={styles.key}>SPACE</span> Dash ability<br/>
+                <span style={styles.key}>Q</span> Ultimate ability<br/>
+                <span style={styles.key}>1 2 3</span> Class abilities (unlock at Lv10, 20, 30)<br/>
+                <span style={styles.key}>E</span> Interact with NPCs/Portals<br/>
+                <span style={styles.key}>C</span> Character sheet<br/>
+                <span style={styles.key}>T</span> Emotes<br/>
+                <span style={styles.key}>ESC</span> Settings<br/>
+                <span style={{ fontSize: '0.8em', color: '#888' }}>Spells auto-cast at nearby enemies</span>
+              </p>
+            </div>
+
+            <div style={styles.tutorialSection}>
+              <h3 style={styles.tutorialTitle}>
+                <span style={styles.tutorialIcon}>{SVG.star}</span> Progression
+              </h3>
+              <p style={styles.tutorialText}>
+                Kill enemies, collect XP orbs, level up, unlock skins!
+              </p>
+            </div>
+
+            <div style={styles.tutorialSection}>
+              <h3 style={styles.tutorialTitle}>
+                <span style={styles.tutorialIcon}>{SVG.home}</span> Zones
+              </h3>
+              <div style={styles.zoneList}>
+                <div style={styles.zoneItem('#22c55e')}>
+                  <span style={{ ...styles.zoneItemIcon, color: '#22c55e' }}>{SVG.home}</span>
+                  <div>
+                    <h4 style={{ fontSize: '.9rem', marginBottom: 4 }}>Sanctuary</h4>
+                    <p style={{ fontSize: '.75rem', color: '#888' }}>Safe zone</p>
+                  </div>
+                </div>
+                <div style={styles.zoneItem('#84cc16')}>
+                  <span style={{ ...styles.zoneItemIcon, color: '#84cc16' }}>{SVG.star}</span>
+                  <div>
+                    <h4 style={{ fontSize: '.9rem', marginBottom: 4 }}>Meadow (Lv1)</h4>
+                    <p style={{ fontSize: '.75rem', color: '#888' }}>Easy</p>
+                  </div>
+                </div>
+                <div style={styles.zoneItem('#166534')}>
+                  <span style={{ ...styles.zoneItemIcon, color: '#166534' }}>{SVG.arcane}</span>
+                  <div>
+                    <h4 style={{ fontSize: '.9rem', marginBottom: 4 }}>Forest (Lv5)</h4>
+                    <p style={{ fontSize: '.75rem', color: '#888' }}>Medium</p>
+                  </div>
+                </div>
+                <div style={styles.zoneItem('#dc2626')}>
+                  <span style={{ ...styles.zoneItemIcon, color: '#dc2626' }}>{SVG.fire}</span>
+                  <div>
+                    <h4 style={{ fontSize: '.9rem', marginBottom: 4 }}>Volcanic (Lv10)</h4>
+                    <p style={{ fontSize: '.75rem', color: '#888' }}>Hard</p>
+                  </div>
+                </div>
+                <div style={styles.zoneItem('#0ea5e9')}>
+                  <span style={{ ...styles.zoneItemIcon, color: '#0ea5e9' }}>{SVG.ice}</span>
+                  <div>
+                    <h4 style={{ fontSize: '.9rem', marginBottom: 4 }}>Frozen (Lv15)</h4>
+                    <p style={{ fontSize: '.75rem', color: '#888' }}>Harder</p>
+                  </div>
+                </div>
+                <div style={styles.zoneItem('#581c87')}>
+                  <span style={{ ...styles.zoneItemIcon, color: '#581c87' }}>{SVG.skull}</span>
+                  <div>
+                    <h4 style={{ fontSize: '.9rem', marginBottom: 4 }}>Abyss (Lv20)</h4>
+                    <p style={{ fontSize: '.75rem', color: '#888' }}>Bosses!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {tab === 'settings' && (
+          <div style={{ ...styles.content, ...styles.settingsContent }}>
+            <div style={styles.settingRow}>
+              <label style={styles.settingLabel}>
+                <span style={styles.settingIcon}>{SVG.volume}</span> SFX Volume
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={settings.volume * 100}
+                onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
+                style={{ width: 110 }}
+              />
+            </div>
+
+            <div style={styles.settingRow}>
+              <label style={styles.settingLabel}>
+                <span style={styles.settingIcon}>{SVG.music}</span> Music Volume
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={(settings.musicVolume || 0.3) * 100}
+                onChange={(e) => setSettings(s => ({ ...s, musicVolume: e.target.value / 100 }))}
+                style={{ width: 110 }}
+              />
+            </div>
+
+            <div style={styles.settingRow}>
+              <label style={styles.settingLabel}>
+                <span style={styles.settingIcon}>{SVG.volume}</span> Sound Effects
+              </label>
+              <div
+                style={styles.toggle(settings.sfxEnabled)}
+                onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
+              >
+                <div style={styles.toggleKnob(settings.sfxEnabled)} />
+              </div>
+            </div>
+
+            <div style={styles.settingRow}>
+              <label style={styles.settingLabel}>
+                <span style={styles.settingIcon}>{SVG.music}</span> Zone Music
+              </label>
+              <div
+                style={styles.toggle(settings.musicEnabled)}
+                onClick={() => {
+                  setSettings(s => {
+                    const newEnabled = !s.musicEnabled;
+                    if (!newEnabled && musicIntervalRef.current) {
+                      clearInterval(musicIntervalRef.current);
+                      musicIntervalRef.current = null;
+                    } else if (newEnabled && lastZoneRef.current) {
+                      setTimeout(() => startZoneMusic(lastZoneRef.current), 100);
+                    }
+                    return { ...s, musicEnabled: newEnabled };
+                  });
+                }}
+              >
+                <div style={styles.toggleKnob(settings.musicEnabled)} />
+              </div>
+            </div>
+
+            <div style={styles.settingRow}>
+              <label style={styles.settingLabel}>
+                <span style={styles.settingIcon}>{SVG.home}</span> Zone Names
+              </label>
+              <div
+                style={styles.toggle(settings.showZoneNames)}
+                onClick={() => setSettings(s => ({ ...s, showZoneNames: !s.showZoneNames }))}
+              >
+                <div style={styles.toggleKnob(settings.showZoneNames)} />
+              </div>
+            </div>
+
+            <div style={styles.settingRow}>
+              <label style={styles.settingLabel}>
+                <span style={styles.settingIcon}>{SVG.star}</span> Minimap
+              </label>
+              <div
+                style={styles.toggle(settings.showMinimap)}
+                onClick={() => setSettings(s => ({ ...s, showMinimap: !s.showMinimap }))}
+              >
+                <div style={styles.toggleKnob(settings.showMinimap)} />
+              </div>
+            </div>
+          </div>
+        )}
+        </div>{/* End scrollable content */}
+      </div>
 
       {/* Death Screen */}
+      <div style={{ ...styles.overlay, ...(screen !== 'dead' ? styles.hidden : {}) }}>
+        <span style={{ color: '#ef4444', width: 64, height: 64 }}>{SVG.skull}</span>
+        <h1 style={{ color: '#ef4444', fontSize: '2.2rem', margin: '15px 0' }}>You Died!</h1>
+        <p style={{ color: '#888' }}>
+          Killed by <span style={{ color: '#fff' }}>{deathInfo?.killedBy || 'enemy'}</span>
+        </p>
 
-      <DeathScreen
+        <div style={styles.deathStats}>
+          <div style={styles.deathStat}>
+            <div style={styles.deathValue}>{deathInfo?.level || 1}</div>
+            <div style={styles.deathLabel}>Level</div>
+          </div>
+          <div style={styles.deathStat}>
+            <div style={styles.deathValue}>{playerInfo?.kills || 0}</div>
+            <div style={styles.deathLabel}>Kills</div>
+          </div>
+          <div style={styles.deathStat}>
+            <div style={styles.deathValue}>{playerInfo?.totalXp || 0}</div>
+            <div style={styles.deathLabel}>XP</div>
+          </div>
+        </div>
 
-        visible={screen === 'dead'}
-        styles={styles}
-        SVG={SVG}
-        deathInfo={deathInfo}
-        playerInfo={playerInfo}
-        handleRespawn={handleRespawn}
-        onReturnToMenu={() => {
-
-          setDeathInfo(null);
-
-          socketRef.current?.disconnect();
-
-          inDungeonRef.current = false;
-
-          setInDungeon(false);
-
-          if (playerInfo) {
-
-            const charSummary = {
-
-              id: playerIdRef.current,
-
-              name: playerInfo.name,
-
-              class: playerInfo.class,
-
-              level: playerInfo.level,
-
-              totalXp: playerInfo.totalXp || 0,
-
-              kills: playerInfo.kills || 0,
-
-              selectedSkin: playerInfo.selectedSkin,
-
-              bossKills: playerInfo.bossKills || {},
-
-              upgrades: playerInfo.upgrades || {},
-
-            };
-
-            setSavedPlayer(charSummary);
-
-            setCharacters(prev => prev.map(c => c.id === charSummary.id ? charSummary : c));
-
-            setSelectedSkin(playerInfo.selectedSkin || '');
-
-          }
-
-          setTab('play');
-
-          setScreen('title');
-
-        }}
-
-      />
+        <button style={styles.btn} onClick={handleRespawn}>
+          <span style={styles.btnIcon}>{SVG.refresh}</span> Respawn
+        </button>
+        
+        <button 
+          style={{ ...styles.btn, background: 'rgba(100,100,100,0.3)', marginTop: 10 }} 
+          onClick={() => {
+            // Return to menu (keep auth, go to character select)
+            setDeathInfo(null);
+            socketRef.current?.disconnect();
+            // Reset game state
+            inDungeonRef.current = false;
+            setInDungeon(false);
+            // Save current player info for title screen
+            if (playerInfo) {
+              const charSummary = {
+                id: playerIdRef.current,
+                name: playerInfo.name,
+                class: playerInfo.class,
+                level: playerInfo.level,
+                totalXp: playerInfo.totalXp || 0,
+                kills: playerInfo.kills || 0,
+                selectedSkin: playerInfo.selectedSkin,
+                bossKills: playerInfo.bossKills || {},
+                upgrades: playerInfo.upgrades || {},
+              };
+              setSavedPlayer(charSummary);
+              setCharacters(prev => prev.map(c => c.id === charSummary.id ? charSummary : c));
+              setSelectedSkin(playerInfo.selectedSkin || '');
+            }
+            setTab('play');
+            setScreen('title');
+          }}
+        >
+          <span style={styles.btnIcon}>{SVG.home}</span> Return to Menu
+        </button>
+      </div>
 
       {/* Dungeon HUD Overlay */}
       {screen === 'game' && inDungeon && playerInfo && (
@@ -8963,6 +10532,7 @@ export default function SpellBrigade() {
               
               {/* Divider */}
               <div style={{ width: 2, background: 'rgba(255,255,255,0.1)', margin: '5px 5px' }} />
+              
               {/* Class Abilities 1-3 */}
               {[1, 2, 3].map(slot => {
                 const levelReqs = { 1: 10, 2: 20, 3: 30 };
@@ -9595,72 +11165,1840 @@ export default function SpellBrigade() {
         </>
       )}
 
-      {/* Game Modals - Extracted to components/Modals/GameModals.jsx */}
-      <GameModals
-        screen={screen}
-        showSkinSelect={showSkinSelect}
-        setShowSkinSelect={setShowSkinSelect}
-        showShop={showShop}
-        setShowShop={setShowShop}
-        showDungeonBrowser={showDungeonBrowser}
-        setShowDungeonBrowser={setShowDungeonBrowser}
-        npcDialogue={npcDialogue}
-        setNpcDialogue={setNpcDialogue}
-        showQuestLog={showQuestLog}
-        setShowQuestLog={setShowQuestLog}
-        showInGameSettings={showInGameSettings}
-        setShowInGameSettings={setShowInGameSettings}
-        showCharacterSheet={showCharacterSheet}
-        setShowCharacterSheet={setShowCharacterSheet}
-        showAdminPanel={showAdminPanel}
-        setShowAdminPanel={setShowAdminPanel}
-        showEmotes={showEmotes}
-        setShowEmotes={setShowEmotes}
-        showChat={showChat}
-        setShowChat={setShowChat}
-        showLeaderboard={showLeaderboard}
-        setShowLeaderboard={setShowLeaderboard}
-        styles={styles}
-        isMobile={isMobile}
-        SVG={SVG}
-        CLASS_SVG={CLASS_SVG}
-        DEFAULT_SKINS={DEFAULT_SKINS}
-        classes={classes}
-        playerInfo={playerInfo}
-        nearbyBuilding={nearbyBuilding}
-        nearbyNpc={nearbyNpc}
-        nearbyPortal={nearbyPortal}
-        questLog={questLog}
-        settings={settings}
-        setSettings={setSettings}
-        adminKey={adminKey}
-        leaderboardData={leaderboardData}
-        chatMessages={chatMessages}
-        chatInput={chatInput}
-        setChatInput={setChatInput}
-        chatContainerRef={chatContainerRef}
-        bossAlert={bossAlert}
-        levelUp={levelUp}
-        notification={notification}
-        dungeonBrowserTab={dungeonBrowserTab}
-        setDungeonBrowserTab={setDungeonBrowserTab}
-        dungeonBrowserError={dungeonBrowserError}
-        dungeonPromptText={dungeonPromptText}
-        setDungeonPromptText={setDungeonPromptText}
-        customDungeonList={customDungeonList}
-        dungeonVictoryPortal={dungeonVictoryPortal}
-        setDungeonVictoryPortal={setDungeonVictoryPortal}
-        dungeonVictoryPortalRef={dungeonVictoryPortalRef}
-        handleChangeSkin={handleChangeSkin}
-        socketRef={socketRef}
-        playSound={playSound}
-        sessionTokenRef={sessionTokenRef}
-        setScreen={setScreen}
-        setSavedPlayer={setSavedPlayer}
-        setCharacters={setCharacters}
-        setAdminKey={setAdminKey}
-        setAuthState={setAuthState}
-      />
+      {/* In-Game Skin Selector Modal */}
+      {showSkinSelect && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowSkinSelect(false)} />
+          <div style={styles.modal}>
+            <button style={styles.modalClose} onClick={() => setShowSkinSelect(false)}>×</button>
+            <h3 style={styles.modalTitle}>
+              <span style={{ width: 24, height: 24, color: '#ffd93d' }}>{SVG.star}</span>
+              Select Skin
+            </h3>
+            <div style={styles.skinGrid}>
+              {DEFAULT_SKINS.filter(s => s.class === playerInfo?.class).map(skin => {
+                const isSelected = playerInfo?.selectedSkin === skin.id;
+                const isUnlocked = (playerInfo?.totalXp || 0) >= skin.requiredXp;
+                return (
+                  <div
+                    key={skin.id}
+                    style={{
+                      ...styles.skinOption(isSelected, skin.color, !isUnlocked),
+                      width: 70,
+                      height: 70,
+                      flexDirection: 'column',
+                      padding: 5,
+                    }}
+                    onClick={() => isUnlocked && handleChangeSkin(skin.id)}
+                  >
+                    <div style={{ ...styles.skinOptionInner(skin.color), width: 36, height: 36 }} />
+                    <span style={{ fontSize: '.6rem', color: '#888', marginTop: 4 }}>{skin.name}</span>
+                    {!isUnlocked && (
+                      <div style={styles.skinLock}><span style={{ width: 12, height: 12 }}>{SVG.lock}</span></div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: '.75rem', color: '#666', marginTop: 15, textAlign: 'center' }}>
+              {playerInfo?.totalXp || 0} XP earned • Unlock more by playing!
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* Level Up Popup - Non-blocking notification */}
+      {levelUp && (
+        <div style={styles.levelUpPopup}>
+          <span style={{ color: '#ffd93d', display: 'flex', alignItems: 'center', gap: 8, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 600 }}>
+            <span style={{ width: 20, height: 20 }}>{SVG.star}</span>
+            Level {levelUp}!
+          </span>
+        </div>
+      )}
+
+      {/* Building Interaction Prompt */}
+      {nearbyBuilding && screen === 'game' && !showShop && !npcDialogue && !showSkinSelect && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 180 : 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.9)',
+          backdropFilter: 'blur(10px)',
+          padding: '12px 25px',
+          borderRadius: 15,
+          zIndex: 800,
+          border: `2px solid ${nearbyBuilding.color}`,
+          textAlign: 'center',
+          cursor: 'pointer',
+        }}
+        onClick={() => setShowShop(true)}
+        >
+          <div style={{ color: nearbyBuilding.color, fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {nearbyBuilding.name}
+          </div>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
+            {isMobile ? 'Tap to interact' : 'Press E or Click to interact'}
+          </div>
+        </div>
+      )}
+
+      {/* NPC Interaction Prompt */}
+      {nearbyNpc && screen === 'game' && !npcDialogue && !nearbyBuilding && !showSkinSelect && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 180 : 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.9)',
+          backdropFilter: 'blur(10px)',
+          padding: '12px 25px',
+          borderRadius: 15,
+          zIndex: 800,
+          border: `2px solid ${nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e'}`,
+          textAlign: 'center',
+          cursor: 'pointer',
+        }}
+        onClick={() => socketRef.current?.emit('interactNpc', { npcId: nearbyNpc.id })}
+        >
+          <div style={{ 
+            color: nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e', 
+            fontWeight: 'bold', 
+            fontSize: '0.9rem' 
+          }}>
+            {nearbyNpc.emoji && <span style={{ marginRight: 6 }}>{nearbyNpc.emoji}</span>}
+            {nearbyNpc.name}
+          </div>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
+            {isMobile ? 'Tap to talk' : 'Press E to talk'}
+          </div>
+        </div>
+      )}
+
+      {/* Portal Interaction Prompt */}
+      {nearbyPortal && screen === 'game' && !npcDialogue && !nearbyBuilding && !nearbyNpc && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 180 : 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.9)',
+          backdropFilter: 'blur(10px)',
+          padding: '12px 25px',
+          borderRadius: 15,
+          zIndex: 800,
+          border: `2px solid ${nearbyPortal.color || '#a855f7'}`,
+          textAlign: 'center',
+          cursor: 'pointer',
+        }}
+        onClick={() => {
+          if (nearbyPortal.isDungeonExit) {
+            socketRef.current?.emit('exitDungeon');
+            if (nearbyPortal.id === 'dungeon_victory') {
+              setDungeonVictoryPortal(null);
+              dungeonVictoryPortalRef.current = null;
+            }
+          } else {
+            socketRef.current?.emit('usePortal', { portalId: nearbyPortal.id });
+          }
+        }}
+        >
+          <div style={{ 
+            color: nearbyPortal.color || '#a855f7', 
+            fontWeight: 'bold', 
+            fontSize: '0.9rem' 
+          }}>
+            🌀 {nearbyPortal.name || 'Portal'}
+          </div>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
+            {isMobile ? 'Tap to enter' : 'Press E to enter'}
+          </div>
+        </div>
+      )}
+
+      {/* Shop Modal */}
+      {showShop && nearbyBuilding && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowShop(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 420,
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowShop(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, color: nearbyBuilding.color }}>
+              {nearbyBuilding.name}
+            </h3>
+            
+            {/* Tower - hint only, no upgrades */}
+            {nearbyBuilding.id === 'wizard_tower' ? (
+              <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 15 }}>🧙‍♂️</div>
+                <div style={{ color: '#ffd93d', fontWeight: 600, fontSize: '1rem', marginBottom: 12 }}>
+                  The Archmage speaks...
+                </div>
+                <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: 15 }}>
+                  "Seek the buildings scattered across the realm to grow stronger, young wizard."
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', padding: '0 10px' }}>
+                  {[
+                    { icon: '🏚️', name: 'Ancient Ruins', zone: 'Forest', stat: 'Health', color: '#78716c' },
+                    { icon: '🏰', name: 'Obsidian Fortress', zone: 'Volcanic', stat: 'Damage', color: '#7f1d1d' },
+                    { icon: '❄️', name: 'Ice Citadel', zone: 'Frozen', stat: 'Cooldown', color: '#0284c7' },
+                    { icon: '🌀', name: 'Void Shrine', zone: 'Abyss', stat: 'Speed', color: '#7c3aed' },
+                    { icon: '💎', name: 'Crystal Sanctum', zone: 'Caves', stat: 'Attack Speed', color: '#ec4899' },
+                  ].map(b => (
+                    <div key={b.name} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px',
+                      border: `1px solid ${b.color}30`,
+                    }}>
+                      <span style={{ fontSize: '1.1rem' }}>{b.icon}</span>
+                      <div>
+                        <div style={{ color: b.color, fontSize: '0.8rem', fontWeight: 600 }}>{b.name}</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem' }}>{b.zone} · Upgrades {b.stat}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (() => {
+              /* Building-specific upgrade */
+              const upgradeMap = {
+                forest_ruins: { type: 'health', icon: '❤️', name: 'Max Health +5', desc: 'Permanently increase max health', cost: 500, color: '#ef4444', flavorText: 'Ancient vitality courses through the stone walls.' },
+                volcano_fortress: { type: 'damage', icon: '⚔️', name: 'Damage +1%', desc: 'Increase all spell damage', cost: 750, color: '#f97316', flavorText: 'The forge burns with unstoppable fury.' },
+                ice_citadel: { type: 'cooldown', icon: '⏱️', name: 'Cooldown -1%', desc: 'Cast abilities more often', cost: 1000, color: '#3b82f6', flavorText: 'Time itself freezes at your command.' },
+                void_shrine: { type: 'speed', icon: '👟', name: 'Speed +1%', desc: 'Move faster across the realm', cost: 600, color: '#7c3aed', flavorText: 'The void bends space around you.' },
+                crystal_sanctum: { type: 'attackSpeed', icon: '⚡', name: 'Attack Speed +2%', desc: 'Auto-attack fires faster', cost: 800, color: '#ec4899', flavorText: 'Crystal energy quickens your reflexes.' },
+              };
+              const upgrade = upgradeMap[nearbyBuilding.id];
+              if (!upgrade) return <div style={{ color: '#888', textAlign: 'center', padding: 20 }}>Nothing to offer here.</div>;
+              
+              const currentLevel = playerInfo?.upgrades?.[upgrade.type] || 0;
+              
+              return (
+                <div style={{ padding: '10px 0' }}>
+                  <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 20, textAlign: 'center', fontStyle: 'italic' }}>
+                    {upgrade.flavorText}
+                  </div>
+                  
+                  {/* Current level indicator */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 16px',
+                    marginBottom: 15, textAlign: 'center',
+                    border: `1px solid ${upgrade.color}20`,
+                  }}>
+                    <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Current Level</div>
+                    <div style={{ color: upgrade.color, fontSize: '1.6rem', fontWeight: 700 }}>{currentLevel}</div>
+                  </div>
+                  
+                  {/* Upgrade card */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 18,
+                    border: `1px solid ${upgrade.color}40`,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ color: upgrade.color, fontWeight: 'bold', fontSize: '1rem' }}>
+                          {upgrade.icon} {upgrade.name}
+                        </div>
+                        <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>{upgrade.desc}</div>
+                      </div>
+                      <button style={{
+                        background: `linear-gradient(135deg, ${upgrade.color}, ${upgrade.color}cc)`,
+                        border: 'none', borderRadius: 8, padding: '10px 18px',
+                        color: '#fff', fontWeight: 'bold', cursor: 'pointer',
+                        fontSize: '0.9rem', whiteSpace: 'nowrap',
+                      }}
+                      onClick={() => {
+                        socketRef.current?.emit('buyUpgrade', { type: upgrade.type, buildingId: nearbyBuilding.id });
+                        playSound('levelUp');
+                      }}
+                      >
+                        {upgrade.cost} XP
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div style={{ marginTop: 20, textAlign: 'center', color: '#666', fontSize: '0.8rem' }}>
+              Your XP: <span style={{ color: '#ffd93d', fontWeight: 'bold' }}>{playerInfo?.totalXp || 0}</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Dungeon Browser Modal */}
+      {showDungeonBrowser && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowDungeonBrowser(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 500,
+            maxHeight: '85vh',
+            overflowY: 'auto',
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowDungeonBrowser(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, color: '#8b5cf6' }}>
+              🏗️ Dungeon Workshop
+            </h3>
+            
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20, justifyContent: 'center' }}>
+              {['create', 'browse'].map(t => (
+                <button key={t} onClick={() => setDungeonBrowserTab(t)} style={{
+                  padding: '8px 20px',
+                  background: dungeonBrowserTab === t ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.03)',
+                  border: dungeonBrowserTab === t ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, color: dungeonBrowserTab === t ? '#a78bfa' : '#888',
+                  fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {t === 'create' ? '✨ Create' : '⚔️ Browse'}
+                </button>
+              ))}
+            </div>
+            
+            {dungeonBrowserError && (
+              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 15, color: '#ef4444', fontSize: '0.85rem', textAlign: 'center' }}>
+                {dungeonBrowserError}
+              </div>
+            )}
+            
+            {/* Create Tab */}
+            {dungeonBrowserTab === 'create' && (
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: 15, lineHeight: 1.6 }}>
+                  Describe your dungeon and it will be brought to life!<br/>
+                  <span style={{ color: '#666', fontSize: '0.75rem' }}>Try: "a frozen crypt", "fire and chaos nightmare", "easy nature dungeon"</span>
+                </p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 15 }}>
+                  <input
+                    type="text"
+                    value={dungeonPromptText}
+                    onChange={(e) => setDungeonPromptText(e.target.value)}
+                    placeholder="Describe your dungeon..."
+                    maxLength={150}
+                    style={{
+                      flex: 1, padding: '12px 16px', background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid rgba(139,92,246,0.3)', borderRadius: 8,
+                      color: '#fff', fontSize: '0.9rem', outline: 'none',
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && dungeonPromptText.trim().length >= 3) {
+                        socketRef.current?.emit('createCustomDungeon', { prompt: dungeonPromptText.trim() });
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (dungeonPromptText.trim().length >= 3) {
+                        socketRef.current?.emit('createCustomDungeon', { prompt: dungeonPromptText.trim() });
+                      }
+                    }}
+                    disabled={dungeonPromptText.trim().length < 3}
+                    style={{
+                      padding: '12px 20px', background: dungeonPromptText.trim().length >= 3
+                        ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'rgba(50,50,50,0.5)',
+                      border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600,
+                      cursor: dungeonPromptText.trim().length >= 3 ? 'pointer' : 'not-allowed',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    Generate
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {['Fire Depths', 'Frozen Crypt', 'Bone Tombs', 'Nature Maze', 'Void Rift', 'Chaos Storm'].map(preset => (
+                    <button key={preset} onClick={() => setDungeonPromptText(preset.slice(3))} style={{
+                      padding: '6px 12px', background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6,
+                      color: '#888', fontSize: '0.7rem', cursor: 'pointer',
+                    }}>
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Browse Tab */}
+            {dungeonBrowserTab === 'browse' && (
+              <div>
+                {customDungeonList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 30, color: '#666' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 10 }}>🏚️</div>
+                    <p>No dungeons yet. Be the first to create one!</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {customDungeonList.map(d => (
+                      <div key={d.id} style={{
+                        background: 'rgba(255,255,255,0.03)', border: `1px solid ${d.boss?.color || '#666'}30`,
+                        borderRadius: 12, padding: '14px 16px',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div>
+                            <div style={{ color: d.boss?.color || '#fff', fontWeight: 700, fontSize: '0.95rem' }}>{d.name}</div>
+                            <div style={{ color: '#666', fontSize: '0.7rem' }}>
+                              by {d.creator} · {d.roomCount} rooms · {d.difficulty}
+                              {d.plays > 0 && ` · ${d.plays} plays`}
+                              {d.clears > 0 && ` · ${d.clears} clears`}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              socketRef.current?.emit('enterCustomDungeon', { dungeonId: d.id });
+                              setShowDungeonBrowser(false);
+                            }}
+                            style={{
+                              padding: '8px 16px', background: `linear-gradient(135deg, ${d.boss?.color || '#8b5cf6'}, ${d.boss?.color || '#8b5cf6'}cc)`,
+                              border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600,
+                              cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Enter
+                          </button>
+                        </div>
+                        {d.description && (
+                          <div style={{ color: '#888', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                            "{d.description}"
+                          </div>
+                        )}
+                        {d.boss && (
+                          <div style={{ color: d.boss.color, fontSize: '0.7rem', marginTop: 4 }}>
+                            Boss: {d.boss.name} ({Math.round(d.boss.health / 1000)}k HP)
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Emote Wheel */}
+      {showEmotes && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowEmotes(false)} />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000,
+          }}>
+            {/* Circular emote buttons */}
+            {[
+              { id: 'wave', emoji: '👋', label: 'Wave', angle: 0 },
+              { id: 'dance', emoji: '💃', label: 'Dance', angle: 60 },
+              { id: 'cheer', emoji: '🎉', label: 'Cheer', angle: 120 },
+              { id: 'spin', emoji: '🌀', label: 'Spin', angle: 180 },
+              { id: 'sit', emoji: '🧘', label: 'Sit', angle: 240 },
+              { id: 'laugh', emoji: '😂', label: 'Laugh', angle: 300 },
+            ].map((emote) => {
+              const radius = 100;
+              const rad = (emote.angle - 90) * Math.PI / 180;
+              const x = Math.cos(rad) * radius;
+              const y = Math.sin(rad) * radius;
+              return (
+                <button
+                  key={emote.id}
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.9)',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => {
+                    socketRef.current?.emit('emote', { type: emote.id });
+                    setShowEmotes(false);
+                    playSound('dash');
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1.15)`;
+                    e.target.style.borderColor = '#ffd93d';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+                    e.target.style.borderColor = 'rgba(255,255,255,0.3)';
+                  }}
+                >
+                  <span style={{ fontSize: '1.5rem' }}>{emote.emoji}</span>
+                  <span style={{ fontSize: '0.6rem', color: '#888', marginTop: 2 }}>{emote.label}</span>
+                </button>
+              );
+            })}
+            {/* Center instruction */}
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(0,0,0,0.95)',
+              borderRadius: '50%',
+              width: 70,
+              height: 70,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid rgba(255,217,61,0.5)',
+            }}>
+              <span style={{ color: '#888', fontSize: '0.7rem', textAlign: 'center' }}>Press T<br/>to close</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Chat Box */}
+      {screen === 'game' && showChat && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobile ? 170 : 20,
+          left: isMobile ? 10 : 20,
+          width: isMobile ? 260 : 320,
+          maxHeight: isMobile ? 180 : 200,
+          background: isMobile ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(5px)',
+          borderRadius: 10,
+          border: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 50,
+          overflow: 'hidden',
+          pointerEvents: 'auto',
+        }}>
+          {/* Chat header */}
+          <div style={{
+            padding: '6px 12px',
+            background: 'rgba(255,255,255,0.05)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>Chat</span>
+            <button 
+              onClick={() => setShowChat(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+              }}
+            >✕</button>
+          </div>
+          
+          {/* Messages */}
+          <div 
+            ref={chatContainerRef}
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '8px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              maxHeight: isMobile ? 120 : 120,
+              touchAction: 'pan-y',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {chatMessages.map((msg) => {
+              // Get color but ensure it's readable (not too dark)
+              let nameColor = classes[msg.playerClass]?.color || '#fff';
+              // If color is too dark, use secondary color or white
+              if (nameColor && (nameColor.toLowerCase() === '#000' || nameColor.toLowerCase() === '#000000' || 
+                  nameColor.toLowerCase() === '#1a0a2e' || nameColor.toLowerCase().startsWith('#0') || 
+                  nameColor.toLowerCase().startsWith('#1'))) {
+                nameColor = classes[msg.playerClass]?.secondaryColor || '#a78bfa';
+              }
+              return (
+              <div key={msg.id} style={{ fontSize: '0.75rem', lineHeight: 1.3 }}>
+                {msg.type === 'system' ? (
+                  <span style={{ color: '#888', fontStyle: 'italic' }}>{msg.text}</span>
+                ) : (
+                  <>
+                    <span style={{ 
+                      color: nameColor,
+                      fontWeight: 600,
+                    }}>
+                      {msg.playerName}:
+                    </span>
+                    <span style={{ color: '#ccc', marginLeft: 6 }}>{msg.text}</span>
+                  </>
+                )}
+              </div>
+            );})}
+          </div>
+          
+          {/* Input */}
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (chatInput.trim()) {
+                socketRef.current?.emit('chat', chatInput.trim());
+                setChatInput('');
+              }
+            }}
+            style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Press Enter to chat..."
+              maxLength={200}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'rgba(255,255,255,0.05)',
+                border: 'none',
+                color: '#fff',
+                fontSize: '0.75rem',
+                outline: 'none',
+              }}
+            />
+          </form>
+        </div>
+      )}
+      
+      {/* Chat toggle button (when hidden) - Desktop only */}
+      {screen === 'game' && !showChat && !isMobile && (
+        <button
+          onClick={() => setShowChat(true)}
+          style={{
+            position: 'fixed',
+            bottom: 20,
+            left: 20,
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: 'rgba(0,0,0,0.7)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+        >💬</button>
+      )}
+
+      {/* Boss Spawn Alert - Compact notification */}
+      {bossAlert && screen === 'game' && (
+        <div style={{
+          position: 'fixed',
+          top: isMobile ? 60 : 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.85)',
+          padding: '10px 20px',
+          borderRadius: 8,
+          zIndex: 200,
+          animation: 'fadeInDown 0.3s ease-out',
+          border: `1px solid ${bossAlert.color}60`,
+          boxShadow: `0 4px 20px rgba(0,0,0,0.5), 0 0 15px ${bossAlert.color}20`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '1.2rem' }}>{bossAlert.emoji}</span>
+            <div>
+              <div style={{ 
+                color: bossAlert.color, 
+                fontSize: isMobile ? '0.85rem' : '0.95rem', 
+                fontWeight: 600,
+              }}>
+                {bossAlert.name} Awakens!
+              </div>
+              <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                Boss spawned in {bossAlert.zone?.replace('_', ' ')}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings & Leaderboard - Desktop (positioned below player stats) */}
+      {screen === 'game' && playerInfo && !isMobile && (
+        <div style={{ position: 'fixed', top: 375, left: 20, zIndex: 50 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {/* Settings Button */}
+            <button
+              onClick={() => setShowInGameSettings(true)}
+              style={{
+                background: 'rgba(0,0,0,0.75)',
+                backdropFilter: 'blur(8px)',
+                padding: '10px',
+                borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.15)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#888">
+                <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+              </svg>
+            </button>
+            {/* Leaderboard Toggle */}
+            <button
+              onClick={() => setShowLeaderboard(prev => !prev)}
+              style={{
+                background: showLeaderboard ? 'rgba(255,215,61,0.15)' : 'rgba(0,0,0,0.75)',
+                backdropFilter: 'blur(8px)',
+                padding: '10px',
+                borderRadius: 10,
+                border: `1px solid ${showLeaderboard ? 'rgba(255,215,61,0.4)' : 'rgba(255,255,255,0.15)'}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={showLeaderboard ? '#ffd93d' : '#888'}>
+                <path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/>
+              </svg>
+            </button>
+          </div>
+          
+          {/* Desktop Leaderboard Panel */}
+          {showLeaderboard && leaderboardData.length > 0 && (
+            <div style={{
+              marginTop: 8,
+              background: 'rgba(0,0,0,0.8)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 12,
+              border: '1px solid rgba(255,215,61,0.2)',
+              padding: 12,
+              minWidth: 200,
+            }}>
+              <div style={{ fontSize: '0.7rem', color: '#ffd93d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
+                Top Players
+              </div>
+              {leaderboardData.map((p, i) => (
+                <div key={i} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '4px 0',
+                  borderBottom: i < leaderboardData.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                }}>
+                  <span style={{
+                    width: 16,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: i === 0 ? '#ffd93d' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#666',
+                  }}>
+                    {i + 1}
+                  </span>
+                  <span style={{
+                    flex: 1,
+                    fontSize: '0.8rem',
+                    color: p.name === playerInfo?.name ? '#ffd93d' : '#ddd',
+                    fontWeight: p.name === playerInfo?.name ? 600 : 400,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {p.name}
+                  </span>
+                  <span style={{ fontSize: '0.65rem', color: '#888' }}>Lv{p.level}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600, minWidth: 28, textAlign: 'right' }}>
+                    {p.kills}
+                  </span>
+                  <span style={{ fontSize: '0.6rem', color: '#888' }}>kills</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* NPC Dialogue Modal */}
+      {npcDialogue && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setNpcDialogue(null)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 450,
+            background: npcDialogue.npcType === 'guide' 
+              ? 'linear-gradient(135deg, rgba(20,30,40,0.98), rgba(30,60,80,0.98))'
+              : npcDialogue.npcType === 'quest_master'
+              ? 'linear-gradient(135deg, rgba(40,30,50,0.98), rgba(60,40,70,0.98))'
+              : npcDialogue.npcType === 'shapeshifter'
+              ? 'linear-gradient(135deg, rgba(60,20,50,0.98), rgba(80,30,60,0.98))'
+              : 'linear-gradient(135deg, rgba(30,25,20,0.98), rgba(50,40,30,0.98))',
+            border: npcDialogue.npcType === 'guide'
+              ? '2px solid rgba(103, 232, 249, 0.5)'
+              : npcDialogue.npcType === 'quest_master'
+              ? '2px solid rgba(255, 215, 61, 0.5)'
+              : npcDialogue.npcType === 'shapeshifter'
+              ? '2px solid rgba(236, 72, 153, 0.5)'
+              : '2px solid rgba(168, 162, 158, 0.5)',
+          }}>
+            <button style={styles.modalClose} onClick={() => setNpcDialogue(null)}>×</button>
+            
+            {/* NPC Avatar & Name */}
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                background: npcDialogue.npcType === 'guide'
+                  ? 'linear-gradient(135deg, #67e8f9, #0ea5e9)'
+                  : npcDialogue.npcType === 'quest_master'
+                  ? 'linear-gradient(135deg, #ffd93d, #f97316)'
+                  : npcDialogue.npcType === 'shapeshifter'
+                  ? 'linear-gradient(135deg, #ec4899, #a855f7)'
+                  : 'linear-gradient(135deg, #78716c, #44403c)',
+                margin: '0 auto 10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.8rem',
+                boxShadow: npcDialogue.npcType === 'guide'
+                  ? '0 0 20px rgba(103, 232, 249, 0.5)'
+                  : npcDialogue.npcType === 'quest_master'
+                  ? '0 0 20px rgba(255, 215, 61, 0.5)'
+                  : npcDialogue.npcType === 'shapeshifter'
+                  ? '0 0 20px rgba(236, 72, 153, 0.5)'
+                  : '0 0 15px rgba(0,0,0,0.5)',
+              }}>
+                {npcDialogue.npcType === 'guide' ? (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ) : npcDialogue.npcType === 'quest_master' ? (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                  </svg>
+                ) : npcDialogue.npcType === 'shapeshifter' ? (
+                  <span>{npcDialogue.emoji || '🦋'}</span>
+                ) : (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M6.92 5L5 7.92l3.04 3.04L5 14.08 6.92 16l3.04-3.04L13.04 16 15 14.08l-3.04-3.04L15 7.92 13.04 6l-3.04 3.04L6.92 5z"/>
+                  </svg>
+                )}
+              </div>
+              <h3 style={{ 
+                margin: 0, 
+                color: npcDialogue.npcType === 'guide' ? '#67e8f9' : npcDialogue.npcType === 'quest_master' ? '#ffd93d' : npcDialogue.npcType === 'shapeshifter' ? '#ec4899' : '#a8a29e',
+                fontSize: '1.1rem',
+              }}>
+                {npcDialogue.npcName}
+              </h3>
+            </div>
+            
+            {/* Dialogue Text */}
+            <div style={{
+              background: 'rgba(0,0,0,0.3)',
+              borderRadius: 10,
+              padding: 15,
+              marginBottom: 15,
+            }}>
+              {npcDialogue.dialogue?.map((line, i) => (
+                <p key={i} style={{ 
+                  color: '#e5e5e5', 
+                  margin: i === npcDialogue.dialogue.length - 1 ? 0 : '0 0 10px 0',
+                  lineHeight: 1.5,
+                  fontSize: '0.9rem',
+                }}>
+                  "{line}"
+                </p>
+              ))}
+            </div>
+            
+            {/* Follow-up dialogue for knight */}
+            {npcDialogue.followUp && (
+              <div style={{
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: 10,
+                padding: 15,
+                marginBottom: 15,
+                borderLeft: `3px solid ${npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#f97316'}`,
+              }}>
+                {npcDialogue.followUp.map((line, i) => (
+                  <p key={i} style={{ 
+                    color: npcDialogue.npcType === 'quest_master' ? '#fcd34d' : '#fbbf24', 
+                    margin: i === npcDialogue.followUp.length - 1 ? 0 : '0 0 8px 0',
+                    lineHeight: 1.4,
+                    fontSize: '0.85rem',
+                  }}>
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+            
+            {/* Quest Master Accept Quest */}
+            {npcDialogue.npcType === 'quest_master' && npcDialogue.hasChoice && npcDialogue.prompt && (
+              <div style={{ marginTop: 20 }}>
+                <p style={{ 
+                  color: '#fff', 
+                  textAlign: 'center', 
+                  marginBottom: 15,
+                  fontWeight: 600,
+                }}>
+                  {npcDialogue.prompt}
+                </p>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 10,
+                  justifyContent: 'center',
+                }}>
+                  <button
+                    onClick={() => {
+                      // Accept quest - update quest log
+                      setQuestLog(prev => ({
+                        ...prev,
+                        allBosses: { ...prev.allBosses, active: true },
+                      }));
+                      setNpcDialogue(null);
+                      // Show confirmation
+                      playSound('levelUp');
+                    }}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'linear-gradient(135deg, #ffd93d, #f97316)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#000',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Accept Quest
+                  </button>
+                  <button
+                    onClick={() => setNpcDialogue(null)}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Maybe later
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Prompt and choices for knight dungeon */}
+            {npcDialogue.npcType === 'knight' && npcDialogue.hasChoice && npcDialogue.prompt && (
+              <div style={{ marginTop: 20 }}>
+                <p style={{ 
+                  color: '#fff', 
+                  textAlign: 'center', 
+                  marginBottom: 15,
+                  fontWeight: 600,
+                }}>
+                  {npcDialogue.prompt}
+                </p>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 10,
+                  justifyContent: 'center',
+                }}>
+                  <button
+                    onClick={() => {
+                      socketRef.current?.emit('enterDungeon');
+                      // Activate dragon slayer quest
+                      setQuestLog(prev => ({
+                        ...prev,
+                        dragonSlayer: { ...prev.dragonSlayer, active: true },
+                      }));
+                      setNpcDialogue(null);
+                    }}
+                    style={{
+                      padding: '12px 25px',
+                      background: npcDialogue.playerLevel >= npcDialogue.recommendedLevel
+                        ? 'linear-gradient(135deg, #dc2626, #991b1b)'
+                        : 'linear-gradient(135deg, #78716c, #57534e)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Enter the Gauntlet
+                    {npcDialogue.playerLevel < npcDialogue.recommendedLevel && (
+                      <span style={{ display: 'block', fontSize: '0.7rem', color: '#fbbf24', marginTop: 4 }}>
+                        (Lv {npcDialogue.playerLevel} / Rec: {npcDialogue.recommendedLevel})
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setNpcDialogue(null)}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Not yet
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Shapeshifter - Change Appearance */}
+            {npcDialogue.npcType === 'shapeshifter' && npcDialogue.hasChoice && (
+              <div style={{ marginTop: 20 }}>
+                <p style={{ 
+                  color: '#fff', 
+                  textAlign: 'center', 
+                  marginBottom: 15,
+                  fontWeight: 600,
+                }}>
+                  {npcDialogue.prompt}
+                </p>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 10,
+                  justifyContent: 'center',
+                }}>
+                  <button
+                    onClick={() => {
+                      setNpcDialogue(null);
+                      setShowSkinSelect(true);
+                    }}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'linear-gradient(135deg, #ec4899, #a855f7)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    🎨 Change Appearance
+                  </button>
+                  <button
+                    onClick={() => setNpcDialogue(null)}
+                    style={{
+                      padding: '12px 25px',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Not now
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Dungeon Architect choices */}
+            {npcDialogue.npcType === 'dungeon_architect' && npcDialogue.hasChoice && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => {
+                      setNpcDialogue(null);
+                      setShowDungeonBrowser(true);
+                      setDungeonBrowserTab('create');
+                      setDungeonBrowserError('');
+                      socketRef.current?.emit('listCustomDungeons');
+                    }}
+                    style={{
+                      padding: '12px 20px', background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                      border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                    }}
+                  >
+                    🏗️ Create Dungeon
+                  </button>
+                  <button
+                    onClick={() => {
+                      setNpcDialogue(null);
+                      setShowDungeonBrowser(true);
+                      setDungeonBrowserTab('browse');
+                      setDungeonBrowserError('');
+                      socketRef.current?.emit('listCustomDungeons');
+                    }}
+                    style={{
+                      padding: '12px 20px', background: 'linear-gradient(135deg, #6366f1, #4338ca)',
+                      border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                    }}
+                  >
+                    ⚔️ Browse Dungeons
+                  </button>
+                  <button onClick={() => setNpcDialogue(null)} style={{
+                    padding: '12px 20px', background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+                  }}>
+                    Leave
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Simple close for guide */}
+            {!npcDialogue.hasChoice && (
+              <div style={{ textAlign: 'center' }}>
+                <button
+                  onClick={() => setNpcDialogue(null)}
+                  style={{
+                    padding: '10px 30px',
+                    background: npcDialogue.npcType === 'quest_master'
+                      ? 'rgba(255, 215, 61, 0.2)'
+                      : 'rgba(103, 232, 249, 0.2)',
+                    border: npcDialogue.npcType === 'quest_master'
+                      ? '1px solid rgba(255, 215, 61, 0.4)'
+                      : '1px solid rgba(103, 232, 249, 0.4)',
+                    borderRadius: 8,
+                    color: npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#67e8f9',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Farewell
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Quest Log Modal */}
+      {showQuestLog && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowQuestLog(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 500,
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowQuestLog(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, color: '#ffd93d', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#ffd93d">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+              Quest Log
+            </h3>
+            
+            {/* Quest: Champion of the Realm */}
+            <div style={{
+              background: questLog.allBosses.completed ? 'rgba(34,197,94,0.15)' : 'rgba(255,215,0,0.1)',
+              border: `1px solid ${questLog.allBosses.completed ? '#22c55e' : 'rgba(255,215,0,0.3)'}`,
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <svg width="32" height="32" viewBox="0 0 32 32">
+                  <circle cx="16" cy="16" r="14" fill={questLog.allBosses.completed ? '#22c55e' : '#ffd93d'} stroke="#b8860b" strokeWidth="2"/>
+                  <path d="M16 8 L18 14 L24 14 L19 18 L21 24 L16 20 L11 24 L13 18 L8 14 L14 14 Z" fill={questLog.allBosses.completed ? '#166534' : '#b8860b'}/>
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: questLog.allBosses.completed ? '#22c55e' : '#ffd93d', fontWeight: 700, fontSize: '1rem' }}>
+                    {questLog.allBosses.name}
+                    {questLog.allBosses.completed && <span style={{ marginLeft: 8, color: '#22c55e' }}>COMPLETE</span>}
+                  </div>
+                  <div style={{ color: '#888', fontSize: '0.8rem' }}>{questLog.allBosses.description}</div>
+                </div>
+              </div>
+              
+              {/* Boss checklist */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 12 }}>
+                {[
+                  { id: 'meadow', name: 'Blossom Behemoth', color: '#ec4899' },
+                  { id: 'forest', name: 'Ancient Treant', color: '#22c55e' },
+                  { id: 'volcanic', name: 'Magma Titan', color: '#f97316' },
+                  { id: 'frozen', name: 'Frost Wyrm', color: '#22d3ee' },
+                  { id: 'crystal_caves', name: 'Crystal Golem', color: '#ec4899' },
+                  { id: 'abyss', name: 'Void Overlord', color: '#7c3aed' },
+                ].map(boss => {
+                  const killed = playerInfo?.bossKills?.[boss.id] || questLog.allBosses.progress?.[boss.id];
+                  return (
+                    <div key={boss.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 10px',
+                      background: killed ? 'rgba(34,197,94,0.2)' : 'rgba(0,0,0,0.3)',
+                      borderRadius: 6,
+                      border: `1px solid ${killed ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
+                    }}>
+                      {killed ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#22c55e">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                      ) : (
+                        <div style={{ width: 16, height: 16, border: '2px solid #444', borderRadius: 3 }} />
+                      )}
+                      <span style={{ 
+                        color: killed ? '#22c55e' : boss.color, 
+                        fontSize: '0.75rem',
+                        textDecoration: killed ? 'line-through' : 'none',
+                        opacity: killed ? 0.7 : 1,
+                      }}>{boss.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Reward */}
+              <div style={{ 
+                marginTop: 12, 
+                padding: '8px 12px', 
+                background: 'rgba(0,0,0,0.3)', 
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+              }}>
+                <span style={{ color: '#888', fontSize: '0.75rem' }}>Reward:</span>
+                <span style={{ color: '#3b82f6', fontSize: '0.8rem', fontWeight: 600 }}>+5000 XP</span>
+                <span style={{ color: '#ffd93d', fontSize: '0.8rem', fontWeight: 600 }}>Champion Title</span>
+              </div>
+            </div>
+            
+            {/* Quest: Dragon Slayer */}
+            <div style={{
+              background: questLog.dragonSlayer.completed ? 'rgba(34,197,94,0.15)' : 'rgba(139,0,0,0.15)',
+              border: `1px solid ${questLog.dragonSlayer.completed ? '#22c55e' : 'rgba(220,38,38,0.4)'}`,
+              borderRadius: 12,
+              padding: 16,
+              opacity: questLog.dragonSlayer.active || questLog.dragonSlayer.completed ? 1 : 0.6,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <svg width="32" height="32" viewBox="0 0 32 32">
+                  <ellipse cx="16" cy="18" rx="10" ry="7" fill="#991b1b"/>
+                  <path d="M6 18 L2 10 L7 14 Z" fill="#991b1b"/>
+                  <path d="M26 18 L30 10 L25 14 Z" fill="#991b1b"/>
+                  <circle cx="12" cy="16" r="2" fill="#fbbf24"/>
+                  <circle cx="20" cy="16" r="2" fill="#fbbf24"/>
+                  <path d="M12 22 L16 24 L20 22" stroke="#f97316" strokeWidth="2" fill="none"/>
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: questLog.dragonSlayer.completed ? '#22c55e' : '#dc2626', fontWeight: 700, fontSize: '1rem' }}>
+                    {questLog.dragonSlayer.name}
+                    {questLog.dragonSlayer.completed && <span style={{ marginLeft: 8, color: '#22c55e' }}>COMPLETE</span>}
+                    {!questLog.dragonSlayer.active && !questLog.dragonSlayer.completed && (
+                      <span style={{ marginLeft: 8, color: '#666', fontSize: '0.75rem' }}>LOCKED</span>
+                    )}
+                  </div>
+                  <div style={{ color: '#888', fontSize: '0.8rem' }}>{questLog.dragonSlayer.description}</div>
+                </div>
+              </div>
+              
+              {!questLog.dragonSlayer.active && !questLog.dragonSlayer.completed && (
+                <div style={{ color: '#666', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                  Speak with Knight Commander Aldric in the Sanctuary to begin this quest.
+                </div>
+              )}
+              
+              {/* Reward */}
+              <div style={{ 
+                marginTop: 12, 
+                padding: '8px 12px', 
+                background: 'rgba(0,0,0,0.3)', 
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+              }}>
+                <span style={{ color: '#888', fontSize: '0.75rem' }}>Reward:</span>
+                <span style={{ color: '#3b82f6', fontSize: '0.8rem', fontWeight: 600 }}>+10000 XP</span>
+                <span style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: 600 }}>Dragon Slayer Title</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* In-Game Settings Modal */}
+      {showInGameSettings && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowInGameSettings(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 400,
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowInGameSettings(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+              </svg>
+              Settings
+            </h3>
+            
+            {/* Sound Settings */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Audio</div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Sound Effects</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
+                  style={{
+                    background: settings.sfxEnabled ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.sfxEnabled ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Music</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, musicEnabled: !s.musicEnabled }))}
+                  style={{
+                    background: settings.musicEnabled ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.musicEnabled ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: '#fff', fontSize: '0.9rem' }}>SFX Volume</span>
+                  <span style={{ color: '#888', fontSize: '0.8rem' }}>{Math.round(settings.volume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={settings.volume * 100}
+                  onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
+                  style={{ width: '100%', accentColor: '#3b82f6' }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: '#fff', fontSize: '0.9rem' }}>Music Volume</span>
+                  <span style={{ color: '#888', fontSize: '0.8rem' }}>{Math.round((settings.musicVolume || 0.3) * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={(settings.musicVolume || 0.3) * 100}
+                  onChange={(e) => setSettings(s => ({ ...s, musicVolume: e.target.value / 100 }))}
+                  style={{ width: '100%', accentColor: '#a855f7' }}
+                />
+              </div>
+            </div>
+            
+            {/* Display Settings */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Display</div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Show Zone Names</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, showZoneNames: !s.showZoneNames }))}
+                  style={{
+                    background: settings.showZoneNames ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.showZoneNames ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ color: '#fff', fontSize: '0.9rem' }}>Show Minimap</span>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, showMinimap: !s.showMinimap }))}
+                  style={{
+                    background: settings.showMinimap ? '#22c55e' : '#444',
+                    border: 'none',
+                    borderRadius: 20,
+                    width: 50,
+                    height: 26,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: settings.showMinimap ? 27 : 3,
+                    width: 20,
+                    height: 20,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+            </div>
+            
+            {/* Controls Section */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Controls</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {[
+                  { key: 'WASD', label: 'Move' },
+                  { key: 'Click', label: 'Attack' },
+                  { key: 'E', label: 'Interact / Talk' },
+                  { key: 'Space', label: 'Dash' },
+                  { key: 'Q', label: 'Ultimate' },
+                  { key: 'X', label: 'Auto-Attack' },
+                  { key: 'C', label: 'Character Stats' },
+                  { key: 'T', label: 'Emote Wheel' },
+                  { key: 'M', label: 'Minimap' },
+                  { key: 'ESC', label: 'Settings' },
+                  { key: '1-4', label: 'Class Abilities' },
+                  { key: 'Tab', label: 'Leaderboard' },
+                ].map(c => (
+                  <div key={c.key} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '5px 8px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: 6,
+                  }}>
+                    <span style={{ 
+                      background: 'rgba(255,255,255,0.1)', 
+                      borderRadius: 4, 
+                      padding: '2px 6px',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '.65rem',
+                      fontFamily: 'monospace',
+                      minWidth: 36,
+                      textAlign: 'center',
+                    }}>{c.key}</span>
+                    <span style={{ color: '#aaa', fontSize: '0.8rem' }}>{c.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Account Section */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Account</div>
+              
+              {authState.isAuthenticated && !authState.isGuest ? (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ color: '#fff', fontSize: '0.9rem', marginBottom: 4 }}>
+                    Logged in as: <span style={{ color: '#3b82f6' }}>{authState.user?.username}</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 12 }}>
+                  Playing as guest - progress may not be saved
+                </div>
+              )}
+              
+              <button
+                onClick={() => {
+                  // Return to menu (keep auth, go to character select)
+                  setShowInGameSettings(false);
+                  socketRef.current?.disconnect();
+                  // Reset game state
+                  inDungeonRef.current = false;
+                  setInDungeon(false);
+                  setDeathInfo(null);
+                  // Save current player info for title screen
+                  if (playerInfo) {
+                    const charSummary = {
+                      id: playerIdRef.current,
+                      name: playerInfo.name,
+                      class: playerInfo.class,
+                      level: playerInfo.level,
+                      totalXp: playerInfo.totalXp || 0,
+                      kills: playerInfo.kills || 0,
+                      selectedSkin: playerInfo.selectedSkin,
+                      bossKills: playerInfo.bossKills || {},
+                      upgrades: playerInfo.upgrades || {},
+                    };
+                    setSavedPlayer(charSummary);
+                    setCharacters(prev => prev.map(c => c.id === charSummary.id ? charSummary : c));
+                  }
+                  setScreen('title');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(59,130,246,0.2)',
+                  border: '1px solid rgba(59,130,246,0.4)',
+                  borderRadius: 8,
+                  color: '#3b82f6',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                </svg>
+                Return to Menu
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Full logout - clear everything
+                  setShowInGameSettings(false);
+                  setScreen('auth');
+                  setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                  localStorage.removeItem('spellBrigadeSession');
+                  localStorage.removeItem('spellBrigadePlayerId');
+                  setSavedPlayer(null);
+                  setAdminKey('');
+                  socketRef.current?.disconnect();
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'rgba(239,68,68,0.2)',
+                  border: '1px solid rgba(239,68,68,0.4)',
+                  borderRadius: 8,
+                  color: '#ef4444',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                </svg>
+                Logout
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Character Sheet Modal */}
+      {showCharacterSheet && screen === 'game' && playerInfo && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.7)',
+              zIndex: 1000,
+            }}
+            onClick={() => setShowCharacterSheet(false)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+            border: '2px solid rgba(255,255,255,0.15)',
+            borderRadius: 16,
+            padding: 24,
+            minWidth: 320,
+            maxWidth: 400,
+            zIndex: 1001,
+            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ color: '#fff', fontSize: '1.4rem', margin: 0 }}>Character Sheet</h2>
+              <button
+                onClick={() => setShowCharacterSheet(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  color: '#fff',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
+                }}
+              >×</button>
+            </div>
+            
+            {/* Character Info */}
+            <div style={{ 
+              background: 'rgba(0,0,0,0.3)', 
+              borderRadius: 12, 
+              padding: 16, 
+              marginBottom: 16,
+              border: `2px solid ${classes[playerInfo.class]?.color || '#888'}40`
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: classes[playerInfo.class]?.color || '#888',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                }}>
+                  {classes[playerInfo.class]?.icon || '🧙'}
+                </div>
+                <div>
+                  <div style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600 }}>{playerInfo.name}</div>
+                  <div style={{ color: classes[playerInfo.class]?.color || '#888', fontSize: '0.85rem' }}>
+                    {classes[playerInfo.class]?.name || 'Wizard'}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8 }}>
+                  <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: 4 }}>LEVEL</div>
+                  <div style={{ color: '#ffd93d', fontSize: '1.2rem', fontWeight: 700 }}>{playerInfo.level}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 8 }}>
+                  <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: 4 }}>TOTAL XP</div>
+                  <div style={{ color: '#3b82f6', fontSize: '1.2rem', fontWeight: 700 }}>{playerInfo.totalXp?.toLocaleString() || 0}</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Stats</div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>Health</span>
+                <span style={{ color: '#ef4444' }}>{playerInfo.health} / {playerInfo.maxHealth}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>XP to Next Level</span>
+                <span style={{ color: '#22c55e' }}>{playerInfo.xp || 0} / {playerInfo.xpToLevel || 100}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>Damage Multiplier</span>
+                <span style={{ color: '#f97316' }}>x{(playerInfo.damageMultiplier || 1).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>Speed Multiplier</span>
+                <span style={{ color: '#22c55e' }}>x{(playerInfo.speedMultiplier || 1).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#888' }}>Cooldown Reduction</span>
+                <span style={{ color: '#3b82f6' }}>x{(playerInfo.cooldownMultiplier || 1).toFixed(2)}</span>
+              </div>
+            </div>
+            
+            {/* Combat Record */}
+            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
+              <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Combat Record</div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ textAlign: 'center', padding: 8, background: 'rgba(34,197,94,0.1)', borderRadius: 8 }}>
+                  <div style={{ color: '#22c55e', fontSize: '1.5rem', fontWeight: 700 }}>{playerInfo.kills || 0}</div>
+                  <div style={{ color: '#888', fontSize: '0.7rem' }}>Kills</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: 8, background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>
+                  <div style={{ color: '#ef4444', fontSize: '1.5rem', fontWeight: 700 }}>{playerInfo.deaths || 0}</div>
+                  <div style={{ color: '#888', fontSize: '0.7rem' }}>Deaths</div>
+                </div>
+              </div>
+              
+              {playerInfo.kills > 0 && playerInfo.deaths > 0 && (
+                <div style={{ textAlign: 'center', marginTop: 8, color: '#888', fontSize: '0.8rem' }}>
+                  K/D Ratio: <span style={{ color: '#fff' }}>{(playerInfo.kills / playerInfo.deaths).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Admin Panel Modal */}
+      {showAdminPanel && adminKey === 'azoni-voidlord-2026' && screen === 'game' && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 1000,
+            }}
+            onClick={() => setShowAdminPanel(false)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: 80,
+            right: 20,
+            background: 'linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%)',
+            border: '2px solid #a855f7',
+            borderRadius: 12,
+            padding: 16,
+            minWidth: 280,
+            maxWidth: 350,
+            maxHeight: 'calc(100vh - 160px)',
+            overflowY: 'auto',
+            zIndex: 1001,
+            boxShadow: '0 10px 40px rgba(168,85,247,0.3)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ color: '#a855f7', fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>👑</span> Admin Panel
+              </h3>
+              <button
+                onClick={() => setShowAdminPanel(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 24,
+                  height: 24,
+                  color: '#fff',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                }}
+              >×</button>
+            </div>
+            
+            <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+              Players Online: {adminPlayers.length}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {adminPlayers.map(p => (
+                <div
+                  key={p.id}
+                  style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: `1px solid ${classes[p.class]?.color || '#444'}40`,
+                    borderRadius: 8,
+                    padding: 10,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ 
+                      color: classes[p.class]?.secondaryColor || classes[p.class]?.color || '#fff', 
+                      fontWeight: 600,
+                      fontSize: '0.85rem'
+                    }}>
+                      {p.name}
+                    </span>
+                    <span style={{ 
+                      color: '#ffd93d', 
+                      fontSize: '0.75rem',
+                      background: 'rgba(255,215,0,0.1)',
+                      padding: '2px 6px',
+                      borderRadius: 4
+                    }}>
+                      Lv.{p.level}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#888' }}>
+                    <span>{classes[p.class]?.name || p.class}</span>
+                    <span style={{ color: '#ef4444' }}>{p.health}/{p.maxHealth} HP</span>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#666', marginTop: 4 }}>
+                    Kills: {p.kills} | Pos: ({p.x}, {p.y})
+                  </div>
+                </div>
+              ))}
+              {adminPlayers.length === 0 && (
+                <div style={{ color: '#666', fontSize: '0.8rem', textAlign: 'center', padding: 16 }}>
+                  No players online
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Quest Complete Celebration */}
       {questComplete && (

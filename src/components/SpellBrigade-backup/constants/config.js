@@ -71,7 +71,7 @@ export const DEFAULT_CLASSES = {
   shadowarcher: {
     id: 'shadowarcher',
     name: 'Shadow Archer',
-    color: '#334155',
+    color: '#0f172a',
     secondaryColor: '#dc2626',
     description: 'Elite shadow hunter. Admin exclusive.',
     dash: 'Shadow Step',
@@ -341,7 +341,7 @@ export const DEFAULT_SKINS = [
     id: 'shadowarcher_default', 
     class: 'shadowarcher', 
     name: 'Shadow Archer', 
-    color: '#334155', 
+    color: '#0f172a', 
     secondaryColor: '#dc2626',
     requiredXp: 0,
     trail: { color: '#dc2626', particles: 3, size: 3 },
