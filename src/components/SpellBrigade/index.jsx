@@ -133,6 +133,9 @@ export default function SpellBrigade() {
     user: null,
     sessionToken: null,
   });
+  const sessionTokenRef = useRef(null);
+  // Keep ref in sync with state
+  sessionTokenRef.current = authState.sessionToken;
   const [authScreen, setAuthScreen] = useState('main'); // main, login, signup
   const [authError, setAuthError] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -275,7 +278,7 @@ export default function SpellBrigade() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            sessionToken: authState.sessionToken,
+            sessionToken: sessionTokenRef.current,
             settings: settings,
           }),
         }).catch(() => {}); // Silently fail
@@ -8292,7 +8295,7 @@ export default function SpellBrigade() {
           playerName: savedPlayer.name,
           playerClass: savedPlayer.class,
           selectedSkin: skinToUse,
-          sessionToken: authState.sessionToken || null,
+          sessionToken: sessionTokenRef.current || null,
         });
       });
     } else {
@@ -8301,7 +8304,7 @@ export default function SpellBrigade() {
         playerName: savedPlayer.name,
         playerClass: savedPlayer.class,
         selectedSkin: skinToUse,
-        sessionToken: authState.sessionToken || null,
+        sessionToken: sessionTokenRef.current || null,
       });
     }
   };
@@ -8326,7 +8329,7 @@ export default function SpellBrigade() {
       const res = await fetch(`${SERVER_URL}/auth/delete-character`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionToken: authState.sessionToken, characterId: charId }),
+        body: JSON.stringify({ sessionToken: sessionTokenRef.current, characterId: charId }),
       });
       const data = await res.json();
       if (data.success) {
@@ -8350,7 +8353,7 @@ export default function SpellBrigade() {
       playerName: name,
       playerClass: selectedClass,
       selectedSkin: selectedSkin,
-      sessionToken: authState.sessionToken || null,
+      sessionToken: sessionTokenRef.current || null,
     };
     
     if (!socketRef.current?.connected) {
@@ -8713,6 +8716,10 @@ export default function SpellBrigade() {
                     setAdminKey('azoni-voidlord-2026');
                     setSelectedClass('shadowarcher');
                     setSelectedSkin('shadowarcher_default');
+                    // Pre-authenticate socket for wizard creator
+                    if (socketRef.current) {
+                      socketRef.current.emit('authenticateAdmin', { sessionToken: data.sessionToken });
+                    }
                   }
                   // Restore user settings if present
                   if (data.user.settings) {
@@ -9736,7 +9743,7 @@ export default function SpellBrigade() {
                         setWizardGenerating(true);
                         setWizardError('');
                         setGeneratedWizard(null);
-                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: authState.sessionToken });
+                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
                       }
                     }}
                     style={{
@@ -9758,7 +9765,7 @@ export default function SpellBrigade() {
                         setWizardGenerating(true);
                         setWizardError('');
                         setGeneratedWizard(null);
-                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: authState.sessionToken });
+                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
                       }
                     }}
                     style={{
