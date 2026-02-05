@@ -47,6 +47,9 @@ export default function SpellBrigade() {
   const [classes, setClasses] = useState(DEFAULT_CLASSES);
   const [playerInfo, setPlayerInfo] = useState(null);
   const [savedPlayer, setSavedPlayer] = useState(null);
+  const [characters, setCharacters] = useState([]); // All characters for this account
+  const [selectedCharIdx, setSelectedCharIdx] = useState(0);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deathInfo, setDeathInfo] = useState(null);
   const [levelUp, setLevelUp] = useState(null);
   const [spellDrop, setSpellDrop] = useState(null);
@@ -742,11 +745,16 @@ export default function SpellBrigade() {
                   setQuestLog(prev => ({ ...prev, ...data.user.quests }));
                 }
                 // Check for saved character
-                if (savedId) {
-                  socket.emit('getPlayerData', { playerId: savedId });
-                } else if (data.user?.characters?.length > 0) {
-                  setSavedPlayer(data.user.characters[0]);
+                if (data.user?.characters?.length > 0) {
+                  setCharacters(data.user.characters);
+                  // Try to find the last-played character
+                  const lastIdx = savedId ? data.user.characters.findIndex(c => c.id === savedId) : 0;
+                  const idx = lastIdx >= 0 ? lastIdx : 0;
+                  setSelectedCharIdx(idx);
+                  setSavedPlayer(data.user.characters[idx]);
                   setScreen('title');
+                } else if (savedId) {
+                  socket.emit('getPlayerData', { playerId: savedId });
                 } else {
                   setScreen('title');
                 }
@@ -811,11 +819,15 @@ export default function SpellBrigade() {
     socket.on('playerData', (data) => {
       if (data.player) {
         setSavedPlayer(data.player);
+        // Add to characters list if not already there
+        setCharacters(prev => {
+          const exists = prev.find(c => c.id === data.player.id);
+          if (exists) return prev.map(c => c.id === data.player.id ? data.player : c);
+          return [...prev, data.player];
+        });
         setScreen('title');
       } else {
-        // No saved player found
         localStorage.removeItem('spellBrigadePlayerId');
-        // Check if we have auth session
         const savedSession = localStorage.getItem('spellBrigadeSession');
         if (savedSession) {
           setScreen('title');
@@ -831,17 +843,39 @@ export default function SpellBrigade() {
       localStorage.setItem('spellBrigadePlayerId', data.playerId);
       setPlayerInfo(data.player);
       setScreen('game');
-      // Play login sound
       setTimeout(() => playSound('gameEnter'), 200);
       if (data.classes) setClasses(data.classes);
       if (data.world) gameStateRef.current.world = data.world;
+      
+      // Update saved player and characters list
+      const charSummary = {
+        id: data.playerId,
+        name: data.player.name,
+        class: data.player.class,
+        level: data.player.level,
+        totalXp: data.player.totalXp || 0,
+        kills: data.player.kills || 0,
+        selectedSkin: data.player.selectedSkin,
+        bossKills: data.player.bossKills || {},
+        upgrades: data.player.upgrades || {},
+      };
+      setSavedPlayer(charSummary);
+      setCharacters(prev => {
+        const exists = prev.findIndex(c => c.id === data.playerId);
+        if (exists >= 0) {
+          const updated = [...prev];
+          updated[exists] = charSummary;
+          return updated;
+        }
+        return [...prev, charSummary];
+      });
       
       // Auto-enable admin from server flag only
       if (data.player?.isAdmin) {
         setAdminKey('azoni-voidlord-2026');
       }
       
-      // Reset dungeon state on join (player always starts outside dungeon)
+      // Reset dungeon state on join
       inDungeonRef.current = false;
       setInDungeon(false);
       setDungeonProgress(0);
@@ -866,7 +900,7 @@ export default function SpellBrigade() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sessionToken: token, characterId: data.playerId }),
-            }).catch(() => {}); // Ignore errors
+            }).catch(() => {});
           }
         } catch {}
       }
@@ -1778,12 +1812,15 @@ export default function SpellBrigade() {
         health: data.health != null ? data.health : prev.health,
         speedMultiplier: data.speedMultiplier,
         cooldownMultiplier: data.cooldownMultiplier,
+        attackSpeedMultiplier: data.attackSpeedMultiplier,
       }));
       playSound('levelUp');
     });
 
     socket.on('shopError', (data) => {
       console.log('Shop error:', data.message);
+      setNotification({ text: data.message || 'Not enough XP!', color: '#ef4444' });
+      setTimeout(() => setNotification(null), 3000);
     });
 
     // Chat messages
@@ -2256,7 +2293,7 @@ export default function SpellBrigade() {
 
   const isInControlArea = (x, y) => {
     // Check if touch is in joystick area (bottom-left)
-    const joystickBounds = { left: 0, right: 180, top: window.innerHeight - 230, bottom: window.innerHeight };
+    const joystickBounds = { left: 0, right: 180, top: window.innerHeight - 300, bottom: window.innerHeight };
     if (x >= joystickBounds.left && x <= joystickBounds.right && 
         y >= joystickBounds.top && y <= joystickBounds.bottom) {
       return true;
@@ -7863,71 +7900,80 @@ export default function SpellBrigade() {
     initAudio();
     if (!savedPlayer) return;
     
+    const charId = savedPlayer.id || null;
+    const skinToUse = selectedSkin || savedPlayer.selectedSkin;
+    
     // Ensure socket is connected
     if (!socketRef.current?.connected) {
       socketRef.current?.connect();
-      // Wait for connection before joining
       socketRef.current?.once('connect', () => {
-        const savedId = localStorage.getItem('spellBrigadePlayerId');
         socketRef.current?.emit('join', {
-          playerId: savedId,
+          playerId: charId,
           playerName: savedPlayer.name,
           playerClass: savedPlayer.class,
-          selectedSkin: savedPlayer.selectedSkin,
-          adminKey: adminKey,
+          selectedSkin: skinToUse,
           sessionToken: authState.sessionToken || null,
         });
       });
     } else {
-      const savedId = localStorage.getItem('spellBrigadePlayerId');
       socketRef.current?.emit('join', {
-        playerId: savedId,
+        playerId: charId,
         playerName: savedPlayer.name,
         playerClass: savedPlayer.class,
-        selectedSkin: savedPlayer.selectedSkin,
-        adminKey: adminKey,
-          sessionToken: authState.sessionToken || null,
+        selectedSkin: skinToUse,
+        sessionToken: authState.sessionToken || null,
       });
     }
   };
 
   const handleNewCharacter = () => {
     initAudio();
-    localStorage.removeItem('spellBrigadePlayerId');
-    setSavedPlayer(null);
     setPlayerName('');
     setSelectedClass('pyromancer');
     setSelectedSkin('pyromancer_default');
-    setScreen('title');
+    setTab('create');
+  };
+
+  const handleDeleteCharacter = async (charId) => {
+    if (!authState.sessionToken || !charId) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/auth/delete-character`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken: authState.sessionToken, characterId: charId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCharacters(data.characters || []);
+        if (savedPlayer?.id === charId) {
+          setSavedPlayer(data.characters?.[0] || null);
+          setSelectedCharIdx(0);
+        }
+      }
+    } catch (err) {
+      console.error('Delete character error:', err);
+    }
   };
 
   const handleJoin = () => {
     initAudio();
     const name = playerName.trim() || generateWizardName();
     
-    // Ensure socket is connected
+    const joinData = {
+      playerId: null, // Always null = create new character
+      playerName: name,
+      playerClass: selectedClass,
+      selectedSkin: selectedSkin,
+      sessionToken: authState.sessionToken || null,
+    };
+    
     if (!socketRef.current?.connected) {
       socketRef.current?.connect();
-      // Wait for connection before joining
       socketRef.current?.once('connect', () => {
-        socketRef.current?.emit('join', {
-          playerId: null,
-          playerName: name,
-          playerClass: selectedClass,
-          selectedSkin: selectedSkin,
-          adminKey: adminKey,
-          sessionToken: authState.sessionToken || null,
-        });
+        socketRef.current?.emit('join', joinData);
       });
     } else {
-      socketRef.current?.emit('join', {
-        playerId: null,
-        playerName: name,
-        playerClass: selectedClass,
-        selectedSkin: selectedSkin,
-        adminKey: adminKey,
-          sessionToken: authState.sessionToken || null,
-      });
+      socketRef.current?.emit('join', joinData);
     }
   };
 
@@ -8056,14 +8102,13 @@ export default function SpellBrigade() {
             -webkit-touch-callout: none;
           }
           html, body {
-            touch-action: none;
+            ${screen === 'game' ? 'touch-action: none;' : 'touch-action: manipulation;'}
             overscroll-behavior: none;
             -webkit-user-select: none;
             user-select: none;
-            overflow: hidden;
-            position: fixed;
+            ${screen === 'game' ? 'overflow: hidden; position: fixed;' : 'overflow: auto; position: relative;'}
             width: 100%;
-            height: 100%;
+            ${screen === 'game' ? 'height: 100%;' : 'min-height: 100%;'}
             margin: 0;
             padding: 0;
           }
@@ -8075,13 +8120,18 @@ export default function SpellBrigade() {
             user-select: text;
             touch-action: manipulation;
           }
+          @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .mobile-controls-area {
+              padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+          }
         `}</style>
         <div style={styles.spinner} />
         <p style={styles.loadingText}>Connecting to server...</p>
       </div>
 
       {/* Auth Screen */}
-      <div style={{ ...styles.overlay, ...(screen !== 'auth' ? styles.hidden : {}), overflow: 'hidden' }}>
+      <div style={{ ...styles.overlay, ...(screen !== 'auth' ? styles.hidden : {}), overflow: isMobile ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch' }}>
         {/* Monster Background Decorations */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
           {/* Slime - bottom left */}
@@ -8288,9 +8338,13 @@ export default function SpellBrigade() {
                   }
                   // Check if user has characters
                   if (data.user.characters?.length > 0) {
+                    setCharacters(data.user.characters);
                     setSavedPlayer(data.user.characters[0]);
+                    setSelectedCharIdx(0);
                     setScreen('title');
                   } else {
+                    setCharacters([]);
+                    setSavedPlayer(null);
                     setScreen('title');
                   }
                 } else {
@@ -8404,6 +8458,8 @@ export default function SpellBrigade() {
                 if (data.success) {
                   setAuthState({ isAuthenticated: true, isGuest: false, user: data.user, sessionToken: data.sessionToken });
                   localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: false }));
+                  setCharacters([]);
+                  setSavedPlayer(null);
                   setScreen('title');
                 } else {
                   setAuthError(data.error || 'Signup failed');
@@ -8529,9 +8585,11 @@ export default function SpellBrigade() {
       <div style={{ 
         ...styles.overlay, 
         ...(screen !== 'title' ? styles.hidden : {}), 
-        flexDirection: 'column', 
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
         padding: 0,
         overflow: isMobile ? 'auto' : 'hidden',
+        WebkitOverflowScrolling: 'touch',
       }}>
         {/* Header */}
         <div style={{
@@ -8570,266 +8628,337 @@ export default function SpellBrigade() {
         
         {/* Content Area */}
         <div style={{
-          flex: 1,
+          flex: isMobile ? '0 0 auto' : 1,
           display: 'flex',
           flexDirection: 'column',
           padding: isMobile ? '15px' : '20px 30px',
           overflow: isMobile ? 'visible' : 'hidden',
+          paddingBottom: isMobile ? 40 : undefined,
         }}>
 
-        {/* Play Tab - Character Display */}
+        {/* Play Tab - Character Select */}
         {tab === 'play' && (
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 20,
+            gap: 15,
             height: isMobile ? 'auto' : '100%',
-            padding: 20,
+            padding: isMobile ? 15 : 20,
+            overflowY: isMobile ? 'visible' : 'auto',
           }}>
             
-            {savedPlayer ? (
-              <>
-                {/* Character Card */}
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(30,30,50,0.7))',
-                  border: `2px solid ${classes[savedPlayer.class]?.color || '#888'}`,
-                  borderRadius: 20,
-                  padding: isMobile ? 25 : 35,
-                  maxWidth: 420,
-                  width: '100%',
-                  boxShadow: `0 20px 60px ${classes[savedPlayer.class]?.color || '#888'}30`,
-                }}>
-                  {/* Avatar and Name */}
-                  <div style={{ textAlign: 'center', marginBottom: 25 }}>
-                    <div style={{
-                      width: 100,
-                      height: 100,
-                      margin: '0 auto 15px',
-                      borderRadius: '50%',
-                      background: `linear-gradient(135deg, ${classes[savedPlayer.class]?.color || '#888'}50, ${classes[savedPlayer.class]?.color || '#888'}20)`,
-                      border: `4px solid ${classes[savedPlayer.class]?.color || '#888'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 0 40px ${classes[savedPlayer.class]?.color || '#888'}50`,
-                    }}>
-                      <span style={{ width: 55, height: 55, color: classes[savedPlayer.class]?.secondaryColor || classes[savedPlayer.class]?.color }}>
-                        {CLASS_SVG[savedPlayer.class] || SVG.arcane}
-                      </span>
-                    </div>
-                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.6rem' }}>{savedPlayer.name}</div>
+            {(characters.length > 0 || savedPlayer) ? (() => {
+              const char = savedPlayer || characters[0];
+              if (!char) return null;
+              const charClass = classes[char.class] || DEFAULT_CLASSES[char.class] || {};
+              const charColor = charClass.color || '#888';
+              const charSkin = DEFAULT_SKINS.find(s => s.id === (selectedSkin || char.selectedSkin));
+              const skinColor = charSkin?.color || charColor;
+              
+              return (
+                <>
+                  {/* Character Roster */}
+                  {characters.length > 1 && (
                     <div style={{ 
-                      color: classes[savedPlayer.class]?.secondaryColor || classes[savedPlayer.class]?.color, 
-                      fontSize: '1rem', 
-                      marginTop: 6,
-                      textTransform: 'uppercase',
-                      letterSpacing: 2,
-                      fontWeight: 600,
+                      display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', 
+                      maxWidth: 500, width: '100%', marginBottom: 5,
                     }}>
-                      {classes[savedPlayer.class]?.name || savedPlayer.class}
-                    </div>
-                  </div>
-                  
-                  {/* Stats */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-around', 
-                    marginBottom: 25, 
-                    padding: '18px 0', 
-                    background: 'rgba(0,0,0,0.4)', 
-                    borderRadius: 12,
-                  }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#ffd93d', fontSize: '1.8rem', fontWeight: 700 }}>{savedPlayer.level || 1}</div>
-                      <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Level</div>
-                    </div>
-                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#22c55e', fontSize: '1.8rem', fontWeight: 700 }}>{((savedPlayer.totalXp || 0) / 1000).toFixed(1)}k</div>
-                      <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Total XP</div>
-                    </div>
-                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#ef4444', fontSize: '1.8rem', fontWeight: 700 }}>{savedPlayer.kills || 0}</div>
-                      <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Kills</div>
-                    </div>
-                  </div>
-                  
-                  {/* Skins */}
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, textAlign: 'center' }}>
-                      Skins ({DEFAULT_SKINS.filter(s => s.class === savedPlayer.class && (s.requiredXp <= (savedPlayer.totalXp || 0)) && !s.locked).length}/{DEFAULT_SKINS.filter(s => s.class === savedPlayer.class && !s.locked).length})
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                      {DEFAULT_SKINS.filter(s => s.class === savedPlayer.class).map(skin => {
-                        const isUnlocked = skin.requiredXp >= 0 && skin.requiredXp <= (savedPlayer.totalXp || 0) && !skin.locked;
-                        const isSelected = selectedSkin === skin.id;
+                      {characters.map((c, idx) => {
+                        const cc = classes[c.class] || DEFAULT_CLASSES[c.class] || {};
+                        const isActive = c.id === char.id;
                         return (
-                          <div
-                            key={skin.id}
-                            onClick={() => isUnlocked && setSelectedSkin(skin.id)}
-                            title={isUnlocked ? skin.name : `${skin.name} - ${skin.locked ? 'COMING SOON' : `${skin.requiredXp.toLocaleString()} XP`}`}
+                          <button key={c.id} onClick={() => {
+                            setSavedPlayer(c);
+                            setSelectedCharIdx(idx);
+                            setSelectedSkin(c.selectedSkin || `${c.class}_default`);
+                          }}
                             style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 8,
-                              background: isUnlocked ? `linear-gradient(135deg, ${skin.color}60, ${skin.color}30)` : 'rgba(0,0,0,0.4)',
-                              border: isSelected ? `3px solid ${skin.color}` : '2px solid rgba(255,255,255,0.1)',
-                              cursor: isUnlocked ? 'pointer' : 'not-allowed',
-                              opacity: isUnlocked ? 1 : 0.4,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '0.7rem',
+                              background: isActive ? `${cc.color || '#888'}25` : 'rgba(255,255,255,0.03)',
+                              border: isActive ? `2px solid ${cc.color || '#888'}` : '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: 10, padding: '8px 14px', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 8,
                               transition: 'all 0.2s',
-                              boxShadow: isSelected ? `0 0 15px ${skin.color}50` : 'none',
                             }}
                           >
-                            {!isUnlocked && (skin.locked ? '🔮' : '🔒')}
-                          </div>
+                            <span style={{ width: 22, height: 22, color: cc.color }}>
+                              {CLASS_SVG[c.class] || SVG.arcane}
+                            </span>
+                            <div style={{ textAlign: 'left' }}>
+                              <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600 }}>{c.name}</div>
+                              <div style={{ color: '#888', fontSize: '0.65rem' }}>Lv.{c.level || 1} {cc.name || c.class}</div>
+                            </div>
+                          </button>
                         );
                       })}
                     </div>
+                  )}
+                  
+                  {/* Selected Character Card */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(30,30,50,0.7))',
+                    border: `2px solid ${charColor}`,
+                    borderRadius: 20,
+                    padding: isMobile ? 20 : 30,
+                    maxWidth: 420,
+                    width: '100%',
+                    boxShadow: `0 20px 60px ${charColor}30`,
+                    position: 'relative',
+                  }}>
+                    {/* Delete button */}
+                    {!authState.isGuest && (
+                      <button onClick={() => setConfirmDeleteId(char.id)} style={{
+                        position: 'absolute', top: 12, right: 12,
+                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: 6, padding: '4px 8px', color: '#ef4444',
+                        fontSize: '0.7rem', cursor: 'pointer',
+                      }}>🗑️</button>
+                    )}
+                    
+                    {/* Avatar with skin preview */}
+                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                      <div style={{
+                        width: 110, height: 110, margin: '0 auto 15px', borderRadius: '50%',
+                        background: `radial-gradient(circle at 40% 35%, ${skinColor}50, ${skinColor}15)`,
+                        border: `4px solid ${skinColor}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: `0 0 40px ${skinColor}40, inset 0 0 30px ${skinColor}20`,
+                        position: 'relative', overflow: 'hidden',
+                      }}>
+                        {charSkin?.trail && (
+                          <div style={{
+                            position: 'absolute', inset: 0, borderRadius: '50%',
+                            background: `radial-gradient(circle, ${charSkin.trail}30 0%, transparent 70%)`,
+                            animation: 'pulse 2s ease-in-out infinite',
+                          }} />
+                        )}
+                        <span style={{ width: 60, height: 60, color: charSkin?.secondaryColor || charClass.secondaryColor || skinColor, position: 'relative', zIndex: 1, filter: `drop-shadow(0 0 8px ${skinColor}80)` }}>
+                          {CLASS_SVG[char.class] || SVG.arcane}
+                        </span>
+                      </div>
+                      <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.5rem' }}>{char.name}</div>
+                      <div style={{ 
+                        color: charClass.secondaryColor || charColor, fontSize: '0.95rem', marginTop: 4,
+                        textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600,
+                      }}>
+                        {charClass.name || char.class}
+                      </div>
+                      {charSkin && charSkin.id !== `${char.class}_default` && (
+                        <div style={{ color: skinColor, fontSize: '0.7rem', marginTop: 3, opacity: 0.8 }}>
+                          ✦ {charSkin.name}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Stats Row */}
+                    <div style={{ 
+                      display: 'flex', justifyContent: 'space-around', marginBottom: 15, 
+                      padding: '14px 0', background: 'rgba(0,0,0,0.4)', borderRadius: 12,
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#ffd93d', fontSize: '1.6rem', fontWeight: 700 }}>{char.level || 1}</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1 }}>Level</div>
+                      </div>
+                      <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#22c55e', fontSize: '1.6rem', fontWeight: 700 }}>{((char.totalXp || 0) / 1000).toFixed(1)}k</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1 }}>XP</div>
+                      </div>
+                      <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#ef4444', fontSize: '1.6rem', fontWeight: 700 }}>{char.kills || 0}</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1 }}>Kills</div>
+                      </div>
+                    </div>
+                    
+                    {/* Skin Selector */}
+                    <div style={{ marginBottom: 15 }}>
+                      <div style={{ color: '#666', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, textAlign: 'center' }}>
+                        Skins
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {DEFAULT_SKINS.filter(s => s.class === char.class).map(skin => {
+                          const isUnlocked = skin.requiredXp >= 0 && skin.requiredXp <= (char.totalXp || 0) && !skin.locked;
+                          const isSel = (selectedSkin || char.selectedSkin) === skin.id;
+                          return (
+                            <div key={skin.id}
+                              onClick={() => isUnlocked && setSelectedSkin(skin.id)}
+                              title={isUnlocked ? skin.name : `${skin.name} - ${skin.locked ? 'COMING SOON' : `${skin.requiredXp.toLocaleString()} XP`}`}
+                              style={{
+                                width: 36, height: 36, borderRadius: 8,
+                                background: isUnlocked ? `linear-gradient(135deg, ${skin.color}60, ${skin.color}30)` : 'rgba(0,0,0,0.4)',
+                                border: isSel ? `3px solid ${skin.color}` : '2px solid rgba(255,255,255,0.1)',
+                                cursor: isUnlocked ? 'pointer' : 'not-allowed',
+                                opacity: isUnlocked ? 1 : 0.4,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.65rem', transition: 'all 0.2s',
+                                boxShadow: isSel ? `0 0 12px ${skin.color}50` : 'none',
+                              }}
+                            >
+                              {!isUnlocked && (skin.locked ? '🔮' : '🔒')}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* Enter World Button */}
+                    <button 
+                      style={{ 
+                        width: '100%', padding: '16px 24px', fontSize: '1.1rem', fontWeight: 700,
+                        background: `linear-gradient(135deg, ${charColor}, ${charColor}cc)`,
+                        border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                        boxShadow: `0 4px 20px ${charColor}50`, transition: 'all 0.2s',
+                      }} 
+                      onClick={handleContinue}
+                    >
+                      <span style={{ width: 24, height: 24 }}>{SVG.play}</span>
+                      Enter World
+                    </button>
                   </div>
                   
-                  {/* Play Button */}
-                  <button 
-                    style={{ 
-                      width: '100%',
-                      padding: '18px 24px',
-                      fontSize: '1.1rem',
-                      fontWeight: 700,
-                      background: `linear-gradient(135deg, ${classes[savedPlayer.class]?.color || '#22c55e'}, ${classes[savedPlayer.class]?.color || '#22c55e'}cc)`,
-                      border: 'none',
-                      borderRadius: 12,
-                      color: '#fff',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
-                      boxShadow: `0 4px 20px ${classes[savedPlayer.class]?.color || '#22c55e'}50`,
-                      transition: 'all 0.2s',
-                    }} 
-                    onClick={handleContinue}
-                  >
-                    <span style={{ width: 24, height: 24 }}>{SVG.play}</span>
-                    Enter World
-                  </button>
-                </div>
-                
-                {/* Quick Actions */}
-                <div style={{ display: 'flex', gap: 15 }}>
-                  <button
-                    onClick={() => setTab('create')}
-                    style={{
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 8,
-                      padding: '10px 20px',
-                      color: '#888',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + New Character
-                  </button>
-                  <button
-                    onClick={() => {
+                  {/* Quick Actions */}
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button onClick={handleNewCharacter}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 8, padding: '10px 20px', color: '#888', fontSize: '0.8rem', cursor: 'pointer',
+                      }}
+                    >+ New Character</button>
+                    <button onClick={() => {
                       setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
                       localStorage.removeItem('spellBrigadeSession');
                       localStorage.removeItem('spellBrigadePlayerId');
                       setSavedPlayer(null);
+                      setCharacters([]);
+                      setAdminKey('');
                       setScreen('auth');
                     }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#666',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                    }}
-                  >
-                    Logout
-                  </button>
-                </div>
-              </>
-            ) : (
-              /* No Character - Create Prompt */
-              <div style={{
-                textAlign: 'center',
-                padding: 40,
-                maxWidth: 500,
-              }}>
+                      style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+                    >Logout</button>
+                  </div>
+                  
+                  {/* Delete Confirmation Modal */}
+                  {confirmDeleteId && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000 }} onClick={() => setConfirmDeleteId(null)} />
+                      <div style={{
+                        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                        background: '#1a1a2e', border: '2px solid #ef4444', borderRadius: 16, padding: 30,
+                        zIndex: 2001, maxWidth: 350, width: '90%', textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: '2rem', marginBottom: 12 }}>⚠️</div>
+                        <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>Delete Character?</div>
+                        <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 20 }}>
+                          This will permanently delete <strong style={{ color: '#ef4444' }}>{characters.find(c => c.id === confirmDeleteId)?.name || 'this character'}</strong> and all progress.
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button onClick={() => setConfirmDeleteId(null)} style={{
+                            flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600,
+                          }}>Cancel</button>
+                          <button onClick={() => { handleDeleteCharacter(confirmDeleteId); setConfirmDeleteId(null); }} style={{
+                            flex: 1, padding: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                            border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600,
+                          }}>Delete Forever</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+            })() : (
+              /* No Character - Custom Wizard */
+              <div style={{ textAlign: 'center', padding: isMobile ? 20 : 40, maxWidth: 500 }}>
                 <div style={{
-                  width: 120,
-                  height: 120,
-                  margin: '0 auto 25px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, rgba(255,215,61,0.2), rgba(255,107,53,0.2))',
-                  border: '3px dashed rgba(255,215,61,0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: 140, height: 140, margin: '0 auto 25px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(155,93,229,0.2), rgba(255,107,53,0.15))',
+                  border: '3px dashed rgba(155,93,229,0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   animation: 'pulse 2s ease-in-out infinite',
                 }}>
-                  <span style={{ fontSize: '3rem' }}>🧙‍♂️</span>
+                  <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+                    <path d="M45 2L26 42H64L45 2Z" fill="url(#wizHatG)" stroke="#c084fc" strokeWidth="1.5"/>
+                    <ellipse cx="45" cy="42" rx="24" ry="5" fill="#7c3aed" stroke="#c084fc" strokeWidth="1"/>
+                    <path d="M45 12L47.5 19L54 19L49 23.5L51 30L45 25.5L39 30L41 23.5L36 19L42.5 19Z" fill="#ffd93d"/>
+                    <circle cx="45" cy="51" r="11" fill="#fcd5ce"/>
+                    <circle cx="41" cy="49" r="2.5" fill="#1e1b4b">
+                      <animate attributeName="r" values="2.5;1;2.5" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="49" cy="49" r="2.5" fill="#1e1b4b">
+                      <animate attributeName="r" values="2.5;1;2.5" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="42" cy="46" r="0.8" fill="#fff"/>
+                    <circle cx="50" cy="46" r="0.8" fill="#fff"/>
+                    <path d="M41 54Q45 58 49 54" stroke="#6b4c3b" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                    <path d="M36 55Q39 66 45 70Q51 66 54 55" fill="#e5e7eb" stroke="#d1d5db" strokeWidth="0.8"/>
+                    <path d="M30 62L45 57L60 62L56 84H34L30 62Z" fill="url(#wizRobeG)"/>
+                    <line x1="67" y1="30" x2="67" y2="84" stroke="#78350f" strokeWidth="3" strokeLinecap="round"/>
+                    <circle cx="67" cy="28" r="6.5" fill="none" stroke="#c084fc" strokeWidth="2"/>
+                    <circle cx="67" cy="28" r="3.5" fill="#a855f7">
+                      <animate attributeName="opacity" values="1;0.3;1" dur="1.8s" repeatCount="indefinite"/>
+                    </circle>
+                    <g>
+                      <circle cx="18" cy="22" r="1.5" fill="#ffd93d">
+                        <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.5s" repeatCount="indefinite"/>
+                      </circle>
+                      <circle cx="76" cy="16" r="1.2" fill="#ffd93d">
+                        <animate attributeName="opacity" values="0.6;0.1;0.6" dur="2s" repeatCount="indefinite"/>
+                      </circle>
+                      <circle cx="26" cy="78" r="1.3" fill="#c084fc">
+                        <animate attributeName="opacity" values="0.7;0.15;0.7" dur="1.8s" repeatCount="indefinite"/>
+                      </circle>
+                      <circle cx="12" cy="55" r="1" fill="#ffd93d">
+                        <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.2s" repeatCount="indefinite"/>
+                      </circle>
+                    </g>
+                    <defs>
+                      <linearGradient id="wizHatG" x1="45" y1="2" x2="45" y2="42">
+                        <stop offset="0%" stopColor="#9b5de5"/>
+                        <stop offset="100%" stopColor="#4c1d95"/>
+                      </linearGradient>
+                      <linearGradient id="wizRobeG" x1="30" y1="62" x2="60" y2="84">
+                        <stop offset="0%" stopColor="#4c1d95"/>
+                        <stop offset="100%" stopColor="#1e1b4b"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
                 </div>
                 
-                <h2 style={{ color: '#ffd93d', fontSize: '1.6rem', marginBottom: 10 }}>No Wizard Yet!</h2>
-                <p style={{ color: '#888', fontSize: '1rem', marginBottom: 30, lineHeight: 1.6 }}>
-                  Create your wizard and join the magical arena.<br/>
-                  <span style={{ color: '#666' }}>Choose your class, master your spells, defeat bosses!</span>
+                <h2 style={{ color: '#c084fc', fontSize: '1.5rem', marginBottom: 10 }}>Begin Your Journey!</h2>
+                <p style={{ color: '#888', fontSize: '0.95rem', marginBottom: 30, lineHeight: 1.6 }}>
+                  Create your first wizard and enter the arena.<br/>
+                  <span style={{ color: '#666' }}>Master spells, defeat bosses, conquer dungeons!</span>
                 </p>
                 
-                <button
-                  onClick={() => setTab('create')}
+                <button onClick={() => setTab('create')}
                   style={{
-                    padding: '16px 40px',
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #ffd93d, #ff6b35)',
-                    border: 'none',
-                    borderRadius: 12,
-                    color: '#000',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    boxShadow: '0 4px 20px rgba(255,215,61,0.4)',
+                    padding: '16px 40px', fontSize: '1.1rem', fontWeight: 700,
+                    background: 'linear-gradient(135deg, #9b5de5, #7c3aed)',
+                    border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 10,
+                    boxShadow: '0 4px 20px rgba(155,93,229,0.4)',
                   }}
                 >
                   <span>✨</span> Create Your Wizard
                 </button>
                 
                 <div style={{ marginTop: 20 }}>
-                  <button
-                    onClick={() => {
-                      setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
-                      localStorage.removeItem('spellBrigadeSession');
-                      localStorage.removeItem('spellBrigadePlayerId');
-                      setScreen('auth');
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#666',
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                    }}
-                  >
-                    Switch Account
-                  </button>
+                  <button onClick={() => {
+                    setAuthState({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+                    localStorage.removeItem('spellBrigadeSession');
+                    localStorage.removeItem('spellBrigadePlayerId');
+                    setAdminKey('');
+                    setScreen('auth');
+                  }}
+                    style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                  >Switch Account</button>
                 </div>
               </div>
             )}
           </div>
-        )}
-        
+        )}        
         {/* Create Tab - Character Creation */}
         {tab === 'create' && (
           <div style={{ 
@@ -8956,12 +9085,13 @@ export default function SpellBrigade() {
                     // Voidlord unlocked by dragon kill
                     if (id === 'voidlord') {
                       const hasDragonKill = savedPlayer?.bossKills?.dragon || 
+                        characters?.some(ch => ch.bossKills?.dragon) ||
                         authState?.user?.characters?.some(ch => ch.bossKills?.dragon) ||
                         playerInfo?.bossKills?.dragon;
                       return hasDragonKill;
                     }
                     // Hide admin/hidden classes from non-admins
-                    if (c.hidden || c.isAdmin) return false;
+                    if ((c.hidden || c.isAdmin) && adminKey !== 'azoni-voidlord-2026') return false;
                     return true;
                   })
                   .map(([id, c]) => {
@@ -9332,8 +9462,22 @@ export default function SpellBrigade() {
             setInDungeon(false);
             // Save current player info for title screen
             if (playerInfo) {
-              setSavedPlayer(playerInfo);
+              const charSummary = {
+                id: playerIdRef.current,
+                name: playerInfo.name,
+                class: playerInfo.class,
+                level: playerInfo.level,
+                totalXp: playerInfo.totalXp || 0,
+                kills: playerInfo.kills || 0,
+                selectedSkin: playerInfo.selectedSkin,
+                bossKills: playerInfo.bossKills || {},
+                upgrades: playerInfo.upgrades || {},
+              };
+              setSavedPlayer(charSummary);
+              setCharacters(prev => prev.map(c => c.id === charSummary.id ? charSummary : c));
+              setSelectedSkin(playerInfo.selectedSkin || '');
             }
+            setTab('play');
             setScreen('title');
           }}
         >
@@ -9579,7 +9723,39 @@ export default function SpellBrigade() {
                     </div>
                   ))}
                 </div>
+
+                {/* Quest Progress - Compact */}
+                <div 
+                  style={{
+                    marginTop: 10,
+                    paddingTop: 8,
+                    borderTop: '1px solid rgba(255,215,0,0.15)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setShowQuestLog(true)}
+                >
+                  {(() => {
+                    const bossKills = playerInfo.bossKills || {};
+                    const zones = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'];
+                    const defeated = zones.filter(z => bossKills[z]).length;
+                    const allDone = defeated === 6;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: '#ffd93d', fontSize: '0.65rem' }}>📜</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: '#ffd93d', fontSize: '0.6rem', fontWeight: 600, marginBottom: 3 }}>
+                            {allDone ? '🐉 Dragon Slayer' : `⭐ ${defeated}/6 Bosses`}
+                          </div>
+                          <div style={{ height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${(defeated / 6) * 100}%`, background: allDone ? '#22c55e' : '#ffd93d', borderRadius: 1 }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
+              
             </div>
           )}
 
@@ -9934,7 +10110,7 @@ export default function SpellBrigade() {
               {/* Action Buttons - Right side */}
               <div style={{
                 position: 'absolute',
-                bottom: 50,
+                bottom: 80,
                 right: 20,
                 display: 'flex',
                 flexDirection: 'column',
@@ -10403,7 +10579,7 @@ export default function SpellBrigade() {
           <div style={styles.modalBackdrop} onClick={() => setShowShop(false)} />
           <div style={{
             ...styles.modal,
-            maxWidth: 450,
+            maxWidth: 420,
             maxHeight: '80vh',
             overflowY: 'auto',
           }}>
@@ -10412,149 +10588,254 @@ export default function SpellBrigade() {
               {nearbyBuilding.name}
             </h3>
             
-            <div style={{ marginBottom: 20, color: '#888', fontSize: '0.85rem' }}>
-              {nearbyBuilding.type === 'tower' && "The Archmage offers powerful upgrades."}
-              {nearbyBuilding.type === 'ruins' && "Ancient power awaits those who seek it."}
-              {nearbyBuilding.type === 'fortress' && "Forge your strength in volcanic fire."}
-              {nearbyBuilding.type === 'citadel' && "Master the frozen arts."}
-              {nearbyBuilding.type === 'shrine' && "Embrace the void's power."}
-              {nearbyBuilding.type === 'sanctum' && "Crystal energy flows through you."}
-            </div>
-
-            {/* Shop Items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* Health Upgrade */}
-              <div style={{
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: 12,
-                padding: 15,
-                border: '1px solid rgba(239,68,68,0.3)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{ color: '#ef4444', fontWeight: 'bold' }}>❤️ Max Health +5</div>
-                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Permanently increase max health</div>
+            {/* Tower - hint only, no upgrades */}
+            {nearbyBuilding.id === 'wizard_tower' ? (
+              <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 15 }}>🧙‍♂️</div>
+                <div style={{ color: '#ffd93d', fontWeight: 600, fontSize: '1rem', marginBottom: 12 }}>
+                  The Archmage speaks...
                 </div>
-                <button style={{
-                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '8px 15px',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  socketRef.current?.emit('buyUpgrade', { type: 'health' });
-                  playSound('levelUp');
-                }}
-                >
-                  500 XP
-                </button>
-              </div>
-
-              {/* Damage Upgrade */}
-              <div style={{
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: 12,
-                padding: 15,
-                border: '1px solid rgba(249,115,22,0.3)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{ color: '#f97316', fontWeight: 'bold' }}>⚔️ Damage +1%</div>
-                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Increase spell damage</div>
+                <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: 15 }}>
+                  "Seek the buildings scattered across the realm to grow stronger, young wizard."
                 </div>
-                <button style={{
-                  background: 'linear-gradient(135deg, #f97316, #ea580c)',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '8px 15px',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  socketRef.current?.emit('buyUpgrade', { type: 'damage' });
-                  playSound('levelUp');
-                }}
-                >
-                  750 XP
-                </button>
-              </div>
-
-              {/* Speed Upgrade */}
-              <div style={{
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: 12,
-                padding: 15,
-                border: '1px solid rgba(34,197,94,0.3)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{ color: '#22c55e', fontWeight: 'bold' }}>👟 Speed +1%</div>
-                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Move faster</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', padding: '0 10px' }}>
+                  {[
+                    { icon: '🏚️', name: 'Ancient Ruins', zone: 'Forest', stat: 'Health', color: '#78716c' },
+                    { icon: '🏰', name: 'Obsidian Fortress', zone: 'Volcanic', stat: 'Damage', color: '#7f1d1d' },
+                    { icon: '❄️', name: 'Ice Citadel', zone: 'Frozen', stat: 'Cooldown', color: '#0284c7' },
+                    { icon: '🌀', name: 'Void Shrine', zone: 'Abyss', stat: 'Speed', color: '#7c3aed' },
+                    { icon: '💎', name: 'Crystal Sanctum', zone: 'Caves', stat: 'Attack Speed', color: '#ec4899' },
+                  ].map(b => (
+                    <div key={b.name} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px',
+                      border: `1px solid ${b.color}30`,
+                    }}>
+                      <span style={{ fontSize: '1.1rem' }}>{b.icon}</span>
+                      <div>
+                        <div style={{ color: b.color, fontSize: '0.8rem', fontWeight: 600 }}>{b.name}</div>
+                        <div style={{ color: '#666', fontSize: '0.7rem' }}>{b.zone} · Upgrades {b.stat}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <button style={{
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '8px 15px',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  socketRef.current?.emit('buyUpgrade', { type: 'speed' });
-                  playSound('levelUp');
-                }}
-                >
-                  600 XP
-                </button>
               </div>
-
-              {/* Cooldown Reduction */}
-              <div style={{
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: 12,
-                padding: 15,
-                border: '1px solid rgba(59,130,246,0.3)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{ color: '#3b82f6', fontWeight: 'bold' }}>⏱️ Cooldown -1%</div>
-                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Cast abilities more often</div>
+            ) : (() => {
+              /* Building-specific upgrade */
+              const upgradeMap = {
+                forest_ruins: { type: 'health', icon: '❤️', name: 'Max Health +5', desc: 'Permanently increase max health', cost: 500, color: '#ef4444', flavorText: 'Ancient vitality courses through the stone walls.' },
+                volcano_fortress: { type: 'damage', icon: '⚔️', name: 'Damage +1%', desc: 'Increase all spell damage', cost: 750, color: '#f97316', flavorText: 'The forge burns with unstoppable fury.' },
+                ice_citadel: { type: 'cooldown', icon: '⏱️', name: 'Cooldown -1%', desc: 'Cast abilities more often', cost: 1000, color: '#3b82f6', flavorText: 'Time itself freezes at your command.' },
+                void_shrine: { type: 'speed', icon: '👟', name: 'Speed +1%', desc: 'Move faster across the realm', cost: 600, color: '#7c3aed', flavorText: 'The void bends space around you.' },
+                crystal_sanctum: { type: 'attackSpeed', icon: '⚡', name: 'Attack Speed +2%', desc: 'Auto-attack fires faster', cost: 800, color: '#ec4899', flavorText: 'Crystal energy quickens your reflexes.' },
+              };
+              const upgrade = upgradeMap[nearbyBuilding.id];
+              if (!upgrade) return <div style={{ color: '#888', textAlign: 'center', padding: 20 }}>Nothing to offer here.</div>;
+              
+              const currentLevel = playerInfo?.upgrades?.[upgrade.type] || 0;
+              
+              return (
+                <div style={{ padding: '10px 0' }}>
+                  <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 20, textAlign: 'center', fontStyle: 'italic' }}>
+                    {upgrade.flavorText}
+                  </div>
+                  
+                  {/* Current level indicator */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 16px',
+                    marginBottom: 15, textAlign: 'center',
+                    border: `1px solid ${upgrade.color}20`,
+                  }}>
+                    <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Current Level</div>
+                    <div style={{ color: upgrade.color, fontSize: '1.6rem', fontWeight: 700 }}>{currentLevel}</div>
+                  </div>
+                  
+                  {/* Upgrade card */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 18,
+                    border: `1px solid ${upgrade.color}40`,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ color: upgrade.color, fontWeight: 'bold', fontSize: '1rem' }}>
+                          {upgrade.icon} {upgrade.name}
+                        </div>
+                        <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>{upgrade.desc}</div>
+                      </div>
+                      <button style={{
+                        background: `linear-gradient(135deg, ${upgrade.color}, ${upgrade.color}cc)`,
+                        border: 'none', borderRadius: 8, padding: '10px 18px',
+                        color: '#fff', fontWeight: 'bold', cursor: 'pointer',
+                        fontSize: '0.9rem', whiteSpace: 'nowrap',
+                      }}
+                      onClick={() => {
+                        socketRef.current?.emit('buyUpgrade', { type: upgrade.type, buildingId: nearbyBuilding.id });
+                        playSound('levelUp');
+                      }}
+                      >
+                        {upgrade.cost} XP
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button style={{
-                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '8px 15px',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  socketRef.current?.emit('buyUpgrade', { type: 'cooldown' });
-                  playSound('levelUp');
-                }}
-                >
-                  1000 XP
-                </button>
-              </div>
-            </div>
+              );
+            })()}
 
             <div style={{ marginTop: 20, textAlign: 'center', color: '#666', fontSize: '0.8rem' }}>
               Your XP: <span style={{ color: '#ffd93d', fontWeight: 'bold' }}>{playerInfo?.totalXp || 0}</span>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Dungeon Browser Modal */}
+      {showDungeonBrowser && screen === 'game' && (
+        <>
+          <div style={styles.modalBackdrop} onClick={() => setShowDungeonBrowser(false)} />
+          <div style={{
+            ...styles.modal,
+            maxWidth: 500,
+            maxHeight: '85vh',
+            overflowY: 'auto',
+          }}>
+            <button style={styles.modalClose} onClick={() => setShowDungeonBrowser(false)}>×</button>
+            <h3 style={{ ...styles.modalTitle, color: '#8b5cf6' }}>
+              🏗️ Dungeon Workshop
+            </h3>
+            
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20, justifyContent: 'center' }}>
+              {['create', 'browse'].map(t => (
+                <button key={t} onClick={() => setDungeonBrowserTab(t)} style={{
+                  padding: '8px 20px',
+                  background: dungeonBrowserTab === t ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.03)',
+                  border: dungeonBrowserTab === t ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, color: dungeonBrowserTab === t ? '#a78bfa' : '#888',
+                  fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {t === 'create' ? '✨ Create' : '⚔️ Browse'}
+                </button>
+              ))}
+            </div>
+            
+            {dungeonBrowserError && (
+              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 15, color: '#ef4444', fontSize: '0.85rem', textAlign: 'center' }}>
+                {dungeonBrowserError}
+              </div>
+            )}
+            
+            {/* Create Tab */}
+            {dungeonBrowserTab === 'create' && (
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: 15, lineHeight: 1.6 }}>
+                  Describe your dungeon and it will be brought to life!<br/>
+                  <span style={{ color: '#666', fontSize: '0.75rem' }}>Try: "a frozen crypt", "fire and chaos nightmare", "easy nature dungeon"</span>
+                </p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 15 }}>
+                  <input
+                    type="text"
+                    value={dungeonPromptText}
+                    onChange={(e) => setDungeonPromptText(e.target.value)}
+                    placeholder="Describe your dungeon..."
+                    maxLength={150}
+                    style={{
+                      flex: 1, padding: '12px 16px', background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid rgba(139,92,246,0.3)', borderRadius: 8,
+                      color: '#fff', fontSize: '0.9rem', outline: 'none',
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && dungeonPromptText.trim().length >= 3) {
+                        socketRef.current?.emit('createCustomDungeon', { prompt: dungeonPromptText.trim() });
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (dungeonPromptText.trim().length >= 3) {
+                        socketRef.current?.emit('createCustomDungeon', { prompt: dungeonPromptText.trim() });
+                      }
+                    }}
+                    disabled={dungeonPromptText.trim().length < 3}
+                    style={{
+                      padding: '12px 20px', background: dungeonPromptText.trim().length >= 3
+                        ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'rgba(50,50,50,0.5)',
+                      border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600,
+                      cursor: dungeonPromptText.trim().length >= 3 ? 'pointer' : 'not-allowed',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    Generate
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {['🔥 Fire Depths', '❄️ Frozen Crypt', '💀 Bone Tombs', '🌿 Nature Maze', '🌀 Void Rift', '⚡ Chaos Storm'].map(preset => (
+                    <button key={preset} onClick={() => setDungeonPromptText(preset.slice(3))} style={{
+                      padding: '6px 12px', background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6,
+                      color: '#888', fontSize: '0.7rem', cursor: 'pointer',
+                    }}>
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Browse Tab */}
+            {dungeonBrowserTab === 'browse' && (
+              <div>
+                {customDungeonList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 30, color: '#666' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 10 }}>🏚️</div>
+                    <p>No dungeons yet. Be the first to create one!</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {customDungeonList.map(d => (
+                      <div key={d.id} style={{
+                        background: 'rgba(255,255,255,0.03)', border: `1px solid ${d.boss?.color || '#666'}30`,
+                        borderRadius: 12, padding: '14px 16px',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div>
+                            <div style={{ color: d.boss?.color || '#fff', fontWeight: 700, fontSize: '0.95rem' }}>{d.name}</div>
+                            <div style={{ color: '#666', fontSize: '0.7rem' }}>
+                              by {d.creator} · {d.roomCount} rooms · {d.difficulty}
+                              {d.plays > 0 && ` · ${d.plays} plays`}
+                              {d.clears > 0 && ` · ${d.clears} clears`}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              socketRef.current?.emit('enterCustomDungeon', { dungeonId: d.id });
+                              setShowDungeonBrowser(false);
+                            }}
+                            style={{
+                              padding: '8px 16px', background: `linear-gradient(135deg, ${d.boss?.color || '#8b5cf6'}, ${d.boss?.color || '#8b5cf6'}cc)`,
+                              border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600,
+                              cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Enter
+                          </button>
+                        </div>
+                        {d.description && (
+                          <div style={{ color: '#888', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                            "{d.description}"
+                          </div>
+                        )}
+                        {d.boss && (
+                          <div style={{ color: d.boss.color, fontSize: '0.7rem', marginTop: 4 }}>
+                            Boss: {d.boss.name} ({Math.round(d.boss.health / 1000)}k HP)
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -10815,60 +11096,9 @@ export default function SpellBrigade() {
         </div>
       )}
 
-      {/* Current Quest Tracker - Desktop (positioned below player stats) */}
+      {/* Settings & Quest - Desktop (positioned below player stats) */}
       {screen === 'game' && playerInfo && !isMobile && (
-        <div style={{ position: 'fixed', top: 230, left: 20, zIndex: 50 }}>
-          {/* Current Quest Mini-tracker */}
-          <div 
-            style={{
-              background: 'rgba(0,0,0,0.75)',
-              backdropFilter: 'blur(8px)',
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: '1px solid rgba(255,215,0,0.2)',
-              cursor: 'pointer',
-              maxWidth: 200,
-            }}
-            onClick={() => setShowQuestLog(true)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffd93d">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-              </svg>
-              <span style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.75rem' }}>Current Quest</span>
-            </div>
-            {(() => {
-              const bossKills = playerInfo.bossKills || {};
-              const zones = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'];
-              const defeated = zones.filter(z => bossKills[z]).length;
-              const allDone = defeated === 6;
-              
-              return (
-                <div>
-                  <div style={{ color: '#fff', fontSize: '0.7rem', marginBottom: 4 }}>
-                    {allDone ? '🐉 Dragon Slayer' : '⭐ Champion of the Realm'}
-                  </div>
-                  <div style={{ 
-                    height: 3, 
-                    background: 'rgba(255,255,255,0.1)', 
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${(defeated / 6) * 100}%`,
-                      background: allDone ? '#22c55e' : '#ffd93d',
-                      borderRadius: 2,
-                    }} />
-                  </div>
-                  <div style={{ color: '#666', fontSize: '0.6rem', marginTop: 3 }}>
-                    {allDone ? 'Defeat the Dragon!' : `${defeated}/6 Bosses`}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-          
+        <div style={{ position: 'fixed', top: 340, left: 20, zIndex: 50 }}>
           {/* Settings Button */}
           <button
             onClick={() => setShowInGameSettings(true)}
@@ -11599,7 +11829,19 @@ export default function SpellBrigade() {
                   setDeathInfo(null);
                   // Save current player info for title screen
                   if (playerInfo) {
-                    setSavedPlayer(playerInfo);
+                    const charSummary = {
+                      id: playerIdRef.current,
+                      name: playerInfo.name,
+                      class: playerInfo.class,
+                      level: playerInfo.level,
+                      totalXp: playerInfo.totalXp || 0,
+                      kills: playerInfo.kills || 0,
+                      selectedSkin: playerInfo.selectedSkin,
+                      bossKills: playerInfo.bossKills || {},
+                      upgrades: playerInfo.upgrades || {},
+                    };
+                    setSavedPlayer(charSummary);
+                    setCharacters(prev => prev.map(c => c.id === charSummary.id ? charSummary : c));
                   }
                   setScreen('title');
                 }}
