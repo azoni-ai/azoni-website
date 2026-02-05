@@ -230,11 +230,26 @@ export default function SpellBrigade() {
     // Prevent context menu on long press
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    // Prevent pull-to-refresh and bounce scroll on mobile
+    // Prevent pull-to-refresh and bounce scroll on mobile - ONLY during gameplay
     const preventScroll = (e) => {
-      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        e.preventDefault();
+      // Always allow inputs/textareas
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      // Only prevent during active gameplay
+      if (screenRef.current !== 'game') return;
+      
+      // During game, check if touch is inside a scrollable container (chat, modals, settings)
+      let el = e.target;
+      while (el && el !== document.body) {
+        const style = window.getComputedStyle(el);
+        const overflowY = style.overflowY;
+        if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+          return; // Allow scrolling inside scrollable containers
+        }
+        el = el.parentElement;
       }
+      
+      e.preventDefault();
     };
     document.addEventListener('touchmove', preventScroll, { passive: false });
     
@@ -8520,7 +8535,7 @@ export default function SpellBrigade() {
       </div>
 
       {/* Auth Screen */}
-      <div style={{ ...styles.overlay, ...(screen !== 'auth' ? styles.hidden : {}), overflow: isMobile ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ ...styles.overlay, ...(screen !== 'auth' ? styles.hidden : {}), overflow: isMobile ? 'auto' : 'hidden', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
         {/* Monster Background Decorations */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
           {/* Slime - bottom left */}
@@ -8984,6 +8999,7 @@ export default function SpellBrigade() {
         overflowY: 'auto',
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
       }}>
         {/* Header */}
         <div style={{
@@ -9040,6 +9056,259 @@ export default function SpellBrigade() {
           overflow: 'visible',
           paddingBottom: isMobile ? 80 : 40,
         }}>
+
+        {/* AI Wizard Creator - shown on play and create tabs */}
+        {(tab === 'play' || tab === 'create') && (
+          <div style={{
+            marginBottom: 20,
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.06))',
+            border: '1px solid rgba(139,92,246,0.25)',
+            borderRadius: 16,
+            padding: isMobile ? 16 : 20,
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <span style={{ width: 24, height: 24, color: '#a78bfa' }}>{SVG.wand}</span>
+              <div>
+                <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '0.95rem' }}>AI Wizard Creator</div>
+                <div style={{ color: '#666', fontSize: '0.7rem' }}>Describe your dream wizard and AI will bring it to life</div>
+              </div>
+              {adminKey === 'azoni-voidlord-2026' && (
+                <span style={{ marginLeft: 'auto', padding: '2px 8px', background: 'rgba(139,92,246,0.2)', borderRadius: 4, color: '#a78bfa', fontSize: '0.6rem', fontWeight: 600 }}>ADMIN</span>
+              )}
+            </div>
+            
+            {/* Prompt Input */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'flex-end' }}>
+              <textarea
+                value={wizardPrompt}
+                onChange={(e) => { setWizardPrompt(e.target.value); setWizardError(''); }}
+                placeholder="A frost necromancer who commands ice and death... Be as detailed as you want about spells, lore, and abilities!"
+                maxLength={500}
+                disabled={wizardGenerating}
+                rows={2}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && wizardPrompt.trim().length >= 3 && !wizardGenerating && socketRef.current) {
+                    e.preventDefault();
+                    setWizardGenerating(true);
+                    setWizardError('');
+                    setGeneratedWizard(null);
+                    socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: 'rgba(0,0,0,0.4)',
+                  border: `1px solid ${wizardError ? 'rgba(239,68,68,0.4)' : 'rgba(139,92,246,0.2)'}`,
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  resize: 'none',
+                  fontFamily: 'inherit',
+                }}
+              />
+              <button
+                disabled={wizardGenerating || wizardPrompt.trim().length < 3}
+                onClick={() => {
+                  if (socketRef.current && wizardPrompt.trim().length >= 3) {
+                    setWizardGenerating(true);
+                    setWizardError('');
+                    setGeneratedWizard(null);
+                    socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
+                  }
+                }}
+                style={{
+                  padding: '12px 20px',
+                  background: wizardGenerating ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  border: 'none',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  opacity: (wizardGenerating || wizardPrompt.trim().length < 3) ? 0.5 : 1,
+                  cursor: wizardGenerating ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {wizardGenerating ? <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.hourglass}</span> Generating...</> : <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.sparkle}</span> Generate</>}
+              </button>
+            </div>
+
+            {/* Status / Error messages */}
+            {wizardStatus && (
+              <div style={{ color: '#a78bfa', fontSize: '0.8rem', marginBottom: 10, padding: '8px 12px', background: 'rgba(139,92,246,0.1)', borderRadius: 6 }}>
+                {wizardStatus}
+              </div>
+            )}
+            {wizardError && (
+              <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: 10, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 6 }}>
+                {wizardError}
+              </div>
+            )}
+            
+            {/* Preset Ideas */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: generatedWizard ? 14 : 0 }}>
+              {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Lava Berserker', 'Frost Assassin', 'Crystal Sage'].map(preset => (
+                <span 
+                  key={preset}
+                  onClick={() => {
+                    if (!wizardGenerating) {
+                      setWizardPrompt(preset);
+                    }
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 6,
+                    color: '#aaa',
+                    fontSize: '0.65rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {preset}
+                </span>
+              ))}
+            </div>
+
+            {/* Generated Wizard Result */}
+            {generatedWizard && generatedWizard.classDef && (
+              <div style={{
+                marginTop: 14,
+                padding: 16,
+                background: 'rgba(0,0,0,0.4)',
+                borderRadius: 12,
+                border: `1px solid ${generatedWizard.classDef.color}40`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
+                    boxShadow: `0 0 15px ${generatedWizard.classDef.color}40`,
+                  }} />
+                  <div>
+                    <div style={{ color: generatedWizard.classDef.color, fontWeight: 700, fontSize: '1rem' }}>
+                      {generatedWizard.classDef.name}
+                    </div>
+                    <div style={{ color: '#888', fontSize: '0.7rem' }}>{generatedWizard.classDef.description}</div>
+                  </div>
+                </div>
+                
+                {/* Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10, fontSize: '0.75rem' }}>
+                  <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#f87171' }}>{SVG.heart}</span> HP: <span style={{ color: '#f87171' }}>{generatedWizard.classDef.baseHealth}</span></div>
+                  <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#60a5fa' }}>{SVG.lightning}</span> Speed: <span style={{ color: '#60a5fa' }}>{generatedWizard.classDef.baseSpeed}</span></div>
+                </div>
+                
+                {/* Spells */}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ color: '#666', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Spells</div>
+                  {Object.values(generatedWizard.spellDefs).map(spell => (
+                    <div key={spell.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: '0.75rem' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 4, background: spell.color }} />
+                      <span style={{ color: '#ccc' }}>{spell.name}</span>
+                      <span style={{ color: '#666', fontSize: '0.65rem' }}>
+                        {spell.damage}dmg / {(spell.cooldown/1000).toFixed(1)}s
+                        {spell.isAoe ? ' AOE' : ''}
+                        {spell.piercing ? ' Pierce' : ''}
+                        {spell.homing ? ' Homing' : ''}
+                        {spell.slowEffect ? ' Slow' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Abilities */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: '0.7rem' }}>
+                  <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
+                    <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.dash}</span> {generatedWizard.classDef.dashAbility?.name}</div>
+                    <div style={{ color: '#666' }}>{generatedWizard.classDef.dashAbility?.distance}px / {(generatedWizard.classDef.dashAbility?.cooldown/1000).toFixed(0)}s cd</div>
+                  </div>
+                  <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
+                    <div style={{ color: '#fbbf24', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.star}</span> {generatedWizard.classDef.ultimateAbility?.name}</div>
+                    <div style={{ color: '#666' }}>{generatedWizard.classDef.ultimateAbility?.damage}dmg / {(generatedWizard.classDef.ultimateAbility?.cooldown/1000).toFixed(0)}s cd</div>
+                  </div>
+                </div>
+
+                {/* Lore */}
+                {generatedWizard.classDef.lore && (
+                  <div style={{ color: '#777', fontSize: '0.7rem', fontStyle: 'italic', marginBottom: 12, lineHeight: 1.4 }}>
+                    "{generatedWizard.classDef.lore}"
+                  </div>
+                )}
+                
+                {/* Use This Wizard button - admin only for now */}
+                {adminKey === 'azoni-voidlord-2026' ? (
+                  <button
+                    onClick={() => {
+                      if (socketRef.current && generatedWizard.classId) {
+                        socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', width: 18, height: 18 }}>{SVG.wand}</span> Play as {generatedWizard.classDef.name}
+                  </button>
+                ) : (
+                  <div style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(139,92,246,0.2)',
+                    borderRadius: 8,
+                    textAlign: 'center',
+                  }}>
+                    <div style={{ color: '#a78bfa', fontWeight: 600, fontSize: '0.85rem', marginBottom: 2 }}>
+                      <span style={{ display: 'inline-flex', width: 16, height: 16 }}>{SVG.lock}</span> Play as Custom Wizard — Coming Soon!
+                    </div>
+                    <div style={{ color: '#666', fontSize: '0.7rem' }}>Custom wizard gameplay is being tested. Stay tuned!</div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Preview of what AI generates - shown when no result yet */}
+            {!generatedWizard && (
+              <div style={{
+                marginTop: 14,
+                padding: '12px 16px',
+                background: 'rgba(0,0,0,0.3)',
+                borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                  AI will generate
+                </div>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  {['Custom Name & Lore', 'Unique Spell Set', 'Balanced Stats', 'Matching Colors', 'Dash & Ultimate'].map(item => (
+                    <div key={item} style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      color: '#888', fontSize: '0.7rem',
+                    }}>
+                      <span style={{ color: '#a78bfa' }}>✓</span> {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Play Tab - Character Select */}
         {tab === 'play' && (
@@ -9685,260 +9954,6 @@ export default function SpellBrigade() {
                       </div>
                     );
                   })}
-              </div>
-              
-              {/* AI Wizard Creator */}
-              <div style={{
-                marginTop: 20,
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.06))',
-                border: '1px solid rgba(139,92,246,0.25)',
-                borderRadius: 16,
-                padding: isMobile ? 16 : 20,
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                {/* Lock Overlay - only for non-admin */}
-                {adminKey !== 'azoni-voidlord-2026' && (
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(0,0,0,0.55)',
-                    backdropFilter: 'blur(2px)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10,
-                    borderRadius: 16,
-                  }}>
-                    <div style={{ width: 36, height: 36, marginBottom: 8, color: '#a78bfa' }}>{SVG.lock}</div>
-                    <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '1rem' }}>Coming Soon</div>
-                    <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>AI-Powered Wizard Creation</div>
-                  </div>
-                )}
-                
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                  <span style={{ width: 24, height: 24, color: '#a78bfa' }}>{SVG.wand}</span>
-                  <div>
-                    <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '0.95rem' }}>AI Wizard Creator</div>
-                    <div style={{ color: '#666', fontSize: '0.7rem' }}>Describe your dream wizard and AI will bring it to life</div>
-                  </div>
-                  {adminKey === 'azoni-voidlord-2026' && (
-                    <span style={{ marginLeft: 'auto', padding: '2px 8px', background: 'rgba(139,92,246,0.2)', borderRadius: 4, color: '#a78bfa', fontSize: '0.6rem', fontWeight: 600 }}>ADMIN</span>
-                  )}
-                </div>
-                
-                {/* Prompt Input */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  <input
-                    type="text"
-                    value={wizardPrompt}
-                    onChange={(e) => { setWizardPrompt(e.target.value); setWizardError(''); }}
-                    placeholder="A frost necromancer who commands ice and death..."
-                    maxLength={200}
-                    disabled={adminKey !== 'azoni-voidlord-2026' || wizardGenerating}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && adminKey === 'azoni-voidlord-2026' && wizardPrompt.trim().length >= 3 && !wizardGenerating && socketRef.current) {
-                        setWizardGenerating(true);
-                        setWizardError('');
-                        setGeneratedWizard(null);
-                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '12px 16px',
-                      background: 'rgba(0,0,0,0.4)',
-                      border: `1px solid ${wizardError ? 'rgba(239,68,68,0.4)' : 'rgba(139,92,246,0.2)'}`,
-                      borderRadius: 8,
-                      color: '#fff',
-                      fontSize: '0.85rem',
-                      outline: 'none',
-                      opacity: adminKey === 'azoni-voidlord-2026' ? 1 : 0.5,
-                    }}
-                  />
-                  <button
-                    disabled={adminKey !== 'azoni-voidlord-2026' || wizardGenerating || wizardPrompt.trim().length < 3}
-                    onClick={() => {
-                      if (socketRef.current && wizardPrompt.trim().length >= 3) {
-                        setWizardGenerating(true);
-                        setWizardError('');
-                        setGeneratedWizard(null);
-                        socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
-                      }
-                    }}
-                    style={{
-                      padding: '12px 20px',
-                      background: wizardGenerating ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                      border: 'none',
-                      borderRadius: 8,
-                      color: '#fff',
-                      fontWeight: 600,
-                      fontSize: '0.85rem',
-                      opacity: (adminKey !== 'azoni-voidlord-2026' || wizardGenerating || wizardPrompt.trim().length < 3) ? 0.5 : 1,
-                      cursor: (adminKey !== 'azoni-voidlord-2026' || wizardGenerating) ? 'not-allowed' : 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {wizardGenerating ? <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.hourglass}</span> Generating...</> : <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.sparkle}</span> Generate</>}
-                  </button>
-                </div>
-
-                {/* Status / Error messages */}
-                {wizardStatus && (
-                  <div style={{ color: '#a78bfa', fontSize: '0.8rem', marginBottom: 10, padding: '8px 12px', background: 'rgba(139,92,246,0.1)', borderRadius: 6 }}>
-                    {wizardStatus}
-                  </div>
-                )}
-                {wizardError && (
-                  <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: 10, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 6 }}>
-                    {wizardError}
-                  </div>
-                )}
-                
-                {/* Preset Ideas */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: generatedWizard ? 14 : 0 }}>
-                  {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Lava Berserker', 'Frost Assassin', 'Crystal Sage'].map(preset => (
-                    <span 
-                      key={preset}
-                      onClick={() => {
-                        if (adminKey === 'azoni-voidlord-2026' && !wizardGenerating) {
-                          setWizardPrompt(preset.replace(/^[^\s]+\s/, ''));
-                        }
-                      }}
-                      style={{
-                        padding: '4px 10px',
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 6,
-                        color: adminKey === 'azoni-voidlord-2026' ? '#aaa' : '#555',
-                        fontSize: '0.65rem',
-                        cursor: adminKey === 'azoni-voidlord-2026' ? 'pointer' : 'default',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {preset}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Generated Wizard Result */}
-                {generatedWizard && generatedWizard.classDef && (
-                  <div style={{
-                    marginTop: 14,
-                    padding: 16,
-                    background: 'rgba(0,0,0,0.4)',
-                    borderRadius: 12,
-                    border: `1px solid ${generatedWizard.classDef.color}40`,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                      {/* Class color swatch */}
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
-                        boxShadow: `0 0 15px ${generatedWizard.classDef.color}40`,
-                      }} />
-                      <div>
-                        <div style={{ color: generatedWizard.classDef.color, fontWeight: 700, fontSize: '1rem' }}>
-                          {generatedWizard.classDef.name}
-                        </div>
-                        <div style={{ color: '#888', fontSize: '0.7rem' }}>{generatedWizard.classDef.description}</div>
-                      </div>
-                    </div>
-                    
-                    {/* Stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10, fontSize: '0.75rem' }}>
-                      <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#f87171' }}>{SVG.heart}</span> HP: <span style={{ color: '#f87171' }}>{generatedWizard.classDef.baseHealth}</span></div>
-                      <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#60a5fa' }}>{SVG.lightning}</span> Speed: <span style={{ color: '#60a5fa' }}>{generatedWizard.classDef.baseSpeed}</span></div>
-                    </div>
-                    
-                    {/* Spells */}
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ color: '#666', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Spells</div>
-                      {Object.values(generatedWizard.spellDefs).map(spell => (
-                        <div key={spell.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: '0.75rem' }}>
-                          <div style={{ width: 8, height: 8, borderRadius: 4, background: spell.color }} />
-                          <span style={{ color: '#ccc' }}>{spell.name}</span>
-                          <span style={{ color: '#666', fontSize: '0.65rem' }}>
-                            {spell.damage}dmg / {(spell.cooldown/1000).toFixed(1)}s
-                            {spell.isAoe ? ' AOE' : ''}
-                            {spell.piercing ? ' Pierce' : ''}
-                            {spell.homing ? ' Homing' : ''}
-                            {spell.slowEffect ? ' Slow' : ''}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Abilities */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: '0.7rem' }}>
-                      <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-                        <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.dash}</span> {generatedWizard.classDef.dashAbility?.name}</div>
-                        <div style={{ color: '#666' }}>{generatedWizard.classDef.dashAbility?.distance}px / {(generatedWizard.classDef.dashAbility?.cooldown/1000).toFixed(0)}s cd</div>
-                      </div>
-                      <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-                        <div style={{ color: '#fbbf24', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.star}</span> {generatedWizard.classDef.ultimateAbility?.name}</div>
-                        <div style={{ color: '#666' }}>{generatedWizard.classDef.ultimateAbility?.damage}dmg / {(generatedWizard.classDef.ultimateAbility?.cooldown/1000).toFixed(0)}s cd</div>
-                      </div>
-                    </div>
-
-                    {/* Lore */}
-                    {generatedWizard.classDef.lore && (
-                      <div style={{ color: '#777', fontSize: '0.7rem', fontStyle: 'italic', marginBottom: 12, lineHeight: 1.4 }}>
-                        "{generatedWizard.classDef.lore}"
-                      </div>
-                    )}
-                    
-                    {/* Use This Wizard button */}
-                    <button
-                      onClick={() => {
-                        if (socketRef.current && generatedWizard.classId) {
-                          socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
-                        border: 'none',
-                        borderRadius: 8,
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        cursor: 'pointer',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                      }}
-                    >
-                      <span style={{ display: 'inline-flex', width: 18, height: 18 }}>{SVG.wand}</span> Play as {generatedWizard.classDef.name}
-                    </button>
-                  </div>
-                )}
-                
-                {/* Preview of what AI generates - shown when no result yet */}
-                {!generatedWizard && (
-                  <div style={{
-                    marginTop: 14,
-                    padding: '12px 16px',
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}>
-                    <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                      AI will generate
-                    </div>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      {['Custom Name & Lore', 'Unique Spell Set', 'Balanced Stats', 'Matching Colors', 'Dash & Ultimate'].map(item => (
-                        <div key={item} style={{
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          color: '#888', fontSize: '0.7rem',
-                        }}>
-                          <span style={{ color: '#a78bfa' }}>✓</span> {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
