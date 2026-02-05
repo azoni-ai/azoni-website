@@ -7,7 +7,7 @@ export const createStyles = (isMobile, settings, screen) => ({
       overflow: 'hidden',
       fontFamily: "'Segoe UI', system-ui, sans-serif",
       color: '#fff',
-      touchAction: 'none', // Prevent mobile browser gestures
+      touchAction: screen === 'game' ? 'none' : 'manipulation',
       userSelect: 'none',
     },
     canvas: {
@@ -39,6 +39,7 @@ export const createStyles = (isMobile, settings, screen) => ({
       overflowY: 'auto',
       overflowX: 'hidden',
       WebkitOverflowScrolling: 'touch',
+      touchAction: 'pan-y',
     },
     hidden: {
       opacity: 0,
@@ -736,6 +737,10 @@ export const createStyles = (isMobile, settings, screen) => ({
       zIndex: 200,
       maxWidth: 400,
       width: '90%',
+      maxHeight: isMobile ? '85vh' : 'auto',
+      overflowY: isMobile ? 'auto' : 'visible',
+      WebkitOverflowScrolling: 'touch',
+      touchAction: 'pan-y',
     },
     modalBackdrop: {
       position: 'absolute',
