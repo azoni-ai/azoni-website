@@ -168,6 +168,8 @@ export default function SpellBrigade() {
   
   // In-game settings modal
   const [showInGameSettings, setShowInGameSettings] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState([]);
   
   // Admin panel
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -230,32 +232,14 @@ export default function SpellBrigade() {
     // Prevent context menu on long press
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    // Prevent pull-to-refresh and bounce scroll on mobile - ONLY during gameplay
-    const preventScroll = (e) => {
-      // Always allow inputs/textareas
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      
-      // Only prevent during active gameplay
-      if (screenRef.current !== 'game') return;
-      
-      // During game, check if touch is inside a scrollable container (chat, modals, settings)
-      let el = e.target;
-      while (el && el !== document.body) {
-        const style = window.getComputedStyle(el);
-        const overflowY = style.overflowY;
-        if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
-          return; // Allow scrolling inside scrollable containers
-        }
-        el = el.parentElement;
-      }
-      
-      e.preventDefault();
-    };
-    document.addEventListener('touchmove', preventScroll, { passive: false });
+    // NOTE: No global touchmove preventDefault. Scroll prevention is handled by CSS:
+    // - html,body get position:fixed + overflow:hidden during game (in style tag)
+    // - canvas gets touch-action:none (in style tag)
+    // - overscroll-behavior:none on html,body prevents pull-to-refresh
+    // - Menu overlays scroll naturally with overflowY:auto + touch-action:pan-y
     
     return () => {
       document.removeEventListener('contextmenu', (e) => e.preventDefault());
-      document.removeEventListener('touchmove', preventScroll);
     };
   }, []);
   
@@ -954,6 +938,13 @@ export default function SpellBrigade() {
       // Update players online count
       if (state.players) {
         setPlayersOnline(state.players.length);
+        
+        // Build leaderboard from current online players
+        const lb = [...state.players]
+          .sort((a, b) => (b.kills || 0) - (a.kills || 0) || (b.level || 1) - (a.level || 1))
+          .slice(0, 8)
+          .map(p => ({ name: p.name, kills: p.kills || 0, level: p.level || 1, class: p.class }));
+        setLeaderboardData(lb);
         
         // Update admin player list if admin
         if (adminKey === 'azoni-voidlord-2026') {
@@ -8506,20 +8497,27 @@ export default function SpellBrigade() {
             -webkit-touch-callout: none;
           }
           html, body {
-            ${screen === 'game' ? 'touch-action: none;' : 'touch-action: manipulation;'}
+            touch-action: manipulation;
             overscroll-behavior: none;
             -webkit-user-select: none;
             user-select: none;
-            ${screen === 'game' ? 'overflow: hidden; position: fixed;' : 'overflow: auto; position: relative;'}
             width: 100%;
-            ${screen === 'game' ? 'height: 100%;' : 'min-height: 100%;'}
             margin: 0;
             padding: 0;
+            ${screen === 'game' ? `
+              overflow: hidden;
+              position: fixed;
+              height: 100%;
+            ` : `
+              overflow: visible;
+              position: relative;
+              min-height: 100%;
+            `}
           }
           canvas {
             touch-action: none;
           }
-          input, textarea {
+          input, textarea, select {
             -webkit-user-select: text;
             user-select: text;
             touch-action: manipulation;
@@ -10710,24 +10708,7 @@ export default function SpellBrigade() {
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                     </svg>
                   </button>
-                  {/* Settings button */}
-                  <button
-                    onClick={() => setShowInGameSettings(true)}
-                    style={{
-                      background: 'rgba(100,100,100,0.3)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: 6,
-                      padding: '4px 8px',
-                      color: '#aaa',
-                      fontSize: '0.7rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-                    </svg>
-                  </button>
+                  {/* Settings button - moved to below bars */}
                 </div>
 
                 {/* Compact HP Bar */}
@@ -10741,7 +10722,7 @@ export default function SpellBrigade() {
                 </div>
 
                 {/* Compact XP Bar */}
-                <div>
+                <div style={{ marginBottom: 8 }}>
                   <div style={{ ...styles.barBg, height: 6 }}>
                     <div style={styles.barFill(
                       playerInfo.xp / (playerInfo.xpToLevel || 100) * 100,
@@ -10749,7 +10730,81 @@ export default function SpellBrigade() {
                     )} />
                   </div>
                 </div>
-              </div>
+
+                {/* Settings + Leaderboard row */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                  <button
+                    onClick={() => setShowInGameSettings(true)}
+                    style={{
+                      background: 'rgba(100,100,100,0.3)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 6,
+                      padding: '5px 10px',
+                      color: '#aaa',
+                      fontSize: '0.6rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/>
+                    </svg>
+                  </button>
+                  <div style={{ flex: 1, fontSize: '0.55rem', color: '#666', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
+                    <span style={{ color: '#ffd93d', fontWeight: 600 }}>LEADERBOARD</span>
+                  </div>
+                </div>
+
+                {/* Always-visible compact leaderboard */}
+                {leaderboardData.length > 0 && (
+                  <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    border: '1px solid rgba(255,215,61,0.1)',
+                    padding: '4px 6px',
+                  }}>
+                    {leaderboardData.slice(0, 5).map((p, i) => (
+                      <div key={i} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '2px 0',
+                        borderBottom: i < Math.min(leaderboardData.length, 5) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      }}>
+                        <span style={{
+                          width: 12,
+                          fontSize: '0.55rem',
+                          fontWeight: 700,
+                          color: i === 0 ? '#ffd93d' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#555',
+                          textAlign: 'center',
+                        }}>
+                          {i + 1}
+                        </span>
+                        <span style={{
+                          flex: 1,
+                          fontSize: '0.6rem',
+                          color: p.name === playerInfo?.name ? '#ffd93d' : '#bbb',
+                          fontWeight: p.name === playerInfo?.name ? 600 : 400,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {p.name}
+                        </span>
+                        <span style={{ fontSize: '0.5rem', color: '#777' }}>Lv{p.level}</span>
+                        <span style={{ fontSize: '0.55rem', color: '#ef4444', fontWeight: 600, minWidth: 18, textAlign: 'right' }}>
+                          {p.kills}
+                        </span>
+                        <svg width="7" height="7" viewBox="0 0 24 24" fill="#ef4444" style={{ flexShrink: 0 }}>
+                          <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+                        </svg>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
             </div>
           )}
 
@@ -10793,6 +10848,7 @@ export default function SpellBrigade() {
                 alignItems: 'center',
                 gap: 10,
                 pointerEvents: 'auto',
+                touchAction: 'none',
               }}>
                 {/* Row 1: Secondary buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -11660,6 +11716,8 @@ export default function SpellBrigade() {
               flexDirection: 'column',
               gap: 4,
               maxHeight: isMobile ? 120 : 120,
+              touchAction: 'pan-y',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
             {chatMessages.map((msg) => {
@@ -11777,29 +11835,101 @@ export default function SpellBrigade() {
         </div>
       )}
 
-      {/* Settings & Quest - Desktop (positioned below player stats) */}
+      {/* Settings & Leaderboard - Desktop (positioned below player stats) */}
       {screen === 'game' && playerInfo && !isMobile && (
         <div style={{ position: 'fixed', top: 375, left: 20, zIndex: 50 }}>
-          {/* Settings Button */}
-          <button
-            onClick={() => setShowInGameSettings(true)}
-            style={{
-              background: 'rgba(0,0,0,0.75)',
-              backdropFilter: 'blur(8px)',
-              padding: '10px',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.15)',
-              cursor: 'pointer',
+          <div style={{ display: 'flex', gap: 6 }}>
+            {/* Settings Button */}
+            <button
+              onClick={() => setShowInGameSettings(true)}
+              style={{
+                background: 'rgba(0,0,0,0.75)',
+                backdropFilter: 'blur(8px)',
+                padding: '10px',
+                borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.15)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#888">
+                <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+              </svg>
+            </button>
+            {/* Leaderboard Toggle */}
+            <button
+              onClick={() => setShowLeaderboard(prev => !prev)}
+              style={{
+                background: showLeaderboard ? 'rgba(255,215,61,0.15)' : 'rgba(0,0,0,0.75)',
+                backdropFilter: 'blur(8px)',
+                padding: '10px',
+                borderRadius: 10,
+                border: `1px solid ${showLeaderboard ? 'rgba(255,215,61,0.4)' : 'rgba(255,255,255,0.15)'}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={showLeaderboard ? '#ffd93d' : '#888'}>
+                <path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/>
+              </svg>
+            </button>
+          </div>
+          
+          {/* Desktop Leaderboard Panel */}
+          {showLeaderboard && leaderboardData.length > 0 && (
+            <div style={{
               marginTop: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#888">
-              <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-            </svg>
-          </button>
+              background: 'rgba(0,0,0,0.8)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 12,
+              border: '1px solid rgba(255,215,61,0.2)',
+              padding: 12,
+              minWidth: 200,
+            }}>
+              <div style={{ fontSize: '0.7rem', color: '#ffd93d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
+                Top Players
+              </div>
+              {leaderboardData.map((p, i) => (
+                <div key={i} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '4px 0',
+                  borderBottom: i < leaderboardData.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                }}>
+                  <span style={{
+                    width: 16,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: i === 0 ? '#ffd93d' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#666',
+                  }}>
+                    {i + 1}
+                  </span>
+                  <span style={{
+                    flex: 1,
+                    fontSize: '0.8rem',
+                    color: p.name === playerInfo?.name ? '#ffd93d' : '#ddd',
+                    fontWeight: p.name === playerInfo?.name ? 600 : 400,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {p.name}
+                  </span>
+                  <span style={{ fontSize: '0.65rem', color: '#888' }}>Lv{p.level}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600, minWidth: 28, textAlign: 'right' }}>
+                    {p.kills}
+                  </span>
+                  <span style={{ fontSize: '0.6rem', color: '#888' }}>kills</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

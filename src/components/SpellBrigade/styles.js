@@ -4,10 +4,11 @@ export const createStyles = (isMobile, settings, screen) => ({
       width: '100%',
       height: '100vh',
       background: '#0f0f1a',
-      overflow: 'hidden',
+      overflow: screen === 'game' ? 'hidden' : 'auto',
       fontFamily: "'Segoe UI', system-ui, sans-serif",
       color: '#fff',
-      touchAction: screen === 'game' ? 'none' : 'manipulation',
+      // touch-action is NOT set here — it goes on canvas only
+      // so modals, menus, and overlays can scroll naturally on mobile
       userSelect: 'none',
     },
     canvas: {
@@ -15,6 +16,7 @@ export const createStyles = (isMobile, settings, screen) => ({
       position: 'absolute',
       top: 0,
       left: 0,
+      touchAction: 'none', // Only the canvas blocks touch gestures
     },
     minimap: {
       position: 'absolute',
@@ -26,8 +28,11 @@ export const createStyles = (isMobile, settings, screen) => ({
       display: settings.showMinimap && screen === 'game' ? 'block' : 'none',
     },
     overlay: {
-      position: 'absolute',
-      inset: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -548,6 +553,7 @@ export const createStyles = (isMobile, settings, screen) => ({
       minWidth: 130,
       maxWidth: 'calc(100vw - 150px)',
       border: '1px solid rgba(255,255,255,0.06)',
+      touchAction: 'manipulation',
     },
     mobilePlayerHeader: {
       display: 'flex',
@@ -726,7 +732,7 @@ export const createStyles = (isMobile, settings, screen) => ({
     },
     // In-game skin modal
     modal: {
-      position: 'absolute',
+      position: 'fixed',
       top: '50%',
       left: '50%',
       transform: 'translate(-50%, -50%)',
@@ -737,14 +743,17 @@ export const createStyles = (isMobile, settings, screen) => ({
       zIndex: 200,
       maxWidth: 400,
       width: '90%',
-      maxHeight: isMobile ? '85vh' : 'auto',
-      overflowY: isMobile ? 'auto' : 'visible',
+      maxHeight: isMobile ? '85vh' : '90vh',
+      overflowY: 'auto',
       WebkitOverflowScrolling: 'touch',
       touchAction: 'pan-y',
     },
     modalBackdrop: {
-      position: 'absolute',
-      inset: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       background: 'rgba(0,0,0,0.7)',
       zIndex: 199,
     },
