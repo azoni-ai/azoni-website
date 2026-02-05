@@ -86,6 +86,52 @@ export const SVG = {
       <path d="M15 7.5V2H9v5.5l3 3 3-3zM7.5 9H2v6h5.5l3-3-3-3zM9 16.5V22h6v-5.5l-3-3-3 3zM16.5 9l-3 3 3 3H22V9h-5.5z"/>
     </svg>
   ),
+  sparkle: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L14.4 8.2L21 9.6L16.5 14.4L17.8 21L12 17.8L6.2 21L7.5 14.4L3 9.6L9.6 8.2Z"/>
+    </svg>
+  ),
+  lock: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+    </svg>
+  ),
+  music: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+    </svg>
+  ),
+  wand: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7.5 5.6L5 7l1.4-2.5L5 2l2.5 1.4L10 2 8.6 4.5 10 7 7.5 5.6zm12 9.8L22 14l-1.4 2.5L22 19l-2.5-1.4L17 19l1.4-2.5L17 14l2.5 1.4zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5L22 2zM14.37 7.29L12.7 5.62c-.39-.39-1.02-.39-1.41 0L1.62 15.29c-.39.39-.39 1.02 0 1.41l1.68 1.68c.39.39 1.02.39 1.41 0l9.66-9.66c.39-.4.39-1.03 0-1.43z"/>
+    </svg>
+  ),
+  lightning: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+    </svg>
+  ),
+  trash: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+    </svg>
+  ),
+  crystal: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L4 8l8 14 8-14-8-6zm0 3.5L16.5 9 12 19 7.5 9 12 5.5z"/>
+    </svg>
+  ),
+  hourglass: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zm-4-5l-4-4V4h8v3.5l-4 4z"/>
+    </svg>
+  ),
+  dragon: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.5 4.5c-1-.2-2 .4-2.6 1.2L14 8H9l-2-2.5C6 4.2 4.5 4 3.5 4.5 2.5 5 2 6 2.5 7l2 3.5L3 13c-.5 1 0 2 .8 2.5l4.2 2 2 3c.4.6 1 .8 1.6.5l2-.5L16 22l1.6-.5c.6-.2 1-.8 1-1.5v-2.5l2-3c.5-1 0-2-.8-2.5l-2-1 1-2.5c.5-1.5-.2-2.5-1.3-3z"/>
+      <circle cx="8" cy="10" r="1.5"/>
+    </svg>
+  ),
 };
 
 export const CLASS_SVG = {

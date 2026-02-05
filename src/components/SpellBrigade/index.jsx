@@ -750,6 +750,8 @@ export default function SpellBrigade() {
                   setAdminKey('azoni-voidlord-2026');
                   setSelectedClass('shadowarcher');
                   setSelectedSkin('shadowarcher_default');
+                  // Pre-authenticate socket for wizard creator before joining game
+                  socket.emit('authenticateAdmin', { sessionToken: token });
                 }
                 // Restore user settings if present
                 if (data.user?.settings) {
@@ -1734,6 +1736,20 @@ export default function SpellBrigade() {
       console.log('🧙 Wizard applied:', data.className);
       setWizardStatus(`✅ You are now a ${data.className}!`);
       setTimeout(() => setWizardStatus(''), 3000);
+    });
+
+    // Custom wizard ability visual effects
+    socket.on('customAbilityEffect', (data) => {
+      setEffects(prev => [...prev, {
+        type: 'customAbility',
+        x: data.x,
+        y: data.y,
+        radius: data.radius,
+        color: data.color,
+        name: data.name,
+        startTime: Date.now(),
+        duration: data.duration || 3000,
+      }]);
     });
 
     // Spell drops from boss kills
@@ -7970,6 +7986,45 @@ export default function SpellBrigade() {
           }
         }
 
+        else if (ef.type === 'customAbility') {
+          // Generic custom wizard ability - expanding ring with particles
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const progress = elapsed / (ef.duration || 3000);
+          const ringRadius = ef.radius * Math.min(1, progress * 3);
+          const fadeAlpha = Math.max(0, 1 - progress);
+          
+          // Expanding ring
+          ctx.beginPath();
+          ctx.arc(ex, ey, ringRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          
+          // Inner glow
+          if (progress < 0.5) {
+            const glowGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, ringRadius * 0.8);
+            glowGrad.addColorStop(0, ef.color + Math.floor(fadeAlpha * 80).toString(16).padStart(2, '0'));
+            glowGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = glowGrad;
+            ctx.beginPath();
+            ctx.arc(ex, ey, ringRadius * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Orbiting particles
+          for (let i = 0; i < 8; i++) {
+            const pAngle = (Date.now() / 500) + (i * Math.PI * 2 / 8);
+            const pDist = ringRadius * 0.7;
+            const px2 = ex + Math.cos(pAngle) * pDist;
+            const py2 = ey + Math.sin(pAngle) * pDist;
+            ctx.beginPath();
+            ctx.arc(px2, py2, 3, 0, Math.PI * 2);
+            ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
+            ctx.fill();
+          }
+        }
+
         return true;
       });
 
@@ -8908,7 +8963,8 @@ export default function SpellBrigade() {
         flexDirection: 'column',
         justifyContent: 'flex-start',
         padding: 0,
-        overflow: isMobile ? 'auto' : 'hidden',
+        overflowY: 'auto',
+        overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
       }}>
         {/* Header */}
@@ -8939,8 +8995,19 @@ export default function SpellBrigade() {
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
               }}>
-                {t === 'play' ? '⚔️ Play' : t === 'create' ? '✨ Create' : t === 'tutorial' ? '📖 Guide' : '⚙️ Settings'}
+                {t === 'play' ? (
+                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M6.92 5H5L14 14l-1.5 1.5L5 8v1.92l8 8L22 9l-3-3-7.08 7.08L6.92 5z"/></svg> Play</>
+                ) : t === 'create' ? (
+                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg> Create</>
+                ) : t === 'tutorial' ? (
+                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg> Guide</>
+                ) : (
+                  <><svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg> Settings</>
+                )}
               </button>
             ))}
           </div>
@@ -8948,12 +9015,12 @@ export default function SpellBrigade() {
         
         {/* Content Area */}
         <div style={{
-          flex: isMobile ? '0 0 auto' : 1,
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
           padding: isMobile ? '15px' : '20px 30px',
-          overflow: isMobile ? 'visible' : 'hidden',
-          paddingBottom: isMobile ? 40 : undefined,
+          overflow: 'visible',
+          paddingBottom: isMobile ? 80 : 40,
         }}>
 
         {/* Play Tab - Character Select */}
@@ -9066,7 +9133,9 @@ export default function SpellBrigade() {
                         background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
                         borderRadius: 6, padding: '4px 8px', color: '#ef4444',
                         fontSize: '0.7rem', cursor: 'pointer',
-                      }}>🗑️</button>
+                      }}>
+                        <span style={{ width: 14, height: 14, display: 'inline-flex' }}>{SVG.trash}</span>
+                      </button>
                     )}
                     
                     {/* Avatar with skin preview */}
@@ -9149,7 +9218,7 @@ export default function SpellBrigade() {
                                 boxShadow: isSel ? `0 0 12px ${skin.color}50` : 'none',
                               }}
                             >
-                              {!isUnlocked && (skin.locked ? '🔮' : '🔒')}
+                              {!isUnlocked && <span style={{ width: 12, height: 12, display: 'inline-flex' }}>{skin.locked ? SVG.crystal : SVG.lock}</span>}
                             </div>
                           );
                         })}
@@ -9295,7 +9364,7 @@ export default function SpellBrigade() {
                     boxShadow: '0 4px 20px rgba(155,93,229,0.4)',
                   }}
                 >
-                  <span>✨</span> Create Your Wizard
+                  <span style={{ width: 20, height: 20, display: 'inline-flex' }}>{SVG.sparkle}</span> Create Your Wizard
                 </button>
                 
                 <div style={{ marginTop: 20 }}>
@@ -9546,13 +9615,13 @@ export default function SpellBrigade() {
                           padding: '6px 0',
                           borderTop: '1px solid rgba(255,255,255,0.06)',
                         }}>
-                          <div style={{ fontSize: '0.7rem' }}>
-                            <span style={{ color: '#ef4444' }}>❤️</span>
-                            <span style={{ color: '#777', marginLeft: 3 }}>{c.baseHealth || 100}</span>
+                          <div style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <span style={{ width: 12, height: 12, color: '#ef4444' }}>{SVG.heart}</span>
+                            <span style={{ color: '#777' }}>{c.baseHealth || 100}</span>
                           </div>
-                          <div style={{ fontSize: '0.7rem' }}>
-                            <span style={{ color: '#3b82f6' }}>⚡</span>
-                            <span style={{ color: '#777', marginLeft: 3 }}>{c.baseSpeed || 150}</span>
+                          <div style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <span style={{ width: 12, height: 12, color: '#3b82f6' }}>{SVG.lightning}</span>
+                            <span style={{ color: '#777' }}>{c.baseSpeed || 150}</span>
                           </div>
                         </div>
                         
@@ -9566,7 +9635,7 @@ export default function SpellBrigade() {
                             color: c.secondaryColor || c.color,
                             border: `1px solid ${c.color}25`,
                           }}>
-                            ⚡ {c.dash || 'Dash'}
+                            <span style={{ display: 'inline-flex', width: 10, height: 10, verticalAlign: 'middle' }}>{SVG.dash}</span> {c.dash || 'Dash'}
                           </div>
                           <div style={{ 
                             background: `${c.color}12`, 
@@ -9576,7 +9645,7 @@ export default function SpellBrigade() {
                             color: c.secondaryColor || c.color,
                             border: `1px solid ${c.color}25`,
                           }}>
-                            💥 {c.ultimate || 'Ultimate'}
+                            <span style={{ display: 'inline-flex', width: 10, height: 10, verticalAlign: 'middle' }}>{SVG.star}</span> {c.ultimate || 'Ultimate'}
                           </div>
                         </div>
                         
@@ -9624,7 +9693,7 @@ export default function SpellBrigade() {
                     zIndex: 10,
                     borderRadius: 16,
                   }}>
-                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔒</div>
+                    <div style={{ width: 36, height: 36, marginBottom: 8, color: '#a78bfa' }}>{SVG.lock}</div>
                     <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '1rem' }}>Coming Soon</div>
                     <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>AI-Powered Wizard Creation</div>
                   </div>
@@ -9632,7 +9701,7 @@ export default function SpellBrigade() {
                 
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                  <span style={{ fontSize: '1.3rem' }}>✨</span>
+                  <span style={{ width: 24, height: 24, color: '#a78bfa' }}>{SVG.wand}</span>
                   <div>
                     <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '0.95rem' }}>AI Wizard Creator</div>
                     <div style={{ color: '#666', fontSize: '0.7rem' }}>Describe your dream wizard and AI will bring it to life</div>
@@ -9694,7 +9763,7 @@ export default function SpellBrigade() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {wizardGenerating ? '⏳ Generating...' : '✨ Generate'}
+                    {wizardGenerating ? <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.hourglass}</span> Generating...</> : <><span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.sparkle}</span> Generate</>}
                   </button>
                 </div>
 
@@ -9712,7 +9781,7 @@ export default function SpellBrigade() {
                 
                 {/* Preset Ideas */}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: generatedWizard ? 14 : 0 }}>
-                  {['⚡ Storm Samurai', '🌑 Void Necromancer', '🌿 Nature Druid', '🔥 Lava Berserker', '❄️ Frost Assassin', '💎 Crystal Sage'].map(preset => (
+                  {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Lava Berserker', 'Frost Assassin', 'Crystal Sage'].map(preset => (
                     <span 
                       key={preset}
                       onClick={() => {
@@ -9762,8 +9831,8 @@ export default function SpellBrigade() {
                     
                     {/* Stats */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10, fontSize: '0.75rem' }}>
-                      <div style={{ color: '#aaa' }}>❤️ HP: <span style={{ color: '#f87171' }}>{generatedWizard.classDef.baseHealth}</span></div>
-                      <div style={{ color: '#aaa' }}>⚡ Speed: <span style={{ color: '#60a5fa' }}>{generatedWizard.classDef.baseSpeed}</span></div>
+                      <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#f87171' }}>{SVG.heart}</span> HP: <span style={{ color: '#f87171' }}>{generatedWizard.classDef.baseHealth}</span></div>
+                      <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 14, color: '#60a5fa' }}>{SVG.lightning}</span> Speed: <span style={{ color: '#60a5fa' }}>{generatedWizard.classDef.baseSpeed}</span></div>
                     </div>
                     
                     {/* Spells */}
@@ -9787,11 +9856,11 @@ export default function SpellBrigade() {
                     {/* Abilities */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: '0.7rem' }}>
                       <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-                        <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: 2 }}>🏃 {generatedWizard.classDef.dashAbility?.name}</div>
+                        <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.dash}</span> {generatedWizard.classDef.dashAbility?.name}</div>
                         <div style={{ color: '#666' }}>{generatedWizard.classDef.dashAbility?.distance}px / {(generatedWizard.classDef.dashAbility?.cooldown/1000).toFixed(0)}s cd</div>
                       </div>
                       <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-                        <div style={{ color: '#fbbf24', fontWeight: 600, marginBottom: 2 }}>💥 {generatedWizard.classDef.ultimateAbility?.name}</div>
+                        <div style={{ color: '#fbbf24', fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 12 }}>{SVG.star}</span> {generatedWizard.classDef.ultimateAbility?.name}</div>
                         <div style={{ color: '#666' }}>{generatedWizard.classDef.ultimateAbility?.damage}dmg / {(generatedWizard.classDef.ultimateAbility?.cooldown/1000).toFixed(0)}s cd</div>
                       </div>
                     </div>
@@ -9823,7 +9892,7 @@ export default function SpellBrigade() {
                         textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                       }}
                     >
-                      🧙 Play as {generatedWizard.classDef.name}
+                      <span style={{ display: 'inline-flex', width: 18, height: 18 }}>{SVG.wand}</span> Play as {generatedWizard.classDef.name}
                     </button>
                   </div>
                 )}
@@ -9958,7 +10027,7 @@ export default function SpellBrigade() {
 
             <div style={styles.settingRow}>
               <label style={styles.settingLabel}>
-                <span style={styles.settingIcon}>🎵</span> Music Volume
+                <span style={styles.settingIcon}>{SVG.music}</span> Music Volume
               </label>
               <input
                 type="range"
@@ -9984,7 +10053,7 @@ export default function SpellBrigade() {
 
             <div style={styles.settingRow}>
               <label style={styles.settingLabel}>
-                <span style={styles.settingIcon}>🎵</span> Zone Music
+                <span style={styles.settingIcon}>{SVG.music}</span> Zone Music
               </label>
               <div
                 style={styles.toggle(settings.musicEnabled)}
@@ -10120,7 +10189,7 @@ export default function SpellBrigade() {
             justifyContent: 'center',
             gap: 8,
           }}>
-            🐉 Dragon's Gauntlet
+            <span style={{ width: 18, height: 18, display: 'inline-flex', color: '#f97316' }}>{SVG.dragon}</span> Dragon's Gauntlet
           </div>
           
           {/* Progress bar */}
@@ -10161,7 +10230,7 @@ export default function SpellBrigade() {
               }}
               onClick={() => socketRef.current?.emit('exitDungeon')}
             >
-              🏠 Exit Dungeon
+              <span style={{ width: 16, height: 16, display: 'inline-flex' }}>{SVG.home}</span> Exit Dungeon
             </button>
           )}
         </div>
@@ -10199,8 +10268,8 @@ export default function SpellBrigade() {
                   <div style={styles.avatar(classes[playerInfo.class]?.color || '#fff')}>
                     <span style={styles.avatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 600 }}>{playerInfo.name}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 600, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerInfo.name}</div>
                     <div style={{ fontSize: '.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
                       <span style={{ width: 14, height: 14, color: '#ffd93d' }}>{SVG.star}</span>
                       {playerInfo.rank?.title || 'Novice'} • Lv {playerInfo.level}
@@ -10466,14 +10535,31 @@ export default function SpellBrigade() {
                   shadowarcher: '#dc2626',
                 };
                 
+                // Check for custom wizard ability data
+                let abilityName = abilityNames[playerInfo.class]?.[slot];
+                let abilityDesc = abilityDescs[playerInfo.class]?.[slot];
+                let abilityIcon = abilityIcons[playerInfo.class]?.[slot];
+                let color = abilityColors[playerInfo.class];
+                
+                if (!abilityName && generatedWizard?.spellDefs) {
+                  // Custom wizard - look up ability from generated data
+                  const abilityId = generatedWizard.classDef?.abilities?.[slot];
+                  if (abilityId && generatedWizard.spellDefs[abilityId]) {
+                    const ab = generatedWizard.spellDefs[abilityId];
+                    abilityName = ab.name;
+                    abilityDesc = ab.description || '';
+                    color = ab.color || generatedWizard.classDef?.color;
+                  }
+                }
+                abilityName = abilityName || `Ability ${slot}`;
+                abilityDesc = abilityDesc || '';
+                abilityIcon = abilityIcon || '✨';
+                color = color || classes[playerInfo.class]?.color || '#888';
+                
                 const unlocked = playerInfo.level >= levelReqs[slot];
                 const cooldownEnd = abilityCooldowns[slot] || 0;
                 const onCooldown = cooldownEnd > Date.now();
                 const cdRemaining = onCooldown ? Math.ceil((cooldownEnd - Date.now()) / 1000) : 0;
-                const abilityName = abilityNames[playerInfo.class]?.[slot] || `Ability ${slot}`;
-                const abilityDesc = abilityDescs[playerInfo.class]?.[slot] || '';
-                const abilityIcon = abilityIcons[playerInfo.class]?.[slot] || '⚔️';
-                const color = abilityColors[playerInfo.class] || '#888';
                 
                 return (
                   <div
@@ -10549,8 +10635,8 @@ export default function SpellBrigade() {
                   <div style={styles.mobileAvatar(classes[playerInfo.class]?.color || '#fff')}>
                     <span style={styles.mobileAvatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '.85rem', fontWeight: 600 }}>{playerInfo.name}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerInfo.name}</div>
                     <div style={{ fontSize: '.65rem', color: '#888' }}>Lv {playerInfo.level}</div>
                   </div>
                   {/* Quest Log button */}
@@ -10838,7 +10924,7 @@ export default function SpellBrigade() {
                     {[1, 2, 3].map(slot => {
                       const levelReq = { 1: 10, 2: 20, 3: 30 }[slot];
                       const unlocked = playerInfo.level >= levelReq;
-                      const classColor = classes[playerInfo.class]?.color || '#888';
+                      let classColor = classes[playerInfo.class]?.color || '#888';
                       const cooldownEnd = abilityCooldowns[slot] || 0;
                       const now = Date.now();
                       const onCooldown = cooldownEnd > now;
@@ -10854,7 +10940,16 @@ export default function SpellBrigade() {
                         voidlord: { 1: '🕳️', 2: '💀', 3: '☠️' },
                         shadowarcher: { 1: '🎯', 2: '🏹', 3: '💀' },
                       };
-                      const icon = abilityIcons[playerInfo.class]?.[slot] || '⚔️';
+                      let icon = abilityIcons[playerInfo.class]?.[slot];
+                      
+                      // Custom wizard ability icon/color
+                      if (!icon && generatedWizard?.spellDefs) {
+                        const abilityId = generatedWizard.classDef?.abilities?.[slot];
+                        if (abilityId && generatedWizard.spellDefs[abilityId]) {
+                          classColor = generatedWizard.spellDefs[abilityId].color || classColor;
+                        }
+                      }
+                      icon = icon || '✨';
                       
                       return (
                         <button
@@ -11007,7 +11102,7 @@ export default function SpellBrigade() {
                     <div style={{ ...styles.skinOptionInner(skin.color), width: 36, height: 36 }} />
                     <span style={{ fontSize: '.6rem', color: '#888', marginTop: 4 }}>{skin.name}</span>
                     {!isUnlocked && (
-                      <div style={styles.skinLock}>🔒</div>
+                      <div style={styles.skinLock}><span style={{ width: 12, height: 12 }}>{SVG.lock}</span></div>
                     )}
                   </div>
                 );
@@ -11326,7 +11421,7 @@ export default function SpellBrigade() {
                 </div>
                 
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {['🔥 Fire Depths', '❄️ Frozen Crypt', '💀 Bone Tombs', '🌿 Nature Maze', '🌀 Void Rift', '⚡ Chaos Storm'].map(preset => (
+                  {['Fire Depths', 'Frozen Crypt', 'Bone Tombs', 'Nature Maze', 'Void Rift', 'Chaos Storm'].map(preset => (
                     <button key={preset} onClick={() => setDungeonPromptText(preset.slice(3))} style={{
                       padding: '6px 12px', background: 'rgba(255,255,255,0.05)',
                       border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6,
