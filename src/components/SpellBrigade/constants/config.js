@@ -60,13 +60,27 @@ export const DEFAULT_CLASSES = {
     name: 'Void Lord',
     color: '#1a0a2e',
     secondaryColor: '#ff00ff',
-    description: 'Master of the void. Admin only.',
+    description: 'Master of the void. Unlocked by slaying the Dragon.',
     dash: 'Void Shift',
     ultimate: 'Void Rift',
+    baseHealth: 95,
+    baseSpeed: 155,
+    hidden: true,
+    requiresDragonKill: true,
+  },
+  shadowarcher: {
+    id: 'shadowarcher',
+    name: 'Shadow Archer',
+    color: '#0f172a',
+    secondaryColor: '#dc2626',
+    description: 'Elite shadow hunter. Admin exclusive.',
+    dash: 'Shadow Step',
+    ultimate: 'Arrow Storm',
     baseHealth: 200,
     baseSpeed: 280,
     isAdmin: true,
-    hidden: true, // Don't show in normal class selection
+    hidden: true,
+    icon: '🏹',
   },
 };
 
@@ -320,6 +334,31 @@ export const DEFAULT_SKINS = [
     horns: true,
     projectileEffect: 'oblivion',
     description: 'The end of all things',
+  },
+  
+  // ============ SHADOW ARCHER SKINS (Admin) ============
+  { 
+    id: 'shadowarcher_default', 
+    class: 'shadowarcher', 
+    name: 'Shadow Archer', 
+    color: '#0f172a', 
+    secondaryColor: '#dc2626',
+    requiredXp: 0,
+    trail: { color: '#dc2626', particles: 3, size: 3 },
+    aura: { color: '#991b1b', radius: 30, pulse: true },
+    description: 'Death from the shadows',
+  },
+  { 
+    id: 'shadowarcher_crimson', 
+    class: 'shadowarcher', 
+    name: 'Crimson Hunter', 
+    color: '#991b1b', 
+    secondaryColor: '#fbbf24',
+    requiredXp: 0,
+    trail: { color: '#fbbf24', particles: 5, size: 4 },
+    aura: { color: '#dc2626', radius: 40, pulse: true },
+    wings: true,
+    description: 'Bathed in crimson glory',
   },
 ];
 

@@ -99,4 +99,13 @@ export const CLASS_SVG = {
       <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="0.5" fill="none"/>
     </svg>
   ),
+  shadowarcher: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20 2L4 22" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M20 2L14 4L16 6Z" fill="currentColor"/>
+      <path d="M5 7C5 7 3 12 5 17" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <line x1="5" y1="9" x2="9" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="5" y1="15" x2="9" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
 };
