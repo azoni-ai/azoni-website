@@ -40,6 +40,7 @@ export default function GameModals({
   playerInfo,
   nearbyBuilding,
   questLog,
+  setQuestLog,
   settings,
   setSettings,
   adminKey,
@@ -56,6 +57,7 @@ export default function GameModals({
   dungeonBrowserTab,
   setDungeonBrowserTab,
   dungeonBrowserError,
+  setDungeonBrowserError,
   dungeonPromptText,
   setDungeonPromptText,
   customDungeonList,
@@ -243,8 +245,14 @@ export default function GameModals({
           npcDialogue={npcDialogue}
           playerInfo={playerInfo}
           questLog={questLog}
+          setQuestLog={setQuestLog}
           classes={classes}
           socketRef={socketRef}
+          playSound={playSound}
+          setShowSkinSelect={setShowSkinSelect}
+          setShowDungeonBrowser={setShowDungeonBrowser}
+          setDungeonBrowserTab={setDungeonBrowserTab}
+          setDungeonBrowserError={setDungeonBrowserError}
           onClose={() => setNpcDialogue(null)}
         />
       )}
@@ -384,11 +392,11 @@ function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal,
 
 function ShopModalContent({ styles, nearbyBuilding, playerInfo, socketRef, playSound, onClose }) {
   const upgradeMap = {
-    forest_ruins: { type: 'health', icon: '❤️', name: 'Max Health +5', desc: 'Permanently increase max health', cost: 500, color: '#ef4444', flavorText: 'Ancient vitality courses through the stone walls.' },
-    volcano_fortress: { type: 'damage', icon: '⚔️', name: 'Damage +1%', desc: 'Increase all spell damage', cost: 750, color: '#f97316', flavorText: 'The forge burns with unstoppable fury.' },
-    ice_citadel: { type: 'cooldown', icon: '⏱️', name: 'Cooldown -1%', desc: 'Cast abilities more often', cost: 1000, color: '#3b82f6', flavorText: 'Time itself freezes at your command.' },
-    void_shrine: { type: 'speed', icon: '👟', name: 'Speed +1%', desc: 'Move faster across the realm', cost: 600, color: '#7c3aed', flavorText: 'The void bends space around you.' },
-    crystal_sanctum: { type: 'attackSpeed', icon: '⚡', name: 'Attack Speed +2%', desc: 'Auto-attack fires faster', cost: 800, color: '#ec4899', flavorText: 'Crystal energy quickens your reflexes.' },
+    forest_ruins: { type: 'health', icon: '❤️', name: 'Max Health +5', desc: 'Permanently increase max health', baseCost: 1000, color: '#ef4444', flavorText: 'Ancient vitality courses through the stone walls.' },
+    volcano_fortress: { type: 'damage', icon: '⚔️', name: 'Damage +1%', desc: 'Increase all spell damage', baseCost: 1500, color: '#f97316', flavorText: 'The forge burns with unstoppable fury.' },
+    ice_citadel: { type: 'cooldown', icon: '⏱️', name: 'Cooldown -1%', desc: 'Cast abilities more often', baseCost: 2000, color: '#3b82f6', flavorText: 'Time itself freezes at your command.' },
+    void_shrine: { type: 'speed', icon: '👟', name: 'Speed +1%', desc: 'Move faster (max 3x)', baseCost: 1200, color: '#7c3aed', flavorText: 'The void bends space around you.', maxLevel: 200 },
+    crystal_sanctum: { type: 'attackSpeed', icon: '⚡', name: 'Attack Speed +2%', desc: 'Auto-attack fires faster', baseCost: 1500, color: '#ec4899', flavorText: 'Crystal energy quickens your reflexes.' },
   };
 
   return (
@@ -410,12 +418,14 @@ function ShopModalContent({ styles, nearbyBuilding, playerInfo, socketRef, playS
           const upgrade = upgradeMap[nearbyBuilding.id];
           if (!upgrade) return <div style={{ color: '#888', textAlign: 'center', padding: 20 }}>Nothing to offer here.</div>;
           const currentLevel = playerInfo?.upgrades?.[upgrade.type] || 0;
+          const cost = Math.floor(upgrade.baseCost * (1 + currentLevel * 0.15));
+          const isMaxed = upgrade.maxLevel && currentLevel >= upgrade.maxLevel;
           return (
             <div style={{ padding: '10px 0' }}>
               <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 20, textAlign: 'center', fontStyle: 'italic' }}>{upgrade.flavorText}</div>
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 16px', marginBottom: 15, textAlign: 'center', border: `1px solid ${upgrade.color}20` }}>
                 <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Current Level</div>
-                <div style={{ color: upgrade.color, fontSize: '1.6rem', fontWeight: 700 }}>{currentLevel}</div>
+                <div style={{ color: upgrade.color, fontSize: '1.6rem', fontWeight: 700 }}>{currentLevel}{upgrade.maxLevel ? ` / ${upgrade.maxLevel}` : ''}</div>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 18, border: `1px solid ${upgrade.color}40` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -423,10 +433,14 @@ function ShopModalContent({ styles, nearbyBuilding, playerInfo, socketRef, playS
                     <div style={{ color: upgrade.color, fontWeight: 'bold', fontSize: '1rem' }}>{upgrade.icon} {upgrade.name}</div>
                     <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>{upgrade.desc}</div>
                   </div>
-                  <button style={{ background: `linear-gradient(135deg, ${upgrade.color}, ${upgrade.color}cc)`, border: 'none', borderRadius: 8, padding: '10px 18px', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
-                    onClick={() => { socketRef.current?.emit('buyUpgrade', { type: upgrade.type, buildingId: nearbyBuilding.id }); playSound?.('levelUp'); }}>
-                    {upgrade.cost} XP
-                  </button>
+                  {isMaxed ? (
+                    <div style={{ padding: '10px 18px', background: 'rgba(100,100,100,0.3)', borderRadius: 8, color: '#888', fontWeight: 'bold', fontSize: '0.9rem' }}>MAXED</div>
+                  ) : (
+                    <button style={{ background: `linear-gradient(135deg, ${upgrade.color}, ${upgrade.color}cc)`, border: 'none', borderRadius: 8, padding: '10px 18px', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
+                      onClick={() => { socketRef.current?.emit('buyUpgrade', { type: upgrade.type, buildingId: nearbyBuilding.id }); playSound?.('levelUp'); }}>
+                      {cost.toLocaleString()} XP
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -608,8 +622,27 @@ function ChatBox({ isMobile, chatMessages, chatInput, setChatInput, chatContaine
   );
 }
 
-function NPCDialogueContent({ styles, npcDialogue, playerInfo, questLog, classes, socketRef, onClose }) {
-  const npcColor = npcDialogue.npcType === 'guide' ? '#67e8f9' : npcDialogue.npcType === 'quest_master' ? '#ffd93d' : npcDialogue.npcType === 'shapeshifter' ? '#ec4899' : '#a8a29e';
+function NPCDialogueContent({ 
+  styles, 
+  npcDialogue, 
+  playerInfo, 
+  questLog, 
+  setQuestLog,
+  classes, 
+  socketRef, 
+  playSound,
+  setShowSkinSelect,
+  setShowDungeonBrowser,
+  setDungeonBrowserTab,
+  setDungeonBrowserError,
+  onClose 
+}) {
+  const npcColor = npcDialogue.npcType === 'guide' ? '#67e8f9' 
+    : npcDialogue.npcType === 'quest_master' ? '#ffd93d' 
+    : npcDialogue.npcType === 'shapeshifter' ? '#ec4899' 
+    : npcDialogue.npcType === 'knight' ? '#dc2626'
+    : npcDialogue.npcType === 'dungeon_architect' ? '#8b5cf6'
+    : '#a8a29e';
   
   return (
     <>
@@ -619,27 +652,249 @@ function NPCDialogueContent({ styles, npcDialogue, playerInfo, questLog, classes
         background: npcDialogue.npcType === 'guide' ? 'linear-gradient(135deg, rgba(20,30,40,0.98), rgba(30,60,80,0.98))' :
           npcDialogue.npcType === 'quest_master' ? 'linear-gradient(135deg, rgba(40,30,50,0.98), rgba(60,40,70,0.98))' :
           npcDialogue.npcType === 'shapeshifter' ? 'linear-gradient(135deg, rgba(60,20,50,0.98), rgba(80,30,60,0.98))' :
+          npcDialogue.npcType === 'knight' ? 'linear-gradient(135deg, rgba(40,20,20,0.98), rgba(60,25,25,0.98))' :
+          npcDialogue.npcType === 'dungeon_architect' ? 'linear-gradient(135deg, rgba(30,20,50,0.98), rgba(50,30,70,0.98))' :
           'linear-gradient(135deg, rgba(30,25,20,0.98), rgba(50,40,30,0.98))',
         border: `2px solid ${npcColor}80`,
       }}>
         <button style={styles.modalClose} onClick={onClose}>×</button>
+        
+        {/* NPC Avatar & Name */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ width: 60, height: 60, borderRadius: '50%', background: `linear-gradient(135deg, ${npcColor}, ${npcColor}cc)`, margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', boxShadow: `0 0 20px ${npcColor}50` }}>
-            {npcDialogue.emoji || '🧙'}
+          <div style={{ 
+            width: 60, height: 60, borderRadius: '50%', 
+            background: `linear-gradient(135deg, ${npcColor}, ${npcColor}cc)`, 
+            margin: '0 auto 10px', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            fontSize: '1.8rem', 
+            boxShadow: `0 0 20px ${npcColor}50` 
+          }}>
+            {npcDialogue.npcType === 'guide' ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            ) : npcDialogue.npcType === 'quest_master' ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+            ) : (
+              <span>{npcDialogue.emoji || '🧙'}</span>
+            )}
           </div>
           <h3 style={{ margin: 0, color: npcColor, fontSize: '1.1rem' }}>{npcDialogue.npcName}</h3>
         </div>
+        
+        {/* Dialogue Text - handle both array and string */}
         <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 15, marginBottom: 15 }}>
-          <p style={{ color: '#ddd', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{npcDialogue.dialogue}</p>
+          {Array.isArray(npcDialogue.dialogue) ? (
+            npcDialogue.dialogue.map((line, i) => (
+              <p key={i} style={{ 
+                color: '#e5e5e5', 
+                margin: i === npcDialogue.dialogue.length - 1 ? 0 : '0 0 10px 0',
+                lineHeight: 1.5,
+                fontSize: '0.9rem',
+              }}>
+                "{line}"
+              </p>
+            ))
+          ) : (
+            <p style={{ color: '#ddd', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+              {npcDialogue.dialogue}
+            </p>
+          )}
         </div>
-        {npcDialogue.options?.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {npcDialogue.options.map((opt, i) => (
-              <button key={i} onClick={() => { socketRef.current?.emit('npcResponse', { optionId: opt.id, npcId: npcDialogue.npcId }); if (opt.closeAfter) onClose(); }}
-                style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${npcColor}40`, borderRadius: 8, color: '#ddd', fontSize: '0.85rem', cursor: 'pointer', textAlign: 'left' }}>
-                {opt.text}
-              </button>
+        
+        {/* Follow-up dialogue */}
+        {npcDialogue.followUp && (
+          <div style={{
+            background: 'rgba(0,0,0,0.2)',
+            borderRadius: 10,
+            padding: 15,
+            marginBottom: 15,
+            borderLeft: `3px solid ${npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#f97316'}`,
+          }}>
+            {npcDialogue.followUp.map((line, i) => (
+              <p key={i} style={{ 
+                color: npcDialogue.npcType === 'quest_master' ? '#fcd34d' : '#fbbf24', 
+                margin: i === npcDialogue.followUp.length - 1 ? 0 : '0 0 8px 0',
+                lineHeight: 1.4,
+                fontSize: '0.85rem',
+              }}>
+                {line}
+              </p>
             ))}
+          </div>
+        )}
+        
+        {/* Quest Master - Accept Quest */}
+        {npcDialogue.npcType === 'quest_master' && npcDialogue.hasChoice && npcDialogue.prompt && (
+          <div style={{ marginTop: 20 }}>
+            <p style={{ color: '#fff', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
+              {npcDialogue.prompt}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  setQuestLog?.(prev => ({
+                    ...prev,
+                    allBosses: { ...prev?.allBosses, active: true },
+                  }));
+                  onClose();
+                  playSound?.('levelUp');
+                }}
+                style={{
+                  padding: '12px 25px',
+                  background: 'linear-gradient(135deg, #ffd93d, #f97316)',
+                  border: 'none', borderRadius: 8, color: '#000', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                Accept Quest
+              </button>
+              <button onClick={onClose} style={{
+                padding: '12px 25px', background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+              }}>
+                Maybe later
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Knight - Dragon Dungeon */}
+        {npcDialogue.npcType === 'knight' && npcDialogue.hasChoice && npcDialogue.prompt && (
+          <div style={{ marginTop: 20 }}>
+            <p style={{ color: '#fff', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
+              {npcDialogue.prompt}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  socketRef.current?.emit('enterDungeon');
+                  setQuestLog?.(prev => ({
+                    ...prev,
+                    dragonSlayer: { ...prev?.dragonSlayer, active: true },
+                  }));
+                  onClose();
+                }}
+                style={{
+                  padding: '12px 25px',
+                  background: npcDialogue.playerLevel >= npcDialogue.recommendedLevel
+                    ? 'linear-gradient(135deg, #dc2626, #991b1b)'
+                    : 'linear-gradient(135deg, #78716c, #57534e)',
+                  border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                Enter the Gauntlet
+                {npcDialogue.playerLevel < npcDialogue.recommendedLevel && (
+                  <span style={{ display: 'block', fontSize: '0.7rem', color: '#fbbf24', marginTop: 4 }}>
+                    (Lv {npcDialogue.playerLevel} / Rec: {npcDialogue.recommendedLevel})
+                  </span>
+                )}
+              </button>
+              <button onClick={onClose} style={{
+                padding: '12px 25px', background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+              }}>
+                Not yet
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Shapeshifter - Change Appearance */}
+        {npcDialogue.npcType === 'shapeshifter' && npcDialogue.hasChoice && (
+          <div style={{ marginTop: 20 }}>
+            <p style={{ color: '#fff', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
+              {npcDialogue.prompt}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  onClose();
+                  setShowSkinSelect?.(true);
+                }}
+                style={{
+                  padding: '12px 25px',
+                  background: 'linear-gradient(135deg, #ec4899, #a855f7)',
+                  border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                🎨 Change Appearance
+              </button>
+              <button onClick={onClose} style={{
+                padding: '12px 25px', background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+              }}>
+                Not now
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Dungeon Architect - Create/Browse Dungeons */}
+        {npcDialogue.npcType === 'dungeon_architect' && npcDialogue.hasChoice && (
+          <div style={{ marginTop: 20 }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  onClose();
+                  setShowDungeonBrowser?.(true);
+                  setDungeonBrowserTab?.('create');
+                  setDungeonBrowserError?.('');
+                  socketRef.current?.emit('listCustomDungeons');
+                }}
+                style={{
+                  padding: '12px 20px', background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                  border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                🏗️ Create Dungeon
+              </button>
+              <button
+                onClick={() => {
+                  onClose();
+                  setShowDungeonBrowser?.(true);
+                  setDungeonBrowserTab?.('browse');
+                  setDungeonBrowserError?.('');
+                  socketRef.current?.emit('listCustomDungeons');
+                }}
+                style={{
+                  padding: '12px 20px', background: 'linear-gradient(135deg, #6366f1, #4338ca)',
+                  border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                ⚔️ Browse Dungeons
+              </button>
+              <button onClick={onClose} style={{
+                padding: '12px 20px', background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+              }}>
+                Leave
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Simple close for guide or no-choice NPCs */}
+        {!npcDialogue.hasChoice && (
+          <div style={{ textAlign: 'center' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '10px 30px',
+                background: npcDialogue.npcType === 'quest_master'
+                  ? 'rgba(255, 215, 61, 0.2)'
+                  : 'rgba(103, 232, 249, 0.2)',
+                border: npcDialogue.npcType === 'quest_master'
+                  ? '1px solid rgba(255, 215, 61, 0.4)'
+                  : '1px solid rgba(103, 232, 249, 0.4)',
+                borderRadius: 8,
+                color: npcDialogue.npcType === 'quest_master' ? '#ffd93d' : '#67e8f9',
+                cursor: 'pointer',
+              }}
+            >
+              Farewell
+            </button>
           </div>
         )}
       </div>
@@ -694,10 +949,16 @@ function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, p
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <SettingRow label="SFX Volume" icon={SVG.volume}>
-            <input type="range" min="0" max="100" value={settings.volume * 100} onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))} style={{ width: 100 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="range" min="0" max="100" value={settings.volume * 100} onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))} style={{ width: 80 }} />
+              <span style={{ color: '#aaa', fontSize: '0.75rem', minWidth: 32 }}>{Math.round(settings.volume * 100)}%</span>
+            </div>
           </SettingRow>
           <SettingRow label="Music Volume" icon={SVG.music}>
-            <input type="range" min="0" max="100" value={(settings.musicVolume || 0.3) * 100} onChange={(e) => setSettings(s => ({ ...s, musicVolume: e.target.value / 100 }))} style={{ width: 100 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="range" min="0" max="100" value={(settings.musicVolume || 0.3) * 100} onChange={(e) => setSettings(s => ({ ...s, musicVolume: e.target.value / 100 }))} style={{ width: 80 }} />
+              <span style={{ color: '#aaa', fontSize: '0.75rem', minWidth: 32 }}>{Math.round((settings.musicVolume || 0.3) * 100)}%</span>
+            </div>
           </SettingRow>
           <SettingRow label="Sound Effects" icon={SVG.volume}>
             <Toggle value={settings.sfxEnabled} onChange={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))} />
@@ -828,7 +1089,7 @@ function AdminPanelContent({ styles, socketRef, onClose }) {
 
 function DesktopSidePanel({ showLeaderboard, setShowLeaderboard, showInGameSettings, setShowInGameSettings, leaderboardData, playerInfo }) {
   return (
-    <div style={{ position: 'fixed', top: 375, left: 20, zIndex: 50 }}>
+    <div style={{ position: 'fixed', top: 220, left: 20, zIndex: 50 }}>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => setShowInGameSettings(true)}
           style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

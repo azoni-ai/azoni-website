@@ -49,13 +49,8 @@ export default function CreateTab({
   const onPlayCustomWizard = () => {
     if (generatedWizard?.classId) {
       console.log('🧙 Playing as custom wizard:', generatedWizard.classId);
-      pendingCustomWizardRef.current = generatedWizard.classId;
-      if (screenRef.current === 'game' && socketRef.current) {
-        pendingCustomWizardRef.current = null;
-        socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
-      } else {
-        handleJoin();
-      }
+      // Pass the custom wizard classId directly to handleJoin
+      handleJoin(generatedWizard.classId);
     }
   };
 
@@ -239,21 +234,62 @@ export default function CreateTab({
             <div style={{ color: classColor, fontWeight: 700, fontSize: '1.2rem', marginBottom: 4 }}>
               {classes[selectedClass]?.name || 'Select a Class'}
             </div>
-            <div style={{ color: '#666', fontSize: '0.8rem', marginBottom: 16 }}>
+            <div style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: 16 }}>
               {classes[selectedClass]?.description || ''}
             </div>
             
             {/* Stats */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 16 }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#f87171', fontWeight: 700, fontSize: '1.1rem' }}>{classes[selectedClass]?.baseHealth || 100}</div>
-                <div style={{ color: '#666', fontSize: '0.7rem' }}>HP</div>
+                <div style={{ color: '#ff6b6b', fontWeight: 700, fontSize: '1.2rem' }}>{classes[selectedClass]?.baseHealth || 100}</div>
+                <div style={{ color: '#888', fontSize: '0.75rem' }}>HP</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '1.1rem' }}>{classes[selectedClass]?.baseSpeed || 150}</div>
-                <div style={{ color: '#666', fontSize: '0.7rem' }}>Speed</div>
+                <div style={{ color: '#74c0fc', fontWeight: 700, fontSize: '1.2rem' }}>{classes[selectedClass]?.baseSpeed || 150}</div>
+                <div style={{ color: '#888', fontSize: '0.75rem' }}>Speed</div>
               </div>
             </div>
+            
+            {/* Abilities Preview */}
+            {classes[selectedClass] && (
+              <div style={{ marginBottom: 16, textAlign: 'left' }}>
+                {classes[selectedClass].dashAbility && (
+                  <div style={{ 
+                    padding: '8px 12px', 
+                    background: `${classColor}15`, 
+                    border: `1px solid ${classColor}40`,
+                    borderRadius: 8,
+                    marginBottom: 8,
+                  }}>
+                    <div style={{ fontSize: '0.8rem', color: classSecondary, fontWeight: 600 }}>
+                      ⚡ {classes[selectedClass].dashAbility.name}
+                    </div>
+                    {classes[selectedClass].dashAbility.description && (
+                      <div style={{ fontSize: '0.7rem', color: '#999', marginTop: 3 }}>
+                        {classes[selectedClass].dashAbility.description}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {classes[selectedClass].ultimateAbility && (
+                  <div style={{ 
+                    padding: '8px 12px', 
+                    background: 'rgba(251,191,36,0.12)', 
+                    border: '1px solid rgba(251,191,36,0.4)',
+                    borderRadius: 8,
+                  }}>
+                    <div style={{ fontSize: '0.8rem', color: '#fbbf24', fontWeight: 600 }}>
+                      ✨ {classes[selectedClass].ultimateAbility.name}
+                    </div>
+                    {classes[selectedClass].ultimateAbility.description && (
+                      <div style={{ fontSize: '0.7rem', color: '#999', marginTop: 3 }}>
+                        {classes[selectedClass].ultimateAbility.description}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             
             <input
               style={{ 
@@ -507,71 +543,81 @@ function ClassCard({ id, classData: c, isSelected, onClick, CLASS_SVG, SVG }) {
     <div
       onClick={onClick}
       style={{
-        flex: '0 0 220px',
+        flex: '0 0 260px',
         background: isSelected 
-          ? `linear-gradient(180deg, ${c.color}15 0%, rgba(0,0,0,0.5) 100%)` 
-          : 'rgba(0,0,0,0.4)',
-        border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.08)',
+          ? `linear-gradient(180deg, ${c.color}20 0%, rgba(0,0,0,0.6) 100%)` 
+          : 'rgba(20,20,30,0.8)',
+        border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.15)',
         borderRadius: 14,
-        padding: 16,
+        padding: 18,
         cursor: 'pointer',
         transition: 'all 0.2s',
       }}
     >
       {/* Header with icon and name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
         <div style={{
-          width: 48, height: 48,
+          width: 52, height: 52,
           borderRadius: 12,
-          background: isSelected ? `${c.color}25` : 'rgba(255,255,255,0.05)',
-          border: `2px solid ${isSelected ? c.color : 'rgba(255,255,255,0.1)'}`,
+          background: isSelected ? `${c.color}30` : 'rgba(255,255,255,0.08)',
+          border: `2px solid ${isSelected ? c.color : 'rgba(255,255,255,0.15)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <span style={{ width: 26, height: 26, color: c.secondaryColor || c.color }}>
+          <span style={{ width: 28, height: 28, color: c.secondaryColor || c.color }}>
             {CLASS_SVG[id] || SVG.arcane}
           </span>
         </div>
         <div>
-          <div style={{ color: isSelected ? c.color : '#fff', fontWeight: 700, fontSize: '1rem' }}>
+          <div style={{ color: isSelected ? c.color : '#fff', fontWeight: 700, fontSize: '1.1rem' }}>
             {c.name}
           </div>
-          <div style={{ color: '#666', fontSize: '0.7rem' }}>
+          <div style={{ color: '#aaa', fontSize: '0.8rem', lineHeight: 1.3 }}>
             {c.description}
           </div>
         </div>
       </div>
       
       {/* Stats */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: '0.8rem' }}>
-        <span style={{ color: '#f87171' }}>HP {c.baseHealth}</span>
-        <span style={{ color: '#60a5fa' }}>SPD {c.baseSpeed}</span>
+      <div style={{ display: 'flex', gap: 20, marginBottom: 14, fontSize: '0.9rem', fontWeight: 600 }}>
+        <span style={{ color: '#ff6b6b' }}>HP {c.baseHealth}</span>
+        <span style={{ color: '#74c0fc' }}>SPD {c.baseSpeed}</span>
       </div>
       
-      {/* Dash & Ultimate */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {/* Abilities */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {c.dashAbility && (
           <div style={{ 
-            padding: '4px 8px', 
+            padding: '6px 10px', 
             background: `${c.color}15`, 
-            border: `1px solid ${c.color}30`,
-            borderRadius: 4, 
-            fontSize: '0.65rem', 
-            color: c.secondaryColor || c.color,
+            border: `1px solid ${c.color}40`,
+            borderRadius: 6, 
           }}>
-            {c.dashAbility.name}
+            <div style={{ fontSize: '0.75rem', color: c.secondaryColor || c.color, fontWeight: 600 }}>
+              ⚡ {c.dashAbility.name}
+            </div>
+            {c.dashAbility.description && (
+              <div style={{ fontSize: '0.7rem', color: '#999', marginTop: 2 }}>
+                {c.dashAbility.description}
+              </div>
+            )}
           </div>
         )}
         {c.ultimateAbility && (
           <div style={{ 
-            padding: '4px 8px', 
-            background: 'rgba(251,191,36,0.1)', 
-            border: '1px solid rgba(251,191,36,0.3)',
-            borderRadius: 4, 
-            fontSize: '0.65rem', 
-            color: '#fbbf24',
+            padding: '6px 10px', 
+            background: 'rgba(251,191,36,0.12)', 
+            border: '1px solid rgba(251,191,36,0.4)',
+            borderRadius: 6, 
           }}>
-            {c.ultimateAbility.name}
+            <div style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>
+              ✨ {c.ultimateAbility.name}
+            </div>
+            {c.ultimateAbility.description && (
+              <div style={{ fontSize: '0.7rem', color: '#999', marginTop: 2 }}>
+                {c.ultimateAbility.description}
+              </div>
+            )}
           </div>
         )}
       </div>

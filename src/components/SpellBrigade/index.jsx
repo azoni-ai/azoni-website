@@ -8365,17 +8365,20 @@ export default function SpellBrigade() {
     }
   };
 
-  const handleJoin = () => {
+  const handleJoin = (customClassId = null) => {
     initAudio();
     const name = playerName.trim() || generateWizardName();
     
     const joinData = {
       playerId: null, // Always null = create new character
       playerName: name,
-      playerClass: selectedClass,
-      selectedSkin: selectedSkin,
+      playerClass: customClassId || selectedClass,
+      selectedSkin: customClassId ? (customClassId + '_default') : selectedSkin,
       sessionToken: sessionTokenRef.current || null,
+      isCustomWizard: !!customClassId,
     };
+    
+    console.log('🎮 Joining with:', joinData.playerClass, customClassId ? '(custom wizard)' : '');
     
     if (!socketRef.current?.connected) {
       socketRef.current?.connect();
@@ -9631,6 +9634,7 @@ export default function SpellBrigade() {
         nearbyNpc={nearbyNpc}
         nearbyPortal={nearbyPortal}
         questLog={questLog}
+        setQuestLog={setQuestLog}
         settings={settings}
         setSettings={setSettings}
         adminKey={adminKey}
@@ -9645,6 +9649,7 @@ export default function SpellBrigade() {
         dungeonBrowserTab={dungeonBrowserTab}
         setDungeonBrowserTab={setDungeonBrowserTab}
         dungeonBrowserError={dungeonBrowserError}
+        setDungeonBrowserError={setDungeonBrowserError}
         dungeonPromptText={dungeonPromptText}
         setDungeonPromptText={setDungeonPromptText}
         customDungeonList={customDungeonList}

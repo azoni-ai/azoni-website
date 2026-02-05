@@ -19,28 +19,34 @@ export default function SettingsTab({
         <label style={styles.settingLabel}>
           <span style={styles.settingIcon}>{SVG?.volume}</span> SFX Volume
         </label>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={settings.volume * 100}
-          onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
-          style={{ width: 110 }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={settings.volume * 100}
+            onChange={(e) => setSettings(s => ({ ...s, volume: e.target.value / 100 }))}
+            style={{ width: 100 }}
+          />
+          <span style={{ color: '#aaa', fontSize: '0.8rem', minWidth: 36 }}>{Math.round(settings.volume * 100)}%</span>
+        </div>
       </div>
 
       <div style={styles.settingRow}>
         <label style={styles.settingLabel}>
           <span style={styles.settingIcon}>{SVG?.music}</span> Music Volume
         </label>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={(settings.musicVolume || 0.3) * 100}
-          onChange={(e) => setSettings(s => ({ ...s, musicVolume: e.target.value / 100 }))}
-          style={{ width: 110 }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={(settings.musicVolume || 0.3) * 100}
+            onChange={(e) => setSettings(s => ({ ...s, musicVolume: e.target.value / 100 }))}
+            style={{ width: 100 }}
+          />
+          <span style={{ color: '#aaa', fontSize: '0.8rem', minWidth: 36 }}>{Math.round((settings.musicVolume || 0.3) * 100)}%</span>
+        </div>
       </div>
 
       <div style={styles.settingRow}>
