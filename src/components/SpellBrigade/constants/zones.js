@@ -4,17 +4,17 @@ export const WORLD_HEIGHT = 6000;
 
 // Sanctuary center - all portals here
 const SANCTUARY_CENTER = { x: 3500, y: 3000 };
-const SANCTUARY_RADIUS = 400;
+const SANCTUARY_RADIUS = 600;
 
 export const ZONE_POLYGONS = {
   // Hexagonal sanctuary in the center - safe zone with portal hub
   sanctuary: [
-    { x: 3500, y: 2550 },  // Top
-    { x: 3850, y: 2775 },  // Top-right
-    { x: 3850, y: 3225 },  // Bottom-right
-    { x: 3500, y: 3450 },  // Bottom
-    { x: 3150, y: 3225 },  // Bottom-left
-    { x: 3150, y: 2775 },  // Top-left
+    { x: 3500, y: 2325 },  // Top
+    { x: 4025, y: 2663 },  // Top-right
+    { x: 4025, y: 3338 },  // Bottom-right
+    { x: 3500, y: 3675 },  // Bottom
+    { x: 2975, y: 3338 },  // Bottom-left
+    { x: 2975, y: 2663 },  // Top-left
   ],
   
   // Dungeon area (separate instance)
@@ -78,7 +78,7 @@ export const ZONE_INFO = {
 export const PORTAL_POSITIONS = {
   // From sanctuary to each zone
   portal_meadow: { 
-    from: { x: 3500, y: 2650 },  // North position in sanctuary
+    from: { x: 3500, y: 2425 },  // North position in sanctuary
     to: { x: 3500, y: 2100 },    // Center of meadow (north side)
     color: '#84cc16', 
     name: 'Meadow Portal', 
@@ -87,7 +87,7 @@ export const PORTAL_POSITIONS = {
     description: 'Peaceful fields for beginners'
   },
   portal_forest: { 
-    from: { x: 3200, y: 2850 },  // Northwest position
+    from: { x: 3050, y: 2750 },  // Northwest position
     to: { x: 1400, y: 1400 },    // Center of forest
     color: '#166534', 
     name: 'Forest Portal', 
@@ -96,7 +96,7 @@ export const PORTAL_POSITIONS = {
     description: 'Dark woods with lurking dangers'
   },
   portal_volcanic: { 
-    from: { x: 3800, y: 2850 },  // Northeast position
+    from: { x: 3950, y: 2750 },  // Northeast position
     to: { x: 5800, y: 1400 },    // Center of volcanic
     color: '#dc2626', 
     name: 'Volcanic Portal', 
@@ -105,7 +105,7 @@ export const PORTAL_POSITIONS = {
     description: 'Scorching lands of fire'
   },
   portal_frozen: { 
-    from: { x: 3500, y: 3350 },  // South position
+    from: { x: 3500, y: 3575 },  // South position
     to: { x: 3500, y: 4800 },    // Center of frozen
     color: '#0ea5e9', 
     name: 'Frozen Portal', 
@@ -114,7 +114,7 @@ export const PORTAL_POSITIONS = {
     description: 'Icy wastes of the south'
   },
   portal_crystal: { 
-    from: { x: 3800, y: 3150 },  // Southeast position
+    from: { x: 3950, y: 3250 },  // Southeast position
     to: { x: 6300, y: 3800 },    // Center of crystal caves
     color: '#ec4899', 
     name: 'Crystal Portal', 
@@ -123,7 +123,7 @@ export const PORTAL_POSITIONS = {
     description: 'Glittering underground caves'
   },
   portal_abyss: { 
-    from: { x: 3200, y: 3150 },  // Southwest position
+    from: { x: 3050, y: 3250 },  // Southwest position
     to: { x: 500, y: 700 },      // Center of abyss
     color: '#7c3aed', 
     name: 'Abyss Portal', 
@@ -145,12 +145,12 @@ export const SANCTUARY_FEATURES = {
   portalHub: {
     x: 3500,
     y: 3000,
-    radius: 350,
+    radius: 550,
     name: 'Portal Hub',
   },
   dungeonKnight: {
-    x: 3650,
-    y: 3100,
+    x: 3750,
+    y: 3200,
     name: 'Sir Aldric',
   },
 };
@@ -166,7 +166,7 @@ export const BUILDING_DATA = {
 };
 
 // Buffer zone around sanctuary where enemies won't go
-export const SANCTUARY_BUFFER = 150; // Extra distance from sanctuary edge
+export const SANCTUARY_BUFFER = 200; // Extra distance from sanctuary edge
 
 // Zone detection helpers
 export const pointInPolygon = (x, y, polygon) => {

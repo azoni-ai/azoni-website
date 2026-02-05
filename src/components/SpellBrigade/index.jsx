@@ -39,6 +39,7 @@ export default function SpellBrigade() {
 
   // State
   const [screen, setScreen] = useState('loading'); // loading, title, game, dead
+  const screenRef = useRef('loading'); // Ref version for socket handlers
   const [tab, setTab] = useState('play');
   const [connected, setConnected] = useState(false);
   const [playerName, setPlayerName] = useState('');
@@ -60,6 +61,7 @@ export default function SpellBrigade() {
   const [dungeonPromptText, setDungeonPromptText] = useState('');
   const [dungeonBrowserTab, setDungeonBrowserTab] = useState('browse'); // browse | create
   const [dungeonBrowserError, setDungeonBrowserError] = useState('');
+  const [wizardPrompt, setWizardPrompt] = useState('');
   const customDungeonConfigRef = useRef(null); // current custom dungeon config for rendering
   const [nearbyBuilding, setNearbyBuilding] = useState(null);
   const [showShop, setShowShop] = useState(false);
@@ -86,6 +88,7 @@ export default function SpellBrigade() {
   const [showChat, setShowChat] = useState(() => !(window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
   const [unreadChat, setUnreadChat] = useState(0);
   const [adminKey, setAdminKey] = useState('');
+  const adminKeyRef = useRef('');
   const chatContainerRef = useRef(null);
   const showChatRef = useRef(!(window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
   const dashCooldownRef = useRef(0);
@@ -184,6 +187,14 @@ export default function SpellBrigade() {
   useEffect(() => {
     dungeonVictoryPortalRef.current = dungeonVictoryPortal;
   }, [dungeonVictoryPortal]);
+  
+  useEffect(() => {
+    screenRef.current = screen;
+  }, [screen]);
+  
+  useEffect(() => {
+    adminKeyRef.current = adminKey;
+  }, [adminKey]);
 
   // Mobile detection
   useEffect(() => {
@@ -754,39 +765,34 @@ export default function SpellBrigade() {
                   setSavedPlayer(data.user.characters[idx]);
                   setScreen('title');
                 } else if (savedId) {
-                  socket.emit('getPlayerData', { playerId: savedId });
+                  // Valid session but character not linked - clear stale ID
+                  localStorage.removeItem('spellBrigadePlayerId');
+                  setScreen('title');
                 } else {
                   setScreen('title');
                 }
               } else {
-                // Session expired but player has been here before - go to title
+                // Session expired - clear stale data and go to auth
                 localStorage.removeItem('spellBrigadeSession');
-                if (savedId) {
-                  socket.emit('getPlayerData', { playerId: savedId });
-                } else {
-                  setScreen('title');
-                }
+                localStorage.removeItem('spellBrigadePlayerId');
+                setScreen('auth');
               }
             })
             .catch(() => {
-              // Network error - still try to load character or go to title
-              if (savedId) {
-                socket.emit('getPlayerData', { playerId: savedId });
-              } else {
-                setScreen('title');
-              }
+              // Network error - go to auth to be safe
+              localStorage.removeItem('spellBrigadeSession');
+              localStorage.removeItem('spellBrigadePlayerId');
+              setScreen('auth');
             });
         } catch {
-          // Corrupted session data - still go to title if possible
-          if (savedId) {
-            socket.emit('getPlayerData', { playerId: savedId });
-          } else {
-            setScreen('title');
-          }
+          // Corrupted session data - clear and go to auth
+          localStorage.removeItem('spellBrigadeSession');
+          localStorage.removeItem('spellBrigadePlayerId');
+          setScreen('auth');
         }
       } else if (savedId) {
-        // No session but has a player ID from before - try to load them
-        socket.emit('getPlayerData', { playerId: savedId });
+        // No session but has a player ID - stale data, clear it
+        localStorage.removeItem('spellBrigadePlayerId');
       } else {
         // Truly new player - go to auth screen
         setScreen('auth');
@@ -1286,6 +1292,7 @@ export default function SpellBrigade() {
     
     // Dragon awakens when player enters lair
     socket.on('dragonAwakens', (data) => {
+      if (screenRef.current !== 'game') return;
       console.log('🐉 THE DRAGON AWAKENS!');
       effectsRef.current.push({
         type: 'dragonAwakens',
@@ -1300,6 +1307,7 @@ export default function SpellBrigade() {
     
     // Mini-boss events
     socket.on('minotaurCharge', (data) => {
+      if (screenRef.current !== 'game') return;
       effectsRef.current.push({
         type: 'minotaurCharge',
         id: data.id,
@@ -1346,6 +1354,8 @@ export default function SpellBrigade() {
     });
 
     socket.on('bossSpawn', (data) => {
+      // Ignore notifications when not in game
+      if (screenRef.current !== 'game') return;
       // Ignore world boss notifications when player is in dungeon
       if (inDungeonRef.current && data?.zone !== 'dungeon') {
         return;
@@ -1376,6 +1386,8 @@ export default function SpellBrigade() {
     });
 
     socket.on('bossDefeated', (data) => {
+      // Ignore notifications when not in game
+      if (screenRef.current !== 'game') return;
       console.log(`Boss defeated: ${data?.name} by ${data?.killerName}!`);
       
       // Ignore world boss notifications when player is in dungeon
@@ -2015,7 +2027,7 @@ export default function SpellBrigade() {
       }
       
       // Toggle Invincibility (I) - Admin Voidlord only
-      if (e.code === 'KeyI' && socketRef.current && playerIdRef.current && adminKey === 'azoni-voidlord-2026') {
+      if (e.code === 'KeyI' && socketRef.current && playerIdRef.current && adminKeyRef.current === 'azoni-voidlord-2026') {
         socketRef.current.emit('toggleInvincible');
         // Show feedback
         const newState = !playerDataRef.current?.invincible;
@@ -2024,7 +2036,7 @@ export default function SpellBrigade() {
       }
       
       // Toggle Admin Panel (P) - Admin only
-      if (e.code === 'KeyP' && adminKey === 'azoni-voidlord-2026') {
+      if (e.code === 'KeyP' && adminKeyRef.current === 'azoni-voidlord-2026') {
         setShowAdminPanel(prev => !prev);
       }
       
@@ -3901,6 +3913,115 @@ export default function SpellBrigade() {
             ctx.font = '10px Arial';
             ctx.fillStyle = '#ffd93d';
             ctx.fillText('[E] Change Skin', nx, ny + 43);
+          }
+        } else if (npc.type === 'dungeon_architect') {
+          // Dungeon Architect - Arcanus the Dreamweaver
+          const bobY = Math.sin(time * 2) * 4;
+          const npcColor = npc.color || '#8b5cf6';
+          
+          // Arcane aura
+          const auraGlow = ctx.createRadialGradient(nx, ny + bobY, 0, nx, ny + bobY, 45);
+          auraGlow.addColorStop(0, `${npcColor}30`);
+          auraGlow.addColorStop(0.6, `${npcColor}15`);
+          auraGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = auraGlow;
+          ctx.beginPath();
+          ctx.arc(nx, ny + bobY, 45, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Shadow
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + 14, 18, 8, 0, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(139,92,246,0.3)';
+          ctx.fill();
+          
+          // Body/Robe
+          ctx.fillStyle = '#2e1065';
+          ctx.beginPath();
+          ctx.moveTo(nx, ny - 14 + bobY);
+          ctx.lineTo(nx - 15, ny + 14);
+          ctx.lineTo(nx + 15, ny + 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = npcColor;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          
+          // Rune pattern on robe
+          ctx.strokeStyle = `${npcColor}80`;
+          ctx.lineWidth = 0.8;
+          const runeY = ny + 2 + bobY;
+          ctx.beginPath();
+          ctx.moveTo(nx - 5, runeY); ctx.lineTo(nx + 5, runeY);
+          ctx.moveTo(nx - 3, runeY + 4); ctx.lineTo(nx + 3, runeY + 4);
+          ctx.moveTo(nx, runeY - 2); ctx.lineTo(nx, runeY + 6);
+          ctx.stroke();
+          
+          // Head
+          ctx.beginPath();
+          ctx.arc(nx, ny - 18 + bobY, 11, 0, Math.PI * 2);
+          ctx.fillStyle = '#ddd6fe';
+          ctx.fill();
+          
+          // Wizard hat with blueprint/star motif
+          ctx.fillStyle = '#2e1065';
+          ctx.beginPath();
+          ctx.moveTo(nx, ny - 44 + bobY);
+          ctx.lineTo(nx - 16, ny - 16 + bobY);
+          ctx.lineTo(nx + 16, ny - 16 + bobY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = npcColor;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Star on hat
+          ctx.font = '8px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillText('★', nx, ny - 26 + bobY);
+          
+          // Floating blueprint/scroll in hand
+          const scrollBob = Math.sin(time * 3) * 2;
+          ctx.fillStyle = '#fef3c7';
+          ctx.fillRect(nx + 14, ny - 8 + bobY + scrollBob, 10, 14);
+          ctx.strokeStyle = '#92400e';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(nx + 14, ny - 8 + bobY + scrollBob, 10, 14);
+          // Grid lines on scroll
+          ctx.strokeStyle = '#8b5cf680';
+          ctx.beginPath();
+          ctx.moveTo(nx + 16, ny - 4 + bobY + scrollBob);
+          ctx.lineTo(nx + 22, ny - 4 + bobY + scrollBob);
+          ctx.moveTo(nx + 16, ny - 1 + bobY + scrollBob);
+          ctx.lineTo(nx + 22, ny - 1 + bobY + scrollBob);
+          ctx.moveTo(nx + 16, ny + 2 + bobY + scrollBob);
+          ctx.lineTo(nx + 22, ny + 2 + bobY + scrollBob);
+          ctx.stroke();
+          
+          // Orbiting dimensional particles
+          for (let i = 0; i < 5; i++) {
+            const angle = time * 1.5 + (i * Math.PI * 2 / 5);
+            const orbitR = 28 + Math.sin(time * 2 + i) * 4;
+            const px = nx + Math.cos(angle) * orbitR;
+            const py = ny + bobY - 5 + Math.sin(angle) * orbitR * 0.4;
+            ctx.beginPath();
+            ctx.arc(px, py, 2, 0, Math.PI * 2);
+            ctx.fillStyle = ['#8b5cf6', '#a78bfa', '#c4b5fd', '#fbbf24', '#67e8f9'][i];
+            ctx.fill();
+          }
+          
+          // Name
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = npcColor;
+          ctx.textAlign = 'center';
+          ctx.fillText(npc.name || 'Arcanus', nx, ny + 30);
+          
+          // Interaction hint
+          if (nearbyNpc?.id === npc.id) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillText('[E] Dungeon Workshop', nx, ny + 43);
           }
         }
       }
@@ -7929,8 +8050,14 @@ export default function SpellBrigade() {
   const handleNewCharacter = () => {
     initAudio();
     setPlayerName('');
-    setSelectedClass('pyromancer');
-    setSelectedSkin('pyromancer_default');
+    // Admin defaults to shadow archer
+    if (adminKey === 'azoni-voidlord-2026') {
+      setSelectedClass('shadowarcher');
+      setSelectedSkin('shadowarcher_default');
+    } else {
+      setSelectedClass('pyromancer');
+      setSelectedSkin('pyromancer_default');
+    }
     setTab('create');
   };
 
@@ -9138,6 +9265,7 @@ export default function SpellBrigade() {
                         key={id}
                         onClick={() => handleClassChange(id)}
                         style={{
+                          position: 'relative',
                           background: isSelected 
                             ? `linear-gradient(135deg, ${c.color}20, ${c.color}08)` 
                             : 'rgba(0,0,0,0.3)',
@@ -9243,6 +9371,123 @@ export default function SpellBrigade() {
                       </div>
                     );
                   })}
+              </div>
+              
+              {/* AI Wizard Creator - Coming Soon */}
+              <div style={{
+                marginTop: 20,
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.06))',
+                border: '1px solid rgba(139,92,246,0.25)',
+                borderRadius: 16,
+                padding: isMobile ? 16 : 20,
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                {/* Lock Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.55)',
+                  backdropFilter: 'blur(2px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 10,
+                  borderRadius: 16,
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔒</div>
+                  <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '1rem' }}>Coming Soon</div>
+                  <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>AI-Powered Wizard Creation</div>
+                </div>
+                
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: '1.3rem' }}>✨</span>
+                  <div>
+                    <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '0.95rem' }}>AI Wizard Creator</div>
+                    <div style={{ color: '#666', fontSize: '0.7rem' }}>Describe your dream wizard and AI will bring it to life</div>
+                  </div>
+                </div>
+                
+                {/* Prompt Input */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <input
+                    type="text"
+                    value={wizardPrompt}
+                    onChange={(e) => setWizardPrompt(e.target.value)}
+                    placeholder="A frost necromancer who commands ice and death..."
+                    maxLength={200}
+                    disabled
+                    style={{
+                      flex: 1,
+                      padding: '12px 16px',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid rgba(139,92,246,0.2)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      opacity: 0.5,
+                    }}
+                  />
+                  <button
+                    disabled
+                    style={{
+                      padding: '12px 20px',
+                      background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      opacity: 0.5,
+                      cursor: 'not-allowed',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ✨ Generate
+                  </button>
+                </div>
+                
+                {/* Preset Ideas */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['⚡ Storm Samurai', '🌑 Void Necromancer', '🌿 Nature Druid', '🔥 Lava Berserker', '❄️ Frost Assassin', '💎 Crystal Sage'].map(preset => (
+                    <span key={preset} style={{
+                      padding: '4px 10px',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 6,
+                      color: '#555',
+                      fontSize: '0.65rem',
+                    }}>
+                      {preset}
+                    </span>
+                  ))}
+                </div>
+                
+                {/* Preview of what AI generates */}
+                <div style={{
+                  marginTop: 14,
+                  padding: '12px 16px',
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.05)',
+                }}>
+                  <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                    AI will generate
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {['Custom Name & Lore', 'Unique Spell Set', 'Balanced Stats', 'Matching Colors', 'Dash & Ultimate'].map(item => (
+                      <div key={item} style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        color: '#888', fontSize: '0.7rem',
+                      }}>
+                        <span style={{ color: '#a78bfa' }}>✓</span> {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -11059,46 +11304,42 @@ export default function SpellBrigade() {
         >💬</button>
       )}
 
-      {/* Boss Spawn Alert */}
-      {bossAlert && (
+      {/* Boss Spawn Alert - Compact notification */}
+      {bossAlert && screen === 'game' && (
         <div style={{
           position: 'fixed',
-          top: 100,
+          top: isMobile ? 60 : 80,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: `linear-gradient(135deg, ${bossAlert.color}20, rgba(0,0,0,0.9))`,
-          backdropFilter: 'blur(10px)',
-          padding: isMobile ? '15px 25px' : '20px 40px',
-          borderRadius: 15,
-          zIndex: 900,
-          border: `2px solid ${bossAlert.color}`,
-          textAlign: 'center',
-          animation: 'slideDown 0.4s ease-out',
-          boxShadow: `0 0 30px ${bossAlert.color}40`,
+          background: 'rgba(0,0,0,0.85)',
+          padding: '10px 20px',
+          borderRadius: 8,
+          zIndex: 200,
+          animation: 'fadeInDown 0.3s ease-out',
+          border: `1px solid ${bossAlert.color}60`,
+          boxShadow: `0 4px 20px rgba(0,0,0,0.5), 0 0 15px ${bossAlert.color}20`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 15, justifyContent: 'center' }}>
-            <span style={{ fontSize: isMobile ? '1.8rem' : '2.5rem' }}>{bossAlert.emoji}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '1.2rem' }}>{bossAlert.emoji}</span>
             <div>
               <div style={{ 
                 color: bossAlert.color, 
-                fontSize: isMobile ? '1.1rem' : '1.4rem', 
-                fontWeight: 700,
-                textShadow: `0 0 10px ${bossAlert.color}80`,
+                fontSize: isMobile ? '0.85rem' : '0.95rem', 
+                fontWeight: 600,
               }}>
                 {bossAlert.name} Awakens!
               </div>
-              <div style={{ color: '#888', fontSize: '0.8rem', marginTop: 4 }}>
-                A powerful boss has appeared in {bossAlert.zone?.replace('_', ' ')}
+              <div style={{ color: '#888', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                Boss spawned in {bossAlert.zone?.replace('_', ' ')}
               </div>
             </div>
-            <span style={{ fontSize: isMobile ? '1.8rem' : '2.5rem' }}>{bossAlert.emoji}</span>
           </div>
         </div>
       )}
 
       {/* Settings & Quest - Desktop (positioned below player stats) */}
       {screen === 'game' && playerInfo && !isMobile && (
-        <div style={{ position: 'fixed', top: 340, left: 20, zIndex: 50 }}>
+        <div style={{ position: 'fixed', top: 375, left: 20, zIndex: 50 }}>
           {/* Settings Button */}
           <button
             onClick={() => setShowInGameSettings(true)}
