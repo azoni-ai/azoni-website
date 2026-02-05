@@ -9136,69 +9136,73 @@ export default function SpellBrigade() {
 
         {/* ===== CREATE TAB ===== */}
         {tab === 'create' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
             
-            {/* AI Wizard Creator - Featured Section */}
+            {/* AI Wizard Creator */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(236,72,153,0.08) 50%, rgba(59,130,246,0.08) 100%)',
-              border: '1px solid rgba(139,92,246,0.3)',
+              background: 'rgba(15,15,30,0.8)',
+              border: '1px solid rgba(139,92,246,0.2)',
               borderRadius: 16,
-              padding: isMobile ? 16 : 24,
+              padding: isMobile ? 20 : 28,
               position: 'relative',
-              overflow: 'hidden',
             }}>
-              {/* Decorative gradient orbs */}
-              <div style={{ position: 'absolute', top: -50, right: -50, width: 150, height: 150, background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <div style={{ position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, background: 'radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              {/* Magical accent line */}
+              <div style={{ 
+                position: 'absolute', top: 0, left: 24, right: 24, height: 2,
+                background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.5), rgba(236,72,153,0.5), transparent)',
+              }} />
               
-              {/* Header Row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, position: 'relative' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(139,92,246,0.15)',
+                  border: '1px solid rgba(139,92,246,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 15px rgba(139,92,246,0.3)',
                 }}>
-                  <span style={{ width: 24, height: 24, color: '#fff' }}>{SVG.wand}</span>
+                  <span style={{ width: 26, height: 26, color: '#a78bfa' }}>{SVG.wand}</span>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem', marginBottom: 2 }}>AI Wizard Creator</div>
-                  <div style={{ color: '#888', fontSize: '0.75rem' }}>Describe your wizard and AI brings it to life</div>
+                <div>
+                  <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.15rem' }}>AI Wizard Creator</div>
+                  <div style={{ color: '#666', fontSize: '0.8rem' }}>Describe your wizard in detail - the more you write, the better!</div>
                 </div>
-                {adminKey === 'azoni-voidlord-2026' && (
-                  <span style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', borderRadius: 6, color: '#fff', fontSize: '0.65rem', fontWeight: 700 }}>ADMIN</span>
-                )}
               </div>
               
-              {/* Input Row */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                <input
-                  type="text"
-                  value={wizardPrompt}
-                  onChange={(e) => { setWizardPrompt(e.target.value); setWizardError(''); }}
-                  placeholder="A shadow assassin with poison daggers..."
-                  maxLength={500}
-                  disabled={wizardGenerating}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && wizardPrompt.trim().length >= 3 && !wizardGenerating && socketRef.current) {
-                      e.preventDefault();
-                      setWizardGenerating(true);
-                      setWizardError('');
-                      setGeneratedWizard(null);
-                      socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '14px 18px',
-                    background: 'rgba(0,0,0,0.4)',
-                    border: `1px solid ${wizardError ? 'rgba(239,68,68,0.5)' : 'rgba(139,92,246,0.3)'}`,
-                    borderRadius: 10,
-                    color: '#fff',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                  }}
-                />
+              {/* Prompt Textarea */}
+              <textarea
+                value={wizardPrompt}
+                onChange={(e) => { setWizardPrompt(e.target.value); setWizardError(''); }}
+                placeholder="A storm samurai who channels lightning through his blade. His primary attack shoots electric slashes. His dash leaves a trail of sparks. His ultimate calls down a devastating thunder strike..."
+                maxLength={600}
+                disabled={wizardGenerating}
+                rows={3}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && wizardPrompt.trim().length >= 3 && !wizardGenerating && socketRef.current) {
+                    e.preventDefault();
+                    setWizardGenerating(true);
+                    setWizardError('');
+                    setGeneratedWizard(null);
+                    socketRef.current.emit('generateWizard', { prompt: wizardPrompt.trim(), sessionToken: sessionTokenRef.current });
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'rgba(0,0,0,0.4)',
+                  border: `1px solid ${wizardError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  resize: 'none',
+                  fontFamily: 'inherit',
+                  lineHeight: 1.5,
+                  marginBottom: 12,
+                }}
+              />
+              
+              {/* Generate Button + Quick Ideas */}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <button
                   disabled={wizardGenerating || wizardPrompt.trim().length < 3}
                   onClick={() => {
@@ -9210,162 +9214,181 @@ export default function SpellBrigade() {
                     }
                   }}
                   style={{
-                    padding: '14px 24px',
+                    padding: '12px 28px',
                     background: wizardGenerating 
-                      ? 'rgba(139,92,246,0.3)' 
-                      : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                    border: 'none',
-                    borderRadius: 10,
-                    color: '#fff',
-                    fontWeight: 700,
+                      ? 'rgba(139,92,246,0.2)' 
+                      : 'rgba(139,92,246,0.3)',
+                    border: '1px solid rgba(139,92,246,0.4)',
+                    borderRadius: 8,
+                    color: '#a78bfa',
+                    fontWeight: 600,
                     fontSize: '0.9rem',
                     opacity: (wizardGenerating || wizardPrompt.trim().length < 3) ? 0.5 : 1,
                     cursor: wizardGenerating ? 'not-allowed' : 'pointer',
-                    whiteSpace: 'nowrap',
-                    boxShadow: wizardGenerating ? 'none' : '0 4px 15px rgba(139,92,246,0.3)',
-                    transition: 'all 0.2s',
                   }}
                 >
-                  {wizardGenerating ? '✨ Creating...' : '✨ Generate'}
+                  {wizardGenerating ? 'Generating...' : 'Generate Wizard'}
                 </button>
+                
+                {!generatedWizard && !wizardGenerating && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ color: '#555', fontSize: '0.75rem' }}>Ideas:</span>
+                    {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Lava Berserker'].map(preset => (
+                      <button 
+                        key={preset}
+                        onClick={() => setWizardPrompt(preset)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'transparent',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: 6,
+                          color: '#777',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Quick Ideas */}
-              {!generatedWizard && !wizardGenerating && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ color: '#666', fontSize: '0.75rem', marginRight: 4 }}>Try:</span>
-                  {['Storm Samurai', 'Void Necromancer', 'Nature Druid', 'Frost Assassin'].map(preset => (
-                    <button 
-                      key={preset}
-                      onClick={() => setWizardPrompt(preset)}
-                      style={{
-                        padding: '5px 12px',
-                        background: 'rgba(139,92,246,0.1)',
-                        border: '1px solid rgba(139,92,246,0.2)',
-                        borderRadius: 6,
-                        color: '#a78bfa',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {preset}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Status Messages */}
+              {/* Status */}
               {wizardStatus && (
-                <div style={{ color: '#a78bfa', fontSize: '0.85rem', marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 16, height: 16, border: '2px solid #a78bfa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <div style={{ color: '#a78bfa', fontSize: '0.85rem', marginTop: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 14, height: 14, border: '2px solid #a78bfa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                   {wizardStatus}
                 </div>
               )}
               {wizardError && (
-                <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: 12 }}>⚠️ {wizardError}</div>
+                <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: 16 }}>{wizardError}</div>
               )}
 
-              {/* Generated Result */}
+              {/* Generated Wizard Result - Detailed */}
               {generatedWizard && generatedWizard.classDef && (
                 <div style={{
-                  marginTop: 16,
-                  padding: 16,
+                  marginTop: 20,
+                  padding: 20,
                   background: 'rgba(0,0,0,0.5)',
                   borderRadius: 12,
-                  border: `2px solid ${generatedWizard.classDef.color}60`,
+                  border: `1px solid ${generatedWizard.classDef.color}40`,
                 }}>
-                  {/* Wizard Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
                     <div style={{
-                      width: 56, height: 56, borderRadius: 14,
-                      background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
-                      boxShadow: `0 4px 20px ${generatedWizard.classDef.color}40`,
+                      width: 64, height: 64, borderRadius: 14,
+                      background: `linear-gradient(135deg, ${generatedWizard.classDef.color}40, ${generatedWizard.classDef.color}15)`,
+                      border: `2px solid ${generatedWizard.classDef.color}`,
+                      flexShrink: 0,
                     }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: generatedWizard.classDef.color, fontWeight: 700, fontSize: '1.2rem' }}>
+                      <div style={{ color: generatedWizard.classDef.color, fontWeight: 700, fontSize: '1.3rem', marginBottom: 4 }}>
                         {generatedWizard.classDef.name}
                       </div>
-                      <div style={{ color: '#888', fontSize: '0.8rem' }}>{generatedWizard.classDef.description}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: '#f87171', fontSize: '0.85rem', fontWeight: 600 }}>❤️ {generatedWizard.classDef.baseHealth}</div>
-                      <div style={{ color: '#60a5fa', fontSize: '0.85rem', fontWeight: 600 }}>⚡ {generatedWizard.classDef.baseSpeed}</div>
+                      <div style={{ color: '#999', fontSize: '0.85rem', marginBottom: 8 }}>{generatedWizard.classDef.description}</div>
+                      <div style={{ display: 'flex', gap: 16, fontSize: '0.85rem' }}>
+                        <span style={{ color: '#f87171' }}>HP {generatedWizard.classDef.baseHealth}</span>
+                        <span style={{ color: '#60a5fa' }}>Speed {generatedWizard.classDef.baseSpeed}</span>
+                      </div>
                     </div>
                   </div>
                   
+                  {/* Lore */}
+                  {generatedWizard.classDef.lore && (
+                    <div style={{ 
+                      color: '#888', fontSize: '0.85rem', fontStyle: 'italic', 
+                      marginBottom: 16, padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.02)',
+                      borderLeft: `3px solid ${generatedWizard.classDef.color}40`,
+                      borderRadius: '0 8px 8px 0',
+                    }}>
+                      "{generatedWizard.classDef.lore}"
+                    </div>
+                  )}
+                  
                   {/* Spells Grid */}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-                    {Object.values(generatedWizard.spellDefs).slice(0, 5).map(spell => (
-                      <div key={spell.id} style={{
-                        padding: '6px 10px',
-                        background: `${spell.color}15`,
-                        border: `1px solid ${spell.color}40`,
-                        borderRadius: 6,
-                        fontSize: '0.75rem',
-                        color: '#ccc',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: spell.color, boxShadow: `0 0 6px ${spell.color}` }} />
-                        {spell.name}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Spells</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
+                      {Object.values(generatedWizard.spellDefs).slice(0, 2).map(spell => (
+                        <div key={spell.id} style={{
+                          padding: '10px 14px',
+                          background: `${spell.color}10`,
+                          border: `1px solid ${spell.color}30`,
+                          borderRadius: 8,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: spell.color }} />
+                            <span style={{ color: '#ddd', fontWeight: 600, fontSize: '0.9rem' }}>{spell.name}</span>
+                          </div>
+                          <div style={{ color: '#888', fontSize: '0.75rem' }}>
+                            {spell.damage} dmg · {(spell.cooldown/1000).toFixed(1)}s cd · {spell.range} range
+                            {spell.isAoe && ' · AOE'}
+                            {spell.piercing && ' · Pierce'}
+                            {spell.slowEffect && ' · Slow'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Abilities */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                    <div style={{ padding: '10px 14px', background: 'rgba(139,92,246,0.08)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.2)' }}>
+                      <div style={{ color: '#a78bfa', fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
+                        {generatedWizard.classDef.dashAbility?.name || 'Dash'}
                       </div>
-                    ))}
+                      <div style={{ color: '#666', fontSize: '0.75rem' }}>
+                        {generatedWizard.classDef.dashAbility?.distance}px · {(generatedWizard.classDef.dashAbility?.cooldown/1000).toFixed(0)}s cd
+                      </div>
+                    </div>
+                    <div style={{ padding: '10px 14px', background: 'rgba(251,191,36,0.08)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.2)' }}>
+                      <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
+                        {generatedWizard.classDef.ultimateAbility?.name || 'Ultimate'}
+                      </div>
+                      <div style={{ color: '#666', fontSize: '0.75rem' }}>
+                        {generatedWizard.classDef.ultimateAbility?.damage} dmg · {(generatedWizard.classDef.ultimateAbility?.cooldown/1000).toFixed(0)}s cd
+                      </div>
+                    </div>
                   </div>
 
                   {/* Play Button */}
-                  {adminKey === 'azoni-voidlord-2026' ? (
-                    <button
-                      onClick={() => {
-                        if (generatedWizard.classId) {
-                          pendingCustomWizardRef.current = generatedWizard.classId;
-                          if (screenRef.current === 'game' && socketRef.current) {
-                            pendingCustomWizardRef.current = null;
-                            socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
-                          } else {
-                            handleJoin();
-                          }
+                  <button
+                    onClick={() => {
+                      if (generatedWizard.classId) {
+                        pendingCustomWizardRef.current = generatedWizard.classId;
+                        if (screenRef.current === 'game' && socketRef.current) {
+                          pendingCustomWizardRef.current = null;
+                          socketRef.current.emit('selectCustomWizard', { classId: generatedWizard.classId });
+                        } else {
+                          handleJoin();
                         }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '14px',
-                        background: `linear-gradient(135deg, ${generatedWizard.classDef.color}, ${generatedWizard.classDef.secondaryColor || generatedWizard.classDef.color})`,
-                        border: 'none',
-                        borderRadius: 10,
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        cursor: 'pointer',
-                        boxShadow: `0 4px 20px ${generatedWizard.classDef.color}40`,
-                      }}
-                    >
-                      ▶ Play as {generatedWizard.classDef.name}
-                    </button>
-                  ) : (
-                    <div style={{
+                      }
+                    }}
+                    style={{
                       width: '100%',
                       padding: '14px',
-                      background: 'rgba(139,92,246,0.1)',
-                      border: '1px solid rgba(139,92,246,0.3)',
+                      background: `${generatedWizard.classDef.color}25`,
+                      border: `1px solid ${generatedWizard.classDef.color}`,
                       borderRadius: 10,
-                      textAlign: 'center',
-                      color: '#a78bfa',
-                      fontSize: '0.9rem',
-                    }}>
-                      🔒 Custom Wizard Gameplay — Coming Soon
-                    </div>
-                  )}
+                      color: generatedWizard.classDef.color,
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Play as {generatedWizard.classDef.name}
+                  </button>
                 </div>
               )}
             </div>
 
             {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
               <span style={{ color: '#444', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 2 }}>or choose a class</span>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
             </div>
             
             {/* Character Creation Section */}
@@ -9487,15 +9510,20 @@ export default function SpellBrigade() {
                 )}
               </div>
               
-              {/* Right - Class Selection Grid */}
+              {/* Right - Class Selection */}
               <div style={{ flex: 1 }}>
-                <div style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+                <div style={{ color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>
                   Choose Your Class
                 </div>
+                
+                {/* Horizontal scrolling class cards */}
                 <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
-                  gap: 12,
+                  display: 'flex',
+                  gap: 16,
+                  overflowX: isMobile ? 'auto' : 'visible',
+                  flexWrap: isMobile ? 'nowrap' : 'wrap',
+                  paddingBottom: isMobile ? 12 : 0,
+                  WebkitOverflowScrolling: 'touch',
                 }}>
                   {Object.entries(classes)
                     .filter(([id, c]) => {
@@ -9517,48 +9545,55 @@ export default function SpellBrigade() {
                           key={id}
                           onClick={() => handleClassChange(id)}
                           style={{
+                            flex: isMobile ? '0 0 200px' : '0 0 180px',
                             background: isSelected 
-                              ? `linear-gradient(135deg, ${c.color}25, ${c.color}10)` 
-                              : 'rgba(0,0,0,0.3)',
-                            border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.06)',
-                            borderRadius: 12,
-                            padding: 14,
+                              ? `linear-gradient(180deg, ${c.color}20 0%, rgba(0,0,0,0.4) 100%)` 
+                              : 'rgba(0,0,0,0.4)',
+                            border: isSelected ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: 14,
+                            padding: 16,
                             cursor: 'pointer',
                             transition: 'all 0.2s',
-                            position: 'relative',
+                            textAlign: 'center',
                           }}
                         >
+                          {/* Icon */}
+                          <div style={{
+                            width: 56, height: 56, margin: '0 auto 12px',
+                            borderRadius: 14,
+                            background: isSelected ? `${c.color}30` : 'rgba(255,255,255,0.05)',
+                            border: `2px solid ${isSelected ? c.color : 'rgba(255,255,255,0.1)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <span style={{ width: 30, height: 30, color: c.secondaryColor || c.color }}>
+                              {CLASS_SVG[id] || SVG.arcane}
+                            </span>
+                          </div>
+                          
+                          {/* Name */}
+                          <div style={{ color: isSelected ? c.color : '#fff', fontWeight: 700, fontSize: '0.95rem', marginBottom: 4 }}>
+                            {c.name}
+                          </div>
+                          
+                          {/* Description */}
+                          <div style={{ color: '#666', fontSize: '0.7rem', marginBottom: 10, minHeight: 28 }}>
+                            {c.description}
+                          </div>
+                          
+                          {/* Stats */}
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: '0.75rem' }}>
+                            <span style={{ color: '#f87171' }}>HP {c.baseHealth}</span>
+                            <span style={{ color: '#60a5fa' }}>SPD {c.baseSpeed}</span>
+                          </div>
+                          
                           {c.isAdmin && (
                             <div style={{ 
-                              position: 'absolute', top: 8, right: 8, 
+                              marginTop: 8,
                               fontSize: '.55rem', background: '#ff00ff',
                               color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold',
+                              display: 'inline-block',
                             }}>ADMIN</div>
                           )}
-                          
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{
-                              width: 44, height: 44, borderRadius: 10,
-                              background: `${c.color}20`,
-                              border: `2px solid ${c.color}50`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0,
-                            }}>
-                              <span style={{ width: 24, height: 24, color: c.secondaryColor || c.color }}>
-                                {CLASS_SVG[id] || SVG.arcane}
-                              </span>
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: isSelected ? c.color : '#fff', fontWeight: 600, fontSize: '0.95rem' }}>
-                                {c.name}
-                              </div>
-                              <div style={{ color: '#666', fontSize: '0.75rem' }}>{c.description}</div>
-                              <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: '0.7rem' }}>
-                                <span style={{ color: '#f87171' }}>❤️ {c.baseHealth}</span>
-                                <span style={{ color: '#60a5fa' }}>⚡ {c.baseSpeed}</span>
-                              </div>
-                            </div>
-                          </div>
                         </div>
                       );
                     })}
