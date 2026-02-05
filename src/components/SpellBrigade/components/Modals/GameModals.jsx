@@ -67,6 +67,7 @@ export default function GameModals({
   // Handlers
   handleChangeSkin,
   socketRef,
+  playerIdRef,
   playSound,
   sessionTokenRef,
   setScreen,
@@ -677,6 +678,18 @@ function NPCDialogueContent({
               <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
                 <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
               </svg>
+            ) : npcDialogue.npcType === 'knight' ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 3.9l1.71 3.6 3.88.3-2.95 2.52.88 3.78L12 13.4l-3.52 1.7.88-3.78-2.95-2.52 3.88-.3L12 4.9z"/>
+              </svg>
+            ) : npcDialogue.npcType === 'dungeon_architect' ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>
+              </svg>
+            ) : npcDialogue.npcType === 'shapeshifter' ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
             ) : (
               <span>{npcDialogue.emoji || '🧙'}</span>
             )}
@@ -974,7 +987,13 @@ function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, p
           </SettingRow>
         </div>
         <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10 }}>
-          <button onClick={() => { socketRef.current?.disconnect(); setScreen('title'); onClose(); }}
+          <button onClick={() => { 
+            socketRef.current?.emit('leave');
+            playerIdRef.current = null; 
+            setTimeout(() => socketRef.current?.disconnect(), 100);
+            setScreen('title'); 
+            onClose(); 
+          }}
             style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#888', cursor: 'pointer', fontSize: '0.85rem' }}>
             Return to Menu
           </button>
@@ -982,7 +1001,10 @@ function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, p
             setAuthState?.({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
             localStorage.removeItem('spellBrigadeSession');
             setSavedPlayer?.(null); setCharacters?.([]); setAdminKey?.('');
-            socketRef.current?.disconnect(); setScreen('auth'); onClose();
+            socketRef.current?.emit('leave');
+            playerIdRef.current = null;
+            setTimeout(() => socketRef.current?.disconnect(), 100);
+            setScreen('auth'); onClose();
           }}
             style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>
             Logout

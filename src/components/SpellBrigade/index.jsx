@@ -727,6 +727,7 @@ export default function SpellBrigade() {
     socketRef.current = socket;
 
     socket.on('connect', () => {
+      console.log('🔌 Socket connected');
       setConnected(true);
       // Check for returning player
       const savedSession = localStorage.getItem('spellBrigadeSession');
@@ -821,8 +822,14 @@ export default function SpellBrigade() {
       }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
       setConnected(false);
+      playerIdRef.current = null; // Clear player ID on disconnect
+    });
+    
+    socket.on('connect_error', (error) => {
+      console.error('🔌 Socket connection error:', error.message);
     });
     
     // Handle tab visibility changes - reconnect when tab becomes active
@@ -946,6 +953,21 @@ export default function SpellBrigade() {
       }
     });
 
+    // Handle being kicked or join errors
+    socket.on('kicked', (data) => {
+      console.log('⚠️ Kicked from server:', data?.reason || 'Unknown reason');
+      playerIdRef.current = null;
+      setScreen('title');
+      alert(data?.reason || 'You were disconnected from the server.');
+    });
+    
+    socket.on('joinError', (data) => {
+      console.log('⚠️ Join error:', data?.message || 'Unknown error');
+      playerIdRef.current = null;
+      setScreen('title');
+      alert(data?.message || 'Failed to join the game. Please try again.');
+    });
+
     socket.on('gameState', (state) => {
       // Store state directly - no interpolation (was causing freeze on teleport)
       gameStateRef.current = { ...gameStateRef.current, ...state };
@@ -992,13 +1014,13 @@ export default function SpellBrigade() {
         if (!me.inDungeon) {
           updateZone(me);
           
-          // Check for nearby buildings
+          // Check for nearby buildings (closer range to avoid accidental interaction)
           let foundBuilding = null;
           for (const [id, building] of Object.entries(BUILDING_DATA)) {
             const dx = me.x - building.x;
             const dy = me.y - (building.y - building.height / 2);
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 100) {
+            if (dist < 60) { // Reduced from 100 to prevent walk-through interaction
               foundBuilding = { id, ...building };
               break;
             }
@@ -1943,9 +1965,21 @@ export default function SpellBrigade() {
       setChatMessages(history || []);
     });
 
+    // Emit leave when page is closed/refreshed
+    const handleBeforeUnload = () => {
+      if (playerIdRef.current && socket.connected) {
+        socket.emit('leave');
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(heartbeatInterval);
+      if (playerIdRef.current) {
+        socket.emit('leave');
+      }
       socket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -8367,6 +8401,15 @@ export default function SpellBrigade() {
 
   const handleJoin = (customClassId = null) => {
     initAudio();
+    
+    // If already connected with a player, leave first
+    if (socketRef.current?.connected && playerIdRef.current) {
+      socketRef.current.emit('leave');
+    }
+    
+    // Clear any existing player state before joining
+    playerIdRef.current = null;
+    
     const name = playerName.trim() || generateWizardName();
     
     const joinData = {
@@ -8386,7 +8429,10 @@ export default function SpellBrigade() {
         socketRef.current?.emit('join', joinData);
       });
     } else {
-      socketRef.current?.emit('join', joinData);
+      // Small delay to let leave process
+      setTimeout(() => {
+        socketRef.current?.emit('join', joinData);
+      }, 100);
     }
   };
 
@@ -8585,13 +8631,8 @@ export default function SpellBrigade() {
 
           setDeathInfo(null);
 
-          socketRef.current?.disconnect();
-
-          inDungeonRef.current = false;
-
-          setInDungeon(false);
-
-          if (playerInfo) {
+          // Save character info before clearing player ID
+          if (playerInfo && playerIdRef.current) {
 
             const charSummary = {
 
@@ -8622,6 +8663,21 @@ export default function SpellBrigade() {
             setSelectedSkin(playerInfo.selectedSkin || '');
 
           }
+
+          // Emit leave before disconnecting so server removes player
+          socketRef.current?.emit('leave');
+          
+          // Clear player state BEFORE disconnecting to prevent reconnection attempts
+          playerIdRef.current = null;
+          
+          // Small delay to let leave process on server
+          setTimeout(() => {
+            socketRef.current?.disconnect();
+          }, 100);
+
+          inDungeonRef.current = false;
+
+          setInDungeon(false);
 
           setTab('play');
 
@@ -9167,8 +9223,39 @@ export default function SpellBrigade() {
                   </div>
                 </div>
 
-                {/* Settings + Leaderboard row */}
-                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                {/* Quest Progress - Mobile Compact */}
+                <div 
+                  style={{
+                    marginBottom: 8,
+                    paddingBottom: 6,
+                    borderBottom: '1px solid rgba(255,215,0,0.1)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setShowQuestLog(true)}
+                >
+                  {(() => {
+                    const bossKills = playerInfo.bossKills || {};
+                    const zones = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'];
+                    const defeated = zones.filter(z => bossKills[z]).length;
+                    const allDone = defeated === 6;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: '#ffd93d', fontSize: '0.6rem' }}>📜</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: '#ffd93d', fontSize: '0.55rem', fontWeight: 600, marginBottom: 2 }}>
+                            {allDone ? '🐉 Dragon!' : `⭐ ${defeated}/6`}
+                          </div>
+                          <div style={{ height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${(defeated / 6) * 100}%`, background: allDone ? '#22c55e' : '#ffd93d', borderRadius: 1 }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Settings + Leaderboard row - positioned below quest section */}
+                <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 6 }}>
                   <button
                     onClick={() => setShowInGameSettings(true)}
                     style={{
