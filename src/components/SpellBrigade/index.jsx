@@ -1258,8 +1258,8 @@ export default function SpellBrigade() {
     // Player frozen indicator
     socket.on('frozen', (data) => {
       // Store frozen state locally for visual
-      if (playerRef.current) {
-        playerRef.current.frozenUntil = Date.now() + (data.duration || 3000);
+      if (playerDataRef.current) {
+        playerDataRef.current.frozenUntil = Date.now() + (data.duration || 3000);
       }
     });
 
@@ -2275,13 +2275,13 @@ export default function SpellBrigade() {
         }
         
         // Third priority: close any open modals/dialogues
-        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue || showCharSheet) {
+        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue || showCharacterSheet) {
           setShowEmotes(false);
           setShowShop(false);
           setShowSkinSelect(false);
           setShowQuestLog(false);
           setNpcDialogue(null);
-          if (typeof setShowCharSheet === 'function') setShowCharSheet(false);
+          if (typeof setShowCharacterSheet === 'function') setShowCharacterSheet(false);
         } else {
           // Fourth priority: open settings
           setShowInGameSettings(true);
