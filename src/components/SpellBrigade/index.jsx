@@ -9745,6 +9745,7 @@ export default function SpellBrigade() {
         dungeonVictoryPortalRef={dungeonVictoryPortalRef}
         handleChangeSkin={handleChangeSkin}
         socketRef={socketRef}
+        playerIdRef={playerIdRef}
         playSound={playSound}
         sessionTokenRef={sessionTokenRef}
         setScreen={setScreen}

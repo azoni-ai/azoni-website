@@ -278,6 +278,7 @@ export default function GameModals({
           setSettings={setSettings}
           playerInfo={playerInfo}
           socketRef={socketRef}
+          playerIdRef={playerIdRef}
           sessionTokenRef={sessionTokenRef}
           setScreen={setScreen}
           setSavedPlayer={setSavedPlayer}
@@ -951,7 +952,7 @@ function QuestLogContent({ styles, SVG, questLog, onClose }) {
   );
 }
 
-function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, playerInfo, socketRef, sessionTokenRef, setScreen, setSavedPlayer, setCharacters, setAdminKey, setAuthState, onClose }) {
+function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, playerInfo, socketRef, playerIdRef, sessionTokenRef, setScreen, setSavedPlayer, setCharacters, setAdminKey, setAuthState, onClose }) {
   return (
     <>
       <div style={styles.modalBackdrop} onClick={onClose} />
