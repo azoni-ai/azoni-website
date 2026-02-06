@@ -38,6 +38,10 @@ export default function SpellBrigade() {
   const zoomRef = useRef(1);
   const effectsRef = useRef([]);
   const meteorWarningsRef = useRef([]);
+  const freezeWarningsRef = useRef([]);
+  const rootWarningsRef = useRef([]);
+  const rootEruptsRef = useRef([]);
+  const bossEnlargeRef = useRef({});
   const pendingCustomWizardRef = useRef(null); // Custom wizard to apply after joining game
   const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, musicEnabled: true, musicVolume: 0.3, showZoneNames: true, showMinimap: true });
 
@@ -182,7 +186,6 @@ export default function SpellBrigade() {
   
   // Character sheet
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
-  const [showSpellbook, setShowSpellbook] = useState(false);
   
   // Mobile ultimate aiming mode
   const [ultAimMode, setUltAimMode] = useState(false);
@@ -1187,28 +1190,77 @@ export default function SpellBrigade() {
       });
     });
 
-    socket.on('customUltWarning', (data) => {
-      meteorWarningsRef.current.push({
+    // Freeze circle warning (Frost Wyrm) - flashing blue/white circle
+    socket.on('freezeCircleWarning', (data) => {
+      freezeWarningsRef.current.push({
         x: data.x,
         y: data.y,
         radius: data.radius,
         startTime: Date.now(),
-        delay: data.delay,
-        color: data.color, // Custom wizard color instead of fire
-        name: data.name,
+        delay: data.delay || 2000,
+        color: data.color || '#22d3ee',
       });
     });
 
-    socket.on('customUltExplosion', (data) => {
+    socket.on('freezeCircleExplode', (data) => {
       effectsRef.current.push({
-        type: 'explosion',
+        type: 'freezeExplode',
         x: data.x,
         y: data.y,
         radius: data.radius,
-        color: data.color || '#a78bfa',
         startTime: Date.now(),
-        duration: 500,
+        duration: 600,
       });
+    });
+
+    // Root warning (Ancient Treant) - green pulsing circle
+    socket.on('rootWarning', (data) => {
+      rootWarningsRef.current.push({
+        x: data.x,
+        y: data.y,
+        radius: data.radius,
+        startTime: Date.now(),
+        delay: data.delay || 800,
+      });
+    });
+
+    // Root erupt visual
+    socket.on('rootErupt', (data) => {
+      rootEruptsRef.current.push({
+        x: data.x,
+        y: data.y,
+        startTime: Date.now(),
+        duration: 1200,
+      });
+    });
+
+    // Boss enlarge (Crystal Golem phase)
+    socket.on('bossEnlarge', (data) => {
+      bossEnlargeRef.current[data.enemyId] = {
+        scale: data.scale || 1.5,
+        startTime: Date.now(),
+        duration: 1000,
+      };
+    });
+
+    // Spore wave visual (Blossom Behemoth)
+    socket.on('sporeWave', (data) => {
+      effectsRef.current.push({
+        type: 'sporeWave',
+        x: data.x,
+        y: data.y,
+        count: data.count,
+        startTime: Date.now(),
+        duration: 800,
+      });
+    });
+
+    // Player frozen indicator
+    socket.on('frozen', (data) => {
+      // Store frozen state locally for visual
+      if (playerRef.current) {
+        playerRef.current.frozenUntil = Date.now() + (data.duration || 3000);
+      }
     });
 
     socket.on('iceNova', (data) => {
@@ -2189,11 +2241,6 @@ export default function SpellBrigade() {
         setShowCharacterSheet(prev => !prev);
       }
 
-      // Spellbook (B)
-      if (e.code === 'KeyB') {
-        setShowSpellbook(prev => !prev);
-      }
-
       // Class Abilities (1, 2, 3)
       if ((e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') && socketRef.current && playerIdRef.current) {
         const slot = parseInt(e.code.replace('Digit', ''));
@@ -2212,23 +2259,32 @@ export default function SpellBrigade() {
         }
       }
 
-      // ESC - toggle settings modal (but NOT if chat is open)
+      // ESC - priority: close chat > close settings > close modals > toggle settings
       if (e.code === 'Escape' && playerIdRef.current) {
-        // If chat is visible, Escape does nothing — don't interfere with chat
-        if (showChatRef.current) return;
+        // First priority: if chat input is focused, blur it
+        const activeEl = document.activeElement;
+        if (activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA') {
+          activeEl.blur();
+          return;
+        }
         
-        // Close any open modals first
-        if (showEmotes || showShop || showSkinSelect || showQuestLog || showCharacterSheet || showSpellbook || npcDialogue) {
+        // Second priority: close settings if open
+        if (showInGameSettings) {
+          setShowInGameSettings(false);
+          return;
+        }
+        
+        // Third priority: close any open modals/dialogues
+        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue || showCharSheet) {
           setShowEmotes(false);
           setShowShop(false);
           setShowSkinSelect(false);
           setShowQuestLog(false);
-          setShowCharacterSheet(false);
-          setShowSpellbook(false);
           setNpcDialogue(null);
+          if (typeof setShowCharSheet === 'function') setShowCharSheet(false);
         } else {
-          // Toggle settings
-          setShowInGameSettings(prev => !prev);
+          // Fourth priority: open settings
+          setShowInGameSettings(true);
         }
       }
     };
@@ -3659,11 +3715,17 @@ export default function SpellBrigade() {
           }
         }
         
-        // Building name
-        ctx.font = '12px Arial';
+        // Building name - with outline
+        ctx.font = 'bold 12px Arial';
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(building.name, bx, by + 15);
         ctx.fillText(building.name, bx, by + 15);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'transparent';
       }
 
       // ========== CAMPFIRE ==========
@@ -4056,11 +4118,16 @@ export default function SpellBrigade() {
             ctx.fillText(npc.emoji, nx, ny + bobY - 28);
           }
           
-          // Name
+          // Name - with outline
           ctx.font = 'bold 11px Arial';
           ctx.fillStyle = '#ec4899';
           ctx.textAlign = 'center';
+          ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(npc.name || 'Mirage', nx, ny + 30);
           ctx.fillText(npc.name || 'Mirage', nx, ny + 30);
+          ctx.lineWidth = 1;
           
           // Interaction hint
           if (nearbyNpc?.id === npc.id) {
@@ -4165,11 +4232,16 @@ export default function SpellBrigade() {
             ctx.fill();
           }
           
-          // Name
+          // Name - with outline
           ctx.font = 'bold 11px Arial';
           ctx.fillStyle = npcColor;
           ctx.textAlign = 'center';
+          ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(npc.name || 'Arcanus', nx, ny + 30);
           ctx.fillText(npc.name || 'Arcanus', nx, ny + 30);
+          ctx.lineWidth = 1;
           
           // Interaction hint
           if (nearbyNpc?.id === npc.id) {
@@ -5065,11 +5137,16 @@ export default function SpellBrigade() {
             ctx.fillStyle = hpColor;
             ctx.fillRect(sx - cbhW / 2, cbhY, cbhW * hpRatio, 8);
             
-            // Boss name
+            // Boss name - with outline
             ctx.fillStyle = bossColor;
             ctx.font = `bold ${12 * sc}px sans-serif`;
             ctx.textAlign = 'center';
+            ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(enemy.name || 'BOSS', sx, cbhY - 6);
             ctx.fillText(enemy.name || 'BOSS', sx, cbhY - 6);
+            ctx.lineWidth = 1;
           }
           else {
             // Default boss (fallback)
@@ -5103,11 +5180,16 @@ export default function SpellBrigade() {
           ctx.fillStyle = '#fbbf24';
           ctx.fillRect(sx - hbW / 2, hbY, hbW * enemy.health / enemy.maxHealth, 6);
           
-          // Boss name
+          // Boss name - with outline
           ctx.fillStyle = '#fbbf24';
           ctx.font = 'bold 11px sans-serif';
           ctx.textAlign = 'center';
+          ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(enemy.name || 'BOSS', sx, hbY - 5);
           ctx.fillText(enemy.name || 'BOSS', sx, hbY - 5);
+          ctx.lineWidth = 1;
         }
         // ========== REGULAR ENEMIES (Zone-themed) ==========
         else {
@@ -6718,38 +6800,47 @@ export default function SpellBrigade() {
         ctx.arc(px + 3, py - 19 - bob, isSpecialClass ? 3 : 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Name & level
+        // Name & level - with outline for readability
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
         if (isVoidlord) {
           ctx.shadowColor = '#ff00ff';
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 12;
           ctx.fillStyle = '#ff00ff';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.strokeText('👑 ' + player.name, px, py + 28);
           ctx.fillText('👑 ' + player.name, px, py + 28);
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#ff00ff';
-          ctx.font = '10px sans-serif';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.strokeText('VOID LORD', px, py + 40);
           ctx.fillText('VOID LORD', px, py + 40);
         } else if (isShadowArcher) {
           ctx.shadowColor = '#dc2626';
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 10;
           ctx.fillStyle = '#dc2626';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.strokeText('👑 ' + player.name, px, py + 28);
           ctx.fillText('👑 ' + player.name, px, py + 28);
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#dc2626';
-          ctx.font = '10px sans-serif';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.strokeText('SHADOW ARCHER', px, py + 40);
           ctx.fillText('SHADOW ARCHER', px, py + 40);
         } else {
           ctx.fillStyle = '#fff';
-          ctx.font = 'bold 11px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.strokeText(player.name, px, py + 28);
           ctx.fillText(player.name, px, py + 28);
           ctx.fillStyle = '#ffd93d';
-          ctx.font = '10px sans-serif';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.strokeText('Lv.' + player.level, px, py + 40);
           ctx.fillText('Lv.' + player.level, px, py + 40);
         }
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'transparent';
 
         // Health bar
         if (!isMe || player.health < player.maxHealth) {
@@ -6759,6 +6850,37 @@ export default function SpellBrigade() {
           ctx.fillRect(px - 18, py - 50 - bob, 36, 5);
           ctx.fillStyle = isVoidlord ? '#ff00ff' : '#ef4444';
           ctx.fillRect(px - 18, py - 50 - bob, 36 * player.health / player.maxHealth, 5);
+        }
+
+        // Frozen overlay (from Frost Wyrm)
+        if (player.frozenUntil && player.frozenUntil > Date.now()) {
+          const frozenAlpha = Math.min(0.6, (player.frozenUntil - Date.now()) / 3000);
+          
+          // Ice crystal shell around player
+          ctx.beginPath();
+          ctx.arc(px, py, 22, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(34,211,238,${frozenAlpha * 0.3})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(103,232,249,${frozenAlpha})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Frost particles
+          const frozenTime = Date.now() / 400;
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 + frozenTime;
+            const dist = 18 + Math.sin(frozenTime + i) * 4;
+            ctx.beginPath();
+            ctx.arc(px + Math.cos(angle) * dist, py + Math.sin(angle) * dist, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200,240,255,${frozenAlpha})`;
+            ctx.fill();
+          }
+          
+          // FROZEN text
+          ctx.font = 'bold 10px Arial';
+          ctx.fillStyle = `rgba(34,211,238,${frozenAlpha})`;
+          ctx.textAlign = 'center';
+          ctx.fillText('FROZEN', px, py - 55);
         }
 
         // Selection ring for self
@@ -6898,16 +7020,9 @@ export default function SpellBrigade() {
         const my = m.y - cy;
         const progress = elapsed / m.delay;
 
-        // Use custom color if provided (custom wizard ults), default to fire orange
-        const warnColor = m.color || 'rgba(255,100,0,1)';
-        
         ctx.beginPath();
         ctx.arc(mx, my, m.radius, 0, Math.PI * 2);
-        if (m.color) {
-          ctx.strokeStyle = m.color + (Math.round((0.5 + Math.sin(elapsed * 0.02) * 0.3) * 255).toString(16).padStart(2, '0'));
-        } else {
-          ctx.strokeStyle = `rgba(255,100,0,${0.5 + Math.sin(elapsed * 0.02) * 0.3})`;
-        }
+        ctx.strokeStyle = `rgba(255,100,0,${0.5 + Math.sin(elapsed * 0.02) * 0.3})`;
         ctx.lineWidth = 3;
         ctx.setLineDash([10, 5]);
         ctx.stroke();
@@ -6915,12 +7030,121 @@ export default function SpellBrigade() {
 
         ctx.beginPath();
         ctx.arc(mx, my, m.radius * (1 - progress), 0, Math.PI * 2);
-        if (m.color) {
-          ctx.fillStyle = m.color + Math.round(0.2 * (1 - progress) * 255).toString(16).padStart(2, '0');
-        } else {
-          ctx.fillStyle = `rgba(255,100,0,${0.2 * (1 - progress)})`;
-        }
+        ctx.fillStyle = `rgba(255,100,0,${0.2 * (1 - progress)})`;
         ctx.fill();
+
+        return true;
+      });
+
+      // Freeze circle warnings (Frost Wyrm) - flashing blue/white
+      freezeWarningsRef.current = freezeWarningsRef.current.filter(f => {
+        const elapsed = now - f.startTime;
+        if (elapsed > f.delay) return false;
+
+        const fx = f.x - cx;
+        const fy = f.y - cy;
+        const progress = elapsed / f.delay;
+        const flash = Math.sin(elapsed * 0.015) * 0.5 + 0.5;
+
+        // Outer ring - pulsing
+        ctx.beginPath();
+        ctx.arc(fx, fy, f.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(34,211,238,${0.6 + flash * 0.4})`;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Fill - alternating blue/white flash
+        ctx.beginPath();
+        ctx.arc(fx, fy, f.radius, 0, Math.PI * 2);
+        const r = Math.floor(34 + flash * 220);
+        const g = Math.floor(211 + flash * 44);
+        const b = Math.floor(238 + flash * 17);
+        ctx.fillStyle = `rgba(${r},${g},${b},${0.15 + progress * 0.2})`;
+        ctx.fill();
+
+        // Closing ring showing time left
+        ctx.beginPath();
+        ctx.arc(fx, fy, f.radius * (1 - progress), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34,211,238,${0.25 * (1 - progress)})`;
+        ctx.fill();
+
+        // Ice crystal markers
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2 + elapsed * 0.002;
+          const cr = f.radius * 0.9;
+          ctx.beginPath();
+          ctx.arc(fx + Math.cos(angle) * cr, fy + Math.sin(angle) * cr, 3, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${0.5 + flash * 0.5})`;
+          ctx.fill();
+        }
+
+        return true;
+      });
+
+      // Root warning circles (Ancient Treant) - green pulsing
+      rootWarningsRef.current = rootWarningsRef.current.filter(r => {
+        const elapsed = now - r.startTime;
+        if (elapsed > r.delay) return false;
+
+        const rx = r.x - cx;
+        const ry = r.y - cy;
+        const progress = elapsed / r.delay;
+        const pulse = Math.sin(elapsed * 0.012) * 0.5 + 0.5;
+
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(rx, ry, r.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(22,101,52,${0.5 + pulse * 0.5})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Fill - green glow
+        ctx.beginPath();
+        ctx.arc(rx, ry, r.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34,197,94,${0.1 + progress * 0.25})`;
+        ctx.fill();
+
+        // Root tendrils from center
+        for (let i = 0; i < 4; i++) {
+          const angle = (i / 4) * Math.PI * 2 + elapsed * 0.003;
+          const len = r.radius * progress * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(rx, ry);
+          ctx.lineTo(rx + Math.cos(angle) * len, ry + Math.sin(angle) * len);
+          ctx.strokeStyle = `rgba(22,101,52,${0.4 + pulse * 0.3})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        return true;
+      });
+
+      // Root erupt visuals
+      rootEruptsRef.current = rootEruptsRef.current.filter(r => {
+        const elapsed = now - r.startTime;
+        if (elapsed > r.duration) return false;
+
+        const rx = r.x - cx;
+        const ry = r.y - cy;
+        const progress = elapsed / r.duration;
+
+        // Spike burst animation
+        const numSpikes = 8;
+        for (let i = 0; i < numSpikes; i++) {
+          const angle = (i / numSpikes) * Math.PI * 2;
+          const spikeLen = 30 * (1 - progress);
+          const baseR = 10 * Math.min(1, progress * 3);
+          ctx.beginPath();
+          ctx.moveTo(rx + Math.cos(angle) * baseR, ry + Math.sin(angle) * baseR);
+          ctx.lineTo(rx + Math.cos(angle) * (baseR + spikeLen), ry + Math.sin(angle) * (baseR + spikeLen));
+          ctx.strokeStyle = `rgba(22,101,52,${1 - progress})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
 
         return true;
       });
@@ -8139,6 +8363,84 @@ export default function SpellBrigade() {
             ctx.fill();
           }
         }
+        
+        // Freeze circle explosion effect (Frost Wyrm)
+        else if (ef.type === 'freezeExplode') {
+          const fx = ef.x - cx;
+          const fy = ef.y - cy;
+          const radius = ef.radius || 120;
+          
+          // Expanding ice burst
+          const burstR = radius * (0.8 + progress * 0.4);
+          ctx.beginPath();
+          ctx.arc(fx, fy, burstR, 0, Math.PI * 2);
+          const iceGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, burstR);
+          iceGrad.addColorStop(0, `rgba(255,255,255,${0.8 * alpha})`);
+          iceGrad.addColorStop(0.3, `rgba(34,211,238,${0.6 * alpha})`);
+          iceGrad.addColorStop(0.7, `rgba(103,232,249,${0.3 * alpha})`);
+          iceGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = iceGrad;
+          ctx.fill();
+          
+          // Ice shards flying outward
+          for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2 + progress * 0.5;
+            const dist = radius * 0.5 + progress * radius * 0.8;
+            const shX = fx + Math.cos(angle) * dist;
+            const shY = fy + Math.sin(angle) * dist;
+            
+            ctx.save();
+            ctx.translate(shX, shY);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, -4 * alpha);
+            ctx.lineTo(8, 0);
+            ctx.lineTo(0, 4 * alpha);
+            ctx.lineTo(-2, 0);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(200,240,255,${alpha})`;
+            ctx.fill();
+            ctx.restore();
+          }
+          
+          // Ice ring
+          ctx.beginPath();
+          ctx.arc(fx, fy, burstR, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(34,211,238,${alpha})`;
+          ctx.lineWidth = 4 * alpha;
+          ctx.stroke();
+        }
+        
+        // Spore wave effect (Blossom Behemoth)
+        else if (ef.type === 'sporeWave') {
+          const spX = ef.x - cx;
+          const spY = ef.y - cy;
+          
+          // Expanding green ring wave
+          const waveR = progress * 200;
+          ctx.beginPath();
+          ctx.arc(spX, spY, waveR, 0, Math.PI * 2);
+          const sporeGrad = ctx.createRadialGradient(spX, spY, waveR * 0.7, spX, spY, waveR);
+          sporeGrad.addColorStop(0, 'transparent');
+          sporeGrad.addColorStop(0.5, `rgba(132,204,22,${0.3 * alpha})`);
+          sporeGrad.addColorStop(1, `rgba(101,163,13,${0.1 * alpha})`);
+          ctx.fillStyle = sporeGrad;
+          ctx.fill();
+          
+          // Floating spore particles
+          const sporeCount = ef.count || 8;
+          for (let i = 0; i < sporeCount; i++) {
+            const angle = (i / sporeCount) * Math.PI * 2;
+            const dist = progress * 150 + Math.sin(elapsed * 0.005 + i) * 20;
+            const spPx = spX + Math.cos(angle) * dist;
+            const spPy = spY + Math.sin(angle) * dist;
+            
+            ctx.beginPath();
+            ctx.arc(spPx, spPy, 4 * alpha, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(163,230,53,${alpha * 0.7})`;
+            ctx.fill();
+          }
+        }
 
         return true;
       });
@@ -9246,23 +9548,6 @@ export default function SpellBrigade() {
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                     </svg>
                   </button>
-                  {/* Spellbook button */}
-                  <button
-                    onClick={() => setShowSpellbook(prev => !prev)}
-                    title="Spellbook (B)"
-                    style={{
-                      background: 'rgba(255,217,61,0.2)',
-                      border: '1px solid rgba(255,217,61,0.4)',
-                      borderRadius: 6,
-                      padding: '4px 8px',
-                      color: '#ffd93d',
-                      fontSize: '0.7rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    📖
-                  </button>
                   {/* Settings button - moved to below bars */}
                 </div>
 
@@ -9765,8 +10050,6 @@ export default function SpellBrigade() {
         setShowInGameSettings={setShowInGameSettings}
         showCharacterSheet={showCharacterSheet}
         setShowCharacterSheet={setShowCharacterSheet}
-        showSpellbook={showSpellbook}
-        setShowSpellbook={setShowSpellbook}
         showAdminPanel={showAdminPanel}
         setShowAdminPanel={setShowAdminPanel}
         showEmotes={showEmotes}

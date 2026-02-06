@@ -38,6 +38,9 @@ export default function AuthScreen({
       });
       const data = await res.json();
       if (data.success) {
+        // Clear any previous character data
+        localStorage.removeItem('spellBrigadeCharacters');
+        localStorage.removeItem('spellBrigadeSelectedChar');
         setAuthState({ isAuthenticated: true, isGuest: true, user: null, sessionToken: data.sessionToken });
         localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: true }));
         sessionTokenRef.current = data.sessionToken;
