@@ -20,10 +20,9 @@ export function drawWorld(rc) {
       ctx.fillRect(x - cx, y - cy, tileSize, tileSize);
     }
   }
-}
 
-// Zone decorations (seeded random based on position for consistency) - SKIP IN DUNGEON
-if (!inDungeonRef.current) {
+  // Zone decorations (seeded random based on position for consistency) - SKIP IN DUNGEON
+  if (!inDungeonRef.current) {
   const tileSize = 64;
   const startX = Math.floor(cx / tileSize) * tileSize;
   const startY = Math.floor(cy / tileSize) * tileSize;
@@ -283,6 +282,8 @@ if (!inDungeonRef.current) {
 // Skip zone-specific visuals when in dungeon
 if (!inDungeonRef.current) {
   // Zone transition rings (subtle gradient borders)
+  const worldCenterX = 2500;
+  const worldCenterY = 2500;
   const centerX = worldCenterX - cx;
   const centerY = worldCenterY - cy;
 const zoneRings = [
@@ -322,6 +323,7 @@ if (sanctuaryPoly) {
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.lineDashOffset = 0;
+}
 }
 }
 

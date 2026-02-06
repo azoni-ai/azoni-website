@@ -2697,6 +2697,7 @@ export default function SpellBrigade() {
         world, getZone, classes,
         inDungeonRef, dungeonVictoryPortalRef, effectsRef, meteorWarningsRef,
         playerIdRef, settingsRef, touchTargetRef, minimapRef, gameStateRef,
+        nearbyNpcId: nearbyNpcRef.current,
       };
 
       // Terrain

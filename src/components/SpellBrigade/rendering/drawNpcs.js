@@ -3,7 +3,7 @@
 import { BUILDING_DATA } from '../constants/zones';
 
 export function drawNpcs(rc) {
-  const { ctx, cx, cy, width, height, now, time, me, inDungeonRef, gameStateRef, playerIdRef } = rc;
+  const { ctx, cx, cy, width, height, now, time, me, inDungeonRef, gameStateRef, playerIdRef, nearbyNpcId } = rc;
 
   if (!inDungeonRef.current) {
 
@@ -200,7 +200,7 @@ export function drawNpcs(rc) {
       ctx.fillText('Ethereal Guide', nx, ny + float + 25);
       
       // Interaction hint
-      if (nearbyNpc?.id === npc.id) {
+      if (nearbyNpcId === npc.id) {
         ctx.font = '10px Arial';
         ctx.fillStyle = '#ffd93d';
         ctx.fillText('[E] Talk', nx, ny + float + 38);
@@ -281,7 +281,7 @@ export function drawNpcs(rc) {
       ctx.fillText('Aldric', nx, ny + 42);
       
       // Interaction hint
-      if (nearbyNpc?.id === npc.id) {
+      if (nearbyNpcId === npc.id) {
         ctx.font = '10px Arial';
         ctx.fillStyle = '#ffd93d';
         ctx.fillText('[E] Talk', nx, ny + 55);
@@ -397,7 +397,7 @@ export function drawNpcs(rc) {
       ctx.fillText('Seraphina', nx, ny + 42);
       
       // Interaction hint
-      if (nearbyNpc?.id === npc.id) {
+      if (nearbyNpcId === npc.id) {
         ctx.font = '10px Arial';
         ctx.fillStyle = '#ffd93d';
         ctx.fillText('[E] Accept Quest', nx, ny + 55);
@@ -485,7 +485,7 @@ export function drawNpcs(rc) {
       ctx.fillText(npc.name || 'Mirage', nx, ny + 30);
       
       // Interaction hint
-      if (nearbyNpc?.id === npc.id) {
+      if (nearbyNpcId === npc.id) {
         ctx.font = '10px Arial';
         ctx.fillStyle = '#ffd93d';
         ctx.fillText('[E] Change Skin', nx, ny + 43);
@@ -594,7 +594,7 @@ export function drawNpcs(rc) {
       ctx.fillText(npc.name || 'Arcanus', nx, ny + 30);
       
       // Interaction hint
-      if (nearbyNpc?.id === npc.id) {
+      if (nearbyNpcId === npc.id) {
         ctx.font = '10px Arial';
         ctx.fillStyle = '#ffd93d';
         ctx.fillText('[E] Dungeon Workshop', nx, ny + 43);
