@@ -1,10 +1,10 @@
 // World terrain rendering
 
 import { COLORS } from '../constants/config';
-import { ZONE_INFO, ZONE_POLYGONS } from '../constants/zones';
+import { ZONE_POLYGONS } from '../constants/zones';
 
 export function drawWorld(rc) {
-  const { ctx, cx, cy, width, height, now, time, me, world, getZone, isMobileView, inDungeonRef } = rc;
+  const { ctx, cx, cy, width, height, now, time, getZone, inDungeonRef } = rc;
 
   // Grid tiles with zone-specific colors
   const tileSize = 64;
@@ -328,7 +328,7 @@ if (sanctuaryPoly) {
 }
 
 export function drawWorldOverlay(rc) {
-  const { ctx, cx, cy, width, height, now, world, inDungeonRef, touchTargetRef, isMobileView } = rc;
+  const { ctx, cx, cy, now, world, inDungeonRef, touchTargetRef, isMobileView } = rc;
 
   // World border (or dungeon walls in dungeon)
   if (!inDungeonRef.current) {

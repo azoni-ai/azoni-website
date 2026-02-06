@@ -1,7 +1,7 @@
 // Visual effects rendering: meteor warnings, explosions, abilities, etc.
 
 export function drawEffects(rc) {
-  const { ctx, cx, cy, width, height, now, time, players, effectsRef, meteorWarningsRef, playerIdRef } = rc;
+  const { ctx, cx, cy, width, height, now, players, effectsRef, meteorWarningsRef } = rc;
 
   // Meteor warnings
 

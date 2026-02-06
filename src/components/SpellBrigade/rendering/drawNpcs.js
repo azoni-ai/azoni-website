@@ -3,7 +3,7 @@
 import { BUILDING_DATA } from '../constants/zones';
 
 export function drawNpcs(rc) {
-  const { ctx, cx, cy, width, height, now, time, me, inDungeonRef, gameStateRef, playerIdRef, nearbyNpcId } = rc;
+  const { ctx, cx, cy, width, height, time, inDungeonRef, gameStateRef, nearbyNpcId } = rc;
 
   if (!inDungeonRef.current) {
 

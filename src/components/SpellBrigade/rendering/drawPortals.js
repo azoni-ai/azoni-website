@@ -3,7 +3,7 @@
 import { PORTAL_POSITIONS } from '../constants/zones';
 
 export function drawPortals(rc) {
-  const { ctx, cx, cy, width, height, now, time, me, inDungeonRef } = rc;
+  const { ctx, cx, cy, width, height, time, me, inDungeonRef } = rc;
 
   // ========== PORTALS ========== (skip in dungeon)
   if (!inDungeonRef.current) {

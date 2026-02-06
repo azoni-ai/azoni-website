@@ -1,13 +1,10 @@
 // Dungeon terrain rendering
 
 export function drawDungeon(rc) {
-  const { ctx, cx, cy, width, height, now, time, me, particles, dungeonVictoryPortalRef, isMobileView } = rc;
+  const { ctx, cx, cy, width, height, time, me, dungeonVictoryPortalRef, isMobileView } = rc;
 
-  const DUNGEON_WIDTH = 1200;
   const CORRIDOR_MIN_X = 450;
   const CORRIDOR_MAX_X = 750;
-  const ROOM_MIN_X = 200;
-  const ROOM_MAX_X = 1600;
   
   // Room definitions (expanded with more rooms - wider dungeon)
   const ROOMS = [

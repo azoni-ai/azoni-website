@@ -1,7 +1,7 @@
 // Environment rendering: sanctuary healing zone + fountain
 
 export function drawEnvironment(rc) {
-  const { ctx, cx, cy, width, height, now, time, me, inDungeonRef } = rc;
+  const { ctx, cx, cy, width, height, time, me, inDungeonRef } = rc;
 
   if (!inDungeonRef.current) {
     const sanctuaryCenter = { x: 3500, y: 3000 }; // Updated for new layout

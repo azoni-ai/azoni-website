@@ -3,7 +3,7 @@
 import { COLORS } from '../constants/config';
 
 export function drawEnemies(rc) {
-  const { ctx, cx, cy, width, height, now, time, enemies, particles } = rc;
+  const { ctx, cx, cy, width, height, time, enemies } = rc;
 
   for (const enemy of enemies || []) {
     const sx = enemy.x - cx;

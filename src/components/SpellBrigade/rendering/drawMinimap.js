@@ -4,7 +4,7 @@ import { COLORS } from '../constants/config';
 import { ZONE_POLYGONS, WORLD_WIDTH, WORLD_HEIGHT, PORTAL_POSITIONS, getZoneAtPosition } from '../constants/zones';
 
 export function drawMinimap(rc) {
-  const { ctx, cx, cy, width, height, now, me, players, enemies, 
+  const { players, enemies, 
           minimapRef, settingsRef, inDungeonRef, playerIdRef, dungeonVictoryPortalRef } = rc;
 
   if (settingsRef.current.showMinimap && minimapRef.current) {

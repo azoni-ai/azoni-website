@@ -1,7 +1,6 @@
 // Entity rendering: XP orbs, players, particles, damage numbers
 
-import { COLORS, DEFAULT_SKINS, DEFAULT_CLASSES } from '../constants/config';
-import { CLASS_SVG } from '../constants/icons';
+import { DEFAULT_SKINS, DEFAULT_CLASSES } from '../constants/config';
 
 const SKIN_MAP = new Map(DEFAULT_SKINS.map(s => [s.id, s]));
 
