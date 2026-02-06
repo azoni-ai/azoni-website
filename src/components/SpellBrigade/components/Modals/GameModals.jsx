@@ -39,7 +39,6 @@ export default function GameModals({
   CLASS_SVG,
   DEFAULT_SKINS,
   classes,
-  spellDefs,
   playerInfo,
   nearbyBuilding,
   questLog,
@@ -308,10 +307,8 @@ export default function GameModals({
       {showSpellbook && playerInfo && (
         <SpellbookContent
           styles={styles}
-          SVG={SVG}
           playerInfo={playerInfo}
           classes={classes}
-          spellDefs={spellDefs || {}}
           onClose={() => setShowSpellbook(false)}
         />
       )}
@@ -365,11 +362,20 @@ function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal,
           position: 'fixed', bottom: isMobile ? 180 : 100, left: '50%', transform: 'translateX(-50%)',
           background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', padding: '12px 25px',
           borderRadius: 15, zIndex: 800,
-          border: `2px solid ${nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e'}`,
+          border: `2px solid ${nearbyNpc.isQuestGiver ? nearbyNpc.color : nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e'}`,
           textAlign: 'center', cursor: 'pointer',
-        }} onClick={() => socketRef.current?.emit('interactNpc', { npcId: nearbyNpc.id })}>
-          <div style={{ color: nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e', fontWeight: 'bold', fontSize: '0.9rem' }}>
-            {nearbyNpc.emoji && <span style={{ marginRight: 6 }}>{nearbyNpc.emoji}</span>}
+        }} onClick={() => {
+          if (nearbyNpc.isQuestGiver) {
+            // Handle quest NPC dialogue client-side
+            const qnpc = nearbyNpc;
+            // Use the setNpcDialogue from parent - emit a custom event
+            socketRef.current?.emit('interactNpc', { npcId: qnpc.id, isQuestGiver: true });
+          } else {
+            socketRef.current?.emit('interactNpc', { npcId: nearbyNpc.id });
+          }
+        }}>
+          <div style={{ color: nearbyNpc.isQuestGiver ? nearbyNpc.color : nearbyNpc.type === 'guide' ? '#67e8f9' : nearbyNpc.type === 'shapeshifter' ? '#ec4899' : nearbyNpc.type === 'quest_master' ? '#ffd93d' : '#a8a29e', fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {(nearbyNpc.emoji || nearbyNpc.icon) && <span style={{ marginRight: 6 }}>{nearbyNpc.emoji || nearbyNpc.icon}</span>}
             {nearbyNpc.name}
           </div>
           <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
@@ -659,6 +665,7 @@ function NPCDialogueContent({
     : npcDialogue.npcType === 'shapeshifter' ? '#ec4899' 
     : npcDialogue.npcType === 'knight' ? '#dc2626'
     : npcDialogue.npcType === 'dungeon_architect' ? '#8b5cf6'
+    : npcDialogue.npcType === 'quest_giver' ? (npcDialogue.questGiverColor || '#4ade80')
     : '#a8a29e';
   
   return (
@@ -671,6 +678,7 @@ function NPCDialogueContent({
           npcDialogue.npcType === 'shapeshifter' ? 'linear-gradient(135deg, rgba(60,20,50,0.98), rgba(80,30,60,0.98))' :
           npcDialogue.npcType === 'knight' ? 'linear-gradient(135deg, rgba(40,20,20,0.98), rgba(60,25,25,0.98))' :
           npcDialogue.npcType === 'dungeon_architect' ? 'linear-gradient(135deg, rgba(30,20,50,0.98), rgba(50,30,70,0.98))' :
+          npcDialogue.npcType === 'quest_giver' ? 'linear-gradient(135deg, rgba(20,35,20,0.98), rgba(30,50,35,0.98))' :
           'linear-gradient(135deg, rgba(30,25,20,0.98), rgba(50,40,30,0.98))',
         border: `2px solid ${npcColor}80`,
       }}>
@@ -1004,15 +1012,11 @@ function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, p
         </div>
         <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10 }}>
           <button onClick={() => { 
-            // Proper cleanup: emit leave, clear state, then go to title
             socketRef.current?.emit('leave');
-            playerIdRef.current = null;
-            // Wait for server to process leave before disconnecting
-            setTimeout(() => {
-              socketRef.current?.disconnect();
-              setScreen('title'); 
-              onClose(); 
-            }, 250);
+            playerIdRef.current = null; 
+            setTimeout(() => socketRef.current?.disconnect(), 100);
+            setScreen('title'); 
+            onClose(); 
           }}
             style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#888', cursor: 'pointer', fontSize: '0.85rem' }}>
             Return to Menu
@@ -1099,179 +1103,6 @@ function StatCard({ label, value, color }) {
   );
 }
 
-function SpellbookContent({ styles, SVG, playerInfo, classes, onClose }) {
-  const classDef = classes[playerInfo.class] || {};
-  const color = classDef.color || '#a78bfa';
-  const spells = classDef.classAbilities || [];
-  const dmgMult = playerInfo.damageMultiplier || 1;
-  const cdMult = (playerInfo.cooldownMultiplier || 1) * (playerInfo.attackSpeedMultiplier || 1);
-  
-  const scaleDmg = (d) => d ? Math.floor(d * dmgMult) : null;
-  const scaleCd = (cd) => cd ? `${(cd * cdMult / 1000).toFixed(1)}s` : null;
-  
-  return (
-    <>
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000 }} onClick={onClose} />
-      <div style={{
-        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)',
-        border: `1px solid ${color}40`,
-        borderRadius: 16, padding: 24, zIndex: 1001,
-        maxWidth: 420, width: '90%', maxHeight: '80vh', overflowY: 'auto',
-        boxShadow: `0 8px 40px rgba(0,0,0,0.5), 0 0 30px ${color}15`,
-      }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <div style={{ color: '#ffd93d', fontWeight: 700, fontSize: '1.1rem' }}>📖 Spellbook</div>
-            <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 2 }}>
-              {classDef.name || playerInfo.class} — Level {playerInfo.level}
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#888', fontSize: '1rem', cursor: 'pointer', padding: '4px 10px' }}>✕</button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Auto-attack */}
-          <SpellbookAbility
-            label="AUTO"
-            labelColor="#22c55e"
-            name={classDef.spellName || 'Primary Attack'}
-            description={classDef.spellDescription || 'Automatically attacks nearby enemies.'}
-            color={color}
-            stats={[
-              classDef.spellDamage && { l: 'DMG', v: scaleDmg(classDef.spellDamage) },
-              classDef.spellCooldown && { l: 'CD', v: scaleCd(classDef.spellCooldown) },
-              classDef.spellRange && { l: 'RNG', v: classDef.spellRange },
-            ].filter(Boolean)}
-          />
-
-          {/* Secondary auto-attack */}
-          {classDef.secondaryName && (
-            <SpellbookAbility
-              label="AUTO 2"
-              labelColor="#38bdf8"
-              name={classDef.secondaryName}
-              description={classDef.secondaryDescription || 'Secondary attack.'}
-              color={classDef.secondaryColor || color}
-              stats={[
-                classDef.secondaryDamage && { l: 'DMG', v: scaleDmg(classDef.secondaryDamage) },
-                classDef.secondaryCooldown && { l: 'CD', v: scaleCd(classDef.secondaryCooldown) },
-                classDef.secondaryRange && { l: 'RNG', v: classDef.secondaryRange },
-              ].filter(Boolean)}
-            />
-          )}
-
-          {/* Dash */}
-          {classDef.dashAbility && (
-            <SpellbookAbility
-              label="SPACE"
-              labelColor="#60a5fa"
-              name={classDef.dashAbility.name}
-              description={classDef.dashAbility.description || 'Dash forward quickly.'}
-              color={color}
-              stats={[
-                { l: 'CD', v: `${(classDef.dashAbility.cooldown / 1000).toFixed(1)}s` },
-                classDef.dashAbility.damage && { l: 'DMG', v: classDef.dashAbility.damage },
-                classDef.dashAbility.distance && { l: 'DIST', v: classDef.dashAbility.distance },
-              ].filter(Boolean)}
-            />
-          )}
-
-          {/* Ultimate */}
-          {classDef.ultimateAbility && (
-            <SpellbookAbility
-              label="Q"
-              labelColor="#fbbf24"
-              name={classDef.ultimateAbility.name}
-              description={classDef.ultimateAbility.description || 'Powerful ultimate ability.'}
-              color={color}
-              stats={[
-                { l: 'CD', v: `${(classDef.ultimateAbility.cooldown / 1000).toFixed(0)}s` },
-                classDef.ultimateAbility.damage && { l: 'DMG', v: scaleDmg(classDef.ultimateAbility.damage) },
-                classDef.ultimateAbility.duration && { l: 'DUR', v: `${(classDef.ultimateAbility.duration / 1000).toFixed(1)}s` },
-              ].filter(Boolean)}
-            />
-          )}
-
-          {/* Class Abilities (1, 2, 3) */}
-          {spells.length > 0 && (
-            <div style={{ color: '#666', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 6 }}>
-              Class Spells
-            </div>
-          )}
-          {spells.map((spell, i) => {
-            const levelReqs = [10, 20, 30];
-            const unlocked = playerInfo.level >= levelReqs[i];
-            return (
-              <SpellbookAbility
-                key={spell.id || i}
-                label={`${i + 1}`}
-                labelColor={unlocked ? (spell.color || '#a78bfa') : '#555'}
-                name={spell.name || `Spell ${i + 1}`}
-                description={spell.description || ''}
-                color={unlocked ? (spell.color || '#a78bfa') : '#444'}
-                locked={!unlocked}
-                unlockLevel={levelReqs[i]}
-                stats={[
-                  spell.damage && { l: 'DMG', v: scaleDmg(spell.damage) },
-                  spell.cooldown && { l: 'CD', v: `${(spell.cooldown / 1000).toFixed(1)}s` },
-                  spell.range && { l: 'RNG', v: spell.range },
-                  spell.duration && { l: 'DUR', v: `${(spell.duration / 1000).toFixed(1)}s` },
-                ].filter(Boolean)}
-              />
-            );
-          })}
-        </div>
-
-        <div style={{ color: '#555', fontSize: '0.65rem', textAlign: 'center', marginTop: 16 }}>
-          Press <span style={{ color: '#ffd93d', fontWeight: 600 }}>B</span> to close
-        </div>
-      </div>
-    </>
-  );
-}
-
-function SpellbookAbility({ label, labelColor, name, description, color, stats, locked, unlockLevel }) {
-  return (
-    <div style={{
-      padding: '10px 14px',
-      background: locked ? 'rgba(255,255,255,0.02)' : `${color}08`,
-      border: `1px solid ${locked ? 'rgba(255,255,255,0.06)' : color + '25'}`,
-      borderRadius: 10,
-      opacity: locked ? 0.5 : 1,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: description ? 4 : 0 }}>
-        <span style={{
-          padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700,
-          background: `${labelColor}20`, color: labelColor, letterSpacing: 0.5,
-          minWidth: 28, textAlign: 'center',
-        }}>
-          {label}
-        </span>
-        <span style={{ color: '#ddd', fontWeight: 600, fontSize: '0.9rem' }}>
-          {locked ? '🔒 ' : ''}{name}
-        </span>
-        {locked && unlockLevel && (
-          <span style={{ color: '#555', fontSize: '0.65rem', marginLeft: 'auto' }}>Unlocks Lv{unlockLevel}</span>
-        )}
-      </div>
-      {description && (
-        <div style={{ color: '#999', fontSize: '0.75rem', marginBottom: stats?.length ? 6 : 0, lineHeight: 1.4 }}>{description}</div>
-      )}
-      {stats?.length > 0 && (
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {stats.map((s, i) => (
-            <span key={i} style={{ fontSize: '0.7rem', color: '#888' }}>
-              <span style={{ color: '#aaa', fontWeight: 600 }}>{s.l}</span> {s.v}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function AdminPanelContent({ styles, socketRef, onClose }) {
   const [adminCmd, setAdminCmd] = React.useState('');
   return (
@@ -1304,7 +1135,7 @@ function AdminPanelContent({ styles, socketRef, onClose }) {
 
 function DesktopSidePanel({ showLeaderboard, setShowLeaderboard, showInGameSettings, setShowInGameSettings, leaderboardData, playerInfo }) {
   return (
-    <div style={{ position: 'fixed', top: 340, left: 20, zIndex: 50 }}>
+    <div style={{ position: 'fixed', top: 220, left: 20, zIndex: 50 }}>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => setShowInGameSettings(true)}
           style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1329,5 +1160,179 @@ function DesktopSidePanel({ showLeaderboard, setShowLeaderboard, showInGameSetti
         </div>
       )}
     </div>
+  );
+}
+function SpellbookContent({ styles, playerInfo, classes, onClose }) {
+  const classId = playerInfo?.class;
+  const classData = classes?.[classId];
+  const level = playerInfo?.level || 1;
+  const classColor = classData?.color || '#888';
+  
+  // All spell data per class
+  const spellData = {
+    pyromancer: {
+      autoAttack: { name: 'Fireball', icon: '🔥', damage: '28', cooldown: '0.9s', range: '320', desc: 'Launches a fiery projectile that explodes on impact.' },
+      secondary: { name: 'Flame Wave', icon: '🌊', damage: '22 AOE', cooldown: '3s', range: '200', desc: 'Sends a wave of fire around you.' },
+      dash: { name: 'Fire Dash', icon: '💨', cooldown: '4s', distance: '200', desc: 'Dash forward leaving a trail of fire that burns enemies.' },
+      ultimate: { name: 'Meteor Strike', icon: '☄️', damage: '100', cooldown: '20s', radius: '150', desc: 'Call down a massive meteor that explodes on impact.' },
+      abilities: {
+        1: { name: 'Flame Shield', icon: '🔥', damage: '15/tick', cooldown: '12s', radius: '80', level: 10, desc: 'Creates a damage aura around you.' },
+        2: { name: 'Meteor Strike', icon: '☄️', damage: '60', cooldown: '15s', radius: '120', level: 20, desc: 'Delayed AOE explosion at target location.' },
+        3: { name: 'Inferno', icon: '💥', damage: '100', cooldown: '25s', radius: '200', level: 30, desc: 'Massive fire explosion that incinerates everything.' },
+      },
+    },
+    cryomancer: {
+      autoAttack: { name: 'Frostbolt', icon: '❄️', damage: '22', cooldown: '1s', range: '300', desc: 'Icy projectile that slows enemies on hit.' },
+      secondary: { name: 'Blizzard', icon: '🌨️', damage: '18 AOE', cooldown: '4s', range: '180', desc: 'Creates a freezing zone around you.' },
+      dash: { name: 'Frost Step', icon: '💨', cooldown: '5s', distance: '180', desc: 'Teleport forward and freeze nearby enemies on arrival.' },
+      ultimate: { name: 'Ice Nova', icon: '💎', damage: '50', cooldown: '25s', radius: '200', desc: 'Explosion of ice that freezes all enemies in range.' },
+      abilities: {
+        1: { name: 'Frost Nova', icon: '❄️', damage: '30', cooldown: '12s', radius: '120', level: 10, desc: 'Freeze nearby enemies solid.' },
+        2: { name: 'Ice Lance', icon: '🧊', damage: '45', cooldown: '10s', range: '500', level: 20, desc: 'Piercing ice bolt that shatters through enemies.' },
+        3: { name: 'Glacial Storm', icon: '🌨️', damage: '40/s', cooldown: '25s', radius: '250', level: 30, desc: 'Summon a devastating blizzard zone.' },
+      },
+    },
+    arcanist: {
+      autoAttack: { name: 'Arcane Blast', icon: '💫', damage: '25', cooldown: '1.1s', range: '280', desc: 'Pure arcane energy bolt with splash damage.' },
+      secondary: { name: 'Magic Missile', icon: '✨', damage: '20', cooldown: '2s', range: '350', desc: 'Homing arcane missile that tracks enemies.' },
+      dash: { name: 'Blink', icon: '💨', cooldown: '6s', distance: '250', desc: 'Instantly teleport forward with brief invulnerability.' },
+      ultimate: { name: 'Arcane Barrage', icon: '💫', damage: '20×12', cooldown: '18s', radius: 'Homing', desc: 'Unleash a barrage of homing arcane missiles.' },
+      abilities: {
+        1: { name: 'Blink', icon: '✨', damage: '-', cooldown: '8s', range: '200', level: 10, desc: 'Short teleport forward.' },
+        2: { name: 'Arcane Barrage', icon: '💫', damage: '20×6', cooldown: '12s', range: 'Homing', level: 20, desc: 'Launch homing missiles at nearby enemies.' },
+        3: { name: 'Time Warp', icon: '⏳', damage: '-', cooldown: '20s', radius: 'Self', level: 30, desc: 'Massive speed and attack boost.' },
+      },
+    },
+    stormcaller: {
+      autoAttack: { name: 'Lightning Bolt', icon: '⚡', damage: '24', cooldown: '0.8s', range: '350', desc: 'A bolt of lightning that chains to nearby enemies.' },
+      secondary: { name: 'Thunderclap', icon: '🌩️', damage: '20 AOE', cooldown: '3s', range: '180', desc: 'Thunder explosion around you.' },
+      dash: { name: 'Storm Dash', icon: '💨', cooldown: '5s', distance: '200', desc: 'Ride the storm forward, shocking enemies on arrival.' },
+      ultimate: { name: 'Tempest', icon: '🌪️', damage: '80', cooldown: '20s', radius: '250', desc: 'Summon a raging tempest that devastates the area.' },
+      abilities: {
+        1: { name: 'Static Field', icon: '⚡', damage: '25', cooldown: '10s', radius: '150', level: 10, desc: 'Chain lightning that jumps between enemies.' },
+        2: { name: 'Ball Lightning', icon: '🔮', damage: '30', cooldown: '12s', range: '300', level: 20, desc: 'Bouncing orb of lightning.' },
+        3: { name: 'Thunder God', icon: '🌩️', damage: '60', cooldown: '25s', radius: '300', level: 30, desc: 'Become a storm avatar with massive power.' },
+      },
+    },
+    voidlord: {
+      autoAttack: { name: 'Void Bolt', icon: '🕳️', damage: '30', cooldown: '0.8s', range: '350', desc: 'Dark void energy that pierces through enemies.' },
+      secondary: { name: 'Annihilate', icon: '💀', damage: '35 AOE', cooldown: '3s', range: '200', desc: 'Area void detonation around you.' },
+      dash: { name: 'Void Shift', icon: '💨', cooldown: '5s', distance: '200', desc: 'Phase through the void, invulnerable, dealing damage on arrival.' },
+      ultimate: { name: 'Void Rift', icon: '🌀', damage: '80', cooldown: '22s', radius: '200', desc: 'Tear open a rift that pulls enemies in and devastates them.' },
+      abilities: {
+        1: { name: 'Void Rift', icon: '🕳️', damage: '40', cooldown: '15s', radius: '150', level: 10, desc: 'Pull enemies toward a void singularity.' },
+        2: { name: 'Soul Drain', icon: '💀', damage: '35', cooldown: '12s', range: '200', level: 20, desc: 'Lifesteal attack that heals you.' },
+        3: { name: 'Apocalypse', icon: '☠️', damage: '120', cooldown: '30s', radius: '300', level: 30, desc: 'Devastating void explosion.' },
+      },
+    },
+    shadowarcher: {
+      autoAttack: { name: 'Shadow Arrow', icon: '🏹', damage: '26', cooldown: '0.55s', range: '500', desc: 'Piercing shadow arrow that passes through enemies.' },
+      secondary: { name: 'Piercing Volley', icon: '🎯', damage: '45 AOE', cooldown: '2s', range: '400', desc: 'Rain of arrows in an area.' },
+      dash: { name: 'Shadow Step', icon: '💨', cooldown: '5s', distance: '220', desc: 'Vanish into shadow and reappear at target.' },
+      ultimate: { name: 'Arrow Storm', icon: '⛈️', damage: '70', cooldown: '22s', radius: '250', desc: 'Rain down a storm of shadow arrows.' },
+      abilities: {
+        1: { name: "Hunter's Mark", icon: '🎯', damage: '25', cooldown: '8s', range: '400', level: 10, desc: 'Mark a target for bonus damage.' },
+        2: { name: 'Multishot', icon: '🏹', damage: '25 AOE', cooldown: '12s', radius: '200', level: 20, desc: 'Fire arrows in all directions.' },
+        3: { name: 'Death Arrow', icon: '💀', damage: '120', cooldown: '30s', range: '600', level: 30, desc: 'A devastating arrow that obliterates its target.' },
+      },
+    },
+    brute: {
+      autoAttack: { name: 'Dumbbell Throw', icon: '🏋️', damage: '60', cooldown: '0.4s', range: '450', desc: 'Hurl a spinning dumbbell that pierces through enemies.' },
+      secondary: { name: 'Ground Pound', icon: '💪', damage: '90 AOE', cooldown: '1.8s', range: '200', desc: 'Smash the ground with devastating force.' },
+      dash: { name: 'Shoulder Charge', icon: '💨', cooldown: '2.5s', distance: '350', desc: 'Charge forward like a freight train, flattening everything.' },
+      ultimate: { name: 'GAINS MODE', icon: '🔱', damage: '120', cooldown: '12s', radius: '300', desc: 'Flex so hard reality bends. Massive buff.' },
+      abilities: {
+        1: { name: 'Protein Shake', icon: '🥤', damage: 'Heal 30%', cooldown: '15s', radius: 'Self', level: 10, desc: 'Chug a protein shake - heal HP and gain speed.' },
+        2: { name: 'Barbell Spin', icon: '🏋️', damage: '80 AOE', cooldown: '10s', radius: '250', level: 20, desc: 'Spin a barbell around you, crushing everything.' },
+        3: { name: 'Ultimate Flex', icon: '💪', damage: '200 AOE', cooldown: '35s', radius: '350', level: 30, desc: 'Flex so hard it creates a shockwave.' },
+      },
+    },
+  };
+  
+  const data = spellData[classId] || spellData.pyromancer;
+  
+  const SpellRow = ({ spell, label, unlockLevel, isUnlocked }) => (
+    <div style={{
+      display: 'flex', gap: 12, padding: '10px 12px', borderRadius: 8,
+      background: isUnlocked ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.3)',
+      opacity: isUnlocked ? 1 : 0.5,
+      border: `1px solid ${isUnlocked ? classColor + '40' : 'rgba(255,255,255,0.05)'}`,
+    }}>
+      <div style={{
+        width: 40, height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: isUnlocked ? classColor + '30' : 'rgba(0,0,0,0.4)',
+        border: `2px solid ${isUnlocked ? classColor : '#444'}`,
+        fontSize: '1.2rem', flexShrink: 0,
+      }}>
+        {spell.icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+          <span style={{ color: isUnlocked ? classColor : '#666', fontWeight: 'bold', fontSize: '0.85rem' }}>
+            {spell.name}
+          </span>
+          <span style={{ color: '#666', fontSize: '0.7rem' }}>
+            {label}{unlockLevel ? ` • Lv ${unlockLevel}` : ''}
+          </span>
+        </div>
+        <div style={{ color: '#999', fontSize: '0.75rem', marginBottom: 4 }}>{spell.desc}</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {spell.damage && <span style={{ color: '#ef4444', fontSize: '0.7rem' }}>⚔️ {spell.damage}</span>}
+          {spell.cooldown && <span style={{ color: '#60a5fa', fontSize: '0.7rem' }}>⏱️ {spell.cooldown}</span>}
+          {spell.range && <span style={{ color: '#4ade80', fontSize: '0.7rem' }}>📏 {spell.range}</span>}
+          {spell.radius && <span style={{ color: '#fbbf24', fontSize: '0.7rem' }}>💫 {spell.radius}</span>}
+          {spell.distance && <span style={{ color: '#c084fc', fontSize: '0.7rem' }}>🏃 {spell.distance}</span>}
+          {!isUnlocked && unlockLevel && <span style={{ color: '#f87171', fontSize: '0.7rem' }}>🔒 Locked</span>}
+        </div>
+      </div>
+    </div>
+  );
+  
+  return (
+    <>
+      <div style={styles.modalBackdrop} onClick={onClose} />
+      <div style={{
+        ...styles.modal, maxWidth: 480, maxHeight: '80vh', overflow: 'auto',
+        background: `linear-gradient(135deg, rgba(20,15,30,0.98), rgba(30,20,45,0.98))`,
+        border: `2px solid ${classColor}60`,
+      }}>
+        <button style={styles.modalClose} onClick={onClose}>×</button>
+        
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: '2rem', marginBottom: 4 }}>📖</div>
+          <h3 style={{ margin: 0, color: classColor, fontSize: '1.1rem' }}>
+            {classData?.name || 'Wizard'} Spellbook
+          </h3>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>Level {level} • All abilities and spells</div>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Base Spells</div>
+          <SpellRow spell={data.autoAttack} label="LMB" isUnlocked={true} />
+          <SpellRow spell={data.secondary} label="RMB" isUnlocked={true} />
+          
+          <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Movement</div>
+          <SpellRow spell={data.dash} label="Shift" isUnlocked={true} />
+          
+          <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Ultimate</div>
+          <SpellRow spell={data.ultimate} label="Q" isUnlocked={true} />
+          
+          <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginTop: 8 }}>Class Abilities</div>
+          {[1, 2, 3].map(slot => (
+            <SpellRow
+              key={slot}
+              spell={data.abilities[slot]}
+              label={`Key ${slot}`}
+              unlockLevel={data.abilities[slot].level}
+              isUnlocked={level >= data.abilities[slot].level}
+            />
+          ))}
+        </div>
+        
+        <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, textAlign: 'center' }}>
+          <span style={{ color: '#666', fontSize: '0.7rem' }}>Tip: Damage scales with level (+5% per level) and shop upgrades</span>
+        </div>
+      </div>
+    </>
   );
 }

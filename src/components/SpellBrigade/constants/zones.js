@@ -114,12 +114,12 @@ export const SANCTUARY_FEATURES = {
 
 // Building data - larger, themed per zone
 export const BUILDING_DATA = {
-  wizard_tower:     { x: 9500,  y: 9200,  width: 120, height: 180, name: "Archmage's Tower",  color: '#ffd93d', type: 'tower',    zone: 'sanctuary' },
-  forest_ruins:     { x: 3500,  y: 4500,  width: 220, height: 160, name: 'Ancient Ruins',     color: '#78716c', type: 'ruins',    zone: 'forest' },
-  volcano_fortress: { x: 17500, y: 4500,  width: 280, height: 220, name: 'Obsidian Fortress', color: '#7f1d1d', type: 'fortress', zone: 'volcanic' },
-  ice_citadel:      { x: 10500, y: 15500, width: 260, height: 200, name: 'Ice Citadel',       color: '#0284c7', type: 'citadel',  zone: 'frozen' },
-  void_shrine:      { x: 1800,  y: 2000,  width: 180, height: 150, name: 'Void Shrine',       color: '#7c3aed', type: 'shrine',   zone: 'abyss' },
-  crystal_sanctum:  { x: 19200, y: 12000, width: 200, height: 170, name: 'Crystal Sanctum',   color: '#ec4899', type: 'sanctum',  zone: 'crystal_caves' },
+  wizard_tower:     { x: 9500,  y: 9200,  width: 180, height: 280, name: "Archmage's Tower",  color: '#ffd93d', type: 'tower',    zone: 'sanctuary' },
+  forest_ruins:     { x: 3500,  y: 4500,  width: 340, height: 240, name: 'Ancient Ruins',     color: '#78716c', type: 'ruins',    zone: 'forest' },
+  volcano_fortress: { x: 17500, y: 4500,  width: 420, height: 340, name: 'Obsidian Fortress', color: '#7f1d1d', type: 'fortress', zone: 'volcanic' },
+  ice_citadel:      { x: 10500, y: 15500, width: 400, height: 310, name: 'Ice Citadel',       color: '#0284c7', type: 'citadel',  zone: 'frozen' },
+  void_shrine:      { x: 1800,  y: 2000,  width: 280, height: 230, name: 'Void Shrine',       color: '#7c3aed', type: 'shrine',   zone: 'abyss' },
+  crystal_sanctum:  { x: 19200, y: 12000, width: 320, height: 260, name: 'Crystal Sanctum',   color: '#ec4899', type: 'sanctum',  zone: 'crystal_caves' },
 };
 
 // Quest NPCs - one per zone portal, with lore

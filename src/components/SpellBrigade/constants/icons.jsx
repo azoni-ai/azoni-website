@@ -157,4 +157,15 @@ export const CLASS_SVG = {
       <line x1="5" y1="15" x2="9" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   ),
+  brute: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="5" r="3" fill="currentColor"/>
+      <path d="M8 9h8v3c0 2-1 4-4 5c-3-1-4-3-4-5V9z" fill="currentColor"/>
+      <path d="M6 10L3 8M6 12L2 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M18 10L21 8M18 12L22 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+      <rect x="1" y="6.5" width="4" height="2" rx="1" fill="currentColor" opacity="0.7"/>
+      <rect x="19" y="6.5" width="4" height="2" rx="1" fill="currentColor" opacity="0.7"/>
+      <path d="M9 17l-1 5h2l1-3 1 3h2l-1-5" fill="currentColor"/>
+    </svg>
+  ),
 };

@@ -38,9 +38,6 @@ export default function AuthScreen({
       });
       const data = await res.json();
       if (data.success) {
-        // Clear any previous character data
-        localStorage.removeItem('spellBrigadeCharacters');
-        localStorage.removeItem('spellBrigadeSelectedChar');
         setAuthState({ isAuthenticated: true, isGuest: true, user: null, sessionToken: data.sessionToken });
         localStorage.setItem('spellBrigadeSession', JSON.stringify({ token: data.sessionToken, isGuest: true }));
         sessionTokenRef.current = data.sessionToken;
@@ -76,8 +73,8 @@ export default function AuthScreen({
         // Auto-enable admin for azoni
         if (data.user.username?.toLowerCase() === 'azoni') {
           setAdminKey('azoni-voidlord-2026');
-          setSelectedClass('shadowarcher');
-          setSelectedSkin('shadowarcher_default');
+          setSelectedClass('brute');
+          setSelectedSkin('brute_default');
           if (socketRef.current) {
             socketRef.current.emit('authenticateAdmin', { sessionToken: data.sessionToken });
           }

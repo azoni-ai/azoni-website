@@ -182,6 +182,7 @@ export default function SpellBrigade() {
   
   // Character sheet
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  const [showSpellbook, setShowSpellbook] = useState(false);
   
   // Mobile ultimate aiming mode
   const [ultAimMode, setUltAimMode] = useState(false);
@@ -754,8 +755,8 @@ export default function SpellBrigade() {
                 // Auto-enable admin for azoni
                 if (data.user?.username?.toLowerCase() === 'azoni') {
                   setAdminKey('azoni-voidlord-2026');
-                  setSelectedClass('shadowarcher');
-                  setSelectedSkin('shadowarcher_default');
+                  setSelectedClass('brute');
+                  setSelectedSkin('brute_default');
                   // Pre-authenticate socket for wizard creator before joining game
                   socket.emit('authenticateAdmin', { sessionToken: token });
                   // Listen for auth result - retry if it fails
@@ -2119,12 +2120,23 @@ export default function SpellBrigade() {
           const me = playerDataRef.current;
           if (me) {
             for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
+              // Check sanctuary-side portal
               const dx = me.x - portal.from.x;
               const dy = me.y - portal.from.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < 60) {
+              if (dist < 80) {
                 socketRef.current?.emit('usePortal', { portalId });
                 return;
+              }
+              // Check return portal at destination
+              if (portal.returnFrom) {
+                const rdx = me.x - portal.returnFrom.x;
+                const rdy = me.y - portal.returnFrom.y;
+                const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
+                if (rdist < 80) {
+                  socketRef.current?.emit('usePortal', { portalId: portalId + '_return' });
+                  return;
+                }
               }
             }
           }
@@ -2141,6 +2153,26 @@ export default function SpellBrigade() {
               const dist = Math.sqrt(dx * dx + dy * dy);
               if (dist < (npc.interactRange || 80)) {
                 socketRef.current?.emit('interactNpc', { npcId: npc.id });
+                return;
+              }
+            }
+          }
+          // Check client-side quest NPCs
+          if (me) {
+            for (const [qid, qnpc] of Object.entries(QUEST_NPCS)) {
+              const dx = me.x - qnpc.x;
+              const dy = me.y - qnpc.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 100) {
+                // Open dialogue client-side
+                setNpcDialogue({
+                  npcType: 'quest_giver',
+                  npcName: qnpc.name,
+                  emoji: qnpc.icon,
+                  dialogue: qnpc.lore,
+                  followUp: [qnpc.questPrompt, `Recommended: Level ${qnpc.recommendedLevel}+`, `Target: ${qnpc.targetBoss} in ${qnpc.targetZone === 'crystal_caves' ? 'Crystal Caves' : qnpc.targetZone}`],
+                  questGiverColor: qnpc.color,
+                });
                 return;
               }
             }
@@ -2187,6 +2219,11 @@ export default function SpellBrigade() {
         setShowCharacterSheet(prev => !prev);
       }
 
+      // Spellbook (B)
+      if (e.code === 'KeyB') {
+        setShowSpellbook(prev => !prev);
+      }
+
       // Class Abilities (1, 2, 3)
       if ((e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') && socketRef.current && playerIdRef.current) {
         const slot = parseInt(e.code.replace('Digit', ''));
@@ -2208,12 +2245,13 @@ export default function SpellBrigade() {
       // ESC - toggle settings modal
       if (e.code === 'Escape' && playerIdRef.current) {
         // Close any open modals first
-        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue) {
+        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue || showSpellbook) {
           setShowEmotes(false);
           setShowShop(false);
           setShowSkinSelect(false);
           setShowQuestLog(false);
           setNpcDialogue(null);
+          setShowSpellbook(false);
         } else {
           // Toggle settings
           setShowInGameSettings(prev => !prev);
@@ -3142,21 +3180,83 @@ export default function SpellBrigade() {
             const screenX = x - cx + tileSize/2;
             const screenY = y - cy + tileSize/2;
             
-            // Only draw some tiles have decorations (40% chance for more variety)
-            if (rand > 0.40) continue;
+            // Only draw some tiles have decorations (50% chance for rich zones)
+            if (rand > 0.50) continue;
             
             const decorRand = seededRandom(x, y, 1);
             
             if (zone === 'sanctuary') {
-              // Flowers
-              ctx.fillStyle = decorRand > 0.5 ? '#fcd34d' : '#f472b6';
-              ctx.beginPath();
-              ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#fff';
-              ctx.beginPath();
-              ctx.arc(screenX, screenY, 2, 0, Math.PI * 2);
-              ctx.fill();
+              // Rich sanctuary decorations
+              if (decorRand > 0.8) {
+                // Glowing lantern
+                const lanternGlow = 0.5 + Math.sin(Date.now() / 600 + x * y) * 0.3;
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(screenX - 2, screenY - 4, 4, 8);
+                ctx.fillStyle = `rgba(251,191,36,${lanternGlow})`;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY - 8, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = `rgba(253,224,71,${lanternGlow * 0.5})`;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY - 8, 10, 0, Math.PI * 2);
+                ctx.fill();
+              } else if (decorRand > 0.65) {
+                // Garden flower bed
+                const colors = ['#f472b6', '#fcd34d', '#c084fc', '#fb923c'];
+                for (let fi = 0; fi < 4; fi++) {
+                  const fx = screenX + (fi % 2) * 8 - 4;
+                  const fy = screenY + Math.floor(fi / 2) * 6 - 3;
+                  ctx.fillStyle = colors[fi];
+                  ctx.beginPath();
+                  ctx.arc(fx, fy, 3, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+                ctx.fillStyle = '#166534';
+                ctx.fillRect(screenX - 6, screenY + 4, 12, 2);
+              } else if (decorRand > 0.5) {
+                // Cobblestone patch
+                ctx.fillStyle = '#57534e';
+                ctx.beginPath();
+                ctx.ellipse(screenX, screenY, 8, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#78716c';
+                ctx.beginPath();
+                ctx.ellipse(screenX - 3, screenY - 1, 4, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(screenX + 3, screenY + 1, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+              } else if (decorRand > 0.35) {
+                // Small tree / shrub
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(screenX - 2, screenY, 4, 10);
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY - 3, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#16a34a';
+                ctx.beginPath();
+                ctx.arc(screenX - 3, screenY - 5, 5, 0, Math.PI * 2);
+                ctx.fill();
+              } else if (decorRand > 0.2) {
+                // Bench
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(screenX - 8, screenY, 16, 3);
+                ctx.fillRect(screenX - 7, screenY + 3, 2, 4);
+                ctx.fillRect(screenX + 5, screenY + 3, 2, 4);
+                ctx.fillStyle = '#92400e';
+                ctx.fillRect(screenX - 8, screenY - 4, 16, 2);
+              } else {
+                // Flowers (original)
+                ctx.fillStyle = decorRand > 0.1 ? '#fcd34d' : '#f472b6';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 2, 0, Math.PI * 2);
+                ctx.fill();
+              }
             } else if (zone === 'meadow') {
               // Bushes and small flowers
               if (decorRand > 0.6) {
@@ -3815,47 +3915,132 @@ export default function SpellBrigade() {
       for (const [qid, qnpc] of Object.entries(QUEST_NPCS)) {
         const qx = qnpc.x - cx;
         const qy = qnpc.y - cy;
-        if (qx < -60 || qx > width + 60 || qy < -60 || qy > height + 60) continue;
+        if (qx < -80 || qx > width + 80 || qy < -80 || qy > height + 80) continue;
         
         const qtime = Date.now() / 1000;
         const bob = Math.sin(qtime * 2) * 3;
+        const npcColor = qnpc.color;
         
-        // Glow circle
+        // Glow aura
+        const auraGrad = ctx.createRadialGradient(qx, qy + bob, 0, qx, qy + bob, 40);
+        auraGrad.addColorStop(0, npcColor + '30');
+        auraGrad.addColorStop(0.6, npcColor + '10');
+        auraGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = auraGrad;
         ctx.beginPath();
-        ctx.arc(qx, qy + bob, 35, 0, Math.PI * 2);
-        ctx.fillStyle = qnpc.color + '20';
+        ctx.arc(qx, qy + bob, 40, 0, Math.PI * 2);
         ctx.fill();
         
-        // Body circle
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
-        ctx.arc(qx, qy - 8 + bob, 16, 0, Math.PI * 2);
-        ctx.fillStyle = qnpc.color;
+        ctx.ellipse(qx, qy + 15, 12, 5, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        
+        // Robe/body (triangular robe shape)
+        ctx.fillStyle = npcColor + 'cc';
+        ctx.beginPath();
+        ctx.moveTo(qx, qy - 14 + bob);
+        ctx.lineTo(qx - 14, qy + 14);
+        ctx.lineTo(qx + 14, qy + 14);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Robe trim
+        ctx.strokeStyle = npcColor;
         ctx.lineWidth = 2;
         ctx.stroke();
         
-        // Icon
-        ctx.font = '18px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(qnpc.icon, qx, qy - 8 + bob);
+        // Inner robe highlight
+        ctx.fillStyle = npcColor + '40';
+        ctx.beginPath();
+        ctx.moveTo(qx, qy - 10 + bob);
+        ctx.lineTo(qx - 6, qy + 8);
+        ctx.lineTo(qx + 6, qy + 8);
+        ctx.closePath();
+        ctx.fill();
         
-        // Exclamation mark (quest available indicator)
-        ctx.font = 'bold 16px Arial';
+        // Head
+        ctx.beginPath();
+        ctx.arc(qx, qy - 20 + bob, 10, 0, Math.PI * 2);
+        ctx.fillStyle = '#fcd5ce';
+        ctx.fill();
+        ctx.strokeStyle = npcColor + '80';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Hood (curved top)
+        ctx.beginPath();
+        ctx.arc(qx, qy - 22 + bob, 12, Math.PI, 0);
+        ctx.fillStyle = npcColor + 'dd';
+        ctx.fill();
+        
+        // Eyes (small dots)
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        ctx.arc(qx - 3, qy - 20 + bob, 1.5, 0, Math.PI * 2);
+        ctx.arc(qx + 3, qy - 20 + bob, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Zone-specific accessory
+        if (qnpc.targetZone === 'meadow') {
+          // Flower staff
+          ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(qx + 16, qy + 10); ctx.lineTo(qx + 20, qy - 25 + bob); ctx.stroke();
+          ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(qx + 20, qy - 28 + bob, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(qx + 20, qy - 28 + bob, 2, 0, Math.PI * 2); ctx.fill();
+        } else if (qnpc.targetZone === 'forest') {
+          // Bow
+          ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(qx - 18, qy - 5 + bob, 14, -Math.PI * 0.4, Math.PI * 0.4); ctx.stroke();
+          ctx.strokeStyle = '#a8a29e'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(qx - 18, qy - 15 + bob); ctx.lineTo(qx - 18, qy + 5 + bob); ctx.stroke();
+        } else if (qnpc.targetZone === 'volcanic') {
+          // Hammer
+          ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(qx + 15, qy + 8); ctx.lineTo(qx + 22, qy - 18 + bob); ctx.stroke();
+          ctx.fillStyle = '#6b7280'; ctx.fillRect(qx + 16, qy - 24 + bob, 12, 8);
+        } else if (qnpc.targetZone === 'frozen') {
+          // Ice crystal staff
+          ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(qx - 16, qy + 10); ctx.lineTo(qx - 20, qy - 22 + bob); ctx.stroke();
+          ctx.fillStyle = '#67e8f9'; ctx.beginPath();
+          ctx.moveTo(qx - 20, qy - 30 + bob); ctx.lineTo(qx - 24, qy - 22 + bob);
+          ctx.lineTo(qx - 16, qy - 22 + bob); ctx.closePath(); ctx.fill();
+        } else if (qnpc.targetZone === 'crystal_caves') {
+          // Jeweled pendant (glowing)
+          const glow = 0.5 + Math.sin(qtime * 3) * 0.3;
+          ctx.fillStyle = `rgba(236,72,153,${glow})`; ctx.beginPath();
+          ctx.arc(qx, qy - 5 + bob, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(qx - 3, qy - 15 + bob); ctx.lineTo(qx, qy - 5 + bob); ctx.lineTo(qx + 3, qy - 15 + bob); ctx.stroke();
+        } else if (qnpc.targetZone === 'abyss') {
+          // Floating void orb
+          ctx.save();
+          const vOrb = ctx.createRadialGradient(qx + 18, qy - 10 + bob, 0, qx + 18, qy - 10 + bob, 8);
+          vOrb.addColorStop(0, '#c084fc'); vOrb.addColorStop(1, 'transparent');
+          ctx.fillStyle = vOrb; ctx.beginPath(); ctx.arc(qx + 18, qy - 10 + bob, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#7c3aed'; ctx.beginPath(); ctx.arc(qx + 18, qy - 10 + bob, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        
+        // Exclamation mark quest indicator
+        const exBob = Math.sin(qtime * 4) * 3;
+        ctx.font = 'bold 18px Arial';
         ctx.fillStyle = '#fbbf24';
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
-        ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 3;
-        ctx.fillText('!', qx, qy - 30 + bob);
+        ctx.shadowColor = 'rgba(251,191,36,0.5)'; ctx.shadowBlur = 8;
+        ctx.fillText('!', qx, qy - 36 + bob + exBob);
         ctx.shadowBlur = 0;
         
         // Name
-        ctx.font = '11px Arial';
+        ctx.font = 'bold 11px Arial';
         ctx.fillStyle = '#fff';
-        ctx.fillText(qnpc.name, qx, qy + 28 + bob);
+        ctx.fillText(qnpc.name, qx, qy + 28);
         ctx.font = '9px Arial';
-        ctx.fillStyle = qnpc.color;
-        ctx.fillText(`Lv ${qnpc.recommendedLevel}+`, qx, qy + 40 + bob);
+        ctx.fillStyle = npcColor;
+        ctx.fillText(`Lv ${qnpc.recommendedLevel}+ • ${qnpc.targetZone === 'crystal_caves' ? 'Crystal Caves' : qnpc.targetZone.charAt(0).toUpperCase() + qnpc.targetZone.slice(1)}`, qx, qy + 40);
         
         // Interaction prompt when nearby
         if (me) {
@@ -3863,7 +4048,7 @@ export default function SpellBrigade() {
           if (distToNpc < 100) {
             ctx.font = 'bold 12px Arial';
             ctx.fillStyle = '#4ade80';
-            ctx.fillText('[E] Talk', qx, qy + 55 + bob);
+            ctx.fillText('[E] Talk', qx, qy + 55);
           }
         }
       }
@@ -4507,6 +4692,13 @@ export default function SpellBrigade() {
           const bossType = enemy.type;
           const time = Date.now() / 1000;
           
+          // Scale boss rendering from center (dragon already has internal 4x scale)
+          const bossScale = (bossType === 'boss_dragon') ? 1 : (bossType === 'custom_boss') ? 1 : 3;
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.scale(bossScale, bossScale);
+          ctx.translate(-sx, -sy);
+          
           if (bossType === 'boss_meadow' || bossType === 'blossom_behemoth') {
             // Blossom Behemoth - Flower monster
             const petalCount = 8;
@@ -5096,6 +5288,9 @@ export default function SpellBrigade() {
             }
             ctx.globalAlpha = 1;
             
+            // Restore scale before drawing dragon health bar
+            ctx.restore();
+            
             // === DRAGON HEALTH BAR (custom, larger) ===
             const dhbW = 200;
             const dhbY = sy - 200 * scale - bodyBob;
@@ -5275,6 +5470,11 @@ export default function SpellBrigade() {
               }
             }
             
+            // Restore scale before custom boss health bar
+            ctx.restore();
+            // Re-save so the generic restore below doesn't error
+            ctx.save();
+            
             // Custom boss health bar (larger than default)
             const cbhW = 80;
             const cbhY = sy - 75 * sc;
@@ -5314,6 +5514,9 @@ export default function SpellBrigade() {
             ctx.arc(sx + 8, sy - 8 - bounce, 3, 0, Math.PI * 2);
             ctx.fill();
           }
+          
+          // Restore canvas scale before drawing health bars
+          ctx.restore();
           
           // Boss health bar (all bosses)
           const hbW = 60;
@@ -6521,6 +6724,87 @@ export default function SpellBrigade() {
             ctx.fill();
           }
         }
+        // ========== BRUTE SPELLS ==========
+        else if (ownerClass === 'brute') {
+          if (spellId === 'dumbbellThrow') {
+            // Spinning dumbbell projectile
+            const angle = time * 12; // Fast spin
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(angle);
+            // Bar
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillRect(-14, -2, 28, 4);
+            // Weights (golden)
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(-14, 0, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(14, 0, 6, 0, Math.PI * 2); ctx.fill();
+            // Weight shine
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath(); ctx.arc(-14, -2, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(14, -2, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+            // Trail
+            for (let i = 1; i <= 3; i++) {
+              const trailAngle = Math.atan2(proj.vy || 0, proj.vx || 0);
+              const tx = px - Math.cos(trailAngle) * i * 10;
+              const ty = py - Math.sin(trailAngle) * i * 10;
+              ctx.beginPath();
+              ctx.arc(tx, ty, 4 - i, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(251,191,36,${0.3 - i * 0.08})`;
+              ctx.fill();
+            }
+            // Impact glow
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius + 8, 0, Math.PI * 2);
+            const dbGlow = ctx.createRadialGradient(px, py, 0, px, py, baseRadius + 8);
+            dbGlow.addColorStop(0, 'rgba(251,191,36,0.4)');
+            dbGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = dbGlow;
+            ctx.fill();
+          } else if (spellId === 'groundPound' || spellId === 'barbellSpin' || spellId === 'ultimateFlex') {
+            // AOE shockwave - golden expanding ring
+            const expand = Math.sin(time * 6) * 0.1 + 1;
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius * expand, 0, Math.PI * 2);
+            const gpGrad = ctx.createRadialGradient(px, py, 0, px, py, baseRadius * expand);
+            gpGrad.addColorStop(0, 'rgba(251,191,36,0.5)');
+            gpGrad.addColorStop(0.3, 'rgba(180,83,9,0.3)');
+            gpGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = gpGrad;
+            ctx.fill();
+            // Crack lines radiating outward
+            ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+              const a = (i / 8) * Math.PI * 2 + time;
+              ctx.beginPath();
+              ctx.moveTo(px + Math.cos(a) * baseRadius * 0.2, py + Math.sin(a) * baseRadius * 0.2);
+              ctx.lineTo(px + Math.cos(a) * baseRadius * 0.7 * expand, py + Math.sin(a) * baseRadius * 0.7 * expand);
+              ctx.stroke();
+            }
+            // Flying dumbbells for barbell spin
+            if (spellId === 'barbellSpin') {
+              for (let i = 0; i < 4; i++) {
+                const a = time * 5 + (i * Math.PI / 2);
+                const d = baseRadius * 0.5;
+                const dx = px + Math.cos(a) * d;
+                const dy = py + Math.sin(a) * d;
+                ctx.fillStyle = '#9ca3af';
+                ctx.fillRect(dx - 5, dy - 1.5, 10, 3);
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath(); ctx.arc(dx - 5, dy, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(dx + 5, dy, 3, 0, Math.PI * 2); ctx.fill();
+              }
+            }
+          } else {
+            // Default brute spell
+            ctx.beginPath();
+            ctx.arc(px, py, baseRadius, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color || '#fbbf24';
+            ctx.fill();
+          }
+        }
         // ========== DEFAULT/OTHER SPELLS ==========
         else {
           // Default glow
@@ -6581,8 +6865,9 @@ export default function SpellBrigade() {
         const secondaryColor = player.customSecondaryColor || skin?.secondaryColor || classColor;
         const isVoidlord = player.class === 'voidlord';
         const isShadowArcher = player.class === 'shadowarcher';
+        const isBrute = player.class === 'brute';
         const isCustomWizard = player.isCustomWizard || false;
-        const isSpecialClass = isVoidlord || isShadowArcher || isCustomWizard;
+        const isSpecialClass = isVoidlord || isShadowArcher || isBrute || isCustomWizard;
         const bob = player.state === 'walk' ? Math.sin((player.animFrame || 0) * Math.PI / 2) * 2 : 0;
         const time = Date.now() / 1000;
         
@@ -6843,16 +7128,99 @@ export default function SpellBrigade() {
           }
         }
 
+        // The Brute special aura - golden muscle energy
+        if (isBrute && !skin?.aura) {
+          const pulseSize = 35 + Math.sin(time * 3) * 8;
+          const bruteGrad = ctx.createRadialGradient(px, py, 0, px, py, pulseSize);
+          bruteGrad.addColorStop(0, 'rgba(251,191,36,0.25)');
+          bruteGrad.addColorStop(0.5, 'rgba(180,83,9,0.15)');
+          bruteGrad.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(px, py, pulseSize, 0, Math.PI * 2);
+          ctx.fillStyle = bruteGrad;
+          ctx.fill();
+          // Floating dumbbells orbiting
+          for (let i = 0; i < 2; i++) {
+            const angle = time * 2.5 + i * Math.PI;
+            const ox = px + Math.cos(angle) * 24;
+            const oy = py + Math.sin(angle) * 10 - 5;
+            ctx.fillStyle = '#6b7280';
+            ctx.fillRect(ox - 6, oy - 1.5, 12, 3);
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(ox - 6, oy, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(ox + 6, oy, 3, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+
         // Shadow
         ctx.beginPath();
         ctx.ellipse(px, py + 12, isSpecialClass ? 20 : 16, isSpecialClass ? 10 : 8, 0, 0, Math.PI * 2);
-        ctx.fillStyle = isVoidlord ? 'rgba(255,0,255,0.4)' : isShadowArcher ? 'rgba(220,38,38,0.35)' : 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = isVoidlord ? 'rgba(255,0,255,0.4)' : isShadowArcher ? 'rgba(220,38,38,0.35)' : isBrute ? 'rgba(180,83,9,0.4)' : 'rgba(0,0,0,0.3)';
         ctx.fill();
 
-        // Body (Robe for wizards, cloak for archer)
-        ctx.fillStyle = isVoidlord ? '#1a0a2e' : isShadowArcher ? '#0f172a' : classColor;
+        // Body (Robe for wizards, cloak for archer, muscular torso for brute)
+        ctx.fillStyle = isVoidlord ? '#1a0a2e' : isShadowArcher ? '#0f172a' : isBrute ? '#d4a574' : classColor;
         ctx.beginPath();
-        if (isShadowArcher) {
+        if (isBrute) {
+          // Muscular V-shaped torso (no shirt!)
+          ctx.moveTo(px - 16, py + 14);
+          ctx.lineTo(px - 18, py - 2 - bob);
+          ctx.quadraticCurveTo(px - 14, py - 12 - bob, px, py - 14 - bob);
+          ctx.quadraticCurveTo(px + 14, py - 12 - bob, px + 18, py - 2 - bob);
+          ctx.lineTo(px + 16, py + 14);
+          ctx.closePath();
+          ctx.fill();
+          // Chest definition / abs
+          ctx.strokeStyle = '#c49560';
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(px, py - 12 - bob); ctx.lineTo(px, py + 8); ctx.stroke();
+          ctx.beginPath(); ctx.arc(px - 6, py - 6 - bob, 5, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(px + 6, py - 6 - bob, 5, 0, Math.PI * 2); ctx.stroke();
+          // Ab lines
+          ctx.beginPath(); ctx.moveTo(px - 5, py + 2); ctx.lineTo(px + 5, py + 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(px - 4, py + 7); ctx.lineTo(px + 4, py + 7); ctx.stroke();
+          // Buff arms (thick)
+          ctx.fillStyle = '#d4a574';
+          // Left arm flexed
+          ctx.beginPath();
+          ctx.moveTo(px - 18, py - 4 - bob);
+          ctx.quadraticCurveTo(px - 28, py - 12 - bob, px - 24, py - 20 - bob);
+          ctx.lineTo(px - 20, py - 18 - bob);
+          ctx.quadraticCurveTo(px - 24, py - 8 - bob, px - 16, py - 2 - bob);
+          ctx.closePath();
+          ctx.fill();
+          // Right arm flexed
+          ctx.beginPath();
+          ctx.moveTo(px + 18, py - 4 - bob);
+          ctx.quadraticCurveTo(px + 28, py - 12 - bob, px + 24, py - 20 - bob);
+          ctx.lineTo(px + 20, py - 18 - bob);
+          ctx.quadraticCurveTo(px + 24, py - 8 - bob, px + 16, py - 2 - bob);
+          ctx.closePath();
+          ctx.fill();
+          // Bicep bulge highlights
+          ctx.fillStyle = 'rgba(255,255,255,0.15)';
+          ctx.beginPath(); ctx.arc(px - 24, py - 14 - bob, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(px + 24, py - 14 - bob, 4, 0, Math.PI * 2); ctx.fill();
+          // Shorts
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(px - 12, py + 8, 24, 8);
+          // Belt (gold)
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(px - 13, py + 7, 26, 3);
+          // Belt buckle
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillRect(px - 3, py + 6, 6, 4);
+          // Brute glow edge
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(px - 16, py + 14);
+          ctx.lineTo(px - 18, py - 2 - bob);
+          ctx.quadraticCurveTo(px - 14, py - 12 - bob, px, py - 14 - bob);
+          ctx.quadraticCurveTo(px + 14, py - 12 - bob, px + 18, py - 2 - bob);
+          ctx.lineTo(px + 16, py + 14);
+          ctx.stroke();
+        } else if (isShadowArcher) {
           // Sleeker cloak shape
           ctx.moveTo(px, py - 14 - bob);
           ctx.lineTo(px - 12, py + 12);
@@ -6878,12 +7246,28 @@ export default function SpellBrigade() {
 
         // Head
         ctx.beginPath();
-        ctx.arc(px, py - 18 - bob, 11, 0, Math.PI * 2);
-        ctx.fillStyle = isVoidlord ? '#2d1b4e' : isShadowArcher ? '#1e293b' : '#fcd5ce';
+        ctx.arc(px, py - 18 - bob, isBrute ? 13 : 11, 0, Math.PI * 2);
+        ctx.fillStyle = isVoidlord ? '#2d1b4e' : isShadowArcher ? '#1e293b' : isBrute ? '#d4a574' : '#fcd5ce';
         ctx.fill();
 
-        // Hat/Hood
-        if (isShadowArcher) {
+        // Hat/Hood/Hair
+        if (isBrute) {
+          // Buzz cut / flat top hair
+          ctx.fillStyle = '#44403c';
+          ctx.beginPath();
+          ctx.arc(px, py - 20 - bob, 13, Math.PI, 0);
+          ctx.fill();
+          // Thick neck
+          ctx.fillStyle = '#d4a574';
+          ctx.fillRect(px - 6, py - 8 - bob, 12, 6);
+          // Headband
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(px - 14, py - 22 - bob, 28, 3);
+          // Angry eyebrows
+          ctx.strokeStyle = '#44403c'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(px - 8, py - 22 - bob); ctx.lineTo(px - 3, py - 20 - bob); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(px + 8, py - 22 - bob); ctx.lineTo(px + 3, py - 20 - bob); ctx.stroke();
+        } else if (isShadowArcher) {
           // Hood
           ctx.fillStyle = '#0f172a';
           ctx.beginPath();
@@ -6932,7 +7316,7 @@ export default function SpellBrigade() {
         }
 
         // Eyes
-        ctx.fillStyle = isVoidlord ? '#ff00ff' : isShadowArcher ? '#dc2626' : '#333';
+        ctx.fillStyle = isVoidlord ? '#ff00ff' : isShadowArcher ? '#dc2626' : isBrute ? '#b45309' : '#333';
         ctx.beginPath();
         ctx.arc(px - 3, py - 19 - bob, isSpecialClass ? 3 : 2, 0, Math.PI * 2);
         ctx.fill();
@@ -6963,6 +7347,17 @@ export default function SpellBrigade() {
           ctx.fillStyle = '#dc2626';
           ctx.font = '10px sans-serif';
           ctx.fillText('SHADOW ARCHER', px, py + 40);
+        } else if (isBrute) {
+          ctx.shadowColor = '#fbbf24';
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('💪 ' + player.name, px, py + 28);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#f59e0b';
+          ctx.font = '10px sans-serif';
+          ctx.fillText('THE BRUTE', px, py + 40);
         } else {
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 11px sans-serif';
@@ -8644,10 +9039,10 @@ export default function SpellBrigade() {
   const handleNewCharacter = () => {
     initAudio();
     setPlayerName('');
-    // Admin defaults to shadow archer
+    // Admin defaults to brute
     if (adminKey === 'azoni-voidlord-2026') {
-      setSelectedClass('shadowarcher');
-      setSelectedSkin('shadowarcher_default');
+      setSelectedClass('brute');
+      setSelectedSkin('brute_default');
     } else {
       setSelectedClass('pyromancer');
       setSelectedSkin('pyromancer_default');
@@ -9309,6 +9704,7 @@ export default function SpellBrigade() {
                   stormcaller: { 1: 'Static Field', 2: 'Ball Lightning', 3: 'Thunder God' },
                   voidlord: { 1: 'Void Rift', 2: 'Soul Drain', 3: 'Apocalypse' },
                   shadowarcher: { 1: "Hunter's Mark", 2: 'Multishot', 3: 'Death Arrow' },
+                  brute: { 1: 'Protein Shake', 2: 'Barbell Spin', 3: 'Ultimate Flex' },
                 };
                 const abilityDescs = {
                   pyromancer: { 1: 'Damage aura around you', 2: 'Delayed AOE at target', 3: 'Massive explosion' },
@@ -9317,6 +9713,7 @@ export default function SpellBrigade() {
                   stormcaller: { 1: 'Chain lightning', 2: 'Bouncing orb', 3: 'Storm avatar' },
                   voidlord: { 1: 'Pull enemies', 2: 'Lifesteal', 3: 'Devastation' },
                   shadowarcher: { 1: 'Piercing shot', 2: 'Arrow burst', 3: 'Lethal strike' },
+                  brute: { 1: 'Heal + speed boost', 2: 'Spinning AOE', 3: 'Shockwave flex' },
                 };
                 const abilityIcons = {
                   pyromancer: { 1: '🔥', 2: '☄️', 3: '💥' },
@@ -9325,6 +9722,7 @@ export default function SpellBrigade() {
                   stormcaller: { 1: '⚡', 2: '🔮', 3: '🌩️' },
                   voidlord: { 1: '🕳️', 2: '💀', 3: '☠️' },
                   shadowarcher: { 1: '🎯', 2: '🏹', 3: '💀' },
+                  brute: { 1: '🥤', 2: '🏋️', 3: '💪' },
                 };
                 const abilityColors = {
                   pyromancer: '#ff6b35',
@@ -9333,6 +9731,7 @@ export default function SpellBrigade() {
                   stormcaller: '#ffff00',
                   voidlord: '#ff00ff',
                   shadowarcher: '#dc2626',
+                  brute: '#fbbf24',
                 };
                 
                 // Check for custom wizard ability data
@@ -9410,6 +9809,20 @@ export default function SpellBrigade() {
                   </div>
                 );
               })}
+              
+              {/* Spellbook Button */}
+              <div style={{ width: 2, background: 'rgba(255,255,255,0.1)', margin: '5px 3px' }} />
+              <div
+                onClick={() => setShowSpellbook(prev => !prev)}
+                style={{
+                  width: 42, height: 42, borderRadius: 8, cursor: 'pointer',
+                  background: showSpellbook ? 'rgba(251,191,36,0.3)' : 'rgba(0,0,0,0.5)',
+                  border: `2px solid ${showSpellbook ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.1rem',
+                }}
+                title="Spellbook (B)"
+              >📖</div>
             </div>
           )}
 
@@ -9477,6 +9890,18 @@ export default function SpellBrigade() {
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                     </svg>
                   </button>
+                  {/* Spellbook button */}
+                  <button
+                    onClick={() => setShowSpellbook(prev => !prev)}
+                    style={{
+                      background: showSpellbook ? 'rgba(251,191,36,0.3)' : 'rgba(251,191,36,0.15)',
+                      border: `1px solid ${showSpellbook ? '#fbbf24' : 'rgba(251,191,36,0.3)'}`,
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      color: '#fbbf24',
+                      fontSize: '0.85rem',
+                    }}
+                  >📖</button>
                   {/* Settings button - moved to below bars */}
                 </div>
 
@@ -9653,7 +10078,7 @@ export default function SpellBrigade() {
                 {/* Row 1: Secondary buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   {/* Auto-Attack Toggle (for PvP classes) */}
-                  {(playerInfo?.class === 'voidlord' || playerInfo?.class === 'shadowarcher') && (
+                  {(playerInfo?.class === 'voidlord' || playerInfo?.class === 'shadowarcher' || playerInfo?.class === 'brute') && (
                     <button
                       style={{
                         ...styles.actionButton(autoAttack ? '#fbbf24' : '#666'),
@@ -9669,7 +10094,7 @@ export default function SpellBrigade() {
                     </button>
                   )}
                   {/* PvP Toggle (for PvP classes) */}
-                  {(playerInfo?.class === 'voidlord' || playerInfo?.class === 'shadowarcher') && (
+                  {(playerInfo?.class === 'voidlord' || playerInfo?.class === 'shadowarcher' || playerInfo?.class === 'brute') && (
                     <button
                       style={{
                         ...styles.actionButton(pvpEnabled ? '#ef4444' : '#666'),
@@ -9979,6 +10404,8 @@ export default function SpellBrigade() {
         setShowInGameSettings={setShowInGameSettings}
         showCharacterSheet={showCharacterSheet}
         setShowCharacterSheet={setShowCharacterSheet}
+        showSpellbook={showSpellbook}
+        setShowSpellbook={setShowSpellbook}
         showAdminPanel={showAdminPanel}
         setShowAdminPanel={setShowAdminPanel}
         showEmotes={showEmotes}
