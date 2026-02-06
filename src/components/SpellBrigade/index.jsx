@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 // Local imports
 import { SVG, CLASS_SVG } from './constants/icons';
 import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/config';
-import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, pointInPolygon, getZoneAtPosition } from './constants/zones';
+import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, QUEST_NPCS, SANCTUARY_FEATURES, pointInPolygon, getZoneAtPosition } from './constants/zones';
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
 
@@ -38,10 +38,6 @@ export default function SpellBrigade() {
   const zoomRef = useRef(1);
   const effectsRef = useRef([]);
   const meteorWarningsRef = useRef([]);
-  const freezeWarningsRef = useRef([]);
-  const rootWarningsRef = useRef([]);
-  const rootEruptsRef = useRef([]);
-  const bossEnlargeRef = useRef({});
   const pendingCustomWizardRef = useRef(null); // Custom wizard to apply after joining game
   const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, musicEnabled: true, musicVolume: 0.3, showZoneNames: true, showMinimap: true });
 
@@ -1024,14 +1020,14 @@ export default function SpellBrigade() {
             const dx = me.x - building.x;
             const dy = me.y - (building.y - building.height / 2);
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 60) { // Reduced from 100 to prevent walk-through interaction
+            if (dist < 120) { // Increased for larger buildings
               foundBuilding = { id, ...building };
               break;
             }
           }
           setNearbyBuilding(foundBuilding);
           
-          // Check for nearby NPCs
+          // Check for nearby NPCs (server-side + client-side quest NPCs)
           let foundNpc = null;
           if (state.npcs) {
             for (const npc of state.npcs) {
@@ -1044,17 +1040,40 @@ export default function SpellBrigade() {
               }
             }
           }
+          // Also check quest NPCs (client-side only)
+          if (!foundNpc) {
+            for (const [qid, qnpc] of Object.entries(QUEST_NPCS)) {
+              const dx = me.x - qnpc.x;
+              const dy = me.y - qnpc.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 100) {
+                foundNpc = { ...qnpc, isQuestGiver: true };
+                break;
+              }
+            }
+          }
           setNearbyNpc(foundNpc);
           
-          // Check for nearby portals
+          // Check for nearby portals (sanctuary-side + return portals)
           let foundPortal = null;
           for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
+            // Check sanctuary-side portal
             const dx = me.x - portal.from.x;
             const dy = me.y - portal.from.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < 60) {
               foundPortal = { id: portalId, ...portal };
               break;
+            }
+            // Check return portal at destination
+            if (portal.returnFrom) {
+              const rdx = me.x - portal.returnFrom.x;
+              const rdy = me.y - portal.returnFrom.y;
+              const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
+              if (rdist < 60) {
+                foundPortal = { id: portalId + '_return', from: portal.returnFrom, to: portal.returnTo, color: portal.color, name: '← Back to Sanctuary', icon: '🏠', level: 0, isReturn: true };
+                break;
+              }
             }
           }
           setNearbyPortal(foundPortal);
@@ -1188,79 +1207,6 @@ export default function SpellBrigade() {
         startTime: Date.now(),
         delay: data.delay,
       });
-    });
-
-    // Freeze circle warning (Frost Wyrm) - flashing blue/white circle
-    socket.on('freezeCircleWarning', (data) => {
-      freezeWarningsRef.current.push({
-        x: data.x,
-        y: data.y,
-        radius: data.radius,
-        startTime: Date.now(),
-        delay: data.delay || 2000,
-        color: data.color || '#22d3ee',
-      });
-    });
-
-    socket.on('freezeCircleExplode', (data) => {
-      effectsRef.current.push({
-        type: 'freezeExplode',
-        x: data.x,
-        y: data.y,
-        radius: data.radius,
-        startTime: Date.now(),
-        duration: 600,
-      });
-    });
-
-    // Root warning (Ancient Treant) - green pulsing circle
-    socket.on('rootWarning', (data) => {
-      rootWarningsRef.current.push({
-        x: data.x,
-        y: data.y,
-        radius: data.radius,
-        startTime: Date.now(),
-        delay: data.delay || 800,
-      });
-    });
-
-    // Root erupt visual
-    socket.on('rootErupt', (data) => {
-      rootEruptsRef.current.push({
-        x: data.x,
-        y: data.y,
-        startTime: Date.now(),
-        duration: 1200,
-      });
-    });
-
-    // Boss enlarge (Crystal Golem phase)
-    socket.on('bossEnlarge', (data) => {
-      bossEnlargeRef.current[data.enemyId] = {
-        scale: data.scale || 1.5,
-        startTime: Date.now(),
-        duration: 1000,
-      };
-    });
-
-    // Spore wave visual (Blossom Behemoth)
-    socket.on('sporeWave', (data) => {
-      effectsRef.current.push({
-        type: 'sporeWave',
-        x: data.x,
-        y: data.y,
-        count: data.count,
-        startTime: Date.now(),
-        duration: 800,
-      });
-    });
-
-    // Player frozen indicator
-    socket.on('frozen', (data) => {
-      // Store frozen state locally for visual
-      if (playerDataRef.current) {
-        playerDataRef.current.frozenUntil = Date.now() + (data.duration || 3000);
-      }
     });
 
     socket.on('iceNova', (data) => {
@@ -2259,39 +2205,19 @@ export default function SpellBrigade() {
         }
       }
 
-      // ESC - priority: close chat > close NPC dialogue > close settings > close modals > open settings
+      // ESC - toggle settings modal
       if (e.code === 'Escape' && playerIdRef.current) {
-        // First: if chat input is focused, blur it
-        const activeEl = document.activeElement;
-        if (activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA') {
-          activeEl.blur();
-          return;
-        }
-        
-        // Second: close NPC dialogue if open (don't touch settings)
-        if (npcDialogue) {
-          setNpcDialogue(null);
-          return;
-        }
-        
-        // Third: close settings if open
-        if (showInGameSettings) {
-          setShowInGameSettings(false);
-          return;
-        }
-        
-        // Fourth: close any open modals
-        if (showEmotes || showShop || showSkinSelect || showQuestLog || showCharacterSheet) {
+        // Close any open modals first
+        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue) {
           setShowEmotes(false);
           setShowShop(false);
           setShowSkinSelect(false);
           setShowQuestLog(false);
-          if (typeof setShowCharacterSheet === 'function') setShowCharacterSheet(false);
-          return;
+          setNpcDialogue(null);
+        } else {
+          // Toggle settings
+          setShowInGameSettings(prev => !prev);
         }
-        
-        // Fifth: nothing else open, open settings
-        setShowInGameSettings(true);
       }
     };
 
@@ -2676,8 +2602,8 @@ export default function SpellBrigade() {
       ctx.setTransform(zoom, 0, 0, zoom, 0, 0);
 
       // World center (for zone calculations)
-      const worldCenterX = 2500;
-      const worldCenterY = 2500;
+      const worldCenterX = 10500;
+      const worldCenterY = 9000;
 
       // Clear background
       ctx.fillStyle = '#0f0f1a';
@@ -3216,8 +3142,8 @@ export default function SpellBrigade() {
             const screenX = x - cx + tileSize/2;
             const screenY = y - cy + tileSize/2;
             
-            // Only draw some tiles have decorations (25% chance for more variety)
-            if (rand > 0.25) continue;
+            // Only draw some tiles have decorations (40% chance for more variety)
+            if (rand > 0.40) continue;
             
             const decorRand = seededRandom(x, y, 1);
             
@@ -3461,10 +3387,10 @@ export default function SpellBrigade() {
         const centerX = worldCenterX - cx;
         const centerY = worldCenterY - cy;
       const zoneRings = [
-        { r: 2600, c: '#581c87' },
-        { r: 2100, c: '#0ea5e9' },
-        { r: 1600, c: '#dc2626' },
-        { r: 900, c: '#166534' },
+        { r: 8000, c: '#581c87' },
+        { r: 6500, c: '#0ea5e9' },
+        { r: 5000, c: '#dc2626' },
+        { r: 3000, c: '#166534' },
       ];
       for (const z of zoneRings) {
         ctx.beginPath();
@@ -3524,7 +3450,7 @@ export default function SpellBrigade() {
 
       // ========== SANCTUARY HEALING ZONE VISUAL ========== (skip in dungeon)
       if (!inDungeonRef.current) {
-        const sanctuaryCenter = { x: 3500, y: 3000 }; // Updated for new layout
+        const sanctuaryCenter = { x: 10500, y: 9000 };
         const scx = sanctuaryCenter.x - cx;
         const scy = sanctuaryCenter.y - cy;
         const healRadius = 380; // Match new sanctuary size
@@ -3535,7 +3461,7 @@ export default function SpellBrigade() {
             scy > -healRadius - 100 && scy < height + healRadius + 100) {
           
           // ========== HEALING FOUNTAIN (center) ==========
-          const fountainRadius = 80;
+          const fountainRadius = 200;
           const fountainGlow = ctx.createRadialGradient(scx, scy, 0, scx, scy, fountainRadius * 1.5);
           fountainGlow.addColorStop(0, `rgba(74, 222, 128, ${0.4 + Math.sin(time * 4) * 0.1})`);
           fountainGlow.addColorStop(0.5, `rgba(34, 197, 94, ${0.2 + Math.sin(time * 3) * 0.05})`);
@@ -3654,90 +3580,298 @@ export default function SpellBrigade() {
         const h = building.height;
         
         // Skip if off screen
-        if (bx < -w || bx > width + w || by < -h || by > height + h) continue;
+        if (bx < -w*2 || bx > width + w*2 || by < -h*2 || by > height + h*2) continue;
         
         // Building shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(bx - w/2 + 5, by - h + 5, w, h);
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(bx + 8, by + 8, w * 0.6, h * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
         
-        // Building body
-        ctx.fillStyle = building.color;
-        ctx.fillRect(bx - w/2, by - h, w, h);
-        
-        // Building outline
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(bx - w/2, by - h, w, h);
-        
-        // Roof/top decoration
         if (id === 'wizard_tower') {
-          // Spire
+          // === ARCHMAGE'S TOWER - tall stone tower with glowing windows ===
+          // Base stones
+          const baseGrad = ctx.createLinearGradient(bx - w/2, by, bx + w/2, by);
+          baseGrad.addColorStop(0, '#6b7280'); baseGrad.addColorStop(0.5, '#9ca3af'); baseGrad.addColorStop(1, '#6b7280');
+          ctx.fillStyle = baseGrad;
+          ctx.fillRect(bx - w/2, by - h, w, h);
+          // Stone lines
+          ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1;
+          for (let row = 0; row < 6; row++) {
+            const ry = by - h + row * (h / 6);
+            ctx.beginPath(); ctx.moveTo(bx - w/2, ry); ctx.lineTo(bx + w/2, ry); ctx.stroke();
+          }
+          // Conical roof
           ctx.beginPath();
-          ctx.moveTo(bx, by - h - 40);
-          ctx.lineTo(bx - w/2, by - h);
-          ctx.lineTo(bx + w/2, by - h);
+          ctx.moveTo(bx, by - h - 80);
+          ctx.lineTo(bx - w/2 - 10, by - h);
+          ctx.lineTo(bx + w/2 + 10, by - h);
           ctx.closePath();
-          ctx.fillStyle = '#7c3aed';
+          const roofGrad = ctx.createLinearGradient(bx, by - h - 80, bx, by - h);
+          roofGrad.addColorStop(0, '#7c3aed'); roofGrad.addColorStop(1, '#4c1d95');
+          ctx.fillStyle = roofGrad;
           ctx.fill();
-          // Windows
-          for (let i = 0; i < 3; i++) {
-            const wy = by - h + 25 + i * 35;
-            ctx.fillStyle = (Math.sin(time * 2 + i) > 0) ? '#ffd93d' : '#aa9920';
-            ctx.fillRect(bx - 8, wy, 16, 20);
+          // Glowing windows
+          for (let i = 0; i < 4; i++) {
+            const wy = by - h + 20 + i * (h / 4.5);
+            const glow = Math.sin(time * 2 + i * 0.8) > 0;
+            ctx.fillStyle = glow ? '#ffd93d' : '#b8860b';
+            ctx.beginPath(); ctx.arc(bx, wy + 10, 10, 0, Math.PI * 2); ctx.fill();
+            if (glow) {
+              ctx.fillStyle = 'rgba(255,217,61,0.3)';
+              ctx.beginPath(); ctx.arc(bx, wy + 10, 25, 0, Math.PI * 2); ctx.fill();
+            }
           }
-        } else if (id === 'volcano_fortress') {
-          // Lava glow
-          const glowAlpha = 0.3 + Math.sin(time * 2) * 0.1;
-          ctx.fillStyle = `rgba(249, 115, 22, ${glowAlpha})`;
-          ctx.beginPath();
-          ctx.arc(bx, by - h/2, w * 0.7, 0, Math.PI * 2);
+          // Tip orb
+          ctx.beginPath(); ctx.arc(bx, by - h - 80, 8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,217,61,${0.6 + Math.sin(time * 3) * 0.3})`;
           ctx.fill();
-        } else if (id === 'ice_citadel') {
-          // Ice glow
-          ctx.fillStyle = 'rgba(103, 232, 249, 0.2)';
-          ctx.beginPath();
-          ctx.arc(bx, by - h/2, w * 0.6, 0, Math.PI * 2);
-          ctx.fill();
-          // Spires
-          for (let i = 0; i < 3; i++) {
-            const sx = bx - w/3 + i * (w/3);
+          ctx.fillStyle = 'rgba(255,217,61,0.2)';
+          ctx.beginPath(); ctx.arc(bx, by - h - 80, 20, 0, Math.PI * 2); ctx.fill();
+          
+        } else if (id === 'forest_ruins') {
+          // === ANCIENT RUINS - crumbling stone pillars with vines ===
+          const pillarW = w / 6;
+          const pillars = [-0.35, -0.1, 0.15, 0.4];
+          for (let p = 0; p < pillars.length; p++) {
+            const px = bx + pillars[p] * w;
+            const pillarH = h * (0.6 + p * 0.1);
+            // Cracked pillar
+            ctx.fillStyle = '#78716c';
+            ctx.fillRect(px - pillarW/2, by - pillarH, pillarW, pillarH);
+            // Broken top
             ctx.beginPath();
-            ctx.moveTo(sx, by - h - 25);
-            ctx.lineTo(sx - 12, by - h);
-            ctx.lineTo(sx + 12, by - h);
+            ctx.moveTo(px - pillarW/2, by - pillarH);
+            ctx.lineTo(px - pillarW/4, by - pillarH - 8 - (p % 2) * 10);
+            ctx.lineTo(px + pillarW/4, by - pillarH - 5);
+            ctx.lineTo(px + pillarW/2, by - pillarH);
             ctx.closePath();
-            ctx.fillStyle = '#67e8f9';
+            ctx.fillStyle = '#a8a29e'; ctx.fill();
+            // Vines
+            ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(px, by - pillarH);
+            ctx.quadraticCurveTo(px + 15 * Math.sin(time + p), by - pillarH/2, px - 10, by);
+            ctx.stroke();
+          }
+          // Stone base platform
+          ctx.fillStyle = '#57534e';
+          ctx.fillRect(bx - w/2, by - 10, w, 15);
+          // Moss patches
+          ctx.fillStyle = 'rgba(34,197,94,0.3)';
+          ctx.beginPath(); ctx.arc(bx - w/4, by - 5, 15, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(bx + w/3, by - 5, 12, 0, Math.PI * 2); ctx.fill();
+          
+        } else if (id === 'volcano_fortress') {
+          // === OBSIDIAN FORTRESS - dark fortress with lava rivers ===
+          // Main structure
+          const fortGrad = ctx.createLinearGradient(bx - w/2, by - h, bx + w/2, by);
+          fortGrad.addColorStop(0, '#1c1917'); fortGrad.addColorStop(0.5, '#44403c'); fortGrad.addColorStop(1, '#1c1917');
+          ctx.fillStyle = fortGrad;
+          ctx.fillRect(bx - w/2, by - h, w, h);
+          // Towers on sides
+          const towerW = w / 5;
+          for (const side of [-1, 1]) {
+            const tx = bx + side * (w/2 - towerW/2);
+            ctx.fillStyle = '#292524';
+            ctx.fillRect(tx - towerW/2, by - h - 40, towerW, h + 40);
+            // Battlements
+            for (let b = 0; b < 3; b++) {
+              ctx.fillRect(tx - towerW/2 + b * (towerW/3), by - h - 55, towerW/4, 15);
+            }
+          }
+          // Lava glow through cracks
+          const lavaGlow = 0.4 + Math.sin(time * 2) * 0.2;
+          ctx.strokeStyle = `rgba(249,115,22,${lavaGlow})`; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(bx - w/4, by - h * 0.8); ctx.lineTo(bx - w/6, by - h * 0.3); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(bx + w/5, by - h * 0.7); ctx.lineTo(bx + w/8, by - h * 0.2); ctx.stroke();
+          // Lava moat
+          ctx.fillStyle = `rgba(234,88,12,${lavaGlow})`;
+          ctx.beginPath(); ctx.ellipse(bx, by + 10, w * 0.55, 12, 0, 0, Math.PI * 2); ctx.fill();
+          // Gate
+          ctx.fillStyle = '#7f1d1d';
+          ctx.beginPath();
+          ctx.moveTo(bx - 25, by); ctx.lineTo(bx - 25, by - 50); ctx.arc(bx, by - 50, 25, Math.PI, 0);
+          ctx.lineTo(bx + 25, by); ctx.closePath(); ctx.fill();
+          
+        } else if (id === 'ice_citadel') {
+          // === ICE CITADEL - crystalline ice palace ===
+          // Main ice structure
+          const iceGrad = ctx.createLinearGradient(bx - w/2, by - h, bx + w/2, by);
+          iceGrad.addColorStop(0, '#bae6fd'); iceGrad.addColorStop(0.5, '#e0f2fe'); iceGrad.addColorStop(1, '#7dd3fc');
+          ctx.fillStyle = iceGrad;
+          ctx.fillRect(bx - w/2, by - h, w, h);
+          // Translucent overlay
+          ctx.fillStyle = 'rgba(186,230,253,0.3)';
+          ctx.fillRect(bx - w/2, by - h, w, h);
+          // Ice spires (5 of them)
+          for (let i = 0; i < 5; i++) {
+            const spx = bx - w/2 + w * (i + 0.5) / 5;
+            const spireH = 30 + (i % 2 === 0 ? 40 : 20);
+            ctx.beginPath();
+            ctx.moveTo(spx, by - h - spireH);
+            ctx.lineTo(spx - 15, by - h);
+            ctx.lineTo(spx + 15, by - h);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(103,232,249,${0.6 + Math.sin(time + i) * 0.2})`;
+            ctx.fill();
+            ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 1; ctx.stroke();
+          }
+          // Frost particles
+          for (let i = 0; i < 8; i++) {
+            const fx = bx + Math.sin(time * 0.5 + i * 1.3) * w * 0.6;
+            const fy = by - h/2 + Math.cos(time * 0.7 + i * 0.9) * h * 0.4;
+            ctx.fillStyle = `rgba(186,230,253,${0.4 + Math.sin(time + i) * 0.3})`;
+            ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI * 2); ctx.fill();
+          }
+          // Frozen archway
+          ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(bx, by - 35, 30, Math.PI, 0); ctx.stroke();
+          
+        } else if (id === 'void_shrine') {
+          // === VOID SHRINE - dark altar with floating void energy ===
+          // Stone base
+          ctx.fillStyle = '#1c1917';
+          ctx.fillRect(bx - w/2, by - 20, w, 25);
+          // Altar pillars
+          for (const side of [-1, 1]) {
+            const px = bx + side * w * 0.35;
+            ctx.fillStyle = '#44403c';
+            ctx.fillRect(px - 10, by - h, 20, h - 20);
+            // Void orb on top
+            ctx.beginPath(); ctx.arc(px, by - h - 5, 8, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 2 + side) * 0.3})`;
             ctx.fill();
           }
-        } else if (id === 'void_shrine') {
-          // Floating particles
-          for (let i = 0; i < 5; i++) {
-            const px = bx + Math.sin(time + i) * 30;
-            const py = by - h/2 + Math.cos(time * 2 + i) * 20;
+          // Central void rift
+          ctx.save();
+          ctx.translate(bx, by - h/2);
+          ctx.rotate(time * 0.5);
+          const voidGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+          voidGrad.addColorStop(0, 'rgba(88,28,135,0.8)');
+          voidGrad.addColorStop(0.5, 'rgba(124,58,237,0.4)');
+          voidGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = voidGrad;
+          ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2); ctx.fill();
+          // Swirling void particles
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 + time;
+            const dist = 25 + Math.sin(time * 2 + i) * 10;
+            ctx.beginPath(); ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#c084fc'; ctx.fill();
+          }
+          ctx.restore();
+          
+        } else if (id === 'crystal_sanctum') {
+          // === CRYSTAL SANCTUM - cluster of giant crystals ===
+          const crystals = [
+            { ox: -w*0.3, h: h*0.9, w: 30, color: '#f472b6', angle: -0.15 },
+            { ox: 0, h: h*1.1, w: 35, color: '#ec4899', angle: 0 },
+            { ox: w*0.25, h: h*0.75, w: 28, color: '#f9a8d4', angle: 0.1 },
+            { ox: -w*0.15, h: h*0.6, w: 22, color: '#fb7185', angle: -0.08 },
+            { ox: w*0.4, h: h*0.5, w: 20, color: '#fda4af', angle: 0.2 },
+          ];
+          for (const cr of crystals) {
+            ctx.save();
+            ctx.translate(bx + cr.ox, by);
+            ctx.rotate(cr.angle);
+            // Crystal body
             ctx.beginPath();
-            ctx.arc(px, py, 3, 0, Math.PI * 2);
-            ctx.fillStyle = '#a855f7';
+            ctx.moveTo(0, -cr.h);
+            ctx.lineTo(-cr.w/2, -cr.h * 0.3);
+            ctx.lineTo(-cr.w/2, 0);
+            ctx.lineTo(cr.w/2, 0);
+            ctx.lineTo(cr.w/2, -cr.h * 0.3);
+            ctx.closePath();
+            const crGrad = ctx.createLinearGradient(-cr.w/2, -cr.h, cr.w/2, 0);
+            crGrad.addColorStop(0, cr.color); crGrad.addColorStop(0.5, cr.color + 'cc'); crGrad.addColorStop(1, cr.color + '88');
+            ctx.fillStyle = crGrad;
             ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+            // Highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(-cr.w/4, -cr.h * 0.8, cr.w/4, cr.h * 0.3);
+            ctx.restore();
+          }
+          // Sparkles
+          for (let i = 0; i < 6; i++) {
+            const sparkX = bx + Math.sin(time * 1.5 + i * 2) * w * 0.4;
+            const sparkY = by - h * 0.5 + Math.cos(time * 1.2 + i * 1.5) * h * 0.4;
+            ctx.fillStyle = `rgba(236,72,153,${0.4 + Math.sin(time * 3 + i) * 0.3})`;
+            ctx.beginPath(); ctx.arc(sparkX, sparkY, 2.5, 0, Math.PI * 2); ctx.fill();
           }
         }
         
-        // Building name - with outline
-        ctx.font = 'bold 12px Arial';
+        // Building name
+        ctx.font = 'bold 14px Arial';
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
-        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-        ctx.lineWidth = 3;
-        ctx.lineJoin = 'round';
-        ctx.strokeText(building.name, bx, by + 15);
-        ctx.fillText(building.name, bx, by + 15);
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'transparent';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4;
+        ctx.fillText(building.name, bx, by + 25);
+        ctx.shadowBlur = 0;
+      }
+
+      // ========== QUEST NPCs ========== (near portals)
+      for (const [qid, qnpc] of Object.entries(QUEST_NPCS)) {
+        const qx = qnpc.x - cx;
+        const qy = qnpc.y - cy;
+        if (qx < -60 || qx > width + 60 || qy < -60 || qy > height + 60) continue;
+        
+        const qtime = Date.now() / 1000;
+        const bob = Math.sin(qtime * 2) * 3;
+        
+        // Glow circle
+        ctx.beginPath();
+        ctx.arc(qx, qy + bob, 35, 0, Math.PI * 2);
+        ctx.fillStyle = qnpc.color + '20';
+        ctx.fill();
+        
+        // Body circle
+        ctx.beginPath();
+        ctx.arc(qx, qy - 8 + bob, 16, 0, Math.PI * 2);
+        ctx.fillStyle = qnpc.color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Icon
+        ctx.font = '18px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(qnpc.icon, qx, qy - 8 + bob);
+        
+        // Exclamation mark (quest available indicator)
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#fbbf24';
+        ctx.textBaseline = 'alphabetic';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 3;
+        ctx.fillText('!', qx, qy - 30 + bob);
+        ctx.shadowBlur = 0;
+        
+        // Name
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(qnpc.name, qx, qy + 28 + bob);
+        ctx.font = '9px Arial';
+        ctx.fillStyle = qnpc.color;
+        ctx.fillText(`Lv ${qnpc.recommendedLevel}+`, qx, qy + 40 + bob);
+        
+        // Interaction prompt when nearby
+        if (me) {
+          const distToNpc = Math.sqrt(Math.pow(me.x - qnpc.x, 2) + Math.pow(me.y - qnpc.y, 2));
+          if (distToNpc < 100) {
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = '#4ade80';
+            ctx.fillText('[E] Talk', qx, qy + 55 + bob);
+          }
+        }
       }
 
       // ========== CAMPFIRE ==========
       {
-        const campX = 2850 - cx;
-        const campY = 2600 - cy;
+        const campX = 10200 - cx;
+        const campY = 8600 - cy;
         
         // Only render if on screen
         if (campX > -100 && campX < width + 100 && campY > -100 && campY < height + 100) {
@@ -4124,16 +4258,11 @@ export default function SpellBrigade() {
             ctx.fillText(npc.emoji, nx, ny + bobY - 28);
           }
           
-          // Name - with outline
+          // Name
           ctx.font = 'bold 11px Arial';
           ctx.fillStyle = '#ec4899';
           ctx.textAlign = 'center';
-          ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-          ctx.lineWidth = 3;
-          ctx.lineJoin = 'round';
-          ctx.strokeText(npc.name || 'Mirage', nx, ny + 30);
           ctx.fillText(npc.name || 'Mirage', nx, ny + 30);
-          ctx.lineWidth = 1;
           
           // Interaction hint
           if (nearbyNpc?.id === npc.id) {
@@ -4238,16 +4367,11 @@ export default function SpellBrigade() {
             ctx.fill();
           }
           
-          // Name - with outline
+          // Name
           ctx.font = 'bold 11px Arial';
           ctx.fillStyle = npcColor;
           ctx.textAlign = 'center';
-          ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-          ctx.lineWidth = 3;
-          ctx.lineJoin = 'round';
-          ctx.strokeText(npc.name || 'Arcanus', nx, ny + 30);
           ctx.fillText(npc.name || 'Arcanus', nx, ny + 30);
-          ctx.lineWidth = 1;
           
           // Interaction hint
           if (nearbyNpc?.id === npc.id) {
@@ -4261,9 +4385,20 @@ export default function SpellBrigade() {
 
       // ========== PORTALS ========== (skip in dungeon)
       if (!inDungeonRef.current) {
-        for (const [, portal] of Object.entries(PORTAL_POSITIONS)) {
-        const px = portal.from.x - cx;
-        const py = portal.from.y - cy;
+        // Collect all portal render points: sanctuary portals + return portals
+        const allPortalRenders = [];
+        for (const [portalId, portal] of Object.entries(PORTAL_POSITIONS)) {
+          // Sanctuary-side portal
+          allPortalRenders.push({ ...portal, pos: portal.from, isReturn: false, portalId });
+          // Destination-side return portal
+          if (portal.returnFrom) {
+            allPortalRenders.push({ ...portal, pos: portal.returnFrom, isReturn: true, portalId: portalId + '_return' });
+          }
+        }
+        
+        for (const pr of allPortalRenders) {
+        const px = pr.pos.x - cx;
+        const py = pr.pos.y - cy;
         
         // Skip if off screen
         if (px < -80 || px > width + 80 || py < -80 || py > height + 80) continue;
@@ -4274,8 +4409,8 @@ export default function SpellBrigade() {
         
         // Outer glow
         const glowGrad = ctx.createRadialGradient(px, py, 0, px, py, size * 1.5 * pulse);
-        glowGrad.addColorStop(0, portal.color + '60');
-        glowGrad.addColorStop(0.6, portal.color + '20');
+        glowGrad.addColorStop(0, pr.color + '60');
+        glowGrad.addColorStop(0.6, pr.color + '20');
         glowGrad.addColorStop(1, 'transparent');
         ctx.beginPath();
         ctx.arc(px, py, size * 1.5 * pulse, 0, Math.PI * 2);
@@ -4285,14 +4420,14 @@ export default function SpellBrigade() {
         // Portal ring
         ctx.beginPath();
         ctx.arc(px, py, size, 0, Math.PI * 2);
-        ctx.strokeStyle = portal.color;
+        ctx.strokeStyle = pr.color;
         ctx.lineWidth = 4;
         ctx.stroke();
         
         // Inner swirl
         ctx.save();
         ctx.translate(px, py);
-        ctx.rotate(time * 2);
+        ctx.rotate(pr.isReturn ? -time * 2 : time * 2);
         for (let i = 0; i < 6; i++) {
           const angle = (i / 6) * Math.PI * 2;
           ctx.beginPath();
@@ -4303,7 +4438,7 @@ export default function SpellBrigade() {
             Math.cos(angle + 1) * 35,
             Math.sin(angle + 1) * 35
           );
-          ctx.strokeStyle = portal.color + '80';
+          ctx.strokeStyle = pr.color + '80';
           ctx.lineWidth = 2;
           ctx.stroke();
         }
@@ -4313,29 +4448,37 @@ export default function SpellBrigade() {
         ctx.font = '24px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(portal.icon, px, py);
+        ctx.fillText(pr.isReturn ? '🏠' : pr.icon, px, py);
         
         // Portal name
         ctx.font = '11px Arial';
         ctx.fillStyle = '#fff';
         ctx.textBaseline = 'alphabetic';
-        ctx.fillText(portal.name, px, py - size - 8);
+        ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 3;
+        ctx.fillText(pr.isReturn ? '← Back to Sanctuary' : pr.name, px, py - size - 8);
+        ctx.shadowBlur = 0;
         
-        // Level requirement
-        if (portal.level > 0) {
+        // Level requirement (only for sanctuary-side portals)
+        if (!pr.isReturn && pr.level > 0) {
           ctx.font = '10px Arial';
-          ctx.fillStyle = me && me.level >= portal.level ? '#4ade80' : '#ef4444';
-          ctx.fillText(`Lv ${portal.level}+`, px, py + size + 15);
+          ctx.fillStyle = me && me.level >= pr.level ? '#4ade80' : '#ef4444';
+          ctx.fillText(`Lv ${pr.level}+`, px, py + size + 15);
         }
         
         // Show interaction prompt when player is nearby
         if (me) {
-          const distToPortal = Math.sqrt(Math.pow(me.x - portal.from.x, 2) + Math.pow(me.y - portal.from.y, 2));
+          const distToPortal = Math.sqrt(Math.pow(me.x - pr.pos.x, 2) + Math.pow(me.y - pr.pos.y, 2));
           if (distToPortal < 80) {
-            const canUse = !portal.level || me.level >= portal.level;
-            ctx.font = 'bold 12px Arial';
-            ctx.fillStyle = canUse ? '#4ade80' : '#ef4444';
-            ctx.fillText(canUse ? '[E] Enter' : `Need Lv ${portal.level}`, px, py + size + 30);
+            if (pr.isReturn) {
+              ctx.font = 'bold 12px Arial';
+              ctx.fillStyle = '#4ade80';
+              ctx.fillText('[E] Return to Sanctuary', px, py + size + 30);
+            } else {
+              const canUse = !pr.level || me.level >= pr.level;
+              ctx.font = 'bold 12px Arial';
+              ctx.fillStyle = canUse ? '#4ade80' : '#ef4444';
+              ctx.fillText(canUse ? '[E] Enter' : `Need Lv ${pr.level}`, px, py + size + 30);
+            }
           }
         }
       }
@@ -4345,12 +4488,13 @@ export default function SpellBrigade() {
       for (const enemy of enemies || []) {
         const sx = enemy.x - cx;
         const sy = enemy.y - cy;
-        if (sx < -60 || sx > width + 60 || sy < -60 || sy > height + 60) continue;
+        const cullDist = enemy.isBoss ? 300 : 60;
+        if (sx < -cullDist || sx > width + cullDist || sy < -cullDist || sy > height + cullDist) continue;
 
         const isBoss = enemy.isBoss;
         const bounce = enemy.isFrozen ? 0 : Math.sin((enemy.animFrame || 0) * Math.PI / 2) * 0.8;
         const color = COLORS.enemy[enemy.type] || '#ff0000';
-        const size = isBoss ? 2 : 1;
+        const size = isBoss ? 6 : 1;
 
         // Shadow
         ctx.beginPath();
@@ -4994,7 +5138,7 @@ export default function SpellBrigade() {
           else if (bossType === 'custom_boss') {
             // ========== CUSTOM DUNGEON BOSS - Themed creature ==========
             const bossColor = enemy.color || color;
-            const bossRadius = Math.min(enemy.radius || 80, 100); // Cap visual size
+            const bossRadius = Math.min(enemy.radius || 120, 250); // Cap visual size
             const sc = bossRadius / 50;
             const breathe = Math.sin(time * 1.8) * 3 * sc;
             const bodyBob = Math.sin(time * 2.2) * 2 * sc;
@@ -5143,16 +5287,11 @@ export default function SpellBrigade() {
             ctx.fillStyle = hpColor;
             ctx.fillRect(sx - cbhW / 2, cbhY, cbhW * hpRatio, 8);
             
-            // Boss name - with outline
+            // Boss name
             ctx.fillStyle = bossColor;
             ctx.font = `bold ${12 * sc}px sans-serif`;
             ctx.textAlign = 'center';
-            ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-            ctx.lineWidth = 3;
-            ctx.lineJoin = 'round';
-            ctx.strokeText(enemy.name || 'BOSS', sx, cbhY - 6);
             ctx.fillText(enemy.name || 'BOSS', sx, cbhY - 6);
-            ctx.lineWidth = 1;
           }
           else {
             // Default boss (fallback)
@@ -5186,16 +5325,11 @@ export default function SpellBrigade() {
           ctx.fillStyle = '#fbbf24';
           ctx.fillRect(sx - hbW / 2, hbY, hbW * enemy.health / enemy.maxHealth, 6);
           
-          // Boss name - with outline
+          // Boss name
           ctx.fillStyle = '#fbbf24';
           ctx.font = 'bold 11px sans-serif';
           ctx.textAlign = 'center';
-          ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-          ctx.lineWidth = 3;
-          ctx.lineJoin = 'round';
-          ctx.strokeText(enemy.name || 'BOSS', sx, hbY - 5);
           ctx.fillText(enemy.name || 'BOSS', sx, hbY - 5);
-          ctx.lineWidth = 1;
         }
         // ========== REGULAR ENEMIES (Zone-themed) ==========
         else {
@@ -5925,7 +6059,7 @@ export default function SpellBrigade() {
         // Frozen indicator - Enhanced ice encasement
         if (enemy.isFrozen) {
           const time = Date.now() / 1000;
-          const radius = isBoss ? 50 : 22;
+          const radius = isBoss ? 150 : 22;
           
           // Ice shell
           ctx.beginPath();
@@ -6806,47 +6940,38 @@ export default function SpellBrigade() {
         ctx.arc(px + 3, py - 19 - bob, isSpecialClass ? 3 : 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Name & level - with outline for readability
-        ctx.textAlign = 'center';
-        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-        ctx.lineWidth = 3;
-        ctx.lineJoin = 'round';
+        // Name & level
         if (isVoidlord) {
           ctx.shadowColor = '#ff00ff';
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 10;
           ctx.fillStyle = '#ff00ff';
-          ctx.font = 'bold 13px sans-serif';
-          ctx.strokeText('👑 ' + player.name, px, py + 28);
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
           ctx.fillText('👑 ' + player.name, px, py + 28);
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#ff00ff';
-          ctx.font = 'bold 10px sans-serif';
-          ctx.strokeText('VOID LORD', px, py + 40);
+          ctx.font = '10px sans-serif';
           ctx.fillText('VOID LORD', px, py + 40);
         } else if (isShadowArcher) {
           ctx.shadowColor = '#dc2626';
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 8;
           ctx.fillStyle = '#dc2626';
-          ctx.font = 'bold 13px sans-serif';
-          ctx.strokeText('👑 ' + player.name, px, py + 28);
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
           ctx.fillText('👑 ' + player.name, px, py + 28);
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#dc2626';
-          ctx.font = 'bold 10px sans-serif';
-          ctx.strokeText('SHADOW ARCHER', px, py + 40);
+          ctx.font = '10px sans-serif';
           ctx.fillText('SHADOW ARCHER', px, py + 40);
         } else {
           ctx.fillStyle = '#fff';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.strokeText(player.name, px, py + 28);
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
           ctx.fillText(player.name, px, py + 28);
           ctx.fillStyle = '#ffd93d';
-          ctx.font = 'bold 10px sans-serif';
-          ctx.strokeText('Lv.' + player.level, px, py + 40);
+          ctx.font = '10px sans-serif';
           ctx.fillText('Lv.' + player.level, px, py + 40);
         }
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'transparent';
 
         // Health bar
         if (!isMe || player.health < player.maxHealth) {
@@ -6856,37 +6981,6 @@ export default function SpellBrigade() {
           ctx.fillRect(px - 18, py - 50 - bob, 36, 5);
           ctx.fillStyle = isVoidlord ? '#ff00ff' : '#ef4444';
           ctx.fillRect(px - 18, py - 50 - bob, 36 * player.health / player.maxHealth, 5);
-        }
-
-        // Frozen overlay (from Frost Wyrm)
-        if (player.frozenUntil && player.frozenUntil > Date.now()) {
-          const frozenAlpha = Math.min(0.6, (player.frozenUntil - Date.now()) / 3000);
-          
-          // Ice crystal shell around player
-          ctx.beginPath();
-          ctx.arc(px, py, 22, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(34,211,238,${frozenAlpha * 0.3})`;
-          ctx.fill();
-          ctx.strokeStyle = `rgba(103,232,249,${frozenAlpha})`;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          
-          // Frost particles
-          const frozenTime = Date.now() / 400;
-          for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2 + frozenTime;
-            const dist = 18 + Math.sin(frozenTime + i) * 4;
-            ctx.beginPath();
-            ctx.arc(px + Math.cos(angle) * dist, py + Math.sin(angle) * dist, 2, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(200,240,255,${frozenAlpha})`;
-            ctx.fill();
-          }
-          
-          // FROZEN text
-          ctx.font = 'bold 10px Arial';
-          ctx.fillStyle = `rgba(34,211,238,${frozenAlpha})`;
-          ctx.textAlign = 'center';
-          ctx.fillText('FROZEN', px, py - 55);
         }
 
         // Selection ring for self
@@ -7038,119 +7132,6 @@ export default function SpellBrigade() {
         ctx.arc(mx, my, m.radius * (1 - progress), 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255,100,0,${0.2 * (1 - progress)})`;
         ctx.fill();
-
-        return true;
-      });
-
-      // Freeze circle warnings (Frost Wyrm) - flashing blue/white
-      freezeWarningsRef.current = freezeWarningsRef.current.filter(f => {
-        const elapsed = now - f.startTime;
-        if (elapsed > f.delay) return false;
-
-        const fx = f.x - cx;
-        const fy = f.y - cy;
-        const progress = elapsed / f.delay;
-        const flash = Math.sin(elapsed * 0.015) * 0.5 + 0.5;
-
-        // Outer ring - pulsing
-        ctx.beginPath();
-        ctx.arc(fx, fy, f.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(34,211,238,${0.6 + flash * 0.4})`;
-        ctx.lineWidth = 3;
-        ctx.setLineDash([8, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Fill - alternating blue/white flash
-        ctx.beginPath();
-        ctx.arc(fx, fy, f.radius, 0, Math.PI * 2);
-        const r = Math.floor(34 + flash * 220);
-        const g = Math.floor(211 + flash * 44);
-        const b = Math.floor(238 + flash * 17);
-        ctx.fillStyle = `rgba(${r},${g},${b},${0.15 + progress * 0.2})`;
-        ctx.fill();
-
-        // Closing ring showing time left
-        ctx.beginPath();
-        ctx.arc(fx, fy, f.radius * (1 - progress), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(34,211,238,${0.25 * (1 - progress)})`;
-        ctx.fill();
-
-        // Ice crystal markers
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2 + elapsed * 0.002;
-          const cr = f.radius * 0.9;
-          ctx.beginPath();
-          ctx.arc(fx + Math.cos(angle) * cr, fy + Math.sin(angle) * cr, 3, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255,255,255,${0.5 + flash * 0.5})`;
-          ctx.fill();
-        }
-
-        return true;
-      });
-
-      // Root warning circles (Ancient Treant) - green pulsing
-      rootWarningsRef.current = rootWarningsRef.current.filter(r => {
-        const elapsed = now - r.startTime;
-        if (elapsed > r.delay) return false;
-
-        const rx = r.x - cx;
-        const ry = r.y - cy;
-        const progress = elapsed / r.delay;
-        const pulse = Math.sin(elapsed * 0.012) * 0.5 + 0.5;
-
-        // Outer ring
-        ctx.beginPath();
-        ctx.arc(rx, ry, r.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(22,101,52,${0.5 + pulse * 0.5})`;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 3]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Fill - green glow
-        ctx.beginPath();
-        ctx.arc(rx, ry, r.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(34,197,94,${0.1 + progress * 0.25})`;
-        ctx.fill();
-
-        // Root tendrils from center
-        for (let i = 0; i < 4; i++) {
-          const angle = (i / 4) * Math.PI * 2 + elapsed * 0.003;
-          const len = r.radius * progress * 0.8;
-          ctx.beginPath();
-          ctx.moveTo(rx, ry);
-          ctx.lineTo(rx + Math.cos(angle) * len, ry + Math.sin(angle) * len);
-          ctx.strokeStyle = `rgba(22,101,52,${0.4 + pulse * 0.3})`;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-
-        return true;
-      });
-
-      // Root erupt visuals
-      rootEruptsRef.current = rootEruptsRef.current.filter(r => {
-        const elapsed = now - r.startTime;
-        if (elapsed > r.duration) return false;
-
-        const rx = r.x - cx;
-        const ry = r.y - cy;
-        const progress = elapsed / r.duration;
-
-        // Spike burst animation
-        const numSpikes = 8;
-        for (let i = 0; i < numSpikes; i++) {
-          const angle = (i / numSpikes) * Math.PI * 2;
-          const spikeLen = 30 * (1 - progress);
-          const baseR = 10 * Math.min(1, progress * 3);
-          ctx.beginPath();
-          ctx.moveTo(rx + Math.cos(angle) * baseR, ry + Math.sin(angle) * baseR);
-          ctx.lineTo(rx + Math.cos(angle) * (baseR + spikeLen), ry + Math.sin(angle) * (baseR + spikeLen));
-          ctx.strokeStyle = `rgba(22,101,52,${1 - progress})`;
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        }
 
         return true;
       });
@@ -8369,84 +8350,6 @@ export default function SpellBrigade() {
             ctx.fill();
           }
         }
-        
-        // Freeze circle explosion effect (Frost Wyrm)
-        else if (ef.type === 'freezeExplode') {
-          const fx = ef.x - cx;
-          const fy = ef.y - cy;
-          const radius = ef.radius || 120;
-          
-          // Expanding ice burst
-          const burstR = radius * (0.8 + progress * 0.4);
-          ctx.beginPath();
-          ctx.arc(fx, fy, burstR, 0, Math.PI * 2);
-          const iceGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, burstR);
-          iceGrad.addColorStop(0, `rgba(255,255,255,${0.8 * alpha})`);
-          iceGrad.addColorStop(0.3, `rgba(34,211,238,${0.6 * alpha})`);
-          iceGrad.addColorStop(0.7, `rgba(103,232,249,${0.3 * alpha})`);
-          iceGrad.addColorStop(1, 'transparent');
-          ctx.fillStyle = iceGrad;
-          ctx.fill();
-          
-          // Ice shards flying outward
-          for (let i = 0; i < 12; i++) {
-            const angle = (i / 12) * Math.PI * 2 + progress * 0.5;
-            const dist = radius * 0.5 + progress * radius * 0.8;
-            const shX = fx + Math.cos(angle) * dist;
-            const shY = fy + Math.sin(angle) * dist;
-            
-            ctx.save();
-            ctx.translate(shX, shY);
-            ctx.rotate(angle);
-            ctx.beginPath();
-            ctx.moveTo(0, -4 * alpha);
-            ctx.lineTo(8, 0);
-            ctx.lineTo(0, 4 * alpha);
-            ctx.lineTo(-2, 0);
-            ctx.closePath();
-            ctx.fillStyle = `rgba(200,240,255,${alpha})`;
-            ctx.fill();
-            ctx.restore();
-          }
-          
-          // Ice ring
-          ctx.beginPath();
-          ctx.arc(fx, fy, burstR, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(34,211,238,${alpha})`;
-          ctx.lineWidth = 4 * alpha;
-          ctx.stroke();
-        }
-        
-        // Spore wave effect (Blossom Behemoth)
-        else if (ef.type === 'sporeWave') {
-          const spX = ef.x - cx;
-          const spY = ef.y - cy;
-          
-          // Expanding green ring wave
-          const waveR = progress * 200;
-          ctx.beginPath();
-          ctx.arc(spX, spY, waveR, 0, Math.PI * 2);
-          const sporeGrad = ctx.createRadialGradient(spX, spY, waveR * 0.7, spX, spY, waveR);
-          sporeGrad.addColorStop(0, 'transparent');
-          sporeGrad.addColorStop(0.5, `rgba(132,204,22,${0.3 * alpha})`);
-          sporeGrad.addColorStop(1, `rgba(101,163,13,${0.1 * alpha})`);
-          ctx.fillStyle = sporeGrad;
-          ctx.fill();
-          
-          // Floating spore particles
-          const sporeCount = ef.count || 8;
-          for (let i = 0; i < sporeCount; i++) {
-            const angle = (i / sporeCount) * Math.PI * 2;
-            const dist = progress * 150 + Math.sin(elapsed * 0.005 + i) * 20;
-            const spPx = spX + Math.cos(angle) * dist;
-            const spPy = spY + Math.sin(angle) * dist;
-            
-            ctx.beginPath();
-            ctx.arc(spPx, spPy, 4 * alpha, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(163,230,53,${alpha * 0.7})`;
-            ctx.fill();
-          }
-        }
 
         return true;
       });
@@ -8589,7 +8492,7 @@ export default function SpellBrigade() {
           };
           
           // Draw tile-based minimap matching main game exactly
-          const tileSize = 100; // Smaller tiles for better accuracy
+          const tileSize = 400; // Larger tiles for expanded world
           for (let wx = 0; wx < WORLD_WIDTH; wx += tileSize) {
             for (let wy = 0; wy < WORLD_HEIGHT; wy += tileSize) {
               // Get zone using imported getZoneAtPosition function
@@ -8622,18 +8525,38 @@ export default function SpellBrigade() {
             mmCtx.stroke();
           }
           
-          // Draw portals on minimap
+          // Draw portals on minimap (both sanctuary-side and return portals)
           for (const portal of Object.values(PORTAL_POSITIONS)) {
+            // Sanctuary portal
             mmCtx.beginPath();
-            mmCtx.arc(portal.from.x * scale, portal.from.y * scale, 2, 0, Math.PI * 2);
+            mmCtx.arc(portal.from.x * scale, portal.from.y * scale, 3, 0, Math.PI * 2);
             mmCtx.fillStyle = portal.color;
             mmCtx.fill();
+            // Return portal at destination
+            if (portal.returnFrom) {
+              mmCtx.beginPath();
+              mmCtx.arc(portal.returnFrom.x * scale, portal.returnFrom.y * scale, 2.5, 0, Math.PI * 2);
+              mmCtx.fillStyle = portal.color + 'aa';
+              mmCtx.fill();
+              mmCtx.strokeStyle = '#fff';
+              mmCtx.lineWidth = 0.5;
+              mmCtx.stroke();
+            }
+          }
+          
+          // Draw buildings on minimap as markers
+          for (const [bid, bld] of Object.entries(BUILDING_DATA)) {
+            mmCtx.fillStyle = bld.color;
+            mmCtx.fillRect(bld.x * scale - 2, bld.y * scale - 2, 4, 4);
+            mmCtx.strokeStyle = '#fff';
+            mmCtx.lineWidth = 0.5;
+            mmCtx.strokeRect(bld.x * scale - 2, bld.y * scale - 2, 4, 4);
           }
 
           // Enemies on minimap - red dots, bosses are yellow/gold and larger
           for (const e of enemies || []) {
             mmCtx.beginPath();
-            mmCtx.arc(e.x * scale, e.y * scale, e.isBoss ? 4 : 1.5, 0, Math.PI * 2);
+            mmCtx.arc(e.x * scale, e.y * scale, e.isBoss ? 6 : 1.5, 0, Math.PI * 2);
             mmCtx.fillStyle = e.isBoss ? '#fbbf24' : '#ef4444';
             mmCtx.fill();
           }
@@ -9221,8 +9144,7 @@ export default function SpellBrigade() {
                       width: '100%',
                       justifyContent: 'center',
                     }}
-                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowSkinSelect(true); }}
-                    onClick={(e) => { e.stopPropagation(); setShowSkinSelect(true); }}
+                    onClick={() => setShowSkinSelect(true)}
                   >
                     <span style={{ width: 14, height: 14 }}>{SVG.star}</span>
                     Change Skin
@@ -9237,8 +9159,7 @@ export default function SpellBrigade() {
                     borderTop: '1px solid rgba(255,215,0,0.15)',
                     cursor: 'pointer',
                   }}
-                  onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowQuestLog(true); }}
-                  onClick={(e) => { e.stopPropagation(); setShowQuestLog(true); }}
+                  onClick={() => setShowQuestLog(true)}
                 >
                   {(() => {
                     const bossKills = playerInfo.bossKills || {};
@@ -9520,8 +9441,7 @@ export default function SpellBrigade() {
                   </div>
                   {/* Quest Log button */}
                   <button
-                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowQuestLog(true); }}
-                    onClick={(e) => { e.stopPropagation(); setShowQuestLog(true); }}
+                    onClick={() => setShowQuestLog(true)}
                     style={{
                       marginLeft: 'auto',
                       background: 'rgba(255,215,0,0.2)',
@@ -9541,8 +9461,7 @@ export default function SpellBrigade() {
                   </button>
                   {/* Character Sheet button */}
                   <button
-                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowCharacterSheet(prev => !prev); }}
-                    onClick={(e) => { e.stopPropagation(); setShowCharacterSheet(prev => !prev); }}
+                    onClick={() => setShowCharacterSheet(prev => !prev)}
                     style={{
                       background: 'rgba(103,232,249,0.2)',
                       border: '1px solid rgba(103,232,249,0.4)',
@@ -9615,8 +9534,7 @@ export default function SpellBrigade() {
                 {/* Settings + Leaderboard row - positioned below quest section */}
                 <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 6 }}>
                   <button
-                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowInGameSettings(true); }}
-                    onClick={(e) => { e.stopPropagation(); setShowInGameSettings(true); }}
+                    onClick={() => setShowInGameSettings(true)}
                     style={{
                       background: 'rgba(100,100,100,0.3)',
                       border: '1px solid rgba(255,255,255,0.15)',
@@ -9633,19 +9551,14 @@ export default function SpellBrigade() {
                       <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/>
                     </svg>
                   </button>
-                  <div 
-                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowLeaderboard(prev => !prev); }}
-                    onClick={(e) => { e.stopPropagation(); setShowLeaderboard(prev => !prev); }}
-                    style={{ flex: 1, fontSize: '0.55rem', color: '#666', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
-                  >
+                  <div style={{ flex: 1, fontSize: '0.55rem', color: '#666', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
                     <span style={{ color: '#ffd93d', fontWeight: 600 }}>LEADERBOARD</span>
-                    <span style={{ marginLeft: 'auto', color: '#555', fontSize: '0.6rem' }}>{showLeaderboard ? '▲' : '▼'}</span>
                   </div>
                 </div>
 
-                {/* Collapsible leaderboard */}
-                {showLeaderboard && leaderboardData.length > 0 && (
+                {/* Always-visible compact leaderboard */}
+                {leaderboardData.length > 0 && (
                   <div style={{
                     background: 'rgba(0,0,0,0.3)',
                     borderRadius: 8,
