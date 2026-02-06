@@ -21,6 +21,30 @@ export const COLORS = {
     iceElemental: '#06b6d4',
     boss_slime: '#22c55e',
     boss_dragon: '#dc2626',
+    // Meadow
+    bee: '#fbbf24',
+    flower_sprite: '#f472b6',
+    mushroom: '#a855f7',
+    // Forest
+    wolf: '#6b7280',
+    treant: '#166534',
+    forest_wisp: '#86efac',
+    // Volcanic
+    fire_imp: '#ff6b35',
+    magma_crawler: '#991b1b',
+    ash_wraith: '#78716c',
+    // Frozen
+    frost_wolf: '#bae6fd',
+    yeti: '#e2e8f0',
+    ice_sprite: '#7dd3fc',
+    // Abyss
+    shadow_wraith: '#581c87',
+    void_crawler: '#3b0764',
+    dark_knight: '#1e1b4b',
+    // Crystal Caves
+    crystal_bat: '#f0abfc',
+    gem_beetle: '#a21caf',
+    prism_wisp: '#e879f9',
   },
 };
 
