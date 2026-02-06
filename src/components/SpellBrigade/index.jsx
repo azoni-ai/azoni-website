@@ -201,6 +201,16 @@ export default function SpellBrigade() {
   // Character sheet
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   
+  // Spellbook panel
+  const [showSpellbook, setShowSpellbook] = useState(false);
+  
+  // Modal state ref - keeps ESC handler (in [] dep useEffect) aware of open modals
+  const modalRef = useRef({
+    emotes: false, shop: false, skinSelect: false, questLog: false,
+    npcDialogue: null, characterSheet: false, spellbook: false,
+    inGameSettings: false, chat: false,
+  });
+  
   // Mobile ultimate aiming mode
   const [ultAimMode, setUltAimMode] = useState(false);
   const ultAimModeRef = useRef(false);
@@ -270,6 +280,16 @@ export default function SpellBrigade() {
     showChatRef.current = showChat;
     if (showChat) setUnreadChat(0);
   }, [showChat]);
+
+  // Sync modal ref for ESC handler (which runs in [] dep useEffect)
+  useEffect(() => {
+    modalRef.current = {
+      emotes: showEmotes, shop: showShop, skinSelect: showSkinSelect,
+      questLog: showQuestLog, npcDialogue, characterSheet: showCharacterSheet,
+      spellbook: showSpellbook, inGameSettings: showInGameSettings,
+      chat: showChat,
+    };
+  });
 
   // Tick cooldown display every 250ms while any cooldown is active
   useEffect(() => {
@@ -937,6 +957,9 @@ export default function SpellBrigade() {
       setNearbyNpc(null);
       setNearbyBuilding(null);
       setNearbyPortal(null);
+      setShowSpellbook(false);
+      setShowCharacterSheet(false);
+      setShowInGameSettings(false);
       
       // Reset input state on join to prevent stuck movement
       inputRef.current = { up: false, down: false, left: false, right: false };
@@ -2237,6 +2260,11 @@ export default function SpellBrigade() {
         setShowCharacterSheet(prev => !prev);
       }
 
+      // Spellbook toggle
+      if (e.code === 'KeyB') {
+        setShowSpellbook(prev => !prev);
+      }
+
       // Class Abilities (1, 2, 3)
       if ((e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') && socketRef.current && playerIdRef.current) {
         const slot = parseInt(e.code.replace('Digit', ''));
@@ -2255,17 +2283,36 @@ export default function SpellBrigade() {
         }
       }
 
-      // ESC - toggle settings modal
+      // ESC - close open panels, or toggle settings
       if (e.code === 'Escape' && playerIdRef.current) {
-        // Close any open modals first
-        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue) {
+        const m = modalRef.current;
+        
+        // If typing in chat, blur input AND close chat panel - don't open settings
+        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+          document.activeElement.blur();
+          // Also close chat panel if it's the chat input
+          if (showChatRef.current) {
+            setShowChat(false);
+          }
+          return;
+        }
+        
+        // Close any open modal first (don't open settings)
+        if (m.npcDialogue) {
+          setNpcDialogue(null);
+        } else if (m.chat) {
+          setShowChat(false);
+        } else if (m.emotes || m.shop || m.skinSelect || m.questLog || m.characterSheet || m.spellbook) {
           setShowEmotes(false);
           setShowShop(false);
           setShowSkinSelect(false);
           setShowQuestLog(false);
-          setNpcDialogue(null);
+          setShowCharacterSheet(false);
+          setShowSpellbook(false);
+        } else if (m.inGameSettings) {
+          setShowInGameSettings(false);
         } else {
-          // Toggle settings
+          // Nothing open - toggle settings
           setShowInGameSettings(prev => !prev);
         }
       }
@@ -2766,6 +2813,76 @@ export default function SpellBrigade() {
   // ===========================================
   // ACTIONS
   // ===========================================
+  // Full state reset for logout/account switch - prevents stale data leaking between sessions
+  const resetGameState = () => {
+    // Clear player identity
+    playerIdRef.current = null;
+    playerDataRef.current = null;
+    setPlayerInfo(null);
+    setSavedPlayer(null);
+    setCharacters([]);
+    setSelectedCharIdx(0);
+    setPlayerName('');
+    setSelectedSkin('');
+    
+    // Clear game world state
+    gameStateRef.current = { players: {}, enemies: [], world: { width: 5000, height: 5000 } };
+    setLeaderboardData([]);
+    setChatMessages([]);
+    setChatInput('');
+    setPlayersOnline(0);
+    
+    // Clear dungeon state
+    inDungeonRef.current = false;
+    setInDungeon(false);
+    setDungeonProgress(0);
+    setDungeonVictoryPortal(null);
+    dungeonVictoryPortalRef.current = null;
+    
+    // Clear modal/interaction state
+    setNpcDialogue(null);
+    setNearbyNpc(null);
+    setNearbyBuilding(null);
+    setNearbyPortal(null);
+    setShowEmotes(false);
+    setShowShop(false);
+    setShowSkinSelect(false);
+    setShowQuestLog(false);
+    setShowCharacterSheet(false);
+    setShowSpellbook(false);
+    setShowInGameSettings(false);
+    setShowLeaderboard(false);
+    setShowChat(false);
+    setBossDeathBanner(null);
+    setQuestComplete(null);
+    
+    // Clear wizard creator state
+    setGeneratedWizard(null);
+    setWizardPrompt('');
+    setWizardGenerating(false);
+    setWizardError('');
+    
+    // Clear admin
+    setAdminKey('');
+    adminKeyRef.current = '';
+    
+    // Clear tracking refs for perf guards
+    playersOnlineRef.current = 0;
+    nearbyBuildingRef.current = null;
+    nearbyNpcRef.current = null;
+    nearbyPortalRef.current = null;
+    
+    // Disconnect socket if connected
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('leave');
+      socketRef.current.disconnect();
+    }
+    
+    // Clear localStorage
+    localStorage.removeItem('spellBrigadeSession');
+    localStorage.removeItem('spellBrigadePlayerId');
+  };
+
   const handleContinue = () => {
     initAudio();
     if (!savedPlayer) return;
@@ -3040,6 +3157,7 @@ export default function SpellBrigade() {
         setScreen={setScreen}
         playerIdRef={playerIdRef}
         handleNewCharacter={() => { setSavedPlayer(null); setTab('create'); }}
+        resetGameState={resetGameState}
         settings={settings}
         setSettings={setSettings}
         SVG={SVG}
@@ -3565,6 +3683,22 @@ export default function SpellBrigade() {
                   </div>
                 );
               })}
+              {/* Spellbook Button */}
+              <div style={{ width: 2, background: 'rgba(255,255,255,0.1)', margin: '5px 3px' }} />
+              <div
+                onClick={() => setShowSpellbook(prev => !prev)}
+                title="Spellbook (B)"
+                style={{
+                  width: 45, height: 65, borderRadius: 10,
+                  background: showSpellbook ? 'rgba(255,215,61,0.2)' : 'rgba(50,50,50,0.6)',
+                  border: `2px solid ${showSpellbook ? '#ffd93d' : 'rgba(255,255,255,0.15)'}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>📖</span>
+                <div style={{ fontSize: '0.45rem', color: showSpellbook ? '#ffd93d' : '#888', fontWeight: 600, marginTop: 2 }}>B</div>
+              </div>
             </div>
           )}
 
@@ -4134,6 +4268,8 @@ export default function SpellBrigade() {
         setShowInGameSettings={setShowInGameSettings}
         showCharacterSheet={showCharacterSheet}
         setShowCharacterSheet={setShowCharacterSheet}
+        showSpellbook={showSpellbook}
+        setShowSpellbook={setShowSpellbook}
         showAdminPanel={showAdminPanel}
         setShowAdminPanel={setShowAdminPanel}
         showEmotes={showEmotes}

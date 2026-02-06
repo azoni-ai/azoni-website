@@ -24,6 +24,7 @@ export default function PlayTab({
   socketRef,
   playerIdRef,
   handleNewCharacter,
+  resetGameState,
   setAdminKey,
   SVG,
   CLASS_SVG,
@@ -51,7 +52,21 @@ export default function PlayTab({
         socketRef.current.emit('join', joinData);
       });
     } else {
-      socketRef.current.emit('join', joinData);
+      // If already connected with a different character, fully disconnect then rejoin
+      if (playerIdRef?.current && playerIdRef.current !== char.id) {
+        socketRef.current.emit('leave');
+        playerIdRef.current = null;
+        // Disconnect and reconnect cleanly
+        socketRef.current.disconnect();
+        setTimeout(() => {
+          socketRef.current.connect();
+          socketRef.current.once('connect', () => {
+            socketRef.current.emit('join', joinData);
+          });
+        }, 300);
+      } else {
+        socketRef.current.emit('join', joinData);
+      }
     }
   };
 
@@ -78,19 +93,17 @@ export default function PlayTab({
   };
 
   const handleLogout = () => {
+    if (resetGameState) {
+      resetGameState();
+    }
     setAuthState?.({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
-    localStorage.removeItem('spellBrigadeSession');
-    localStorage.removeItem('spellBrigadePlayerId');
-    setSavedPlayer(null);
-    setCharacters([]);
-    setAdminKey?.('');
     setScreen('auth');
   };
 
   // No character - show create prompt
   if (!char) {
     return (
-      <div style={{ textAlign: 'center', padding: isMobile ? 20 : 40, maxWidth: 500 }}>
+      <div style={{ textAlign: 'center', padding: isMobile ? 20 : 40, maxWidth: 500, margin: '0 auto', width: '100%' }}>
         <div style={{
           width: 140, height: 140, margin: '0 auto 25px', borderRadius: '50%',
           background: 'linear-gradient(135deg, rgba(155,93,229,0.2), rgba(255,107,53,0.15))',

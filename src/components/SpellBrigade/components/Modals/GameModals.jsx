@@ -22,6 +22,8 @@ export default function GameModals({
   setShowInGameSettings,
   showCharacterSheet,
   setShowCharacterSheet,
+  showSpellbook,
+  setShowSpellbook,
   showAdminPanel,
   setShowAdminPanel,
   showEmotes,
@@ -298,6 +300,17 @@ export default function GameModals({
           playerInfo={playerInfo}
           classes={classes}
           onClose={() => setShowCharacterSheet(false)}
+        />
+      )}
+
+      {/* Spellbook Modal */}
+      {showSpellbook && playerInfo && (
+        <SpellbookContent
+          styles={styles}
+          SVG={SVG}
+          playerInfo={playerInfo}
+          classes={classes}
+          onClose={() => setShowSpellbook(false)}
         />
       )}
 
@@ -1080,6 +1093,158 @@ function StatCard({ label, value, color }) {
   );
 }
 
+function SpellbookContent({ styles, SVG, playerInfo, classes, onClose }) {
+  const classDef = classes[playerInfo.class] || {};
+  const color = classDef.color || '#a78bfa';
+  const spells = classDef.classAbilities || [];
+  
+  return (
+    <>
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000 }} onClick={onClose} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%)',
+        border: `1px solid ${color}40`,
+        borderRadius: 16, padding: 24, zIndex: 1001,
+        maxWidth: 420, width: '90%', maxHeight: '80vh', overflowY: 'auto',
+        boxShadow: `0 8px 40px rgba(0,0,0,0.5), 0 0 30px ${color}15`,
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ color: '#ffd93d', fontWeight: 700, fontSize: '1.1rem' }}>📖 Spellbook</div>
+            <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 2 }}>
+              {classDef.name || playerInfo.class} — Level {playerInfo.level}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#888', fontSize: '1rem', cursor: 'pointer', padding: '4px 10px' }}>✕</button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Auto-attack */}
+          <SpellbookAbility
+            label="AUTO"
+            labelColor="#22c55e"
+            name={classDef.spellName || 'Primary Attack'}
+            description={classDef.spellDescription || 'Automatically attacks nearby enemies.'}
+            color={color}
+            stats={[
+              classDef.spellDamage && { l: 'DMG', v: classDef.spellDamage },
+              classDef.spellCooldown && { l: 'CD', v: `${(classDef.spellCooldown / 1000).toFixed(1)}s` },
+              classDef.spellRange && { l: 'RNG', v: classDef.spellRange },
+            ].filter(Boolean)}
+          />
+
+          {/* Dash */}
+          {classDef.dashAbility && (
+            <SpellbookAbility
+              label="SPACE"
+              labelColor="#60a5fa"
+              name={classDef.dashAbility.name}
+              description={classDef.dashAbility.description || 'Dash forward quickly.'}
+              color={color}
+              stats={[
+                { l: 'CD', v: `${(classDef.dashAbility.cooldown / 1000).toFixed(1)}s` },
+                classDef.dashAbility.damage && { l: 'DMG', v: classDef.dashAbility.damage },
+                classDef.dashAbility.distance && { l: 'DIST', v: classDef.dashAbility.distance },
+              ].filter(Boolean)}
+            />
+          )}
+
+          {/* Ultimate */}
+          {classDef.ultimateAbility && (
+            <SpellbookAbility
+              label="Q"
+              labelColor="#fbbf24"
+              name={classDef.ultimateAbility.name}
+              description={classDef.ultimateAbility.description || 'Powerful ultimate ability.'}
+              color={color}
+              stats={[
+                { l: 'CD', v: `${(classDef.ultimateAbility.cooldown / 1000).toFixed(0)}s` },
+                classDef.ultimateAbility.damage && { l: 'DMG', v: classDef.ultimateAbility.damage },
+                classDef.ultimateAbility.duration && { l: 'DUR', v: `${(classDef.ultimateAbility.duration / 1000).toFixed(1)}s` },
+              ].filter(Boolean)}
+            />
+          )}
+
+          {/* Class Abilities (1, 2, 3) */}
+          {spells.length > 0 && (
+            <div style={{ color: '#666', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 6 }}>
+              Class Spells
+            </div>
+          )}
+          {spells.map((spell, i) => {
+            const levelReqs = [10, 20, 30];
+            const unlocked = playerInfo.level >= levelReqs[i];
+            return (
+              <SpellbookAbility
+                key={spell.id || i}
+                label={`${i + 1}`}
+                labelColor={unlocked ? (spell.color || '#a78bfa') : '#555'}
+                name={spell.name || `Spell ${i + 1}`}
+                description={spell.description || ''}
+                color={unlocked ? (spell.color || '#a78bfa') : '#444'}
+                locked={!unlocked}
+                unlockLevel={levelReqs[i]}
+                stats={[
+                  spell.damage && { l: 'DMG', v: spell.damage },
+                  spell.cooldown && { l: 'CD', v: `${(spell.cooldown / 1000).toFixed(1)}s` },
+                  spell.range && { l: 'RNG', v: spell.range },
+                  spell.duration && { l: 'DUR', v: `${(spell.duration / 1000).toFixed(1)}s` },
+                ].filter(Boolean)}
+              />
+            );
+          })}
+        </div>
+
+        <div style={{ color: '#555', fontSize: '0.65rem', textAlign: 'center', marginTop: 16 }}>
+          Press <span style={{ color: '#ffd93d', fontWeight: 600 }}>B</span> to close
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SpellbookAbility({ label, labelColor, name, description, color, stats, locked, unlockLevel }) {
+  return (
+    <div style={{
+      padding: '10px 14px',
+      background: locked ? 'rgba(255,255,255,0.02)' : `${color}08`,
+      border: `1px solid ${locked ? 'rgba(255,255,255,0.06)' : color + '25'}`,
+      borderRadius: 10,
+      opacity: locked ? 0.5 : 1,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: description ? 4 : 0 }}>
+        <span style={{
+          padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700,
+          background: `${labelColor}20`, color: labelColor, letterSpacing: 0.5,
+          minWidth: 28, textAlign: 'center',
+        }}>
+          {label}
+        </span>
+        <span style={{ color: '#ddd', fontWeight: 600, fontSize: '0.9rem' }}>
+          {locked ? '🔒 ' : ''}{name}
+        </span>
+        {locked && unlockLevel && (
+          <span style={{ color: '#555', fontSize: '0.65rem', marginLeft: 'auto' }}>Unlocks Lv{unlockLevel}</span>
+        )}
+      </div>
+      {description && (
+        <div style={{ color: '#999', fontSize: '0.75rem', marginBottom: stats?.length ? 6 : 0, lineHeight: 1.4 }}>{description}</div>
+      )}
+      {stats?.length > 0 && (
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {stats.map((s, i) => (
+            <span key={i} style={{ fontSize: '0.7rem', color: '#888' }}>
+              <span style={{ color: '#aaa', fontWeight: 600 }}>{s.l}</span> {s.v}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPanelContent({ styles, socketRef, onClose }) {
   const [adminCmd, setAdminCmd] = React.useState('');
   return (
@@ -1112,7 +1277,7 @@ function AdminPanelContent({ styles, socketRef, onClose }) {
 
 function DesktopSidePanel({ showLeaderboard, setShowLeaderboard, showInGameSettings, setShowInGameSettings, leaderboardData, playerInfo }) {
   return (
-    <div style={{ position: 'fixed', top: 220, left: 20, zIndex: 50 }}>
+    <div style={{ position: 'fixed', top: 340, left: 20, zIndex: 50 }}>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => setShowInGameSettings(true)}
           style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

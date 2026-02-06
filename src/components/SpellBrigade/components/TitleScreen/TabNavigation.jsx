@@ -22,14 +22,14 @@ export default function TabNavigation({ tab, setTab, isMobile }) {
         <button key={t.id} onClick={() => setTab(t.id)} style={{
           padding: isMobile ? '10px 16px' : '12px 24px',
           background: tab === t.id 
-            ? 'linear-gradient(180deg, rgba(255,217,61,0.2) 0%, rgba(255,217,61,0.05) 100%)' 
-            : 'rgba(255,255,255,0.03)',
+            ? 'linear-gradient(180deg, rgba(255,217,61,0.25) 0%, rgba(255,217,61,0.08) 100%)' 
+            : 'rgba(255,255,255,0.05)',
           border: tab === t.id 
-            ? '1px solid rgba(255,217,61,0.5)' 
-            : '1px solid rgba(255,255,255,0.08)',
+            ? '1px solid rgba(255,217,61,0.6)' 
+            : '1px solid rgba(255,255,255,0.12)',
           borderRadius: 10,
-          color: tab === t.id ? '#ffd93d' : '#666',
-          fontSize: isMobile ? '0.8rem' : '0.9rem',
+          color: tab === t.id ? '#ffd93d' : '#ccc',
+          fontSize: isMobile ? '0.9rem' : '1rem',
           fontWeight: 600,
           cursor: 'pointer',
           transition: 'all 0.2s',

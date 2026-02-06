@@ -40,7 +40,7 @@ export default function TitleHeader({ isMobile, playersOnline }) {
           }}>Spell Brigade</h1>
         </div>
       </div>
-      <p style={{ color: '#666', fontSize: isMobile ? '0.75rem' : '0.85rem', margin: 0 }}>
+      <p style={{ color: '#b0b0b8', fontSize: isMobile ? '0.85rem' : '0.95rem', margin: 0, letterSpacing: 1.5, fontWeight: 500 }}>
         Multiplayer Wizard Arena
       </p>
       

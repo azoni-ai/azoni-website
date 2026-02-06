@@ -74,7 +74,7 @@ export default function CreateTab({
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 700, margin: '0 auto', width: '100%' }}>
       
       {/* AI Creator Toggle Button */}
       <button
@@ -95,7 +95,7 @@ export default function CreateTab({
           <span style={{ width: 24, height: 24, color: '#a78bfa' }}>{SVG.wand}</span>
           <div style={{ textAlign: 'left' }}>
             <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>✨ AI Wizard Creator</div>
-            <div style={{ color: '#666', fontSize: '0.75rem' }}>Design a unique wizard with custom abilities</div>
+            <div style={{ color: '#888', fontSize: '0.78rem' }}>Design a unique wizard with custom abilities</div>
           </div>
         </div>
         <span style={{ color: '#666', fontSize: '1.2rem', transform: showAICreator ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
@@ -188,7 +188,7 @@ export default function CreateTab({
       )}
       
       {/* Class Grid Header */}
-      <div style={{ color: '#888', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+      <div style={{ color: '#ddd', fontSize: '0.9rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, textAlign: 'center' }}>
         Choose Your Class
       </div>
       
@@ -345,7 +345,7 @@ function ClassCard({ id, classData: c, isSelected, onClick, CLASS_SVG, SVG }) {
           <div style={{ color: isSelected ? c.color : '#ddd', fontWeight: 700, fontSize: '0.95rem' }}>
             {c.name}
           </div>
-          <div style={{ color: '#777', fontSize: '0.7rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ color: '#aaa', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.description}
           </div>
         </div>
@@ -401,7 +401,7 @@ function ClassCard({ id, classData: c, isSelected, onClick, CLASS_SVG, SVG }) {
 }
 
 /**
- * Compact generated wizard card
+ * Detailed generated wizard card with lore and full ability breakdown
  */
 function CompactWizardCard({ wizard, onPlay }) {
   const { classDef, spellDefs } = wizard;
@@ -409,71 +409,152 @@ function CompactWizardCard({ wizard, onPlay }) {
   return (
     <div style={{
       marginTop: 16,
-      padding: 16,
-      background: 'rgba(0,0,0,0.4)',
-      borderRadius: 10,
-      border: `1px solid ${classDef.color}40`,
+      padding: 20,
+      background: 'rgba(0,0,0,0.5)',
+      borderRadius: 12,
+      border: `1px solid ${classDef.color}50`,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
-            width: 48, height: 48, borderRadius: 10,
+            width: 56, height: 56, borderRadius: 12,
             background: `linear-gradient(135deg, ${classDef.color}40, ${classDef.color}15)`,
             border: `2px solid ${classDef.color}`,
-          }} />
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.5rem',
+          }}>
+            ✨
+          </div>
           <div>
-            <div style={{ color: classDef.color, fontWeight: 700, fontSize: '1.1rem' }}>{classDef.name}</div>
-            <div style={{ display: 'flex', gap: 12, fontSize: '0.8rem' }}>
-              <span style={{ color: '#ff6b6b' }}>HP {classDef.baseHealth}</span>
-              <span style={{ color: '#74c0fc' }}>SPD {classDef.baseSpeed}</span>
+            <div style={{ color: classDef.color, fontWeight: 700, fontSize: '1.2rem' }}>{classDef.name}</div>
+            <div style={{ display: 'flex', gap: 14, fontSize: '0.85rem', marginTop: 4 }}>
+              <span style={{ color: '#ff6b6b' }}>❤️ HP {classDef.baseHealth}</span>
+              <span style={{ color: '#74c0fc' }}>⚡ SPD {classDef.baseSpeed}</span>
             </div>
           </div>
         </div>
         <button
           onClick={onPlay}
           style={{
-            padding: '10px 20px',
+            padding: '12px 24px',
             background: `linear-gradient(135deg, ${classDef.color}, ${classDef.secondaryColor || classDef.color})`,
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 10,
             color: '#fff',
             fontWeight: 700,
-            fontSize: '0.9rem',
+            fontSize: '1rem',
             cursor: 'pointer',
+            boxShadow: `0 4px 15px ${classDef.color}40`,
           }}
         >
           ▶ Play
         </button>
       </div>
       
-      <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: 10 }}>{classDef.description}</div>
+      {/* Lore/Description */}
+      <div style={{ 
+        color: '#ccc', fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.6,
+        padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8,
+        borderLeft: `3px solid ${classDef.color}40`,
+        fontStyle: 'italic',
+      }}>
+        {classDef.description}
+      </div>
       
-      {/* Spells summary */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {Object.values(spellDefs).slice(0, 3).map(spell => (
-          <span key={spell.id} style={{
-            padding: '4px 8px',
-            background: `${spell.color}15`,
-            border: `1px solid ${spell.color}30`,
-            borderRadius: 4,
-            fontSize: '0.7rem',
-            color: '#bbb',
-          }}>
-            {spell.name}
+      {/* Abilities Section */}
+      <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 }}>
+        Abilities
+      </div>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Dash Ability */}
+        {classDef.dashAbility && (
+          <AbilityRow
+            label="DASH"
+            labelColor="#60a5fa"
+            name={classDef.dashAbility.name}
+            color={classDef.color}
+            stats={[
+              { label: 'CD', value: `${(classDef.dashAbility.cooldown / 1000).toFixed(1)}s` },
+              classDef.dashAbility.damage && { label: 'DMG', value: classDef.dashAbility.damage },
+              { label: 'Range', value: classDef.dashAbility.distance || classDef.dashAbility.range || '—' },
+            ].filter(Boolean)}
+            description={classDef.dashAbility.description}
+          />
+        )}
+        
+        {/* Ultimate Ability */}
+        {classDef.ultimateAbility && (
+          <AbilityRow
+            label="ULT"
+            labelColor="#fbbf24"
+            name={classDef.ultimateAbility.name}
+            color={classDef.color}
+            stats={[
+              { label: 'CD', value: `${(classDef.ultimateAbility.cooldown / 1000).toFixed(0)}s` },
+              classDef.ultimateAbility.damage && { label: 'DMG', value: classDef.ultimateAbility.damage },
+              classDef.ultimateAbility.duration && { label: 'DUR', value: `${(classDef.ultimateAbility.duration / 1000).toFixed(1)}s` },
+            ].filter(Boolean)}
+            description={classDef.ultimateAbility.description}
+          />
+        )}
+        
+        {/* Spells */}
+        {Object.values(spellDefs).slice(0, 3).map((spell, i) => (
+          <AbilityRow
+            key={spell.id}
+            label={`SPELL ${i + 1}`}
+            labelColor={spell.color || '#a78bfa'}
+            name={spell.name}
+            color={spell.color || '#a78bfa'}
+            stats={[
+              { label: 'DMG', value: spell.damage || '—' },
+              { label: 'CD', value: `${((spell.cooldown || 1000) / 1000).toFixed(1)}s` },
+              spell.range && { label: 'RNG', value: spell.range },
+              spell.speed && { label: 'SPD', value: spell.speed },
+            ].filter(Boolean)}
+            description={spell.description}
+            unlockLevel={[10, 20, 30][i]}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Single ability row in wizard card
+ */
+function AbilityRow({ label, labelColor, name, color, stats, description, unlockLevel }) {
+  return (
+    <div style={{
+      padding: '10px 12px',
+      background: `${color}08`,
+      border: `1px solid ${color}20`,
+      borderRadius: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <span style={{
+          padding: '2px 6px', borderRadius: 4, fontSize: '0.6rem', fontWeight: 700,
+          background: `${labelColor}20`, color: labelColor, letterSpacing: 0.5,
+        }}>
+          {label}
+        </span>
+        <span style={{ color: '#ddd', fontWeight: 600, fontSize: '0.85rem' }}>{name}</span>
+        {unlockLevel && (
+          <span style={{ color: '#555', fontSize: '0.6rem', marginLeft: 'auto' }}>Lv{unlockLevel}</span>
+        )}
+      </div>
+      {description && (
+        <div style={{ color: '#999', fontSize: '0.75rem', marginBottom: 6, lineHeight: 1.4 }}>{description}</div>
+      )}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {stats.map((s, i) => (
+          <span key={i} style={{ fontSize: '0.7rem', color: '#888' }}>
+            <span style={{ color: '#aaa', fontWeight: 600 }}>{s.label}</span> {s.value}
           </span>
         ))}
-        {classDef.dashAbility && (
-          <span style={{
-            padding: '4px 8px',
-            background: `${classDef.color}15`,
-            border: `1px solid ${classDef.color}30`,
-            borderRadius: 4,
-            fontSize: '0.7rem',
-            color: classDef.color,
-          }}>
-            ⚡ {classDef.dashAbility.name}
-          </span>
-        )}
       </div>
     </div>
   );

@@ -96,6 +96,7 @@ export const createStyles = (isMobile, settings, screen) => ({
     content: {
       width: '100%',
       maxWidth: 900,
+      margin: '0 auto',
       padding: isMobile ? 10 : 20,
       paddingBottom: isMobile ? 40 : 60,
       flexShrink: 0,
@@ -369,9 +370,9 @@ export const createStyles = (isMobile, settings, screen) => ({
       height: isMobile ? 18 : 22,
     },
     tutorialText: {
-      color: '#999',
-      lineHeight: 1.7,
-      fontSize: isMobile ? '.85rem' : '1rem',
+      color: '#ccc',
+      lineHeight: 1.8,
+      fontSize: isMobile ? '.88rem' : '1rem',
     },
     key: {
       display: 'inline-flex',
@@ -408,7 +409,8 @@ export const createStyles = (isMobile, settings, screen) => ({
     },
     // Settings styles
     settingsContent: {
-      maxWidth: 380,
+      maxWidth: 450,
+      margin: '0 auto',
       padding: isMobile ? '0 10px' : 0,
     },
     settingRow: {
@@ -424,7 +426,8 @@ export const createStyles = (isMobile, settings, screen) => ({
       display: 'flex',
       alignItems: 'center',
       gap: 10,
-      fontSize: isMobile ? '.85rem' : '.95rem',
+      fontSize: isMobile ? '.9rem' : '1rem',
+      color: '#ddd',
     },
     settingIcon: {
       width: 20,
