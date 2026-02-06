@@ -2259,33 +2259,39 @@ export default function SpellBrigade() {
         }
       }
 
-      // ESC - priority: close chat > close settings > close modals > toggle settings
+      // ESC - priority: close chat > close NPC dialogue > close settings > close modals > open settings
       if (e.code === 'Escape' && playerIdRef.current) {
-        // First priority: if chat input is focused, blur it
+        // First: if chat input is focused, blur it
         const activeEl = document.activeElement;
         if (activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA') {
           activeEl.blur();
           return;
         }
         
-        // Second priority: close settings if open
+        // Second: close NPC dialogue if open (don't touch settings)
+        if (npcDialogue) {
+          setNpcDialogue(null);
+          return;
+        }
+        
+        // Third: close settings if open
         if (showInGameSettings) {
           setShowInGameSettings(false);
           return;
         }
         
-        // Third priority: close any open modals/dialogues
-        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue || showCharacterSheet) {
+        // Fourth: close any open modals
+        if (showEmotes || showShop || showSkinSelect || showQuestLog || showCharacterSheet) {
           setShowEmotes(false);
           setShowShop(false);
           setShowSkinSelect(false);
           setShowQuestLog(false);
-          setNpcDialogue(null);
           if (typeof setShowCharacterSheet === 'function') setShowCharacterSheet(false);
-        } else {
-          // Fourth priority: open settings
-          setShowInGameSettings(true);
+          return;
         }
+        
+        // Fifth: nothing else open, open settings
+        setShowInGameSettings(true);
       }
     };
 
@@ -9215,7 +9221,8 @@ export default function SpellBrigade() {
                       width: '100%',
                       justifyContent: 'center',
                     }}
-                    onClick={() => setShowSkinSelect(true)}
+                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowSkinSelect(true); }}
+                    onClick={(e) => { e.stopPropagation(); setShowSkinSelect(true); }}
                   >
                     <span style={{ width: 14, height: 14 }}>{SVG.star}</span>
                     Change Skin
@@ -9230,7 +9237,8 @@ export default function SpellBrigade() {
                     borderTop: '1px solid rgba(255,215,0,0.15)',
                     cursor: 'pointer',
                   }}
-                  onClick={() => setShowQuestLog(true)}
+                  onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowQuestLog(true); }}
+                  onClick={(e) => { e.stopPropagation(); setShowQuestLog(true); }}
                 >
                   {(() => {
                     const bossKills = playerInfo.bossKills || {};
@@ -9512,7 +9520,8 @@ export default function SpellBrigade() {
                   </div>
                   {/* Quest Log button */}
                   <button
-                    onClick={() => setShowQuestLog(true)}
+                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowQuestLog(true); }}
+                    onClick={(e) => { e.stopPropagation(); setShowQuestLog(true); }}
                     style={{
                       marginLeft: 'auto',
                       background: 'rgba(255,215,0,0.2)',
@@ -9532,7 +9541,8 @@ export default function SpellBrigade() {
                   </button>
                   {/* Character Sheet button */}
                   <button
-                    onClick={() => setShowCharacterSheet(prev => !prev)}
+                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowCharacterSheet(prev => !prev); }}
+                    onClick={(e) => { e.stopPropagation(); setShowCharacterSheet(prev => !prev); }}
                     style={{
                       background: 'rgba(103,232,249,0.2)',
                       border: '1px solid rgba(103,232,249,0.4)',
@@ -9605,7 +9615,8 @@ export default function SpellBrigade() {
                 {/* Settings + Leaderboard row - positioned below quest section */}
                 <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 6 }}>
                   <button
-                    onClick={() => setShowInGameSettings(true)}
+                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowInGameSettings(true); }}
+                    onClick={(e) => { e.stopPropagation(); setShowInGameSettings(true); }}
                     style={{
                       background: 'rgba(100,100,100,0.3)',
                       border: '1px solid rgba(255,255,255,0.15)',
@@ -9622,14 +9633,19 @@ export default function SpellBrigade() {
                       <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/>
                     </svg>
                   </button>
-                  <div style={{ flex: 1, fontSize: '0.55rem', color: '#666', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div 
+                    onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); setShowLeaderboard(prev => !prev); }}
+                    onClick={(e) => { e.stopPropagation(); setShowLeaderboard(prev => !prev); }}
+                    style={{ flex: 1, fontSize: '0.55rem', color: '#666', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
+                  >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
                     <span style={{ color: '#ffd93d', fontWeight: 600 }}>LEADERBOARD</span>
+                    <span style={{ marginLeft: 'auto', color: '#555', fontSize: '0.6rem' }}>{showLeaderboard ? '▲' : '▼'}</span>
                   </div>
                 </div>
 
-                {/* Always-visible compact leaderboard */}
-                {leaderboardData.length > 0 && (
+                {/* Collapsible leaderboard */}
+                {showLeaderboard && leaderboardData.length > 0 && (
                   <div style={{
                     background: 'rgba(0,0,0,0.3)',
                     borderRadius: 8,
