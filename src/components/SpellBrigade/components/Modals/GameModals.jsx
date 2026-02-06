@@ -39,6 +39,7 @@ export default function GameModals({
   CLASS_SVG,
   DEFAULT_SKINS,
   classes,
+  spellDefs,
   playerInfo,
   nearbyBuilding,
   questLog,
@@ -310,6 +311,7 @@ export default function GameModals({
           SVG={SVG}
           playerInfo={playerInfo}
           classes={classes}
+          spellDefs={spellDefs || {}}
           onClose={() => setShowSpellbook(false)}
         />
       )}
@@ -1002,11 +1004,15 @@ function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, p
         </div>
         <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10 }}>
           <button onClick={() => { 
+            // Proper cleanup: emit leave, clear state, then go to title
             socketRef.current?.emit('leave');
-            playerIdRef.current = null; 
-            setTimeout(() => socketRef.current?.disconnect(), 100);
-            setScreen('title'); 
-            onClose(); 
+            playerIdRef.current = null;
+            // Wait for server to process leave before disconnecting
+            setTimeout(() => {
+              socketRef.current?.disconnect();
+              setScreen('title'); 
+              onClose(); 
+            }, 250);
           }}
             style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#888', cursor: 'pointer', fontSize: '0.85rem' }}>
             Return to Menu
@@ -1097,6 +1103,11 @@ function SpellbookContent({ styles, SVG, playerInfo, classes, onClose }) {
   const classDef = classes[playerInfo.class] || {};
   const color = classDef.color || '#a78bfa';
   const spells = classDef.classAbilities || [];
+  const dmgMult = playerInfo.damageMultiplier || 1;
+  const cdMult = (playerInfo.cooldownMultiplier || 1) * (playerInfo.attackSpeedMultiplier || 1);
+  
+  const scaleDmg = (d) => d ? Math.floor(d * dmgMult) : null;
+  const scaleCd = (cd) => cd ? `${(cd * cdMult / 1000).toFixed(1)}s` : null;
   
   return (
     <>
@@ -1129,11 +1140,27 @@ function SpellbookContent({ styles, SVG, playerInfo, classes, onClose }) {
             description={classDef.spellDescription || 'Automatically attacks nearby enemies.'}
             color={color}
             stats={[
-              classDef.spellDamage && { l: 'DMG', v: classDef.spellDamage },
-              classDef.spellCooldown && { l: 'CD', v: `${(classDef.spellCooldown / 1000).toFixed(1)}s` },
+              classDef.spellDamage && { l: 'DMG', v: scaleDmg(classDef.spellDamage) },
+              classDef.spellCooldown && { l: 'CD', v: scaleCd(classDef.spellCooldown) },
               classDef.spellRange && { l: 'RNG', v: classDef.spellRange },
             ].filter(Boolean)}
           />
+
+          {/* Secondary auto-attack */}
+          {classDef.secondaryName && (
+            <SpellbookAbility
+              label="AUTO 2"
+              labelColor="#38bdf8"
+              name={classDef.secondaryName}
+              description={classDef.secondaryDescription || 'Secondary attack.'}
+              color={classDef.secondaryColor || color}
+              stats={[
+                classDef.secondaryDamage && { l: 'DMG', v: scaleDmg(classDef.secondaryDamage) },
+                classDef.secondaryCooldown && { l: 'CD', v: scaleCd(classDef.secondaryCooldown) },
+                classDef.secondaryRange && { l: 'RNG', v: classDef.secondaryRange },
+              ].filter(Boolean)}
+            />
+          )}
 
           {/* Dash */}
           {classDef.dashAbility && (
@@ -1161,7 +1188,7 @@ function SpellbookContent({ styles, SVG, playerInfo, classes, onClose }) {
               color={color}
               stats={[
                 { l: 'CD', v: `${(classDef.ultimateAbility.cooldown / 1000).toFixed(0)}s` },
-                classDef.ultimateAbility.damage && { l: 'DMG', v: classDef.ultimateAbility.damage },
+                classDef.ultimateAbility.damage && { l: 'DMG', v: scaleDmg(classDef.ultimateAbility.damage) },
                 classDef.ultimateAbility.duration && { l: 'DUR', v: `${(classDef.ultimateAbility.duration / 1000).toFixed(1)}s` },
               ].filter(Boolean)}
             />
@@ -1187,7 +1214,7 @@ function SpellbookContent({ styles, SVG, playerInfo, classes, onClose }) {
                 locked={!unlocked}
                 unlockLevel={levelReqs[i]}
                 stats={[
-                  spell.damage && { l: 'DMG', v: spell.damage },
+                  spell.damage && { l: 'DMG', v: scaleDmg(spell.damage) },
                   spell.cooldown && { l: 'CD', v: `${(spell.cooldown / 1000).toFixed(1)}s` },
                   spell.range && { l: 'RNG', v: spell.range },
                   spell.duration && { l: 'DUR', v: `${(spell.duration / 1000).toFixed(1)}s` },
