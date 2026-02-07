@@ -2087,17 +2087,20 @@ export default function SpellBrigade() {
       if (e.button !== 0) return;
       initAudio();
       
-      if (screen === 'game' && !isMobile && e.target?.tagName === 'CANVAS' && socketRef.current && playerIdRef.current) {
-        const zoom = zoomRef.current || 1;
-        const targetX = (e.clientX / zoom) + cameraRef.current.x;
-        const targetY = (e.clientY / zoom) + cameraRef.current.y;
-        
-        if (!autoAttackRef.current) {
-          // Manual attack mode: click fires projectile at cursor
-          socketRef.current.emit('manualAttack', { targetX, targetY });
-        } else {
-          // Auto-attack mode: click to move
-          socketRef.current.emit('clickMove', { targetX, targetY });
+      if (screenRef.current === 'game' && !isMobile && socketRef.current && playerIdRef.current) {
+        // Only fire on canvas clicks (not HUD buttons/panels)
+        if (e.target === canvasRef.current) {
+          const zoom = zoomRef.current || 1;
+          const targetX = (e.clientX / zoom) + cameraRef.current.x;
+          const targetY = (e.clientY / zoom) + cameraRef.current.y;
+          
+          if (!autoAttackRef.current) {
+            // Manual attack mode: click fires projectile at cursor
+            socketRef.current.emit('manualAttack', { targetX, targetY });
+          } else {
+            // Auto-attack mode: click to move
+            socketRef.current.emit('clickMove', { targetX, targetY });
+          }
         }
       }
     };
@@ -12371,9 +12374,11 @@ export default function SpellBrigade() {
       playerName: savedPlayer.name,
       playerClass: savedPlayer.class,
       selectedSkin: skinToUse,
+      adminKey: adminKeyRef.current || undefined,
       sessionToken: sessionTokenRef.current || null,
       isCustomWizard: savedPlayer.isCustomWizard || false,
       customIconStyle: savedPlayer.customIconStyle || null,
+      startLevel: adminStartLevel ? 30 : undefined,
     };
     
     const doJoin = () => {
@@ -12447,6 +12452,7 @@ export default function SpellBrigade() {
       playerName: name,
       playerClass: customClassId || selectedClass,
       selectedSkin: customClassId ? (customClassId + '_default') : selectedSkin,
+      adminKey: adminKeyRef.current || undefined,
       sessionToken: sessionTokenRef.current || null,
       isCustomWizard: !!customClassId,
       startLevel: adminStartLevel ? 30 : undefined,
