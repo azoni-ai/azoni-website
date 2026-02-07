@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { io } from 'socket.io-client';
 
 // Local imports
-import { SVG, CLASS_SVG } from './constants/icons';
+import { SVG, CLASS_SVG, WIZARD_ICONS } from './constants/icons';
 import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/config';
 import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, QUEST_NPCS, SANCTUARY_FEATURES, pointInPolygon, getZoneAtPosition } from './constants/zones';
 // Note: hooks/useAudio.js is available for future refactoring
@@ -35,6 +35,7 @@ export default function SpellBrigade() {
   const screenShakeRef = useRef({ x: 0, y: 0, intensity: 0 });
   const inputRef = useRef({ up: false, down: false, left: false, right: false });
   const mouseRef = useRef({ x: 0, y: 0 });
+  const activeModalRef = useRef(null); // Tracks which modal is open for escape key
   const zoomRef = useRef(1);
   const effectsRef = useRef([]);
   const meteorWarningsRef = useRef([]);
@@ -138,8 +139,10 @@ export default function SpellBrigade() {
     sessionToken: null,
   });
   const sessionTokenRef = useRef(null);
-  // Keep ref in sync with state
+  const authStateRef = useRef(authState);
+  // Keep refs in sync with state
   sessionTokenRef.current = authState.sessionToken;
+  authStateRef.current = authState;
   const [authScreen, setAuthScreen] = useState('main'); // main, login, signup
   const [authError, setAuthError] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -192,6 +195,19 @@ export default function SpellBrigade() {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  // Track active modal for escape key (avoids stale closures in keyboard handler)
+  useEffect(() => {
+    if (npcDialogue) activeModalRef.current = 'npcDialogue';
+    else if (showSpellbook) activeModalRef.current = 'spellbook';
+    else if (showQuestLog) activeModalRef.current = 'questLog';
+    else if (showEmotes) activeModalRef.current = 'emotes';
+    else if (showShop) activeModalRef.current = 'shop';
+    else if (showSkinSelect) activeModalRef.current = 'skinSelect';
+    else if (showCharacterSheet) activeModalRef.current = 'characterSheet';
+    else if (showInGameSettings) activeModalRef.current = 'settings';
+    else activeModalRef.current = null;
+  }, [npcDialogue, showSpellbook, showQuestLog, showEmotes, showShop, showSkinSelect, showCharacterSheet, showInGameSettings]);
 
   // Keep dungeon refs in sync for render loop
   useEffect(() => {
@@ -730,6 +746,13 @@ export default function SpellBrigade() {
     socket.on('connect', () => {
       console.log('🔌 Socket connected');
       setConnected(true);
+      
+      // Skip session validation if already authenticated (e.g. reconnecting after tab hidden)
+      if (authStateRef?.current?.isAuthenticated) {
+        console.log('🔌 Already authenticated, skipping session validation');
+        return;
+      }
+      
       // Check for returning player
       const savedSession = localStorage.getItem('spellBrigadeSession');
       const savedId = localStorage.getItem('spellBrigadePlayerId');
@@ -894,6 +917,11 @@ export default function SpellBrigade() {
         selectedSkin: data.player.selectedSkin,
         bossKills: data.player.bossKills || {},
         upgrades: data.player.upgrades || {},
+        isCustomWizard: data.player.isCustomWizard || false,
+        customColor: data.player.customColor,
+        customSecondaryColor: data.player.customSecondaryColor,
+        customClassName: data.player.customClassName,
+        customIconStyle: data.player.customIconStyle,
       };
       setSavedPlayer(charSummary);
       setCharacters(prev => {
@@ -1828,8 +1856,33 @@ export default function SpellBrigade() {
         radius: data.radius,
         color: data.color,
         name: data.name,
-        startTime: Date.now(),
+        createdAt: Date.now(),
         duration: data.duration || 3000,
+      });
+    });
+
+    // Custom ultimate visual effects
+    socket.on('customUltWarning', (data) => {
+      effectsRef.current.push({
+        type: 'customUltWarning',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        color: data.color,
+        name: data.name,
+        createdAt: Date.now(),
+        duration: data.delay || 1000,
+      });
+    });
+
+    socket.on('customUltExplosion', (data) => {
+      effectsRef.current.push({
+        type: 'customUltExplosion',
+        x: data.x, y: data.y,
+        radius: data.radius,
+        color: data.color,
+        name: data.name,
+        createdAt: Date.now(),
+        duration: 1500,
       });
     });
 
@@ -2177,11 +2230,18 @@ export default function SpellBrigade() {
               }
             }
           }
-        }
-        
-        // Otherwise toggle shop (only outside dungeon)
-        if (!inDungeonRef.current) {
-          setShowShop(prev => !prev);
+          // Check for nearby building -> open shop
+          if (me) {
+            for (const [id, building] of Object.entries(BUILDING_DATA)) {
+              const dx = me.x - building.x;
+              const dy = me.y - (building.y - building.height / 2);
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 120) {
+                setShowShop(true);
+                return;
+              }
+            }
+          }
         }
       }
 
@@ -2242,20 +2302,18 @@ export default function SpellBrigade() {
         }
       }
 
-      // ESC - toggle settings modal
+      // ESC - close open modals or toggle settings
       if (e.code === 'Escape' && playerIdRef.current) {
-        // Close any open modals first
-        if (showEmotes || showShop || showSkinSelect || showQuestLog || npcDialogue || showSpellbook) {
-          setShowEmotes(false);
-          setShowShop(false);
-          setShowSkinSelect(false);
-          setShowQuestLog(false);
-          setNpcDialogue(null);
-          setShowSpellbook(false);
-        } else {
-          // Toggle settings
-          setShowInGameSettings(prev => !prev);
-        }
+        const modal = activeModalRef.current;
+        if (modal === 'npcDialogue') { setNpcDialogue(null); }
+        else if (modal === 'spellbook') { setShowSpellbook(false); }
+        else if (modal === 'questLog') { setShowQuestLog(false); }
+        else if (modal === 'emotes') { setShowEmotes(false); }
+        else if (modal === 'shop') { setShowShop(false); }
+        else if (modal === 'skinSelect') { setShowSkinSelect(false); }
+        else if (modal === 'characterSheet') { setShowCharacterSheet(false); }
+        else if (modal === 'settings') { setShowInGameSettings(false); }
+        else { setShowInGameSettings(true); }
       }
     };
 
@@ -3190,28 +3248,61 @@ export default function SpellBrigade() {
 
             // ===== SANCTUARY =====
             if (zone === 'sanctuary') {
-              if (dr > 0.85) {
+              if (dr > 0.91) {
+                // Ornate fountain with water
+                ctx.fillStyle = '#78716c';
+                ctx.beginPath(); ctx.ellipse(sx, sy + 8, 16, 8, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#a8a29e';
+                ctx.beginPath(); ctx.ellipse(sx, sy + 8, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
+                // Water in basin
+                ctx.fillStyle = `rgba(56,189,248,${0.35 + Math.sin(time * 2) * 0.1})`;
+                ctx.beginPath(); ctx.ellipse(sx, sy + 7, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
+                // Center pillar
+                ctx.fillStyle = '#78716c';
+                ctx.fillRect(sx - 2, sy - 6, 4, 14);
+                // Top bowl
+                ctx.fillStyle = '#a8a29e';
+                ctx.beginPath(); ctx.ellipse(sx, sy - 6, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+                // Water streams
+                ctx.strokeStyle = `rgba(147,197,253,${0.4 + Math.sin(time * 3) * 0.2})`; ctx.lineWidth = 1.5;
+                for (let s = 0; s < 4; s++) {
+                  const sa = s * Math.PI / 2;
+                  ctx.beginPath(); ctx.moveTo(sx + Math.cos(sa) * 4, sy - 4);
+                  ctx.quadraticCurveTo(sx + Math.cos(sa) * 8, sy + 2, sx + Math.cos(sa) * 10, sy + 6); ctx.stroke();
+                }
+                // Water sparkle
+                ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(time * 5 + x) * 0.2})`;
+                ctx.beginPath(); ctx.arc(sx + 4, sy + 5, 1, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.84) {
                 // Ornate lamp post with warm glow
                 const glow = 0.5 + Math.sin(time * 2 + x) * 0.2;
-                // Post
-                ctx.fillStyle = '#44403c';
-                ctx.fillRect(sx - 2, sy - 2, 4, 22);
-                // Base plate
-                ctx.fillStyle = '#57534e';
-                ctx.fillRect(sx - 5, sy + 18, 10, 4);
-                // Lantern housing
-                ctx.fillStyle = '#78716c';
-                ctx.fillRect(sx - 4, sy - 8, 8, 8);
-                ctx.fillStyle = '#a8a29e';
-                ctx.fillRect(sx - 5, sy - 9, 10, 2);
-                ctx.fillRect(sx - 5, sy - 1, 10, 2);
-                // Light
+                ctx.fillStyle = '#44403c'; ctx.fillRect(sx - 2, sy - 2, 4, 22);
+                ctx.fillStyle = '#57534e'; ctx.fillRect(sx - 5, sy + 18, 10, 4);
+                ctx.fillStyle = '#78716c'; ctx.fillRect(sx - 4, sy - 8, 8, 8);
+                ctx.fillStyle = '#a8a29e'; ctx.fillRect(sx - 5, sy - 9, 10, 2); ctx.fillRect(sx - 5, sy - 1, 10, 2);
                 ctx.fillStyle = `rgba(253,224,71,${glow})`;
                 ctx.beginPath(); ctx.arc(sx, sy - 4, 3, 0, Math.PI * 2); ctx.fill();
-                // Glow radius
                 ctx.fillStyle = `rgba(253,224,71,${glow * 0.12})`;
                 ctx.beginPath(); ctx.arc(sx, sy - 4, 25, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.72) {
+              } else if (dr > 0.76) {
+                // Statue of a wizard
+                ctx.fillStyle = '#94a3b8';
+                // Base
+                ctx.fillRect(sx - 8, sy + 8, 16, 6);
+                ctx.fillRect(sx - 10, sy + 12, 20, 4);
+                // Robed body
+                ctx.beginPath(); ctx.moveTo(sx - 6, sy + 8); ctx.lineTo(sx - 4, sy - 6); ctx.lineTo(sx, sy - 10); ctx.lineTo(sx + 4, sy - 6); ctx.lineTo(sx + 6, sy + 8); ctx.closePath(); ctx.fill();
+                // Head
+                ctx.beginPath(); ctx.arc(sx, sy - 14, 5, 0, Math.PI * 2); ctx.fill();
+                // Wizard hat
+                ctx.fillStyle = '#64748b';
+                ctx.beginPath(); ctx.moveTo(sx, sy - 26); ctx.lineTo(sx - 6, sy - 14); ctx.lineTo(sx + 6, sy - 14); ctx.closePath(); ctx.fill();
+                // Staff
+                ctx.fillStyle = '#78716c'; ctx.fillRect(sx + 7, sy - 18, 2, 26);
+                // Orb on staff
+                ctx.fillStyle = `rgba(253,224,71,${0.4 + Math.sin(time * 2) * 0.2})`;
+                ctx.beginPath(); ctx.arc(sx + 8, sy - 20, 3, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.68) {
                 // Stone path segment
                 const stones = [{dx: -8, dy: 0, rx: 7, ry: 4}, {dx: 4, dy: -4, rx: 6, ry: 3}, {dx: 6, dy: 4, rx: 5, ry: 3}, {dx: -3, dy: 6, rx: 5, ry: 3}];
                 for (const s of stones) {
@@ -3220,14 +3311,12 @@ export default function SpellBrigade() {
                   ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
                   ctx.beginPath(); ctx.ellipse(sx + s.dx, sy + s.dy, s.rx, s.ry, dr2 * 0.5, 0, Math.PI * 2); ctx.stroke();
                 }
-              } else if (dr > 0.58) {
+              } else if (dr > 0.6) {
                 // Garden with trellis and roses
-                // Trellis
                 ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2;
                 ctx.strokeRect(sx - 8, sy - 12, 16, 20);
                 ctx.beginPath(); ctx.moveTo(sx, sy - 12); ctx.lineTo(sx, sy + 8); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(sx - 8, sy - 2); ctx.lineTo(sx + 8, sy - 2); ctx.stroke();
-                // Climbing roses
                 const roseColors = ['#e11d48', '#f472b6', '#fb7185'];
                 for (let i = 0; i < 4; i++) {
                   const rx = sx - 6 + (i % 2) * 12 + Math.sin(i * 1.7) * 3;
@@ -3237,50 +3326,70 @@ export default function SpellBrigade() {
                   ctx.fillStyle = '#15803d';
                   ctx.beginPath(); ctx.ellipse(rx + 3, ry + 2, 3, 1.5, 0.5, 0, Math.PI * 2); ctx.fill();
                 }
-              } else if (dr > 0.44) {
+              } else if (dr > 0.52) {
                 // Ornamental tree with golden leaves
-                // Trunk
-                ctx.fillStyle = '#78350f';
-                ctx.fillRect(sx - 3, sy + 4, 6, 14);
-                // Roots
+                ctx.fillStyle = '#78350f'; ctx.fillRect(sx - 3, sy + 4, 6, 14);
                 ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(sx - 3, sy + 16); ctx.lineTo(sx - 8, sy + 20); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(sx + 3, sy + 16); ctx.lineTo(sx + 8, sy + 20); ctx.stroke();
-                // Canopy layers
                 ctx.fillStyle = '#15803d';
                 ctx.beginPath(); ctx.arc(sx, sy - 4, 14, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#22c55e';
                 ctx.beginPath(); ctx.arc(sx - 5, sy - 8, 9, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(sx + 6, sy - 6, 10, 0, Math.PI * 2); ctx.fill();
-                // Golden accent leaves
                 ctx.fillStyle = '#fbbf24';
                 for (let i = 0; i < 3; i++) {
                   ctx.beginPath(); ctx.arc(sx - 8 + i * 7 + Math.sin(time + i) * 2, sy - 10 + Math.cos(time * 0.8 + i) * 3, 2.5, 0, Math.PI * 2); ctx.fill();
                 }
-              } else if (dr > 0.3) {
+              } else if (dr > 0.44) {
+                // Wooden bench
+                ctx.fillStyle = '#78350f';
+                // Legs
+                ctx.fillRect(sx - 12, sy + 2, 3, 10);
+                ctx.fillRect(sx + 9, sy + 2, 3, 10);
+                // Seat
+                ctx.fillStyle = '#92400e';
+                ctx.fillRect(sx - 14, sy, 28, 4);
+                // Backrest
+                ctx.fillStyle = '#a16207';
+                ctx.fillRect(sx - 12, sy - 10, 2, 12);
+                ctx.fillRect(sx + 10, sy - 10, 2, 12);
+                ctx.fillRect(sx - 12, sy - 10, 24, 2);
+                ctx.fillRect(sx - 12, sy - 5, 24, 2);
+              } else if (dr > 0.36) {
                 // Market banner / flag
                 const flagColors = ['#dc2626', '#2563eb', '#7c3aed', '#059669'];
                 const flagColor = flagColors[Math.floor(dr3 * 4)];
                 const wave = Math.sin(time * 2 + x * 0.01) * 3;
-                // Pole
-                ctx.fillStyle = '#78350f';
-                ctx.fillRect(sx - 1, sy - 14, 3, 28);
+                ctx.fillStyle = '#78350f'; ctx.fillRect(sx - 1, sy - 14, 3, 28);
                 ctx.fillStyle = '#fbbf24';
                 ctx.beginPath(); ctx.arc(sx + 0.5, sy - 15, 3, 0, Math.PI * 2); ctx.fill();
-                // Flag
                 ctx.fillStyle = flagColor;
                 ctx.beginPath(); ctx.moveTo(sx + 2, sy - 12);
                 ctx.quadraticCurveTo(sx + 10, sy - 8 + wave, sx + 18, sy - 10 + wave);
                 ctx.lineTo(sx + 16, sy - 2 + wave);
-                ctx.quadraticCurveTo(sx + 8, sy + wave, sx + 2, sy - 2);
-                ctx.fill();
-              } else if (dr > 0.15) {
+                ctx.quadraticCurveTo(sx + 8, sy + wave, sx + 2, sy - 2); ctx.fill();
+              } else if (dr > 0.27) {
+                // Barrel stack
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath(); ctx.ellipse(sx - 5, sy + 4, 8, 10, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#92400e';
+                ctx.beginPath(); ctx.ellipse(sx - 5, sy + 4, 8, 10, 0, Math.PI * 1.5, Math.PI * 0.5); ctx.fill();
+                // Metal bands
+                ctx.strokeStyle = '#57534e'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.ellipse(sx - 5, sy, 8, 2, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(sx - 5, sy + 8, 8, 2, 0, 0, Math.PI * 2); ctx.stroke();
+                // Stacked barrel
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath(); ctx.ellipse(sx + 6, sy - 4, 6, 8, 0.3, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#57534e'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(sx + 6, sy - 7, 6, 1.5, 0.3, 0, Math.PI * 2); ctx.stroke();
+              } else if (dr > 0.18) {
                 // Well-kept flower bed with border
                 ctx.fillStyle = '#57534e';
                 ctx.beginPath(); ctx.ellipse(sx, sy, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#3f2d1e';
                 ctx.beginPath(); ctx.ellipse(sx, sy, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
-                // Flowers
                 const flowerPalette = [['#e11d48','#fcd34d'], ['#7c3aed','#fcd34d'], ['#2563eb','#fff'], ['#f97316','#fcd34d']];
                 const palette = flowerPalette[Math.floor(dr3 * 4)];
                 for (let i = 0; i < 5; i++) {
@@ -3290,6 +3399,22 @@ export default function SpellBrigade() {
                   ctx.beginPath(); ctx.arc(fx, fy, 2.5, 0, Math.PI * 2); ctx.fill();
                   ctx.fillStyle = palette[1];
                   ctx.beginPath(); ctx.arc(fx, fy, 1, 0, Math.PI * 2); ctx.fill();
+                }
+              } else if (dr > 0.08) {
+                // Hanging lantern string
+                ctx.strokeStyle = '#78350f'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(sx - 14, sy - 4);
+                ctx.quadraticCurveTo(sx, sy + 2, sx + 14, sy - 4); ctx.stroke();
+                for (let l = 0; l < 3; l++) {
+                  const lx = sx - 8 + l * 8;
+                  const ly = sy - 2 + Math.sin((l - 1) * 0.8) * 2;
+                  const lanternGlow = 0.4 + Math.sin(time * 3 + l * 2) * 0.2;
+                  ctx.fillStyle = '#fbbf24';
+                  ctx.fillRect(lx - 2, ly, 4, 5);
+                  ctx.fillStyle = `rgba(253,224,71,${lanternGlow})`;
+                  ctx.beginPath(); ctx.arc(lx, ly + 2, 3, 0, Math.PI * 2); ctx.fill();
+                  ctx.fillStyle = `rgba(253,224,71,${lanternGlow * 0.2})`;
+                  ctx.beginPath(); ctx.arc(lx, ly + 2, 8, 0, Math.PI * 2); ctx.fill();
                 }
               } else {
                 // Grass clump with butterflies
@@ -3303,7 +3428,32 @@ export default function SpellBrigade() {
             }
             // ===== MEADOW =====
             else if (zone === 'meadow') {
-              if (dr > 0.88) {
+              if (dr > 0.91) {
+                // Windmill (rare landmark)
+                ctx.fillStyle = '#92400e';
+                ctx.fillRect(sx - 6, sy - 8, 12, 26);
+                ctx.fillStyle = '#a16207';
+                ctx.fillRect(sx - 8, sy + 16, 16, 4);
+                // Roof
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath(); ctx.moveTo(sx, sy - 18); ctx.lineTo(sx - 10, sy - 8); ctx.lineTo(sx + 10, sy - 8); ctx.closePath(); ctx.fill();
+                // Blades
+                ctx.save(); ctx.translate(sx, sy - 12);
+                ctx.rotate(time * 1.5);
+                ctx.strokeStyle = '#a16207'; ctx.lineWidth = 2;
+                for (let b = 0; b < 4; b++) {
+                  const ba = b * Math.PI / 2;
+                  ctx.beginPath(); ctx.moveTo(0, 0);
+                  ctx.lineTo(Math.cos(ba) * 18, Math.sin(ba) * 18); ctx.stroke();
+                  // Sail
+                  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                  ctx.beginPath(); ctx.moveTo(Math.cos(ba) * 4, Math.sin(ba) * 4);
+                  ctx.lineTo(Math.cos(ba) * 16, Math.sin(ba) * 16);
+                  ctx.lineTo(Math.cos(ba + 0.25) * 14, Math.sin(ba + 0.25) * 14);
+                  ctx.closePath(); ctx.fill();
+                }
+                ctx.restore();
+              } else if (dr > 0.83) {
                 // Wooden fence section
                 ctx.fillStyle = '#92400e';
                 ctx.fillRect(sx - 14, sy, 3, 14);
@@ -3311,50 +3461,95 @@ export default function SpellBrigade() {
                 ctx.fillStyle = '#a16207';
                 ctx.fillRect(sx - 15, sy + 2, 30, 3);
                 ctx.fillRect(sx - 15, sy + 8, 30, 3);
-              } else if (dr > 0.76) {
+              } else if (dr > 0.74) {
                 // Hay bale
                 ctx.fillStyle = '#ca8a04';
                 ctx.beginPath(); ctx.ellipse(sx, sy + 4, 14, 10, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#a16207';
                 ctx.beginPath(); ctx.ellipse(sx, sy + 4, 14, 10, 0, 0, Math.PI); ctx.fill();
-                // Straw lines
                 ctx.strokeStyle = '#eab308'; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(sx - 10, sy + 2); ctx.lineTo(sx + 10, sy + 2); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(sx - 8, sy + 6); ctx.lineTo(sx + 8, sy + 6); ctx.stroke();
-                // Straw sticking out
                 ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5;
                 ctx.beginPath(); ctx.moveTo(sx + 12, sy); ctx.lineTo(sx + 16, sy - 5); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(sx - 11, sy + 1); ctx.lineTo(sx - 15, sy - 4); ctx.stroke();
-              } else if (dr > 0.62) {
-                // Wildflower cluster with tall stems
+              } else if (dr > 0.66) {
+                // Butterfly garden with flowers
                 const flColors = ['#ec4899', '#f97316', '#eab308', '#8b5cf6', '#3b82f6'];
                 for (let i = 0; i < 5; i++) {
                   const fx = sx - 8 + i * 4 + Math.sin(i * 2.3) * 2;
                   const stemH = 10 + dr2 * 8 + i * 2;
                   const sway = Math.sin(time * 1.5 + i * 0.9) * 2;
-                  // Stem
                   ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 1.5;
                   ctx.beginPath(); ctx.moveTo(fx, sy + 6); ctx.quadraticCurveTo(fx + sway, sy + 6 - stemH / 2, fx + sway, sy + 6 - stemH); ctx.stroke();
-                  // Flower
                   ctx.fillStyle = flColors[i];
                   ctx.beginPath(); ctx.arc(fx + sway, sy + 6 - stemH, 3, 0, Math.PI * 2); ctx.fill();
                   ctx.fillStyle = '#fef08a';
                   ctx.beginPath(); ctx.arc(fx + sway, sy + 6 - stemH, 1.2, 0, Math.PI * 2); ctx.fill();
                 }
-              } else if (dr > 0.48) {
+                // Butterflies
+                for (let b = 0; b < 2; b++) {
+                  const bx = sx + Math.sin(time * 2 + b * 3) * 16;
+                  const by = sy - 10 + Math.cos(time * 1.5 + b * 2) * 8;
+                  const wingFlap = Math.sin(time * 12 + b * 5) * 0.6;
+                  ctx.fillStyle = b ? '#a855f7' : '#f472b6';
+                  ctx.beginPath(); ctx.ellipse(bx - 3, by, 3 * Math.abs(Math.cos(wingFlap)), 4, wingFlap, 0, Math.PI * 2); ctx.fill();
+                  ctx.beginPath(); ctx.ellipse(bx + 3, by, 3 * Math.abs(Math.cos(wingFlap)), 4, -wingFlap, 0, Math.PI * 2); ctx.fill();
+                  ctx.fillStyle = '#000';
+                  ctx.beginPath(); ctx.ellipse(bx, by, 1, 3, 0, 0, Math.PI * 2); ctx.fill();
+                }
+              } else if (dr > 0.57) {
+                // Well with bucket
+                ctx.fillStyle = '#78716c';
+                ctx.beginPath(); ctx.ellipse(sx, sy + 4, 10, 7, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#a8a29e';
+                ctx.beginPath(); ctx.ellipse(sx, sy + 4, 8, 5, 0, 0, Math.PI * 2); ctx.fill();
+                // Water inside
+                ctx.fillStyle = 'rgba(56,189,248,0.4)';
+                ctx.beginPath(); ctx.ellipse(sx, sy + 4, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+                // Posts and crossbar
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(sx - 10, sy - 14, 3, 18);
+                ctx.fillRect(sx + 7, sy - 14, 3, 18);
+                ctx.fillRect(sx - 10, sy - 16, 20, 3);
+                // Bucket rope
+                ctx.strokeStyle = '#a16207'; ctx.lineWidth = 1;
+                const ropeSwing = Math.sin(time * 0.8) * 3;
+                ctx.beginPath(); ctx.moveTo(sx, sy - 14); ctx.quadraticCurveTo(sx + ropeSwing, sy - 6, sx + ropeSwing, sy); ctx.stroke();
+              } else if (dr > 0.47) {
                 // Large bush with berries
                 ctx.fillStyle = '#15803d';
                 ctx.beginPath(); ctx.arc(sx, sy, 12, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#22c55e';
                 ctx.beginPath(); ctx.arc(sx - 5, sy - 3, 8, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(sx + 6, sy - 1, 9, 0, Math.PI * 2); ctx.fill();
-                // Berries
                 const berryColor = dr3 > 0.5 ? '#dc2626' : '#7c3aed';
                 for (let i = 0; i < 4; i++) {
                   ctx.fillStyle = berryColor;
                   ctx.beginPath(); ctx.arc(sx - 4 + i * 3 + Math.sin(i) * 2, sy - 4 + Math.cos(i * 1.5) * 3, 2, 0, Math.PI * 2); ctx.fill();
                 }
-              } else if (dr > 0.34) {
+              } else if (dr > 0.38) {
+                // Beehive on branch
+                ctx.strokeStyle = '#78350f'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(sx - 16, sy - 6); ctx.lineTo(sx + 6, sy - 6); ctx.stroke();
+                // Hive
+                ctx.fillStyle = '#ca8a04';
+                ctx.beginPath(); ctx.ellipse(sx - 2, sy + 2, 8, 10, 0, 0, Math.PI * 2); ctx.fill();
+                // Stripes
+                ctx.strokeStyle = '#a16207'; ctx.lineWidth = 1;
+                for (let s = -6; s <= 6; s += 4) {
+                  ctx.beginPath(); ctx.moveTo(sx - 9, sy + s); ctx.lineTo(sx + 5, sy + s); ctx.stroke();
+                }
+                // Hole
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath(); ctx.ellipse(sx - 2, sy + 6, 3, 2, 0, 0, Math.PI * 2); ctx.fill();
+                // Flying bees
+                for (let b = 0; b < 2; b++) {
+                  const bx = sx + Math.sin(time * 4 + b * 4) * 14;
+                  const by = sy - 4 + Math.cos(time * 3 + b * 3) * 8;
+                  ctx.fillStyle = '#fbbf24';
+                  ctx.beginPath(); ctx.ellipse(bx, by, 2, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+                }
+              } else if (dr > 0.28) {
                 // Stepping stones across grass
                 for (let i = 0; i < 3; i++) {
                   ctx.fillStyle = '#a8a29e';
@@ -3362,18 +3557,30 @@ export default function SpellBrigade() {
                   ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
                   ctx.beginPath(); ctx.ellipse(sx - 8 + i * 8, sy + i * 3 - 3, 5, 3.5, dr2 + i * 0.3, 0, Math.PI * 2); ctx.stroke();
                 }
-              } else if (dr > 0.2) {
+              } else if (dr > 0.18) {
                 // Tall grass with wind
-                const bladeCount = 6;
-                for (let i = 0; i < bladeCount; i++) {
+                for (let i = 0; i < 6; i++) {
                   const bx = sx - 10 + i * 4;
                   const bh = 12 + Math.sin(i * 1.5) * 5;
                   const sway = Math.sin(time * 2.5 + bx * 0.05) * 4;
-                  ctx.strokeStyle = i % 2 ? '#86efac' : '#4ade80';
-                  ctx.lineWidth = 2;
+                  ctx.strokeStyle = i % 2 ? '#86efac' : '#4ade80'; ctx.lineWidth = 2;
                   ctx.beginPath(); ctx.moveTo(bx, sy + 5);
-                  ctx.quadraticCurveTo(bx + sway * 0.5, sy + 5 - bh * 0.6, bx + sway, sy + 5 - bh);
-                  ctx.stroke();
+                  ctx.quadraticCurveTo(bx + sway * 0.5, sy + 5 - bh * 0.6, bx + sway, sy + 5 - bh); ctx.stroke();
+                }
+              } else if (dr > 0.08) {
+                // Dandelion puffs (blowing away)
+                for (let i = 0; i < 3; i++) {
+                  const dx = sx - 6 + i * 6;
+                  ctx.strokeStyle = '#86efac'; ctx.lineWidth = 1;
+                  ctx.beginPath(); ctx.moveTo(dx, sy + 8); ctx.lineTo(dx, sy - 2); ctx.stroke();
+                  // Puff
+                  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                  ctx.beginPath(); ctx.arc(dx, sy - 4, 4, 0, Math.PI * 2); ctx.fill();
+                  // Floating seeds
+                  const seedX = dx + (time * 8 + i * 20) % 30;
+                  const seedY = sy - 8 - Math.sin(time * 2 + i) * 5;
+                  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                  ctx.beginPath(); ctx.arc(seedX, seedY, 1.5, 0, Math.PI * 2); ctx.fill();
                 }
               } else {
                 // Small mushroom pair
@@ -3392,24 +3599,18 @@ export default function SpellBrigade() {
             }
             // ===== FOREST =====
             else if (zone === 'forest') {
-              if (dr > 0.82) {
+              if (dr > 0.88) {
                 // Ancient tree with thick roots and hanging moss
-                // Roots
                 ctx.fillStyle = '#3e2723';
                 for (let i = -2; i <= 2; i++) {
                   ctx.beginPath(); ctx.moveTo(sx + i * 4, sy + 16); ctx.lineTo(sx + i * 7, sy + 22); ctx.lineTo(sx + i * 7 + 3, sy + 22); ctx.lineTo(sx + i * 4 + 2, sy + 16); ctx.fill();
                 }
-                // Trunk
-                ctx.fillStyle = '#4a2c17';
-                ctx.fillRect(sx - 8, sy - 10, 16, 28);
-                // Bark texture
+                ctx.fillStyle = '#4a2c17'; ctx.fillRect(sx - 8, sy - 10, 16, 28);
                 ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(sx - 5, sy - 8); ctx.lineTo(sx - 3, sy + 14); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(sx + 3, sy - 6); ctx.lineTo(sx + 5, sy + 12); ctx.stroke();
-                // Tree knot
                 ctx.fillStyle = '#3e2723';
                 ctx.beginPath(); ctx.ellipse(sx + 2, sy + 4, 3, 4, 0.3, 0, Math.PI * 2); ctx.fill();
-                // Canopy - layered for depth
                 ctx.fillStyle = '#14532d';
                 ctx.beginPath(); ctx.arc(sx, sy - 18, 18, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#166534';
@@ -3417,24 +3618,37 @@ export default function SpellBrigade() {
                 ctx.beginPath(); ctx.arc(sx + 10, sy - 20, 13, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#15803d';
                 ctx.beginPath(); ctx.arc(sx + 3, sy - 28, 8, 0, Math.PI * 2); ctx.fill();
-                // Hanging moss
                 ctx.strokeStyle = '#6b8e6b'; ctx.lineWidth = 1.5;
                 for (let i = 0; i < 3; i++) {
                   const mx = sx - 10 + i * 10;
                   const mSway = Math.sin(time * 0.8 + i * 1.2) * 2;
                   ctx.beginPath(); ctx.moveTo(mx, sy - 8); ctx.quadraticCurveTo(mx + mSway, sy - 2, mx + mSway * 0.5, sy + 4); ctx.stroke();
                 }
-              } else if (dr > 0.68) {
-                // Fallen log with mushrooms growing on it
+              } else if (dr > 0.8) {
+                // Wooden signpost (weathered)
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(sx - 2, sy - 4, 4, 20);
+                // Sign board
+                ctx.fillStyle = '#92400e';
+                ctx.save(); ctx.translate(sx, sy - 8); ctx.rotate(0.05);
+                ctx.fillRect(-14, -6, 28, 12);
+                ctx.strokeStyle = '#78350f'; ctx.lineWidth = 1;
+                ctx.strokeRect(-14, -6, 28, 12);
+                // Scratches/runes
+                ctx.strokeStyle = '#a16207'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(-8, -2); ctx.lineTo(-4, 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-2, -2); ctx.lineTo(2, 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(4, -1); ctx.lineTo(8, 1); ctx.stroke();
+                ctx.restore();
+              } else if (dr > 0.71) {
+                // Fallen log with mushrooms
                 ctx.fillStyle = '#5c4033';
                 ctx.save(); ctx.translate(sx, sy); ctx.rotate(dr2 * 0.5 - 0.25);
                 ctx.fillRect(-16, -4, 32, 8);
                 ctx.fillStyle = '#4a2c17'; ctx.fillRect(-16, -4, 32, 3);
-                // Moss patches
                 ctx.fillStyle = '#4ade80';
                 ctx.beginPath(); ctx.ellipse(-6, -3, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.ellipse(8, -2, 3, 2, 0, 0, Math.PI * 2); ctx.fill();
-                // Mushrooms on log
                 ctx.fillStyle = '#fef3c7'; ctx.fillRect(-2, -7, 2, 4); ctx.fillRect(5, -8, 2, 5);
                 ctx.fillStyle = '#ef4444';
                 ctx.beginPath(); ctx.arc(-1, -8, 4, Math.PI, 0); ctx.fill();
@@ -3443,18 +3657,34 @@ export default function SpellBrigade() {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath(); ctx.arc(-2, -9, 1, 0, Math.PI * 2); ctx.arc(5, -10, 0.8, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
-              } else if (dr > 0.54) {
+              } else if (dr > 0.62) {
+                // Enchanted mushroom ring (fairy circle)
+                ctx.strokeStyle = 'rgba(134,239,172,0.15)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.arc(sx, sy, 14, 0, Math.PI * 2); ctx.stroke();
+                const ringGlow = 0.1 + Math.sin(time * 2 + x * 0.01) * 0.05;
+                ctx.fillStyle = `rgba(134,239,172,${ringGlow})`;
+                ctx.beginPath(); ctx.arc(sx, sy, 14, 0, Math.PI * 2); ctx.fill();
+                for (let m = 0; m < 6; m++) {
+                  const ma = (m / 6) * Math.PI * 2;
+                  const mx = sx + Math.cos(ma) * 12;
+                  const my = sy + Math.sin(ma) * 12;
+                  const mc = m % 3 === 0 ? '#ef4444' : m % 3 === 1 ? '#a855f7' : '#3b82f6';
+                  ctx.fillStyle = '#fef3c7'; ctx.fillRect(mx - 0.5, my, 1, 3);
+                  ctx.fillStyle = mc;
+                  ctx.beginPath(); ctx.arc(mx, my, 2.5, Math.PI, 0); ctx.fill();
+                }
+                // Center sparkle
+                ctx.fillStyle = `rgba(253,224,71,${0.3 + Math.sin(time * 3) * 0.2})`;
+                ctx.beginPath(); ctx.arc(sx, sy, 2, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.53) {
                 // Spider web between trees
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.8;
                 const webR = 14;
-                // Radial threads
                 for (let i = 0; i < 6; i++) {
                   const angle = (i / 6) * Math.PI * 2;
                   ctx.beginPath(); ctx.moveTo(sx, sy);
-                  ctx.lineTo(sx + Math.cos(angle) * webR, sy + Math.sin(angle) * webR);
-                  ctx.stroke();
+                  ctx.lineTo(sx + Math.cos(angle) * webR, sy + Math.sin(angle) * webR); ctx.stroke();
                 }
-                // Spiral
                 for (let ring = 4; ring <= 12; ring += 4) {
                   ctx.beginPath();
                   for (let a = 0; a <= Math.PI * 2; a += 0.1) {
@@ -3464,20 +3694,34 @@ export default function SpellBrigade() {
                   }
                   ctx.stroke();
                 }
-                // Dew drops
                 ctx.fillStyle = 'rgba(255,255,255,0.4)';
                 ctx.beginPath(); ctx.arc(sx + 5, sy - 3, 1.5, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(sx - 3, sy + 6, 1, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.38) {
+              } else if (dr > 0.44) {
+                // Hollow tree stump with glowing inside
+                ctx.fillStyle = '#4a2c17';
+                ctx.beginPath(); ctx.ellipse(sx, sy + 6, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#3e2723';
+                ctx.fillRect(sx - 10, sy - 6, 20, 14);
+                // Hollow opening
+                ctx.fillStyle = '#1a1205';
+                ctx.beginPath(); ctx.ellipse(sx, sy, 6, 7, 0, 0, Math.PI * 2); ctx.fill();
+                // Glow from inside
+                const hollowGlow = 0.2 + Math.sin(time * 1.5 + y) * 0.1;
+                ctx.fillStyle = `rgba(253,224,71,${hollowGlow})`;
+                ctx.beginPath(); ctx.ellipse(sx, sy, 5, 5, 0, 0, Math.PI * 2); ctx.fill();
+                // Small eyes peeking out
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath(); ctx.arc(sx - 2, sy - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(sx + 2, sy - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.35) {
                 // Moss-covered rock
                 ctx.fillStyle = '#57534e';
                 ctx.beginPath(); ctx.moveTo(sx - 10, sy + 6); ctx.lineTo(sx - 7, sy - 6); ctx.lineTo(sx + 3, sy - 8); ctx.lineTo(sx + 10, sy - 2); ctx.lineTo(sx + 8, sy + 6); ctx.closePath(); ctx.fill();
-                // Moss on top
                 ctx.fillStyle = '#4ade80';
                 ctx.beginPath(); ctx.ellipse(sx - 2, sy - 5, 8, 3, -0.2, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#86efac';
                 ctx.beginPath(); ctx.ellipse(sx + 3, sy - 6, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.22) {
+              } else if (dr > 0.24) {
                 // Fern cluster
                 ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2;
                 for (let i = 0; i < 4; i++) {
@@ -3486,7 +3730,6 @@ export default function SpellBrigade() {
                   ctx.beginPath(); ctx.moveTo(sx, sy + 4);
                   ctx.quadraticCurveTo(sx + Math.cos(angle) * len * 0.6, sy + 4 + Math.sin(angle) * len * 0.3, sx + Math.cos(angle) * len, sy + 4 + Math.sin(angle) * len * 0.5 - len * 0.8);
                   ctx.stroke();
-                  // Fronds
                   ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 1;
                   for (let f = 0.3; f < 0.9; f += 0.25) {
                     const px = sx + Math.cos(angle) * len * f;
@@ -3495,6 +3738,22 @@ export default function SpellBrigade() {
                     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - 4, py - 3); ctx.stroke();
                   }
                   ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2;
+                }
+              } else if (dr > 0.12) {
+                // Thorny vine patch
+                ctx.strokeStyle = '#365314'; ctx.lineWidth = 2;
+                for (let v = 0; v < 3; v++) {
+                  const vx1 = sx - 12 + v * 8;
+                  const vx2 = vx1 + 8 + Math.sin(v) * 4;
+                  ctx.beginPath(); ctx.moveTo(vx1, sy + 6);
+                  ctx.bezierCurveTo(vx1, sy - 8, vx2, sy - 10, vx2, sy + 4); ctx.stroke();
+                  // Thorns
+                  ctx.fillStyle = '#4d7c0f';
+                  for (let t = 0.2; t < 0.8; t += 0.2) {
+                    const tx = vx1 + (vx2 - vx1) * t;
+                    const ty = sy - 8 * Math.sin(t * Math.PI);
+                    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + 3, ty - 3); ctx.lineTo(tx + 1, ty); ctx.fill();
+                  }
                 }
               } else {
                 // Firefly cluster (animated)
@@ -3511,20 +3770,32 @@ export default function SpellBrigade() {
             }
             // ===== VOLCANIC =====
             else if (zone === 'volcanic') {
-              if (dr > 0.84) {
+              if (dr > 0.9) {
+                // Ruined stone archway
+                ctx.fillStyle = '#44403c';
+                ctx.fillRect(sx - 16, sy - 10, 6, 26);
+                ctx.fillRect(sx + 10, sy - 10, 6, 26);
+                // Arch top (partially collapsed)
+                ctx.beginPath(); ctx.moveTo(sx - 16, sy - 10); ctx.quadraticCurveTo(sx, sy - 24, sx + 12, sy - 8); ctx.lineTo(sx + 10, sy - 8); ctx.quadraticCurveTo(sx, sy - 18, sx - 10, sy - 10); ctx.closePath();
+                ctx.fillStyle = '#57534e'; ctx.fill();
+                // Lava glow through arch
+                ctx.fillStyle = `rgba(249,115,22,${0.15 + Math.sin(time * 2) * 0.08})`;
+                ctx.beginPath(); ctx.ellipse(sx, sy + 4, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+                // Fallen rubble
+                ctx.fillStyle = '#78716c';
+                ctx.beginPath(); ctx.arc(sx + 14, sy + 10, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(sx + 18, sy + 8, 3, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.82) {
                 // Obsidian spire
                 ctx.fillStyle = '#1c1917';
                 ctx.beginPath(); ctx.moveTo(sx, sy - 28); ctx.lineTo(sx + 8, sy + 10); ctx.lineTo(sx - 8, sy + 10); ctx.closePath(); ctx.fill();
-                // Facets / reflection
                 ctx.fillStyle = '#292524';
                 ctx.beginPath(); ctx.moveTo(sx, sy - 28); ctx.lineTo(sx + 8, sy + 10); ctx.lineTo(sx, sy + 10); ctx.closePath(); ctx.fill();
-                // Lava vein
                 ctx.strokeStyle = '#f97316'; ctx.lineWidth = 1.5;
                 ctx.beginPath(); ctx.moveTo(sx - 2, sy - 18); ctx.lineTo(sx + 1, sy - 5); ctx.lineTo(sx - 1, sy + 6); ctx.stroke();
-                // Glow at base
                 ctx.fillStyle = `rgba(249,115,22,${0.2 + Math.sin(time * 3) * 0.1})`;
                 ctx.beginPath(); ctx.ellipse(sx, sy + 10, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.68) {
+              } else if (dr > 0.72) {
                 // Lava pool with bubbles
                 ctx.fillStyle = '#7f1d1d';
                 ctx.beginPath(); ctx.ellipse(sx, sy, 14, 8, dr2 * 0.5, 0, Math.PI * 2); ctx.fill();
@@ -3534,32 +3805,27 @@ export default function SpellBrigade() {
                 ctx.beginPath(); ctx.ellipse(sx, sy - 1, 7, 3.5, dr2 * 0.5, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#fbbf24';
                 ctx.beginPath(); ctx.ellipse(sx + 1, sy - 1, 3, 1.5, 0, 0, Math.PI * 2); ctx.fill();
-                // Animated bubbles
                 const bx = sx + Math.sin(time * 2 + x) * 4;
                 const bSize = 2 + Math.sin(time * 3) * 1;
                 ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.arc(bx, sy - 2 - Math.abs(Math.sin(time * 2)) * 3, bSize, 0, Math.PI * 2); ctx.stroke();
-              } else if (dr > 0.52) {
+              } else if (dr > 0.62) {
                 // Charred dead tree
-                ctx.fillStyle = '#292524';
-                ctx.fillRect(sx - 3, sy - 6, 6, 22);
-                // Branches (bare, angular)
+                ctx.fillStyle = '#292524'; ctx.fillRect(sx - 3, sy - 6, 6, 22);
                 ctx.strokeStyle = '#1c1917'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(sx - 2, sy - 2); ctx.lineTo(sx - 14, sy - 12); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(sx + 2, sy); ctx.lineTo(sx + 12, sy - 10); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(sx + 1, sy - 5); ctx.lineTo(sx + 8, sy - 18); ctx.stroke();
-                // Embers
                 ctx.fillStyle = '#f97316';
                 ctx.beginPath(); ctx.arc(sx - 12, sy - 14, 1.5, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = `rgba(251,191,36,${0.4 + Math.sin(time * 5 + x) * 0.3})`;
                 ctx.beginPath(); ctx.arc(sx + 10, sy - 12, 1.5, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.36) {
+              } else if (dr > 0.52) {
                 // Volcanic vent with steam
                 ctx.fillStyle = '#44403c';
                 ctx.beginPath(); ctx.ellipse(sx, sy + 4, 8, 5, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#292524';
                 ctx.beginPath(); ctx.ellipse(sx, sy + 4, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
-                // Steam/smoke
                 for (let i = 0; i < 3; i++) {
                   const steamY = sy - (time * 15 + i * 12) % 30;
                   const steamX = sx + Math.sin(time * 2 + i * 1.5) * 4;
@@ -3569,12 +3835,53 @@ export default function SpellBrigade() {
                     ctx.beginPath(); ctx.arc(steamX, steamY, 4 + i * 1.5, 0, Math.PI * 2); ctx.fill();
                   }
                 }
+              } else if (dr > 0.42) {
+                // Fire geyser
+                const eruptPhase = (time * 0.5 + x * 0.001) % 4;
+                ctx.fillStyle = '#44403c';
+                ctx.beginPath(); ctx.ellipse(sx, sy + 6, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+                if (eruptPhase < 1.5) {
+                  // Erupting
+                  const h = eruptPhase * 20;
+                  ctx.fillStyle = `rgba(249,115,22,${0.6 - eruptPhase * 0.3})`;
+                  ctx.beginPath(); ctx.moveTo(sx - 4, sy + 4); ctx.lineTo(sx - 2 - h * 0.15, sy - h); ctx.lineTo(sx + 2 + h * 0.15, sy - h); ctx.lineTo(sx + 4, sy + 4); ctx.closePath(); ctx.fill();
+                  // Sparks
+                  for (let s = 0; s < 3; s++) {
+                    const sparkY = sy - h + s * 6;
+                    const sparkX = sx + Math.sin(time * 8 + s) * (4 + s * 2);
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath(); ctx.arc(sparkX, sparkY, 1.5, 0, Math.PI * 2); ctx.fill();
+                  }
+                }
+              } else if (dr > 0.3) {
+                // Lava river segment
+                ctx.strokeStyle = '#991b1b'; ctx.lineWidth = 8;
+                ctx.beginPath(); ctx.moveTo(sx - 16, sy + 2);
+                ctx.bezierCurveTo(sx - 6, sy - 4, sx + 6, sy + 6, sx + 16, sy); ctx.stroke();
+                ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 5;
+                ctx.beginPath(); ctx.moveTo(sx - 16, sy + 2);
+                ctx.bezierCurveTo(sx - 6, sy - 4, sx + 6, sy + 6, sx + 16, sy); ctx.stroke();
+                // Bright center flow
+                ctx.strokeStyle = `rgba(251,191,36,${0.4 + Math.sin(time * 3) * 0.2})`; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(sx - 14, sy + 2);
+                ctx.bezierCurveTo(sx - 6, sy - 3, sx + 6, sy + 5, sx + 14, sy); ctx.stroke();
               } else if (dr > 0.18) {
                 // Jagged rocks cluster
                 ctx.fillStyle = '#44403c';
                 ctx.beginPath(); ctx.moveTo(sx - 10, sy + 6); ctx.lineTo(sx - 6, sy - 8); ctx.lineTo(sx - 1, sy + 3); ctx.lineTo(sx + 5, sy - 12); ctx.lineTo(sx + 10, sy + 6); ctx.closePath(); ctx.fill();
                 ctx.fillStyle = '#57534e';
                 ctx.beginPath(); ctx.moveTo(sx - 1, sy + 3); ctx.lineTo(sx + 5, sy - 12); ctx.lineTo(sx + 10, sy + 6); ctx.closePath(); ctx.fill();
+              } else if (dr > 0.08) {
+                // Smoldering embers on ground
+                for (let i = 0; i < 5; i++) {
+                  const ex = sx - 10 + i * 5 + Math.sin(i * 2) * 3;
+                  const ey = sy + Math.cos(i * 1.5) * 4;
+                  const pulse = 0.3 + Math.sin(time * 4 + i * 2) * 0.3;
+                  ctx.fillStyle = `rgba(249,115,22,${pulse})`;
+                  ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
+                  ctx.fillStyle = `rgba(249,115,22,${pulse * 0.3})`;
+                  ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI * 2); ctx.fill();
+                }
               } else {
                 // Ash drift
                 ctx.fillStyle = 'rgba(120,113,108,0.4)';
@@ -3585,35 +3892,49 @@ export default function SpellBrigade() {
             }
             // ===== FROZEN =====
             else if (zone === 'frozen') {
-              if (dr > 0.84) {
+              if (dr > 0.9) {
+                // Frozen warrior statue
+                ctx.fillStyle = '#94a3b8';
+                // Body
+                ctx.fillRect(sx - 6, sy - 14, 12, 22);
+                // Head
+                ctx.beginPath(); ctx.arc(sx, sy - 18, 7, 0, Math.PI * 2); ctx.fill();
+                // Shield arm
+                ctx.fillStyle = '#64748b';
+                ctx.beginPath(); ctx.ellipse(sx - 12, sy - 4, 6, 10, 0.2, 0, Math.PI * 2); ctx.fill();
+                // Sword arm
+                ctx.fillRect(sx + 7, sy - 20, 3, 22);
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(sx + 7, sy - 24, 3, 6);
+                // Ice coating
+                ctx.fillStyle = 'rgba(186,230,253,0.3)';
+                ctx.beginPath(); ctx.ellipse(sx, sy - 4, 14, 20, 0, 0, Math.PI * 2); ctx.fill();
+                // Ice crystals growing on it
+                ctx.fillStyle = '#bae6fd';
+                ctx.beginPath(); ctx.moveTo(sx - 8, sy - 10); ctx.lineTo(sx - 12, sy - 20); ctx.lineTo(sx - 5, sy - 12); ctx.closePath(); ctx.fill();
+              } else if (dr > 0.82) {
                 // Snow-covered pine tree
-                // Trunk
-                ctx.fillStyle = '#5c4033';
-                ctx.fillRect(sx - 3, sy + 6, 6, 12);
-                // Tree layers
+                ctx.fillStyle = '#5c4033'; ctx.fillRect(sx - 3, sy + 6, 6, 12);
                 for (let layer = 0; layer < 3; layer++) {
                   const ly = sy - 4 - layer * 10;
                   const lw = 16 - layer * 3;
                   ctx.fillStyle = '#166534';
                   ctx.beginPath(); ctx.moveTo(sx, ly - 10); ctx.lineTo(sx - lw, ly + 4); ctx.lineTo(sx + lw, ly + 4); ctx.closePath(); ctx.fill();
-                  // Snow on top
                   ctx.fillStyle = '#f1f5f9';
                   ctx.beginPath(); ctx.moveTo(sx, ly - 10); ctx.lineTo(sx - lw * 0.6, ly - 2); ctx.lineTo(sx + lw * 0.6, ly - 2); ctx.closePath(); ctx.fill();
                 }
-              } else if (dr > 0.68) {
+              } else if (dr > 0.72) {
                 // Frozen pond
                 ctx.fillStyle = 'rgba(56,189,248,0.2)';
                 ctx.beginPath(); ctx.ellipse(sx, sy, 16, 10, dr2 * 0.4, 0, Math.PI * 2); ctx.fill();
                 ctx.strokeStyle = 'rgba(186,230,253,0.4)'; ctx.lineWidth = 1.5;
                 ctx.beginPath(); ctx.ellipse(sx, sy, 16, 10, dr2 * 0.4, 0, Math.PI * 2); ctx.stroke();
-                // Ice cracks
                 ctx.strokeStyle = 'rgba(224,242,254,0.5)'; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(sx - 8, sy - 2); ctx.lineTo(sx + 4, sy + 3); ctx.lineTo(sx + 10, sy - 1); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(sx + 4, sy + 3); ctx.lineTo(sx + 2, sy + 7); ctx.stroke();
-                // Reflection gleam
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.beginPath(); ctx.ellipse(sx - 4, sy - 3, 3, 1.5, -0.3, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.52) {
+              } else if (dr > 0.62) {
                 // Ice spike formation
                 const spikes = [{dx: 0, h: 22}, {dx: -7, h: 14}, {dx: 6, h: 16}];
                 for (const sp of spikes) {
@@ -3622,21 +3943,48 @@ export default function SpellBrigade() {
                   ctx.fillStyle = '#e0f2fe';
                   ctx.beginPath(); ctx.moveTo(sx + sp.dx, sy - sp.h); ctx.lineTo(sx + sp.dx + 4, sy + 6); ctx.lineTo(sx + sp.dx + 1, sy + 6); ctx.closePath(); ctx.fill();
                 }
-                // Frost glow at base
                 ctx.fillStyle = 'rgba(186,230,253,0.15)';
                 ctx.beginPath(); ctx.ellipse(sx, sy + 6, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.36) {
+              } else if (dr > 0.52) {
+                // Frozen waterfall (wall of ice)
+                ctx.fillStyle = 'rgba(147,197,253,0.4)';
+                ctx.fillRect(sx - 10, sy - 18, 20, 30);
+                // Ice texture lines
+                ctx.strokeStyle = 'rgba(219,234,254,0.3)'; ctx.lineWidth = 1;
+                for (let l = 0; l < 4; l++) {
+                  ctx.beginPath(); ctx.moveTo(sx - 8 + l * 5, sy - 16);
+                  ctx.lineTo(sx - 6 + l * 4, sy + 10); ctx.stroke();
+                }
+                // Icicles at bottom
+                for (let i = 0; i < 5; i++) {
+                  const ix = sx - 8 + i * 4;
+                  ctx.fillStyle = '#bae6fd';
+                  ctx.beginPath(); ctx.moveTo(ix - 1, sy + 10); ctx.lineTo(ix, sy + 16 + (i % 2) * 4); ctx.lineTo(ix + 1, sy + 10); ctx.fill();
+                }
+                // Shimmer
+                ctx.fillStyle = `rgba(255,255,255,${0.2 + Math.sin(time * 2 + x * 0.01) * 0.1})`;
+                ctx.beginPath(); ctx.ellipse(sx - 2, sy - 6, 3, 8, 0, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.4) {
                 // Snow drift with wind particles
                 ctx.fillStyle = '#f8fafc';
                 ctx.beginPath(); ctx.ellipse(sx, sy + 4, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#f1f5f9';
                 ctx.beginPath(); ctx.ellipse(sx - 6, sy + 1, 8, 5, -0.3, 0, Math.PI * 2); ctx.fill();
-                // Snow particles
                 for (let i = 0; i < 3; i++) {
                   const px = sx + Math.sin(time * 2 + i * 2) * 12 + i * 4;
                   const py = sy + Math.cos(time * 1.5 + i * 3) * 6 - 8;
                   ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(time * 3 + i) * 0.2})`;
                   ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+                }
+              } else if (dr > 0.3) {
+                // Aurora borealis reflection on snow
+                const auroraPhase = time * 0.5 + x * 0.001;
+                for (let a = 0; a < 5; a++) {
+                  const ax = sx - 12 + a * 6;
+                  const ah = 6 + Math.sin(auroraPhase + a * 0.8) * 4;
+                  const hue = (auroraPhase * 30 + a * 40) % 360;
+                  ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${0.12 + Math.sin(time * 2 + a) * 0.06})`;
+                  ctx.beginPath(); ctx.ellipse(ax, sy - ah, 4, ah, 0, 0, Math.PI * 2); ctx.fill();
                 }
               } else if (dr > 0.18) {
                 // Icicle cluster (hanging)
@@ -3645,10 +3993,26 @@ export default function SpellBrigade() {
                   const ih = 8 + (i % 2) * 6;
                   ctx.fillStyle = '#bae6fd';
                   ctx.beginPath(); ctx.moveTo(ix, sy - 4); ctx.lineTo(ix - 1.5, sy - 4); ctx.lineTo(ix - 0.5, sy - 4 + ih); ctx.lineTo(ix + 0.5, sy - 4 + ih); ctx.lineTo(ix + 1.5, sy - 4); ctx.fill();
-                  // Shine
                   ctx.fillStyle = 'rgba(255,255,255,0.5)';
                   ctx.fillRect(ix - 0.5, sy - 3, 1, ih * 0.4);
                 }
+              } else if (dr > 0.08) {
+                // Frozen bones/fossils
+                ctx.strokeStyle = 'rgba(203,213,225,0.5)'; ctx.lineWidth = 2;
+                // Ribcage shape
+                ctx.beginPath(); ctx.moveTo(sx - 6, sy - 4); ctx.lineTo(sx + 6, sy - 4); ctx.stroke();
+                for (let r = 0; r < 4; r++) {
+                  ctx.beginPath();
+                  ctx.moveTo(sx - 6 + r * 3, sy - 4);
+                  ctx.quadraticCurveTo(sx - 6 + r * 3 - 2, sy + 2, sx - 6 + r * 3, sy + 6);
+                  ctx.stroke();
+                }
+                // Skull
+                ctx.fillStyle = 'rgba(203,213,225,0.4)';
+                ctx.beginPath(); ctx.ellipse(sx - 10, sy - 4, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+                // Ice over it
+                ctx.fillStyle = 'rgba(186,230,253,0.15)';
+                ctx.beginPath(); ctx.ellipse(sx, sy, 14, 8, 0, 0, Math.PI * 2); ctx.fill();
               } else {
                 // Snowflake particles
                 ctx.strokeStyle = 'rgba(186,230,253,0.4)'; ctx.lineWidth = 1;
@@ -3665,35 +4029,47 @@ export default function SpellBrigade() {
             }
             // ===== ABYSS =====
             else if (zone === 'abyss') {
-              if (dr > 0.82) {
+              if (dr > 0.88) {
                 // Corrupted pillar
                 ctx.fillStyle = '#1e1b4b';
                 ctx.fillRect(sx - 5, sy - 18, 10, 32);
-                // Cracks with void energy
                 ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 1.5;
                 ctx.beginPath(); ctx.moveTo(sx - 3, sy - 14); ctx.lineTo(sx, sy - 4); ctx.lineTo(sx + 2, sy + 8); ctx.stroke();
-                // Top ornamentation (broken)
                 ctx.fillStyle = '#312e81';
                 ctx.fillRect(sx - 7, sy - 20, 14, 4);
-                // Void energy orb
                 const voidPulse = 0.4 + Math.sin(time * 3 + x) * 0.2;
                 ctx.fillStyle = `rgba(168,85,247,${voidPulse})`;
                 ctx.beginPath(); ctx.arc(sx, sy - 22, 4, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = `rgba(168,85,247,${voidPulse * 0.3})`;
                 ctx.beginPath(); ctx.arc(sx, sy - 22, 10, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.66) {
+              } else if (dr > 0.8) {
+                // Floating eye (watcher)
+                const eyeHover = Math.sin(time * 1.5 + y * 0.01) * 6;
+                const eyeRotate = Math.sin(time * 0.8) * 0.3;
+                // Aura
+                ctx.fillStyle = `rgba(124,58,237,${0.08 + Math.sin(time * 2) * 0.04})`;
+                ctx.beginPath(); ctx.arc(sx, sy + eyeHover, 18, 0, Math.PI * 2); ctx.fill();
+                // Eye white
+                ctx.fillStyle = '#312e81';
+                ctx.beginPath(); ctx.ellipse(sx, sy + eyeHover, 12, 10, eyeRotate, 0, Math.PI * 2); ctx.fill();
+                // Iris
+                ctx.fillStyle = '#7c3aed';
+                ctx.beginPath(); ctx.ellipse(sx, sy + eyeHover, 7, 7, 0, 0, Math.PI * 2); ctx.fill();
+                // Pupil (tracks slight movement)
+                const px = Math.sin(time * 0.5) * 2;
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.ellipse(sx + px, sy + eyeHover, 3 + Math.sin(time * 2) * 1, 5, 0, 0, Math.PI * 2); ctx.fill();
+                // Glint
+                ctx.fillStyle = '#c084fc';
+                ctx.beginPath(); ctx.arc(sx - 3 + px, sy - 3 + eyeHover, 1.5, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.7) {
                 // Void tear / rift
                 const riftPulse = 0.5 + Math.sin(time * 2.5 + y) * 0.3;
-                ctx.save();
-                ctx.translate(sx, sy); ctx.rotate(dr2 * Math.PI);
-                // Tear shape
+                ctx.save(); ctx.translate(sx, sy); ctx.rotate(dr2 * Math.PI);
                 ctx.fillStyle = `rgba(15,3,30,${riftPulse})`;
                 ctx.beginPath(); ctx.ellipse(0, 0, 3, 12, 0, 0, Math.PI * 2); ctx.fill();
-                // Purple edge glow
-                ctx.strokeStyle = `rgba(168,85,247,${riftPulse})`;
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = `rgba(168,85,247,${riftPulse})`; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.ellipse(0, 0, 3, 12, 0, 0, Math.PI * 2); ctx.stroke();
-                // Particles being sucked in
                 for (let i = 0; i < 4; i++) {
                   const angle = time * 2 + i * 1.57;
                   const dist = 8 + Math.sin(time * 3 + i) * 4;
@@ -3701,7 +4077,28 @@ export default function SpellBrigade() {
                   ctx.beginPath(); ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist * 0.3, 1.5, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.restore();
-              } else if (dr > 0.48) {
+              } else if (dr > 0.58) {
+                // Corrupted altar
+                ctx.fillStyle = '#1e1b4b';
+                ctx.fillRect(sx - 12, sy + 2, 24, 8);
+                ctx.fillRect(sx - 14, sy + 8, 28, 4);
+                // Rune circle on top
+                ctx.strokeStyle = `rgba(168,85,247,${0.3 + Math.sin(time * 2) * 0.15})`; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(sx, sy + 2, 10, 3, 0, 0, Math.PI * 2); ctx.stroke();
+                // Floating dark orb above
+                const orbY = sy - 8 + Math.sin(time * 2) * 4;
+                ctx.fillStyle = '#0f0014';
+                ctx.beginPath(); ctx.arc(sx, orbY, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.arc(sx, orbY, 7, 0, Math.PI * 2); ctx.stroke();
+                // Candles
+                ctx.fillStyle = '#581c87';
+                ctx.fillRect(sx - 14, sy - 2, 2, 6);
+                ctx.fillRect(sx + 12, sy - 2, 2, 6);
+                ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 6) * 0.3})`;
+                ctx.beginPath(); ctx.arc(sx - 13, sy - 4, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(sx + 13, sy - 4, 2, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.46) {
                 // Soul flame (purple/dark fire)
                 for (let i = 0; i < 4; i++) {
                   const flameH = 12 + Math.sin(time * 8 + i * 2) * 4;
@@ -3711,7 +4108,7 @@ export default function SpellBrigade() {
                 }
                 ctx.fillStyle = '#c084fc';
                 ctx.beginPath(); ctx.arc(sx, sy + 2, 3, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.3) {
+              } else if (dr > 0.34) {
                 // Dark tendril roots
                 ctx.strokeStyle = '#312e81'; ctx.lineWidth = 2.5;
                 for (let i = 0; i < 3; i++) {
@@ -3721,42 +4118,85 @@ export default function SpellBrigade() {
                   ctx.quadraticCurveTo(sx + Math.cos(angle) * 12, sy + Math.sin(angle) * 8 + wave, sx + Math.cos(angle) * 22, sy + Math.sin(angle) * 14);
                   ctx.stroke();
                 }
-                // Central node
                 ctx.fillStyle = '#581c87';
                 ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.22) {
+                // Bone pile
+                ctx.strokeStyle = '#a8a29e'; ctx.lineWidth = 2;
+                for (let b = 0; b < 5; b++) {
+                  const bx1 = sx - 10 + b * 4;
+                  const by1 = sy + Math.sin(b * 2) * 3;
+                  const angle = b * 0.6 + dr2;
+                  ctx.beginPath(); ctx.moveTo(bx1, by1);
+                  ctx.lineTo(bx1 + Math.cos(angle) * 8, by1 + Math.sin(angle) * 8 - 6); ctx.stroke();
+                }
+                // Skull
+                ctx.fillStyle = '#d4d4d4';
+                ctx.beginPath(); ctx.arc(sx, sy - 2, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#312e81';
+                ctx.beginPath(); ctx.arc(sx - 1.5, sy - 3, 1, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(sx + 1.5, sy - 3, 1, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.1) {
+                // Corrupted ground crack
+                ctx.strokeStyle = `rgba(124,58,237,${0.3 + Math.sin(time * 2 + x * 0.01) * 0.15})`; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(sx - 14, sy + 2);
+                ctx.lineTo(sx - 6, sy - 1); ctx.lineTo(sx, sy + 3); ctx.lineTo(sx + 8, sy); ctx.lineTo(sx + 14, sy + 2); ctx.stroke();
+                // Glow from crack
+                ctx.fillStyle = `rgba(124,58,237,${0.05 + Math.sin(time * 3) * 0.03})`;
+                ctx.beginPath(); ctx.ellipse(sx, sy + 1, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
               } else {
                 // Floating void particles
                 for (let i = 0; i < 4; i++) {
-                  const px = sx + Math.sin(time * 1.2 + i * 1.6) * 14;
-                  const py = sy + Math.cos(time + i * 2.1) * 10 - Math.sin(time * 0.5 + i) * 5;
+                  const ppx = sx + Math.sin(time * 1.2 + i * 1.6) * 14;
+                  const ppy = sy + Math.cos(time + i * 2.1) * 10 - Math.sin(time * 0.5 + i) * 5;
                   const alpha = 0.2 + Math.sin(time * 3 + i * 2) * 0.15;
                   ctx.fillStyle = `rgba(139,92,246,${alpha})`;
-                  ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+                  ctx.beginPath(); ctx.arc(ppx, ppy, 2.5, 0, Math.PI * 2); ctx.fill();
                 }
               }
             }
             // ===== CRYSTAL CAVES =====
             else if (zone === 'crystal_caves') {
-              if (dr > 0.82) {
-                // Large crystal cluster formation
-                const crystals = [{dx: 0, h: 26, w: 7, color: '#ec4899'}, {dx: -8, h: 16, w: 5, color: '#a855f7'}, {dx: 7, h: 20, w: 6, color: '#f0abfc'}, {dx: -4, h: 12, w: 4, color: '#d946ef'}];
+              if (dr > 0.88) {
+                // Massive crystal throne formation
+                const crystals = [{dx: 0, h: 32, w: 8, color: '#ec4899'}, {dx: -10, h: 20, w: 6, color: '#a855f7'}, {dx: 9, h: 24, w: 7, color: '#f0abfc'}, {dx: -5, h: 14, w: 4, color: '#d946ef'}, {dx: 5, h: 10, w: 3, color: '#c084fc'}];
                 for (const cr of crystals) {
-                  // Crystal body
                   ctx.fillStyle = cr.color;
                   ctx.beginPath(); ctx.moveTo(sx + cr.dx, sy - cr.h); ctx.lineTo(sx + cr.dx - cr.w, sy + 8); ctx.lineTo(sx + cr.dx + cr.w, sy + 8); ctx.closePath(); ctx.fill();
-                  // Highlight facet
                   ctx.fillStyle = 'rgba(253,242,248,0.3)';
                   ctx.beginPath(); ctx.moveTo(sx + cr.dx, sy - cr.h); ctx.lineTo(sx + cr.dx + cr.w, sy + 8); ctx.lineTo(sx + cr.dx + cr.w * 0.3, sy + 8); ctx.closePath(); ctx.fill();
                 }
-                // Sparkle
-                const sparkleAlpha = 0.5 + Math.sin(time * 5 + x) * 0.4;
-                ctx.fillStyle = `rgba(255,255,255,${sparkleAlpha})`;
-                ctx.beginPath(); ctx.arc(sx - 1, sy - 16, 2, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.66) {
+                // Sparkles
+                for (let s = 0; s < 3; s++) {
+                  const sparkleAlpha = 0.5 + Math.sin(time * 5 + x + s * 2) * 0.4;
+                  ctx.fillStyle = `rgba(255,255,255,${sparkleAlpha})`;
+                  ctx.beginPath(); ctx.arc(sx - 4 + s * 4, sy - 20 + s * 6, 2, 0, Math.PI * 2); ctx.fill();
+                }
+              } else if (dr > 0.8) {
+                // Crystal chandelier (hanging)
+                // Chain
+                ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(sx, sy - 20); ctx.lineTo(sx, sy - 8); ctx.stroke();
+                // Ring
+                ctx.strokeStyle = '#d946ef'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.ellipse(sx, sy - 6, 12, 4, 0, 0, Math.PI * 2); ctx.stroke();
+                // Hanging crystals
+                const hangColors = ['#ec4899', '#a855f7', '#f0abfc', '#d946ef', '#c084fc'];
+                for (let h = 0; h < 5; h++) {
+                  const hx = sx - 10 + h * 5;
+                  const hLen = 6 + (h % 2) * 4;
+                  ctx.strokeStyle = 'rgba(168,85,247,0.4)'; ctx.lineWidth = 0.5;
+                  ctx.beginPath(); ctx.moveTo(hx, sy - 5); ctx.lineTo(hx, sy - 5 + hLen - 3); ctx.stroke();
+                  ctx.fillStyle = hangColors[h];
+                  ctx.beginPath(); ctx.moveTo(hx, sy - 5 + hLen - 3); ctx.lineTo(hx - 2, sy - 5 + hLen); ctx.lineTo(hx + 2, sy - 5 + hLen); ctx.closePath(); ctx.fill();
+                }
+                // Glow
+                ctx.fillStyle = `rgba(236,72,153,${0.06 + Math.sin(time * 2) * 0.03})`;
+                ctx.beginPath(); ctx.ellipse(sx, sy, 16, 10, 0, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.71) {
                 // Gem vein in ground
                 ctx.strokeStyle = '#581c87'; ctx.lineWidth = 4;
                 ctx.beginPath(); ctx.moveTo(sx - 14, sy + 2); ctx.quadraticCurveTo(sx, sy - 2, sx + 14, sy + 1); ctx.stroke();
-                // Embedded gems
                 const gemColors = ['#ec4899', '#a855f7', '#f472b6', '#d946ef'];
                 for (let i = 0; i < 4; i++) {
                   ctx.fillStyle = gemColors[i];
@@ -3764,7 +4204,7 @@ export default function SpellBrigade() {
                   const gy = sy + Math.sin(i * 1.5) * 2;
                   ctx.beginPath(); ctx.moveTo(gx, gy - 3); ctx.lineTo(gx + 2, gy); ctx.lineTo(gx, gy + 2); ctx.lineTo(gx - 2, gy); ctx.closePath(); ctx.fill();
                 }
-              } else if (dr > 0.5) {
+              } else if (dr > 0.62) {
                 // Glowing crystal pool
                 const poolPulse = 0.3 + Math.sin(time * 2 + y) * 0.15;
                 ctx.fillStyle = `rgba(236,72,153,${poolPulse})`;
@@ -3773,25 +4213,63 @@ export default function SpellBrigade() {
                 ctx.beginPath(); ctx.ellipse(sx, sy + 1, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = `rgba(253,242,248,${poolPulse})`;
                 ctx.beginPath(); ctx.ellipse(sx - 2, sy, 3, 1.5, 0, 0, Math.PI * 2); ctx.fill();
-              } else if (dr > 0.34) {
+                // Rising bubbles
+                for (let b = 0; b < 2; b++) {
+                  const bubY = sy - ((time * 12 + b * 15) % 20);
+                  const bubX = sx + Math.sin(time * 2 + b * 3) * 4;
+                  const bubAlpha = 0.3 - ((time * 12 + b * 15) % 20) / 60;
+                  if (bubAlpha > 0) {
+                    ctx.fillStyle = `rgba(244,114,182,${bubAlpha})`;
+                    ctx.beginPath(); ctx.arc(bubX, bubY, 2, 0, Math.PI * 2); ctx.fill();
+                  }
+                }
+              } else if (dr > 0.53) {
+                // Crystal arch
+                ctx.fillStyle = '#a855f7';
+                // Left pillar
+                ctx.beginPath(); ctx.moveTo(sx - 14, sy + 8); ctx.lineTo(sx - 10, sy - 10); ctx.lineTo(sx - 6, sy + 8); ctx.closePath(); ctx.fill();
+                // Right pillar
+                ctx.beginPath(); ctx.moveTo(sx + 6, sy + 8); ctx.lineTo(sx + 10, sy - 10); ctx.lineTo(sx + 14, sy + 8); ctx.closePath(); ctx.fill();
+                // Arch connection
+                ctx.fillStyle = '#d946ef';
+                ctx.beginPath(); ctx.moveTo(sx - 10, sy - 8); ctx.quadraticCurveTo(sx, sy - 18, sx + 10, sy - 8);
+                ctx.lineTo(sx + 8, sy - 6); ctx.quadraticCurveTo(sx, sy - 14, sx - 8, sy - 6); ctx.closePath(); ctx.fill();
+                // Glow
+                ctx.fillStyle = `rgba(217,70,239,${0.1 + Math.sin(time * 2.5) * 0.06})`;
+                ctx.beginPath(); ctx.ellipse(sx, sy - 2, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+              } else if (dr > 0.44) {
                 // Stalactite / stalagmite pair
-                // Stalagmite (bottom)
                 ctx.fillStyle = '#831843';
                 ctx.beginPath(); ctx.moveTo(sx, sy - 10); ctx.lineTo(sx - 5, sy + 8); ctx.lineTo(sx + 5, sy + 8); ctx.closePath(); ctx.fill();
                 ctx.fillStyle = '#9d174d';
                 ctx.beginPath(); ctx.moveTo(sx, sy - 10); ctx.lineTo(sx + 5, sy + 8); ctx.lineTo(sx + 2, sy + 8); ctx.closePath(); ctx.fill();
-                // Drip
                 const dripY = sy - 18 + (time * 8 + x) % 10;
                 if (dripY < sy - 10) {
                   ctx.fillStyle = 'rgba(236,72,153,0.5)';
                   ctx.beginPath(); ctx.arc(sx, dripY, 1.5, 0, Math.PI * 2); ctx.fill();
                 }
-              } else if (dr > 0.18) {
+              } else if (dr > 0.35) {
+                // Crystal tree (organic crystal growth)
+                ctx.fillStyle = '#581c87'; ctx.fillRect(sx - 2, sy, 4, 14);
+                // Branches
+                ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(sx, sy + 2); ctx.lineTo(sx - 10, sy - 8); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(sx, sy + 4); ctx.lineTo(sx + 10, sy - 6); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - 4, sy - 14); ctx.stroke();
+                // Crystal tips
+                const tipColors = ['#ec4899', '#f0abfc', '#d946ef'];
+                const tips = [{x: -10, y: -8}, {x: 10, y: -6}, {x: -4, y: -14}];
+                for (let t2 = 0; t2 < 3; t2++) {
+                  ctx.fillStyle = tipColors[t2];
+                  ctx.beginPath(); ctx.moveTo(sx + tips[t2].x, sy + tips[t2].y - 6);
+                  ctx.lineTo(sx + tips[t2].x - 3, sy + tips[t2].y);
+                  ctx.lineTo(sx + tips[t2].x + 3, sy + tips[t2].y); ctx.closePath(); ctx.fill();
+                }
+              } else if (dr > 0.25) {
                 // Light prism effect
                 const prismAngle = time * 0.5 + dr2 * Math.PI;
                 ctx.fillStyle = '#a855f7';
                 ctx.beginPath(); ctx.moveTo(sx, sy - 6); ctx.lineTo(sx - 4, sy + 4); ctx.lineTo(sx + 4, sy + 4); ctx.closePath(); ctx.fill();
-                // Rainbow refraction beams
                 const rainbowColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
                 for (let i = 0; i < 6; i++) {
                   const angle = prismAngle + i * 0.3 - 0.9;
@@ -3799,17 +4277,42 @@ export default function SpellBrigade() {
                   ctx.beginPath(); ctx.moveTo(sx, sy - 1);
                   ctx.lineTo(sx + Math.cos(angle) * 18, sy - 1 + Math.sin(angle) * 18); ctx.stroke();
                 }
-              } else {
-                // Small scattered gems
+              } else if (dr > 0.15) {
+                // Resonating crystal (vibrating with sound waves)
+                const vibrate = Math.sin(time * 8 + x * 0.01) * 1;
+                ctx.fillStyle = '#d946ef';
+                ctx.beginPath(); ctx.moveTo(sx + vibrate, sy - 16); ctx.lineTo(sx - 5 + vibrate, sy + 6); ctx.lineTo(sx + 5 + vibrate, sy + 6); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = 'rgba(253,242,248,0.3)';
+                ctx.beginPath(); ctx.moveTo(sx + vibrate, sy - 16); ctx.lineTo(sx + 5 + vibrate, sy + 6); ctx.lineTo(sx + 2 + vibrate, sy + 6); ctx.closePath(); ctx.fill();
+                // Sound waves
+                for (let w = 0; w < 3; w++) {
+                  const waveR = 8 + w * 6 + (time * 10) % 6;
+                  const waveAlpha = 0.2 - w * 0.06;
+                  if (waveAlpha > 0) {
+                    ctx.strokeStyle = `rgba(217,70,239,${waveAlpha})`; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(sx + vibrate, sy - 4, waveR, 0, Math.PI * 2); ctx.stroke();
+                  }
+                }
+              } else if (dr > 0.06) {
+                // Scattered gems with twinkle
                 const smColors = ['#ec4899', '#a855f7', '#f472b6'];
                 for (let i = 0; i < 3; i++) {
                   ctx.fillStyle = smColors[i];
                   const gx = sx - 6 + i * 6;
                   const gy = sy + Math.sin(i * 2.3) * 4;
                   ctx.beginPath(); ctx.moveTo(gx, gy - 3); ctx.lineTo(gx + 2.5, gy); ctx.lineTo(gx, gy + 3); ctx.lineTo(gx - 2.5, gy); ctx.closePath(); ctx.fill();
-                  // Sparkle
                   ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(time * 4 + i * 2) * 0.3})`;
                   ctx.beginPath(); ctx.arc(gx, gy - 1, 1, 0, Math.PI * 2); ctx.fill();
+                }
+              } else {
+                // Ambient crystal dust particles
+                for (let p = 0; p < 5; p++) {
+                  const pdx = sx + Math.sin(time * 1.2 + p * 1.3) * 14;
+                  const pdy = sy + Math.cos(time * 0.9 + p * 1.8) * 10 - Math.sin(time * 0.5 + p) * 6;
+                  const pAlpha = 0.15 + Math.sin(time * 3 + p * 2.5) * 0.15;
+                  const pColor = p % 2 ? 'rgba(236,72,153,' : 'rgba(168,85,247,';
+                  ctx.fillStyle = pColor + pAlpha + ')';
+                  ctx.beginPath(); ctx.arc(pdx, pdy, 1.5 + Math.sin(time * 2 + p) * 0.5, 0, Math.PI * 2); ctx.fill();
                 }
               }
             }
@@ -6132,7 +6635,7 @@ export default function SpellBrigade() {
             ctx.fillRect(sx + 2, sy - 18 - bounce, 5, 4);
             ctx.shadowBlur = 0;
           }
-          else if (enemyType === 'fireElemental') {
+          else if (enemyType === 'fireElemental' || enemyType === 'elemental') {
             // Flaming elemental
             const flicker = Math.sin(time * 10) * 3;
             // Flames
@@ -6696,6 +7199,1025 @@ export default function SpellBrigade() {
               ctx.beginPath(); ctx.arc(ox, oy, 2, 0, Math.PI * 2); ctx.fill();
             }
           }
+          // ========== ADDITIONAL CREATURES ==========
+          else if (enemyType === 'giant_spider') {
+            // Large hairy spider with 8 legs
+            const legSpread = r * 1.8;
+            // Legs (8)
+            ctx.strokeStyle = '#5c3a0e';
+            ctx.lineWidth = 2.5;
+            for (let i = 0; i < 8; i++) {
+              const side = i < 4 ? -1 : 1;
+              const idx = i % 4;
+              const baseAngle = (-0.5 + idx * 0.33) * side;
+              const legX = sx + Math.cos(baseAngle + Math.PI/2) * r * 0.6 * side;
+              const legY = sy - bounce + idx * 3 - 4;
+              const tipX = sx + side * legSpread * (0.6 + idx * 0.15);
+              const tipY = sy - bounce + 6 + Math.sin(time * 8 + idx * 1.5) * 3;
+              const midX = (legX + tipX) / 2 + side * 5;
+              const midY = Math.min(legY, tipY) - 8;
+              ctx.beginPath(); ctx.moveTo(legX, legY); ctx.quadraticCurveTo(midX, midY, tipX, tipY); ctx.stroke();
+            }
+            // Body (abdomen)
+            ctx.fillStyle = '#713f12';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 4, r * 0.9, r * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+            // Markings
+            ctx.fillStyle = '#451a03';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 6, r * 0.4, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#854d0e';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.5, r * 0.45, 0, Math.PI * 2); ctx.fill();
+            // Eyes (6)
+            for (let i = 0; i < 6; i++) {
+              const ex = sx - 4 + (i % 3) * 4;
+              const ey = sy - bounce - r * 0.55 - 2 + Math.floor(i / 3) * 3;
+              ctx.fillStyle = '#ef4444';
+              ctx.beginPath(); ctx.arc(ex, ey, 1.5, 0, Math.PI * 2); ctx.fill();
+            }
+            // Fangs
+            ctx.fillStyle = '#fafafa';
+            ctx.beginPath(); ctx.moveTo(sx - 3, sy - bounce - r * 0.3); ctx.lineTo(sx - 5, sy - bounce - r * 0.1); ctx.lineTo(sx - 1, sy - bounce - r * 0.3); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + 3, sy - bounce - r * 0.3); ctx.lineTo(sx + 5, sy - bounce - r * 0.1); ctx.lineTo(sx + 1, sy - bounce - r * 0.3); ctx.fill();
+          }
+          else if (enemyType === 'meadow_beetle') {
+            // Round beetle with shell pattern
+            // Legs
+            ctx.strokeStyle = '#3f6212';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 6; i++) {
+              const side = i < 3 ? -1 : 1;
+              const idx = i % 3;
+              const lx = sx + side * (r * 0.5 + 4);
+              const ly = sy - bounce - 2 + idx * 5;
+              const tx = sx + side * (r + 6 + Math.sin(time * 6 + idx) * 2);
+              const ty = ly + 4;
+              ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(tx, ty); ctx.stroke();
+            }
+            // Shell
+            ctx.fillStyle = '#65a30d';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r, r * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+            // Shell line
+            ctx.strokeStyle = '#3f6212';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(sx, sy - bounce - r * 0.7); ctx.lineTo(sx, sy - bounce + r * 0.7); ctx.stroke();
+            // Shell spots
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath(); ctx.arc(sx - 5, sy - bounce - 3, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5, sy - bounce + 2, 2.5, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#1a2e05';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.7, r * 0.3, 0, Math.PI * 2); ctx.fill();
+            // Antennae
+            ctx.strokeStyle = '#1a2e05';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sx - 3, sy - bounce - r * 0.9); ctx.lineTo(sx - 8, sy - bounce - r - 6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx + 3, sy - bounce - r * 0.9); ctx.lineTo(sx + 8, sy - bounce - r - 6); ctx.stroke();
+          }
+          else if (enemyType === 'caterpillar') {
+            // Segmented caterpillar body
+            const segments = 6;
+            for (let i = segments - 1; i >= 0; i--) {
+              const wave = Math.sin(time * 4 + i * 0.8) * 3;
+              const segX = sx - (segments/2 - i) * 7;
+              const segY = sy - bounce + wave;
+              const segR = r * (0.3 + (i === 0 ? 0.15 : i === segments - 1 ? 0.1 : 0));
+              ctx.fillStyle = i % 2 === 0 ? '#a3e635' : '#84cc16';
+              ctx.beginPath(); ctx.arc(segX, segY, r * 0.35 + segR, 0, Math.PI * 2); ctx.fill();
+              // Tiny legs
+              if (i > 0 && i < segments - 1) {
+                ctx.fillStyle = '#65a30d';
+                ctx.beginPath(); ctx.arc(segX - 4, segY + r * 0.3, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(segX + 4, segY + r * 0.3, 2, 0, Math.PI * 2); ctx.fill();
+              }
+            }
+            // Head (first segment)
+            const headX = sx + (segments/2) * 7;
+            const headY = sy - bounce + Math.sin(time * 4) * 3;
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath(); ctx.arc(headX, headY, r * 0.4, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(headX + 3, headY - 2, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(headX + 3, headY + 2, 2, 0, Math.PI * 2); ctx.fill();
+            // Antennae
+            ctx.strokeStyle = '#4d7c0f';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(headX + 5, headY - 4); ctx.lineTo(headX + 12, headY - 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(headX + 5, headY + 4); ctx.lineTo(headX + 12, headY + 10); ctx.stroke();
+          }
+          else if (enemyType === 'forest_troll') {
+            // Big hulking troll
+            // Body
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce - 2, r * 0.7, r * 0.9, 0, 0, Math.PI * 2); ctx.fill();
+            // Belly
+            ctx.fillStyle = '#6b8e23';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 4, r * 0.45, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+            // Arms (thick, hanging low)
+            ctx.fillStyle = '#4d7c0f';
+            const armSwing = Math.sin(time * 3) * 5;
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.7, sy - bounce + 2 + armSwing, 7, 14, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.7, sy - bounce + 2 - armSwing, 7, 14, 0.3, 0, Math.PI * 2); ctx.fill();
+            // Fists
+            ctx.fillStyle = '#3f6212';
+            ctx.beginPath(); ctx.arc(sx - r * 0.8, sy - bounce + 16 + armSwing, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + r * 0.8, sy - bounce + 16 - armSwing, 5, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.8, r * 0.4, 0, Math.PI * 2); ctx.fill();
+            // Eyes (beady, angry)
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath(); ctx.arc(sx - 5, sy - bounce - r * 0.85, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5, sy - bounce - r * 0.85, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(sx - 5, sy - bounce - r * 0.85, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5, sy - bounce - r * 0.85, 1.5, 0, Math.PI * 2); ctx.fill();
+            // Teeth
+            ctx.fillStyle = '#fafafa';
+            ctx.beginPath(); ctx.moveTo(sx - 6, sy - bounce - r * 0.65); ctx.lineTo(sx - 4, sy - bounce - r * 0.55); ctx.lineTo(sx - 2, sy - bounce - r * 0.65); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + 2, sy - bounce - r * 0.65); ctx.lineTo(sx + 4, sy - bounce - r * 0.55); ctx.lineTo(sx + 6, sy - bounce - r * 0.65); ctx.fill();
+          }
+          else if (enemyType === 'bear') {
+            // Large brown bear
+            // Body
+            ctx.fillStyle = '#92400e';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.85, r * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+            // Front legs
+            const walkCycle = Math.sin(time * 5) * 4;
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.4, sy - bounce + r * 0.5 + walkCycle, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.4, sy - bounce + r * 0.5 - walkCycle, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+            // Back legs
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.5, sy - bounce + r * 0.3 - walkCycle, 5, 9, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.5, sy - bounce + r * 0.3 + walkCycle, 5, 9, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#92400e';
+            ctx.beginPath(); ctx.arc(sx + r * 0.5, sy - bounce - r * 0.3, r * 0.4, 0, Math.PI * 2); ctx.fill();
+            // Ears
+            ctx.beginPath(); ctx.arc(sx + r * 0.35, sy - bounce - r * 0.65, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + r * 0.65, sy - bounce - r * 0.65, 4, 0, Math.PI * 2); ctx.fill();
+            // Muzzle
+            ctx.fillStyle = '#b45309';
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.7, sy - bounce - r * 0.25, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
+            // Nose
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath(); ctx.arc(sx + r * 0.75, sy - bounce - r * 0.28, 2.5, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(sx + r * 0.4, sy - bounce - r * 0.4, 2, 0, Math.PI * 2); ctx.fill();
+          }
+          else if (enemyType === 'lava_serpent') {
+            // Sinuous fire snake
+            const segments = 8;
+            for (let i = segments - 1; i >= 0; i--) {
+              const wave = Math.sin(time * 5 + i * 0.9) * 6;
+              const segX = sx - (segments/2 - i) * 5;
+              const segY = sy - bounce + wave;
+              const segR = r * (0.25 + (1 - Math.abs(i - segments/2) / (segments/2)) * 0.2);
+              // Lava glow
+              ctx.fillStyle = i % 2 === 0 ? '#fb923c' : '#f97316';
+              ctx.beginPath(); ctx.arc(segX, segY, segR + 2, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = i % 2 === 0 ? '#fbbf24' : '#fb923c';
+              ctx.beginPath(); ctx.arc(segX, segY, segR, 0, Math.PI * 2); ctx.fill();
+            }
+            // Head
+            const headX = sx + segments/2 * 5;
+            const headY = sy - bounce + Math.sin(time * 5) * 6;
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(headX, headY, r * 0.35, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath(); ctx.arc(headX + 3, headY - 2, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(headX + 3, headY + 2, 2, 0, Math.PI * 2); ctx.fill();
+            // Tongue (forked)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1;
+            const tongueOut = Math.sin(time * 8) > 0.5;
+            if (tongueOut) {
+              ctx.beginPath(); ctx.moveTo(headX + r * 0.35, headY); ctx.lineTo(headX + r * 0.6, headY - 3); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(headX + r * 0.35, headY); ctx.lineTo(headX + r * 0.6, headY + 3); ctx.stroke();
+            }
+          }
+          else if (enemyType === 'fire_spider') {
+            // Spider made of magma/fire - uses same spider shape with fire colors
+            const legSpread = r * 1.6;
+            ctx.strokeStyle = '#991b1b';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+              const side = i < 4 ? -1 : 1;
+              const idx = i % 4;
+              const lx = sx + side * r * 0.4;
+              const ly = sy - bounce + idx * 3 - 4;
+              const tx = sx + side * legSpread * (0.5 + idx * 0.15);
+              const ty = ly + 5 + Math.sin(time * 7 + idx * 1.2) * 2;
+              ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(tx, ty); ctx.stroke();
+            }
+            // Body glow
+            const fireGlow = ctx.createRadialGradient(sx, sy - bounce, 0, sx, sy - bounce, r * 1.2);
+            fireGlow.addColorStop(0, 'rgba(251,146,60,0.4)');
+            fireGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = fireGlow;
+            ctx.beginPath(); ctx.arc(sx, sy - bounce, r * 1.2, 0, Math.PI * 2); ctx.fill();
+            // Abdomen
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 3, r * 0.7, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+            // Magma cracks
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sx - 4, sy - bounce); ctx.lineTo(sx + 2, sy - bounce + 5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx + 3, sy - bounce - 2); ctx.lineTo(sx - 1, sy - bounce + 4); ctx.stroke();
+            // Head
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.4, r * 0.35, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#fef08a';
+            for (let i = 0; i < 4; i++) {
+              ctx.beginPath(); ctx.arc(sx - 3 + i * 2, sy - bounce - r * 0.45, 1.5, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+          else if (enemyType === 'ice_spider') {
+            // Frost-coated spider
+            const legSpread = r * 1.6;
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+              const side = i < 4 ? -1 : 1;
+              const idx = i % 4;
+              const lx = sx + side * r * 0.4;
+              const ly = sy - bounce + idx * 3 - 4;
+              const tx = sx + side * legSpread * (0.5 + idx * 0.15);
+              const ty = ly + 5 + Math.sin(time * 6 + idx * 1.4) * 2;
+              ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(tx, ty); ctx.stroke();
+            }
+            // Frost aura
+            ctx.fillStyle = `rgba(186,230,253,${0.15 + Math.sin(time * 3) * 0.05})`;
+            ctx.beginPath(); ctx.arc(sx, sy - bounce, r * 1.3, 0, Math.PI * 2); ctx.fill();
+            // Abdomen
+            ctx.fillStyle = '#7dd3fc';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 3, r * 0.7, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+            // Ice pattern
+            ctx.fillStyle = '#bae6fd';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 3, r * 0.35, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#0ea5e9';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.4, r * 0.35, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(sx - 3, sy - bounce - r * 0.45, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 3, sy - bounce - r * 0.45, 2, 0, Math.PI * 2); ctx.fill();
+          }
+          else if (enemyType === 'polar_bear') {
+            // Massive white bear
+            // Body
+            ctx.fillStyle = '#f0f9ff';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.85, r * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+            // Legs
+            const walkCycle = Math.sin(time * 4) * 3;
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.4, sy - bounce + r * 0.5 + walkCycle, 7, 12, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.4, sy - bounce + r * 0.5 - walkCycle, 7, 12, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.55, sy - bounce + r * 0.3 - walkCycle, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.55, sy - bounce + r * 0.3 + walkCycle, 6, 10, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#f0f9ff';
+            ctx.beginPath(); ctx.arc(sx + r * 0.5, sy - bounce - r * 0.35, r * 0.42, 0, Math.PI * 2); ctx.fill();
+            // Ears
+            ctx.beginPath(); ctx.arc(sx + r * 0.35, sy - bounce - r * 0.7, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + r * 0.65, sy - bounce - r * 0.7, 5, 0, Math.PI * 2); ctx.fill();
+            // Nose
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath(); ctx.arc(sx + r * 0.78, sy - bounce - r * 0.3, 3, 0, Math.PI * 2); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#0c4a6e';
+            ctx.beginPath(); ctx.arc(sx + r * 0.42, sy - bounce - r * 0.45, 2.5, 0, Math.PI * 2); ctx.fill();
+            // Ice breath particles
+            if (Math.sin(time * 6) > 0.3) {
+              for (let p = 0; p < 3; p++) {
+                const px = sx + r * 0.9 + p * 5;
+                const py = sy - bounce - r * 0.3 + Math.sin(time * 8 + p) * 4;
+                ctx.fillStyle = `rgba(186,230,253,${0.6 - p * 0.15})`;
+                ctx.beginPath(); ctx.arc(px, py, 2 - p * 0.3, 0, Math.PI * 2); ctx.fill();
+              }
+            }
+          }
+          else if (enemyType === 'demon') {
+            // Classic red demon with horns and wings
+            // Wing shadows
+            ctx.fillStyle = 'rgba(127,29,29,0.5)';
+            const wingFlap = Math.sin(time * 6) * 8;
+            ctx.beginPath(); ctx.moveTo(sx - 5, sy - bounce - 5); ctx.lineTo(sx - r - 10, sy - bounce - 15 + wingFlap); ctx.lineTo(sx - r - 5, sy - bounce + 5); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + 5, sy - bounce - 5); ctx.lineTo(sx + r + 10, sy - bounce - 15 - wingFlap); ctx.lineTo(sx + r + 5, sy - bounce + 5); ctx.closePath(); ctx.fill();
+            // Body
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.6, r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+            // Chest
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce - 2, r * 0.35, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.7, r * 0.38, 0, Math.PI * 2); ctx.fill();
+            // Horns
+            ctx.fillStyle = '#451a03';
+            ctx.beginPath(); ctx.moveTo(sx - 6, sy - bounce - r - 4); ctx.lineTo(sx - 12, sy - bounce - r - 18); ctx.lineTo(sx - 2, sy - bounce - r - 2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + 6, sy - bounce - r - 4); ctx.lineTo(sx + 12, sy - bounce - r - 18); ctx.lineTo(sx + 2, sy - bounce - r - 2); ctx.fill();
+            // Eyes (glowing)
+            ctx.fillStyle = '#fef08a';
+            ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(sx - 4, sy - bounce - r * 0.75, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 4, sy - bounce - r * 0.75, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Mouth
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.6, 4, 0.2, Math.PI - 0.2); ctx.stroke();
+            // Tail
+            ctx.strokeStyle = '#991b1b';
+            ctx.lineWidth = 2;
+            const tailWave = Math.sin(time * 4) * 6;
+            ctx.beginPath(); ctx.moveTo(sx, sy - bounce + r * 0.7); ctx.quadraticCurveTo(sx + 15, sy - bounce + r + tailWave, sx + 20, sy - bounce + r * 0.5); ctx.stroke();
+            // Tail tip (spade)
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath(); ctx.moveTo(sx + 20, sy - bounce + r * 0.5); ctx.lineTo(sx + 17, sy - bounce + r * 0.3); ctx.lineTo(sx + 23, sy - bounce + r * 0.3); ctx.closePath(); ctx.fill();
+          }
+          else if (enemyType === 'abyssal_spider') {
+            // Huge dark void spider
+            const legSpread = r * 2;
+            // Legs (thick, dark purple)
+            ctx.strokeStyle = '#4c1d95';
+            ctx.lineWidth = 3;
+            for (let i = 0; i < 8; i++) {
+              const side = i < 4 ? -1 : 1;
+              const idx = i % 4;
+              const lx = sx + side * r * 0.5;
+              const ly = sy - bounce + idx * 4 - 6;
+              const tx = sx + side * legSpread * (0.5 + idx * 0.13);
+              const ty = ly + 6 + Math.sin(time * 5 + idx) * 3;
+              const midX = (lx + tx) / 2 + side * 6;
+              const midY = Math.min(ly, ty) - 10;
+              ctx.beginPath(); ctx.moveTo(lx, ly); ctx.quadraticCurveTo(midX, midY, tx, ty); ctx.stroke();
+            }
+            // Void glow
+            ctx.fillStyle = `rgba(88,28,135,${0.2 + Math.sin(time * 2) * 0.08})`;
+            ctx.beginPath(); ctx.arc(sx, sy - bounce, r * 1.4, 0, Math.PI * 2); ctx.fill();
+            // Abdomen
+            ctx.fillStyle = '#581c87';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 4, r * 0.8, r * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+            // Void markings
+            ctx.fillStyle = '#7c3aed';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 5, r * 0.3, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#3b0764';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.45, r * 0.4, 0, Math.PI * 2); ctx.fill();
+            // Multiple glowing eyes
+            ctx.fillStyle = '#a855f7';
+            ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 5;
+            for (let i = 0; i < 6; i++) {
+              const ex = sx - 5 + (i % 3) * 5;
+              const ey = sy - bounce - r * 0.5 - 2 + Math.floor(i / 3) * 4;
+              ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+          }
+          else if (enemyType === 'crystal_golem') {
+            // Large crystal-encrusted golem
+            // Body (chunky)
+            ctx.fillStyle = '#86198f';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.6, sy - bounce + r * 0.5);
+            ctx.lineTo(sx - r * 0.5, sy - bounce - r * 0.5);
+            ctx.lineTo(sx, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.5, sy - bounce - r * 0.5);
+            ctx.lineTo(sx + r * 0.6, sy - bounce + r * 0.5);
+            ctx.closePath(); ctx.fill();
+            // Crystal growths
+            const crystalColors = ['#e879f9', '#f0abfc', '#d946ef', '#c026d3'];
+            for (let i = 0; i < 5; i++) {
+              const cx2 = sx + Math.cos(i * 1.26) * r * 0.4;
+              const cy2 = sy - bounce - r * 0.3 + Math.sin(i * 1.26) * r * 0.3;
+              const ch = 8 + i * 2;
+              ctx.fillStyle = crystalColors[i % crystalColors.length];
+              ctx.beginPath();
+              ctx.moveTo(cx2 - 3, cy2);
+              ctx.lineTo(cx2, cy2 - ch);
+              ctx.lineTo(cx2 + 3, cy2);
+              ctx.closePath(); ctx.fill();
+              // Crystal highlight
+              ctx.fillStyle = 'rgba(255,255,255,0.3)';
+              ctx.beginPath();
+              ctx.moveTo(cx2 - 1, cy2);
+              ctx.lineTo(cx2, cy2 - ch * 0.6);
+              ctx.lineTo(cx2 + 1, cy2 - ch * 0.3);
+              ctx.closePath(); ctx.fill();
+            }
+            // Eyes
+            ctx.fillStyle = '#f0abfc';
+            ctx.shadowColor = '#f0abfc'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 6, sy - bounce - r * 0.35, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 6, sy - bounce - r * 0.35, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Arms (rocky)
+            const armBob = Math.sin(time * 2) * 3;
+            ctx.fillStyle = '#701a75';
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.7, sy - bounce + armBob, 8, 12, -0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.7, sy - bounce - armBob, 8, 12, 0.2, 0, Math.PI * 2); ctx.fill();
+          }
+          // ========== NEW LARGER ENEMIES ==========
+          
+          // MEADOW - Giant Toad
+          else if (enemyType === 'giant_toad') {
+            // Fat body
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.8, r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+            // Belly
+            ctx.fillStyle = '#65a30d';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + r * 0.15, r * 0.55, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+            // Eyes (bulging on top)
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath(); ctx.arc(sx - r * 0.3, sy - bounce - r * 0.45, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + r * 0.3, sy - bounce - r * 0.45, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(sx - r * 0.3, sy - bounce - r * 0.45, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + r * 0.3, sy - bounce - r * 0.45, 3, 0, Math.PI * 2); ctx.fill();
+            // Legs
+            const toadLeg = Math.sin(time * 3) * 4;
+            ctx.fillStyle = '#3f6212';
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.6, sy - bounce + r * 0.4 + toadLeg, 8, 5, -0.4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.6, sy - bounce + r * 0.4 - toadLeg, 8, 5, 0.4, 0, Math.PI * 2); ctx.fill();
+          }
+          
+          // MEADOW - Moss Golem
+          else if (enemyType === 'meadow_golem') {
+            // Mossy rock body
+            ctx.fillStyle = '#3f6212';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.5, sy - bounce + r * 0.4);
+            ctx.lineTo(sx - r * 0.6, sy - bounce - r * 0.2);
+            ctx.lineTo(sx - r * 0.3, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.3, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.6, sy - bounce - r * 0.2);
+            ctx.lineTo(sx + r * 0.5, sy - bounce + r * 0.4);
+            ctx.closePath(); ctx.fill();
+            // Moss patches
+            ctx.fillStyle = '#84cc16';
+            for (let i = 0; i < 4; i++) {
+              const mx = sx + Math.cos(i * 1.6 + 0.5) * r * 0.35;
+              const my = sy - bounce - r * 0.1 + Math.sin(i * 1.6) * r * 0.25;
+              ctx.beginPath(); ctx.arc(mx, my, 5 + i, 0, Math.PI * 2); ctx.fill();
+            }
+            // Glowing eyes
+            ctx.fillStyle = '#a3e635';
+            ctx.shadowColor = '#a3e635'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(sx - 7, sy - bounce - r * 0.4, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 7, sy - bounce - r * 0.4, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Arms
+            const mgArm = Math.sin(time * 1.5) * 3;
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.7, sy - bounce - r * 0.1 + mgArm, 10, 7, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.7, sy - bounce - r * 0.1 - mgArm, 10, 7, 0.3, 0, Math.PI * 2); ctx.fill();
+          }
+          
+          // MEADOW - Cursed Scarecrow
+          else if (enemyType === 'scarecrow') {
+            // Post
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(sx - 2, sy - bounce - r * 0.8, 4, r * 1.4);
+            // Crossbar
+            ctx.fillRect(sx - r * 0.6, sy - bounce - r * 0.5, r * 1.2, 3);
+            // Head (burlap sack)
+            ctx.fillStyle = '#a16207';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.7, r * 0.35, 0, Math.PI * 2); ctx.fill();
+            // Hat
+            ctx.fillStyle = '#451a03';
+            ctx.fillRect(sx - r * 0.4, sy - bounce - r * 1.05, r * 0.8, 4);
+            ctx.fillRect(sx - r * 0.25, sy - bounce - r * 1.25, r * 0.5, r * 0.22);
+            // Glowing eyes
+            ctx.fillStyle = '#f97316';
+            ctx.shadowColor = '#f97316'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 5, sy - bounce - r * 0.72, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5, sy - bounce - r * 0.72, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Stitched mouth
+            ctx.strokeStyle = '#451a03'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sx - 4, sy - bounce - r * 0.6); ctx.lineTo(sx + 4, sy - bounce - r * 0.6); ctx.stroke();
+            // Tattered cloth
+            ctx.fillStyle = '#92400e';
+            const scareSway = Math.sin(time * 2) * 3;
+            ctx.beginPath(); ctx.moveTo(sx - r * 0.6, sy - bounce - r * 0.47); ctx.lineTo(sx - r * 0.5 + scareSway, sy - bounce + r * 0.1); ctx.lineTo(sx - r * 0.3, sy - bounce - r * 0.47); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.6, sy - bounce - r * 0.47); ctx.lineTo(sx + r * 0.5 - scareSway, sy - bounce + r * 0.1); ctx.lineTo(sx + r * 0.3, sy - bounce - r * 0.47); ctx.fill();
+          }
+          
+          // FOREST - Dire Wolf
+          else if (enemyType === 'dire_wolf') {
+            // Large wolf body
+            ctx.fillStyle = '#44403c';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.85, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#57534e';
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.5 * Math.sign(enemy.vx || 1), sy - bounce - r * 0.2, r * 0.35, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+            // Ears
+            const wolfDir = Math.sign(enemy.vx || 1);
+            ctx.fillStyle = '#292524';
+            ctx.beginPath();
+            ctx.moveTo(sx + r * 0.5 * wolfDir - 5, sy - bounce - r * 0.45);
+            ctx.lineTo(sx + r * 0.5 * wolfDir - 2, sy - bounce - r * 0.65);
+            ctx.lineTo(sx + r * 0.5 * wolfDir + 2, sy - bounce - r * 0.45);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(sx + r * 0.5 * wolfDir + 3, sy - bounce - r * 0.45);
+            ctx.lineTo(sx + r * 0.5 * wolfDir + 6, sy - bounce - r * 0.65);
+            ctx.lineTo(sx + r * 0.5 * wolfDir + 9, sy - bounce - r * 0.45);
+            ctx.fill();
+            // Red eyes
+            ctx.fillStyle = '#ef4444';
+            ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 5;
+            ctx.beginPath(); ctx.arc(sx + r * 0.45 * wolfDir, sy - bounce - r * 0.25, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Legs
+            ctx.fillStyle = '#292524';
+            const wolfRun = Math.sin(time * 6) * 5;
+            ctx.fillRect(sx - r * 0.4 - 2, sy - bounce + r * 0.3, 4, r * 0.4 + wolfRun);
+            ctx.fillRect(sx + r * 0.4 - 2, sy - bounce + r * 0.3, 4, r * 0.4 - wolfRun);
+            // Tail
+            ctx.strokeStyle = '#44403c'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(sx - r * 0.6 * wolfDir, sy - bounce);
+            ctx.quadraticCurveTo(sx - r * 0.9 * wolfDir, sy - bounce - r * 0.3, sx - r * 0.7 * wolfDir, sy - bounce - r * 0.5);
+            ctx.stroke();
+          }
+          
+          // FOREST - Ancient Ent
+          else if (enemyType === 'ancient_ent') {
+            // Massive tree trunk body
+            ctx.fillStyle = '#3f6212';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.4, sy - bounce + r * 0.5);
+            ctx.lineTo(sx - r * 0.5, sy - bounce - r * 0.2);
+            ctx.lineTo(sx - r * 0.3, sy - bounce - r * 0.8);
+            ctx.lineTo(sx + r * 0.3, sy - bounce - r * 0.8);
+            ctx.lineTo(sx + r * 0.5, sy - bounce - r * 0.2);
+            ctx.lineTo(sx + r * 0.4, sy - bounce + r * 0.5);
+            ctx.closePath(); ctx.fill();
+            // Bark texture
+            ctx.strokeStyle = '#365314'; ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+              const by = sy - bounce - r * 0.6 + i * r * 0.22;
+              ctx.beginPath(); ctx.moveTo(sx - r * 0.3, by); ctx.lineTo(sx + r * 0.3, by + 3); ctx.stroke();
+            }
+            // Canopy (leafy top)
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.75, r * 0.55, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#16a34a';
+            ctx.beginPath(); ctx.arc(sx - r * 0.25, sy - bounce - r * 0.85, r * 0.35, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + r * 0.25, sy - bounce - r * 0.85, r * 0.35, 0, Math.PI * 2); ctx.fill();
+            // Glowing eyes in trunk
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 8, sy - bounce - r * 0.35, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 8, sy - bounce - r * 0.35, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Branch arms
+            const entSway = Math.sin(time * 1.2) * 4;
+            ctx.strokeStyle = '#3f6212'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(sx - r * 0.5, sy - bounce - r * 0.2);
+            ctx.quadraticCurveTo(sx - r * 0.9, sy - bounce - r * 0.4 + entSway, sx - r * 1.0, sy - bounce - r * 0.2);
+            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.5, sy - bounce - r * 0.2);
+            ctx.quadraticCurveTo(sx + r * 0.9, sy - bounce - r * 0.4 - entSway, sx + r * 1.0, sy - bounce - r * 0.2);
+            ctx.stroke();
+          }
+          
+          // FOREST - Swamp Horror
+          else if (enemyType === 'swamp_horror') {
+            // Blob body
+            ctx.fillStyle = '#365314';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + r * 0.1, r * 0.7, r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+            // Dripping bits
+            ctx.fillStyle = '#4d7c0f';
+            for (let i = 0; i < 4; i++) {
+              const drip = Math.sin(time * 2 + i * 1.5) * 4;
+              ctx.beginPath(); ctx.ellipse(sx + Math.cos(i * 1.57) * r * 0.5, sy - bounce + r * 0.5 + drip, 4, 6 + drip, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            // Multiple eyes
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 5;
+            const eyePositions = [[-8, -r*0.2], [6, -r*0.3], [-2, -r*0.05], [10, -r*0.1]];
+            for (const [ex, ey] of eyePositions) {
+              ctx.beginPath(); ctx.arc(sx + ex, sy - bounce + ey, 2.5, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+            // Tentacles
+            ctx.strokeStyle = '#365314'; ctx.lineWidth = 3;
+            for (let i = 0; i < 3; i++) {
+              const ta = (i / 3) * Math.PI - Math.PI * 0.25;
+              const tw = Math.sin(time * 3 + i * 2) * 8;
+              ctx.beginPath(); ctx.moveTo(sx + Math.cos(ta) * r * 0.5, sy - bounce + r * 0.3);
+              ctx.quadraticCurveTo(sx + Math.cos(ta) * r * 0.8 + tw, sy - bounce + r * 0.6, sx + Math.cos(ta) * r, sy - bounce + r * 0.3);
+              ctx.stroke();
+            }
+          }
+          
+          // VOLCANIC - Magma Giant
+          else if (enemyType === 'magma_giant') {
+            // Massive rocky body
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.5, sy - bounce + r * 0.5);
+            ctx.lineTo(sx - r * 0.6, sy - bounce);
+            ctx.lineTo(sx - r * 0.4, sy - bounce - r * 0.7);
+            ctx.lineTo(sx, sy - bounce - r * 0.9);
+            ctx.lineTo(sx + r * 0.4, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.6, sy - bounce);
+            ctx.lineTo(sx + r * 0.5, sy - bounce + r * 0.5);
+            ctx.closePath(); ctx.fill();
+            // Magma cracks
+            ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2;
+            ctx.shadowColor = '#f97316'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.moveTo(sx - r * 0.2, sy - bounce - r * 0.6); ctx.lineTo(sx - r * 0.1, sy - bounce - r * 0.1); ctx.lineTo(sx + r * 0.1, sy - bounce + r * 0.2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.15, sy - bounce - r * 0.5); ctx.lineTo(sx + r * 0.25, sy - bounce); ctx.stroke();
+            ctx.shadowBlur = 0;
+            // Glowing eyes
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(sx - 8, sy - bounce - r * 0.55, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 8, sy - bounce - r * 0.55, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Arms
+            const mgaArm = Math.sin(time * 1.5) * 4;
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.75, sy - bounce - r * 0.1 + mgaArm, 12, 9, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.75, sy - bounce - r * 0.1 - mgaArm, 12, 9, 0.3, 0, Math.PI * 2); ctx.fill();
+          }
+          
+          // VOLCANIC - Hell Hound
+          else if (enemyType === 'hell_hound') {
+            // Fiery dog body
+            ctx.fillStyle = '#7f1d1d';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.8, r * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            const hhDir = Math.sign(enemy.vx || 1);
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.5 * hhDir, sy - bounce - r * 0.15, r * 0.3, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+            // Fire mane
+            ctx.fillStyle = '#f97316';
+            ctx.shadowColor = '#f97316'; ctx.shadowBlur = 8;
+            for (let i = 0; i < 5; i++) {
+              const fx = sx + Math.cos(i * 0.7 + time * 5) * r * 0.3;
+              const fy = sy - bounce - r * 0.3 - Math.abs(Math.sin(time * 6 + i)) * 8;
+              ctx.beginPath(); ctx.arc(fx, fy, 4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+            // Eyes
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 5;
+            ctx.beginPath(); ctx.arc(sx + r * 0.45 * hhDir, sy - bounce - r * 0.2, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Legs
+            ctx.fillStyle = '#450a0a';
+            const hhRun = Math.sin(time * 7) * 5;
+            ctx.fillRect(sx - r * 0.4 - 2, sy - bounce + r * 0.3, 4, r * 0.35 + hhRun);
+            ctx.fillRect(sx + r * 0.3 - 2, sy - bounce + r * 0.3, 4, r * 0.35 - hhRun);
+          }
+          
+          // VOLCANIC - Flame Wyrm
+          else if (enemyType === 'flame_wyrm') {
+            // Serpentine body segments
+            ctx.fillStyle = '#dc2626';
+            for (let i = 0; i < 5; i++) {
+              const segX = sx - i * 8 + Math.sin(time * 4 + i * 0.8) * 4;
+              const segY = sy - bounce + Math.cos(time * 3 + i * 0.8) * 3;
+              const segR = r * 0.35 - i * 1.5;
+              ctx.beginPath(); ctx.arc(segX, segY, segR, 0, Math.PI * 2); ctx.fill();
+            }
+            // Head
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.3, sy - bounce - r * 0.1, r * 0.35, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+            // Fire breath effect
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(sx + r * 0.6, sy - bounce - r * 0.1, 5 + Math.sin(time * 8) * 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Eye
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath(); ctx.arc(sx + r * 0.35, sy - bounce - r * 0.2, 3, 0, Math.PI * 2); ctx.fill();
+            // Wings (small)
+            ctx.fillStyle = 'rgba(249,115,22,0.4)';
+            const fwWing = Math.sin(time * 5) * 5;
+            ctx.beginPath(); ctx.moveTo(sx, sy - bounce);
+            ctx.lineTo(sx - r * 0.5, sy - bounce - r * 0.5 - fwWing);
+            ctx.lineTo(sx + r * 0.1, sy - bounce - r * 0.1);
+            ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx, sy - bounce);
+            ctx.lineTo(sx - r * 0.5, sy - bounce + r * 0.3 + fwWing);
+            ctx.lineTo(sx + r * 0.1, sy - bounce + r * 0.1);
+            ctx.fill();
+          }
+          
+          // FROZEN - Woolly Mammoth
+          else if (enemyType === 'mammoth') {
+            // Huge furry body
+            ctx.fillStyle = '#57534e';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.85, r * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+            // Fur texture
+            ctx.fillStyle = '#78716c';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce - r * 0.1, r * 0.75, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#44403c';
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.4, sy - bounce - r * 0.3, r * 0.4, r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+            // Tusks
+            ctx.strokeStyle = '#fef3c7'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.5, sy - bounce - r * 0.1);
+            ctx.quadraticCurveTo(sx + r * 0.9, sy - bounce + r * 0.1, sx + r * 0.7, sy - bounce - r * 0.3);
+            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.5, sy - bounce);
+            ctx.quadraticCurveTo(sx + r * 0.85, sy - bounce + r * 0.2, sx + r * 0.65, sy - bounce - r * 0.15);
+            ctx.stroke();
+            // Trunk
+            ctx.strokeStyle = '#44403c'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.6, sy - bounce - r * 0.15);
+            ctx.quadraticCurveTo(sx + r * 0.8, sy - bounce + r * 0.3, sx + r * 0.6, sy - bounce + r * 0.4);
+            ctx.stroke();
+            // Eye
+            ctx.fillStyle = '#a8a29e';
+            ctx.beginPath(); ctx.arc(sx + r * 0.35, sy - bounce - r * 0.35, 3, 0, Math.PI * 2); ctx.fill();
+            // Legs
+            ctx.fillStyle = '#44403c';
+            const mamWalk = Math.sin(time * 2) * 3;
+            ctx.fillRect(sx - r * 0.4 - 4, sy - bounce + r * 0.4, 8, r * 0.4 + mamWalk);
+            ctx.fillRect(sx - r * 0.1 - 4, sy - bounce + r * 0.4, 8, r * 0.4 - mamWalk);
+            ctx.fillRect(sx + r * 0.2 - 4, sy - bounce + r * 0.4, 8, r * 0.4 + mamWalk);
+          }
+          
+          // FROZEN - Frost Wraith
+          else if (enemyType === 'frost_wraith') {
+            // Ghostly icy form
+            ctx.fillStyle = 'rgba(125,211,252,0.5)';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.6, r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+            // Inner glow
+            ctx.fillStyle = 'rgba(186,230,253,0.3)';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce - r * 0.1, r * 0.4, r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+            // Ice crystals floating around
+            ctx.fillStyle = '#bae6fd';
+            ctx.shadowColor = '#7dd3fc'; ctx.shadowBlur = 8;
+            for (let i = 0; i < 4; i++) {
+              const ix = sx + Math.cos(time * 2 + i * 1.57) * r * 0.7;
+              const iy = sy - bounce + Math.sin(time * 2 + i * 1.57) * r * 0.5;
+              ctx.beginPath();
+              ctx.moveTo(ix, iy - 5); ctx.lineTo(ix + 3, iy); ctx.lineTo(ix, iy + 5); ctx.lineTo(ix - 3, iy);
+              ctx.closePath(); ctx.fill();
+            }
+            // Eyes
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(sx - 5, sy - bounce - r * 0.2, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5, sy - bounce - r * 0.2, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Wispy tail
+            ctx.strokeStyle = 'rgba(125,211,252,0.3)'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(sx, sy - bounce + r * 0.5);
+            ctx.quadraticCurveTo(sx + Math.sin(time * 3) * 10, sy - bounce + r * 0.9, sx + Math.sin(time * 2) * 15, sy - bounce + r * 1.1);
+            ctx.stroke();
+          }
+          
+          // FROZEN - Ice Golem
+          else if (enemyType === 'ice_golem') {
+            // Chunky ice body
+            ctx.fillStyle = '#7dd3fc';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.5, sy - bounce + r * 0.4);
+            ctx.lineTo(sx - r * 0.6, sy - bounce - r * 0.3);
+            ctx.lineTo(sx - r * 0.2, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.2, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.6, sy - bounce - r * 0.3);
+            ctx.lineTo(sx + r * 0.5, sy - bounce + r * 0.4);
+            ctx.closePath(); ctx.fill();
+            // Ice sheen
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.3, sy - bounce - r * 0.6);
+            ctx.lineTo(sx, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.2, sy - bounce - r * 0.3);
+            ctx.lineTo(sx - r * 0.1, sy - bounce - r * 0.2);
+            ctx.closePath(); ctx.fill();
+            // Eyes
+            ctx.fillStyle = '#0ea5e9';
+            ctx.shadowColor = '#0ea5e9'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 7, sy - bounce - r * 0.4, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 7, sy - bounce - r * 0.4, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Arms
+            const igArm = Math.sin(time * 1.5) * 3;
+            ctx.fillStyle = '#bae6fd';
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.7, sy - bounce - r * 0.1 + igArm, 10, 8, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.7, sy - bounce - r * 0.1 - igArm, 10, 8, 0.3, 0, Math.PI * 2); ctx.fill();
+          }
+          
+          // ABYSS - Shadow Titan
+          else if (enemyType === 'shadow_titan') {
+            // Dark massive body
+            ctx.fillStyle = '#3b0764';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.5, sy - bounce + r * 0.5);
+            ctx.lineTo(sx - r * 0.6, sy - bounce);
+            ctx.lineTo(sx - r * 0.3, sy - bounce - r * 0.8);
+            ctx.lineTo(sx, sy - bounce - r * 0.95);
+            ctx.lineTo(sx + r * 0.3, sy - bounce - r * 0.8);
+            ctx.lineTo(sx + r * 0.6, sy - bounce);
+            ctx.lineTo(sx + r * 0.5, sy - bounce + r * 0.5);
+            ctx.closePath(); ctx.fill();
+            // Dark energy wisps
+            ctx.fillStyle = 'rgba(168,85,247,0.3)';
+            for (let i = 0; i < 5; i++) {
+              const wx = sx + Math.sin(time * 2 + i * 1.26) * r * 0.7;
+              const wy = sy - bounce - r * 0.3 + Math.cos(time * 1.5 + i) * r * 0.4;
+              ctx.beginPath(); ctx.arc(wx, wy, 4 + Math.sin(time * 3 + i) * 2, 0, Math.PI * 2); ctx.fill();
+            }
+            // Crown/horns
+            ctx.fillStyle = '#581c87';
+            ctx.beginPath(); ctx.moveTo(sx - r * 0.25, sy - bounce - r * 0.8); ctx.lineTo(sx - r * 0.35, sy - bounce - r * 1.2); ctx.lineTo(sx - r * 0.15, sy - bounce - r * 0.85); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.25, sy - bounce - r * 0.8); ctx.lineTo(sx + r * 0.35, sy - bounce - r * 1.2); ctx.lineTo(sx + r * 0.15, sy - bounce - r * 0.85); ctx.fill();
+            // Glowing eyes
+            ctx.fillStyle = '#e879f9';
+            ctx.shadowColor = '#e879f9'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(sx - 8, sy - bounce - r * 0.55, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 8, sy - bounce - r * 0.55, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Arms
+            ctx.fillStyle = '#4c1d95';
+            const stArm = Math.sin(time * 1.5) * 5;
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.75, sy - bounce - r * 0.1 + stArm, 14, 10, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.75, sy - bounce - r * 0.1 - stArm, 14, 10, 0.3, 0, Math.PI * 2); ctx.fill();
+          }
+          
+          // ABYSS - Mind Flayer
+          else if (enemyType === 'mind_flayer') {
+            // Robed body
+            ctx.fillStyle = '#581c87';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.5, sy - bounce + r * 0.5);
+            ctx.lineTo(sx - r * 0.3, sy - bounce - r * 0.3);
+            ctx.lineTo(sx + r * 0.3, sy - bounce - r * 0.3);
+            ctx.lineTo(sx + r * 0.5, sy - bounce + r * 0.5);
+            ctx.closePath(); ctx.fill();
+            // Head (bulbous)
+            ctx.fillStyle = '#a855f7';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce - r * 0.4, r * 0.35, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+            // Tentacle face
+            ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+              const ta = (i / 4) * 0.8 - 0.4;
+              const tw = Math.sin(time * 3 + i * 1.5) * 5;
+              ctx.beginPath(); ctx.moveTo(sx + Math.sin(ta) * 5, sy - bounce - r * 0.2);
+              ctx.quadraticCurveTo(sx + Math.sin(ta) * 8 + tw, sy - bounce + r * 0.1, sx + Math.sin(ta) * 3 + tw * 0.5, sy - bounce + r * 0.25);
+              ctx.stroke();
+            }
+            // Eyes (three)
+            ctx.fillStyle = '#e879f9';
+            ctx.shadowColor = '#e879f9'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 6, sy - bounce - r * 0.5, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 6, sy - bounce - r * 0.5, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx, sy - bounce - r * 0.6, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          
+          // ABYSS - Abyssal Worm
+          else if (enemyType === 'abyssal_worm') {
+            // Segmented worm body
+            ctx.fillStyle = '#3b0764';
+            for (let i = 0; i < 6; i++) {
+              const segX = sx + Math.sin(time * 3 + i * 0.8) * (6 - i) * 2;
+              const segY = sy - bounce + i * 7 - 15;
+              const segR = r * 0.4 - i * 1;
+              ctx.beginPath(); ctx.arc(segX, segY, Math.max(segR, 4), 0, Math.PI * 2); ctx.fill();
+            }
+            // Head
+            ctx.fillStyle = '#581c87';
+            ctx.beginPath(); ctx.arc(sx + Math.sin(time * 3) * 6, sy - bounce - 15, r * 0.45, 0, Math.PI * 2); ctx.fill();
+            // Maw (ring of teeth)
+            ctx.fillStyle = '#d8b4fe';
+            for (let i = 0; i < 6; i++) {
+              const ta = (i / 6) * Math.PI * 2 + time * 2;
+              const tx = sx + Math.sin(time * 3) * 6 + Math.cos(ta) * r * 0.3;
+              const ty = sy - bounce - 15 + Math.sin(ta) * r * 0.3;
+              ctx.beginPath(); ctx.moveTo(tx, ty);
+              ctx.lineTo(tx + Math.cos(ta) * 5, ty + Math.sin(ta) * 5);
+              ctx.lineTo(tx + Math.cos(ta + 0.3) * 2, ty + Math.sin(ta + 0.3) * 2);
+              ctx.fill();
+            }
+            // Eye
+            ctx.fillStyle = '#e879f9';
+            ctx.shadowColor = '#e879f9'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(sx + Math.sin(time * 3) * 6, sy - bounce - 18, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          
+          // CRYSTAL - Crystal Drake
+          else if (enemyType === 'crystal_drake') {
+            // Dragon-like body
+            ctx.fillStyle = '#a21caf';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce, r * 0.7, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+            // Head
+            ctx.fillStyle = '#c026d3';
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.5, sy - bounce - r * 0.25, r * 0.3, r * 0.25, -0.3, 0, Math.PI * 2); ctx.fill();
+            // Crystal spines along back
+            const spineColors = ['#f0abfc', '#e879f9', '#d946ef', '#f5d0fe'];
+            for (let i = 0; i < 5; i++) {
+              const spX = sx - r * 0.3 + i * r * 0.2;
+              const spH = 10 + Math.sin(time * 3 + i) * 3;
+              ctx.fillStyle = spineColors[i % spineColors.length];
+              ctx.beginPath();
+              ctx.moveTo(spX - 3, sy - bounce - r * 0.35);
+              ctx.lineTo(spX, sy - bounce - r * 0.35 - spH);
+              ctx.lineTo(spX + 3, sy - bounce - r * 0.35);
+              ctx.closePath(); ctx.fill();
+            }
+            // Wings
+            ctx.fillStyle = 'rgba(217,70,239,0.3)';
+            const cdWing = Math.sin(time * 4) * 6;
+            ctx.beginPath(); ctx.moveTo(sx - r * 0.1, sy - bounce - r * 0.2);
+            ctx.lineTo(sx - r * 0.7, sy - bounce - r * 0.8 - cdWing);
+            ctx.lineTo(sx - r * 0.3, sy - bounce + r * 0.1);
+            ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + r * 0.1, sy - bounce - r * 0.2);
+            ctx.lineTo(sx + r * 0.5, sy - bounce - r * 0.7 - cdWing);
+            ctx.lineTo(sx + r * 0.3, sy - bounce + r * 0.1);
+            ctx.fill();
+            // Eye
+            ctx.fillStyle = '#fef08a';
+            ctx.shadowColor = '#fef08a'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(sx + r * 0.55, sy - bounce - r * 0.3, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Tail
+            ctx.strokeStyle = '#86198f'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(sx - r * 0.5, sy - bounce);
+            ctx.quadraticCurveTo(sx - r * 0.9, sy - bounce + Math.sin(time * 2) * 8, sx - r * 0.7, sy - bounce + r * 0.3);
+            ctx.stroke();
+          }
+          
+          // CRYSTAL - Geode Golem
+          else if (enemyType === 'geode_golem') {
+            // Giant rocky exterior
+            ctx.fillStyle = '#6b21a8';
+            ctx.beginPath();
+            ctx.moveTo(sx - r * 0.5, sy - bounce + r * 0.5);
+            ctx.lineTo(sx - r * 0.65, sy - bounce);
+            ctx.lineTo(sx - r * 0.4, sy - bounce - r * 0.7);
+            ctx.lineTo(sx, sy - bounce - r * 0.85);
+            ctx.lineTo(sx + r * 0.4, sy - bounce - r * 0.7);
+            ctx.lineTo(sx + r * 0.65, sy - bounce);
+            ctx.lineTo(sx + r * 0.5, sy - bounce + r * 0.5);
+            ctx.closePath(); ctx.fill();
+            // Inner crystal cavity (geode)
+            ctx.fillStyle = '#581c87';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce - r * 0.15, r * 0.35, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+            // Crystal formations inside
+            const geodeColors = ['#f0abfc', '#e879f9', '#d946ef', '#c084fc', '#fbbf24'];
+            for (let i = 0; i < 6; i++) {
+              const ga = (i / 6) * Math.PI * 2;
+              const gx = sx + Math.cos(ga) * r * 0.2;
+              const gy = sy - bounce - r * 0.15 + Math.sin(ga) * r * 0.25;
+              const gh = 6 + i * 1.5 + Math.sin(time * 2 + i) * 2;
+              ctx.fillStyle = geodeColors[i % geodeColors.length];
+              ctx.shadowColor = geodeColors[i % geodeColors.length]; ctx.shadowBlur = 4;
+              ctx.beginPath();
+              ctx.moveTo(gx - 2, gy);
+              ctx.lineTo(gx, gy - gh);
+              ctx.lineTo(gx + 2, gy);
+              ctx.closePath(); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+            // Eyes
+            ctx.fillStyle = '#f0abfc';
+            ctx.shadowColor = '#f0abfc'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 9, sy - bounce - r * 0.5, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 9, sy - bounce - r * 0.5, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Arms
+            ctx.fillStyle = '#7e22ce';
+            const ggArm = Math.sin(time * 1.3) * 4;
+            ctx.beginPath(); ctx.ellipse(sx - r * 0.8, sy - bounce + ggArm, 14, 10, -0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx + r * 0.8, sy - bounce - ggArm, 14, 10, 0.2, 0, Math.PI * 2); ctx.fill();
+          }
+          
+          // CRYSTAL - Shard Swarm
+          else if (enemyType === 'shard_swarm') {
+            // Cluster of flying crystal shards
+            ctx.shadowColor = '#e879f9'; ctx.shadowBlur = 6;
+            for (let i = 0; i < 7; i++) {
+              const sa = (i / 7) * Math.PI * 2 + time * 3;
+              const sd = r * 0.3 + Math.sin(time * 4 + i * 2) * 4;
+              const shx = sx + Math.cos(sa) * sd;
+              const shy = sy - bounce + Math.sin(sa) * sd * 0.6;
+              const shRot = sa + time * 2;
+              ctx.fillStyle = ['#e879f9', '#f0abfc', '#d946ef', '#c084fc', '#f5d0fe', '#fbbf24', '#ec4899'][i];
+              ctx.save();
+              ctx.translate(shx, shy);
+              ctx.rotate(shRot);
+              ctx.beginPath();
+              ctx.moveTo(0, -5); ctx.lineTo(3, 0); ctx.lineTo(0, 5); ctx.lineTo(-3, 0);
+              ctx.closePath(); ctx.fill();
+              ctx.restore();
+            }
+            ctx.shadowBlur = 0;
+          }
           // ========== DUNGEON ENEMIES ==========
           else if (enemyType === 'dungeon_skeleton') {
             // Cursed Knight - armored undead
@@ -7150,10 +8672,207 @@ export default function SpellBrigade() {
             ctx.textAlign = 'center';
             ctx.fillText('💀 LICH KING', sx, lhbY - 5);
           }
+          // === NEW LARGE ENEMIES ===
+          else if (enemyType === 'giant_hornet') {
+            const wingFlap = Math.sin(time * 20) * 0.4;
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(sx - 10, sy - 14 - bounce, 14, 7, wingFlap - 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(sx + 10, sy - 14 - bounce, 14, 7, -wingFlap + 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#eab308';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy - bounce, 16, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#1c1917';
+            for (let s = -8; s <= 8; s += 6) { ctx.fillRect(sx + s - 2, sy - 8 - bounce, 3, 16); }
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.moveTo(sx + 16, sy - bounce); ctx.lineTo(sx + 26, sy - bounce); ctx.lineTo(sx + 16, sy + 3 - bounce); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath(); ctx.arc(sx - 8, sy - 4 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 8, sy - 4 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+          }
+          else if (enemyType === 'bramble_beast') {
+            const pulse = Math.sin(time * 2) * 2;
+            const spikes = 10;
+            ctx.beginPath();
+            for (let i = 0; i < spikes; i++) {
+              const a = (i / spikes) * Math.PI * 2;
+              const rr = 22 + pulse;
+              ctx.lineTo(sx + Math.cos(a) * rr, sy - bounce + Math.sin(a) * rr * 0.7);
+              const a2 = ((i + 0.5) / spikes) * Math.PI * 2;
+              ctx.lineTo(sx + Math.cos(a2) * (32 + pulse), sy - bounce + Math.sin(a2) * (32 + pulse) * 0.7);
+            }
+            ctx.closePath(); ctx.fillStyle = '#4d7c0f'; ctx.fill();
+            ctx.strokeStyle = '#365314'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath(); ctx.arc(sx, sy - bounce, 14, 0, Math.PI * 2); ctx.fillStyle = '#65a30d'; ctx.fill();
+            ctx.fillStyle = '#ef4444'; ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(sx - 6, sy - 4 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 6, sy - 4 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          else if (enemyType === 'moss_golem') {
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 2, 28, 24, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#57534e';
+            ctx.beginPath(); ctx.arc(sx - 10, sy - 6 - bounce, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 8, sy + 4 - bounce, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx - 2, sy - 16 - bounce, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2;
+            for (let v = 0; v < 4; v++) {
+              const vx = sx - 15 + v * 10;
+              ctx.beginPath(); ctx.moveTo(vx, sy - 10 - bounce);
+              ctx.quadraticCurveTo(vx + Math.sin(time * 3 + v) * 8, sy - 24 - bounce, vx + 4, sy - 30 - bounce); ctx.stroke();
+            }
+            ctx.fillStyle = '#22c55e'; ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 8, sy - 8 - bounce, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 8, sy - 8 - bounce, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          else if (enemyType === 'shadow_panther') {
+            const run = Math.sin(time * 8) * 3;
+            ctx.fillStyle = '#1e1b4b';
+            ctx.beginPath(); ctx.ellipse(sx, sy - bounce + run * 0.3, 22, 10, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx - 16, sy - 6 - bounce, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx - 22, sy - 12 - bounce); ctx.lineTo(sx - 26, sy - 22 - bounce); ctx.lineTo(sx - 18, sy - 14 - bounce); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx - 12, sy - 12 - bounce); ctx.lineTo(sx - 10, sy - 22 - bounce); ctx.lineTo(sx - 16, sy - 14 - bounce); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#1e1b4b'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(sx + 20, sy - 2 - bounce); ctx.quadraticCurveTo(sx + 30, sy - 18 - bounce + Math.sin(time * 4) * 6, sx + 24, sy - 22 - bounce); ctx.stroke();
+            ctx.fillStyle = '#a855f7'; ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.ellipse(sx - 20, sy - 8 - bounce, 3, 2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(sx - 14, sy - 8 - bounce, 3, 2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          else if (enemyType === 'obsidian_sentinel') {
+            const pulse = Math.sin(time * 2) * 0.1;
+            ctx.fillStyle = '#292524';
+            ctx.beginPath(); ctx.rect(sx - 18, sy - 40 - bounce, 36, 48); ctx.fill();
+            ctx.fillRect(sx - 28, sy - 35 - bounce, 56, 14);
+            ctx.fillRect(sx - 10, sy - 52 - bounce, 20, 16);
+            ctx.strokeStyle = `rgba(255,100,0,${0.6 + pulse})`; ctx.shadowColor = '#ff6400'; ctx.shadowBlur = 6; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(sx - 8, sy - 38 - bounce); ctx.lineTo(sx - 2, sy - 20 - bounce); ctx.lineTo(sx + 6, sy - 5 - bounce); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx + 10, sy - 35 - bounce); ctx.lineTo(sx + 4, sy - 15 - bounce); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ff6400'; ctx.shadowColor = '#ff6400'; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(sx - 4, sy - 46 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 4, sy - 46 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          else if (enemyType === 'pyroclast') {
+            const flicker = Math.sin(time * 10) * 3;
+            ctx.fillStyle = `rgba(255,107,0,${0.2 + Math.sin(time * 6) * 0.1})`;
+            ctx.beginPath(); ctx.arc(sx, sy - bounce, 26 + flicker, 0, Math.PI * 2); ctx.fill();
+            const grad = ctx.createRadialGradient(sx, sy - bounce, 0, sx, sy - bounce, 20);
+            grad.addColorStop(0, '#fff7ed'); grad.addColorStop(0.4, '#ff6b00'); grad.addColorStop(1, '#7f1d1d');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(sx, sy - bounce, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3;
+            for (let f = 0; f < 5; f++) {
+              const a = (f / 5) * Math.PI * 2 + time * 3;
+              ctx.beginPath(); ctx.moveTo(sx + Math.cos(a) * 16, sy - bounce + Math.sin(a) * 16);
+              ctx.lineTo(sx + Math.cos(a) * (26 + Math.sin(time * 8 + f) * 5), sy - bounce + Math.sin(a) * (26 + Math.sin(time * 8 + f) * 5)); ctx.stroke();
+            }
+            ctx.fillStyle = '#1c1917';
+            ctx.beginPath(); ctx.arc(sx - 5, sy - 4 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5, sy - 4 - bounce, 3, 0, Math.PI * 2); ctx.fill();
+          }
+          else if (enemyType === 'glacier_elemental') {
+            const shimmer = Math.sin(time * 3) * 0.15;
+            ctx.fillStyle = `rgba(191,219,254,${0.8 + shimmer})`;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 6; ctx.lineTo(sx + Math.cos(a) * 28, sy - bounce + Math.sin(a) * 28); }
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#dbeafe';
+            [[-12, -22], [0, -30], [12, -22]].forEach(([spx, spy]) => {
+              ctx.beginPath(); ctx.moveTo(sx + spx - 6, sy + spy + 10 - bounce); ctx.lineTo(sx + spx, sy + spy - 12 - bounce); ctx.lineTo(sx + spx + 6, sy + spy + 10 - bounce); ctx.closePath(); ctx.fill();
+            });
+            ctx.fillStyle = 'rgba(96,165,250,0.3)'; ctx.beginPath(); ctx.arc(sx, sy - bounce, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#1e3a5f';
+            ctx.beginPath(); ctx.arc(sx - 7, sy - 4 - bounce, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 7, sy - 4 - bounce, 4, 0, Math.PI * 2); ctx.fill();
+          }
+          else if (enemyType === 'blizzard_phantom') {
+            const drift = Math.sin(time * 3) * 4;
+            const alpha = 0.6 + Math.sin(time * 4) * 0.2;
+            ctx.fillStyle = `rgba(224,242,254,${alpha})`;
+            ctx.beginPath(); ctx.ellipse(sx + drift, sy - bounce, 16, 22, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `rgba(186,230,253,${alpha * 0.5})`; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(sx - 8 + drift, sy + 10 - bounce); ctx.quadraticCurveTo(sx - 14 + drift, sy + 28 - bounce, sx - 20 + drift, sy + 34 - bounce); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sx + 8 + drift, sy + 10 - bounce); ctx.quadraticCurveTo(sx + 14 + drift, sy + 28 - bounce, sx + 20 + drift, sy + 34 - bounce); ctx.stroke();
+            ctx.fillStyle = '#e0f2fe';
+            for (let p = 0; p < 6; p++) { const pa = time * 2 + p; const pr = 20 + Math.sin(time * 3 + p) * 5; ctx.beginPath(); ctx.arc(sx + Math.cos(pa) * pr + drift, sy - bounce + Math.sin(pa) * pr, 2, 0, Math.PI * 2); ctx.fill(); }
+            ctx.fillStyle = '#1e3a5f';
+            ctx.beginPath(); ctx.arc(sx - 5 + drift, sy - 6 - bounce, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5 + drift, sy - 6 - bounce, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#93c5fd';
+            ctx.beginPath(); ctx.arc(sx - 5 + drift, sy - 6 - bounce, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 5 + drift, sy - 6 - bounce, 2, 0, Math.PI * 2); ctx.fill();
+          }
+          else if (enemyType === 'eldritch_horror') {
+            const writhe = time * 2;
+            ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 4;
+            for (let t = 0; t < 8; t++) {
+              const a = (t / 8) * Math.PI * 2;
+              ctx.beginPath(); ctx.moveTo(sx + Math.cos(a) * 16, sy - bounce + Math.sin(a) * 16);
+              ctx.quadraticCurveTo(sx + Math.cos(a) * 28 + Math.sin(writhe + t * 2) * 8, sy - bounce + Math.sin(a) * 28 + Math.cos(writhe + t * 2) * 8, sx + Math.cos(a) * 38, sy - bounce + Math.sin(a) * 38); ctx.stroke();
+            }
+            ctx.fillStyle = '#4c1d95'; ctx.shadowColor = '#7c3aed'; ctx.shadowBlur = 15;
+            ctx.beginPath(); ctx.arc(sx, sy - bounce, 20, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fde68a'; ctx.beginPath(); ctx.ellipse(sx, sy - bounce, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#7c3aed'; ctx.beginPath(); ctx.ellipse(sx, sy - bounce, 5 + Math.sin(time * 3) * 2, 10, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(sx, sy - bounce, 3, 8, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          else if (enemyType === 'doom_stalker') {
+            const stalk = Math.sin(time * 6) * 2;
+            ctx.fillStyle = '#581c87';
+            ctx.beginPath(); ctx.moveTo(sx, sy - 24 - bounce + stalk); ctx.lineTo(sx - 18, sy - 4 - bounce); ctx.lineTo(sx - 14, sy + 10 - bounce); ctx.lineTo(sx + 14, sy + 10 - bounce); ctx.lineTo(sx + 18, sy - 4 - bounce); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(sx - 16, sy - 2 - bounce); ctx.lineTo(sx, sy - 10 - bounce); ctx.lineTo(sx + 16, sy - 2 - bounce); ctx.stroke();
+            ctx.fillStyle = '#7c3aed';
+            ctx.beginPath(); ctx.moveTo(sx - 18, sy - 4 - bounce); ctx.lineTo(sx - 30, sy - 18 - bounce + Math.sin(time * 5) * 4); ctx.lineTo(sx - 20, sy - bounce); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sx + 18, sy - 4 - bounce); ctx.lineTo(sx + 30, sy - 18 - bounce + Math.sin(time * 5 + 1) * 4); ctx.lineTo(sx + 20, sy - bounce); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#c084fc'; ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(sx - 6, sy - 12 - bounce + stalk, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + 6, sy - 12 - bounce + stalk, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+          else if (enemyType === 'prismatic_hydra') {
+            const sway = time * 1.5;
+            ctx.fillStyle = '#7e22ce'; ctx.beginPath(); ctx.ellipse(sx, sy - bounce + 4, 24, 18, 0, 0, Math.PI * 2); ctx.fill();
+            const headColors = ['#ec4899', '#a855f7', '#6366f1'];
+            for (let h = 0; h < 3; h++) {
+              const a = ((h - 1) / 3) * 1.2 + Math.sin(sway + h * 2) * 0.2;
+              const neckLen = 28;
+              const hx = sx + Math.sin(a) * neckLen;
+              const hy = sy - bounce - 16 + Math.cos(a) * -neckLen * 0.4;
+              ctx.strokeStyle = headColors[h]; ctx.lineWidth = 5;
+              ctx.beginPath(); ctx.moveTo(sx, sy - 10 - bounce); ctx.quadraticCurveTo(sx + Math.sin(a) * neckLen * 0.5, hy + 10, hx, hy); ctx.stroke();
+              ctx.fillStyle = headColors[h]; ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(hx, hy - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+          else if (enemyType === 'crystal_sentinel') {
+            const hover = Math.sin(time * 3) * 5;
+            const spin = time * 2;
+            ctx.fillStyle = '#f0abfc';
+            for (let o = 0; o < 6; o++) {
+              const a = spin + (o / 6) * Math.PI * 2;
+              ctx.save(); ctx.translate(sx + Math.cos(a) * 24, sy - bounce + hover + Math.sin(a) * 24); ctx.rotate(a + time * 4); ctx.fillRect(-4, -4, 8, 8); ctx.restore();
+            }
+            ctx.fillStyle = '#d946ef'; ctx.beginPath();
+            ctx.moveTo(sx, sy - 22 - bounce + hover); ctx.lineTo(sx - 14, sy - bounce + hover); ctx.lineTo(sx, sy + 14 - bounce + hover); ctx.lineTo(sx + 14, sy - bounce + hover); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#f0abfc'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = 'rgba(240,171,252,0.4)'; ctx.beginPath(); ctx.arc(sx, sy - 4 - bounce + hover, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.shadowColor = '#f0abfc'; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(sx, sy - 6 - bounce + hover, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+          }
           else {
             // Default circle enemy (fallback)
             ctx.beginPath();
-            ctx.arc(sx, sy - bounce, 14, 0, Math.PI * 2);
+            ctx.arc(sx, sy - bounce, r || 14, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.fill();
             ctx.strokeStyle = 'rgba(0,0,0,0.3)';
@@ -8082,10 +9801,49 @@ export default function SpellBrigade() {
           }
         }
 
+        // Custom AI Wizard special aura - themed glow + orbiting sparkles
+        if (isCustomWizard && !isVoidlord && !isShadowArcher && !isBrute && !skin?.aura) {
+          const cwColor = player.customColor || classColor;
+          const pulseSize = 32 + Math.sin(time * 2.5) * 6;
+          
+          // Themed aura glow
+          const cwGrad = ctx.createRadialGradient(px, py, 0, px, py, pulseSize);
+          cwGrad.addColorStop(0, cwColor + '35');
+          cwGrad.addColorStop(0.5, cwColor + '18');
+          cwGrad.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(px, py, pulseSize, 0, Math.PI * 2);
+          ctx.fillStyle = cwGrad;
+          ctx.fill();
+          
+          // Orbiting sparkle particles (3 particles, rotating)
+          for (let i = 0; i < 3; i++) {
+            const angle = time * 2 + (i * Math.PI * 2 / 3);
+            const orbitX = px + Math.cos(angle) * 22;
+            const orbitY = py + Math.sin(angle) * 13 - 6;
+            const sparkleSize = 2.5 + Math.sin(time * 4 + i * 2) * 1;
+            
+            // Diamond/star shape
+            ctx.save();
+            ctx.translate(orbitX, orbitY);
+            ctx.rotate(time * 3 + i);
+            ctx.fillStyle = cwColor;
+            ctx.globalAlpha = 0.6 + Math.sin(time * 3 + i) * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(0, -sparkleSize);
+            ctx.lineTo(sparkleSize * 0.4, 0);
+            ctx.lineTo(0, sparkleSize);
+            ctx.lineTo(-sparkleSize * 0.4, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
         // Shadow
         ctx.beginPath();
         ctx.ellipse(px, py + 12, isSpecialClass ? 20 : 16, isSpecialClass ? 10 : 8, 0, 0, Math.PI * 2);
-        ctx.fillStyle = isVoidlord ? 'rgba(255,0,255,0.4)' : isShadowArcher ? 'rgba(220,38,38,0.35)' : isBrute ? 'rgba(180,83,9,0.4)' : 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = isVoidlord ? 'rgba(255,0,255,0.4)' : isShadowArcher ? 'rgba(220,38,38,0.35)' : isBrute ? 'rgba(180,83,9,0.4)' : isCustomWizard ? (player.customColor || classColor) + '40' : 'rgba(0,0,0,0.3)';
         ctx.fill();
 
         // Body (Robe for wizards, cloak for archer, muscular torso for brute)
@@ -8172,6 +9930,10 @@ export default function SpellBrigade() {
           ctx.strokeStyle = '#dc2626';
           ctx.lineWidth = 1.5;
           ctx.stroke();
+        } else if (isCustomWizard) {
+          ctx.strokeStyle = player.customColor || classColor;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
         }
 
         // Head
@@ -8243,10 +10005,21 @@ export default function SpellBrigade() {
             ctx.lineWidth = 2;
             ctx.stroke();
           }
+          
+          // Custom wizard hat glow
+          if (isCustomWizard && !isVoidlord) {
+            ctx.strokeStyle = player.customColor || classColor;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          } else if (isCustomWizard) {
+            ctx.strokeStyle = player.customColor || classColor;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
         }
 
         // Eyes
-        ctx.fillStyle = isVoidlord ? '#ff00ff' : isShadowArcher ? '#dc2626' : isBrute ? '#b45309' : '#333';
+        ctx.fillStyle = isVoidlord ? '#ff00ff' : isShadowArcher ? '#dc2626' : isBrute ? '#b45309' : isCustomWizard ? (player.customColor || classColor) : '#333';
         ctx.beginPath();
         ctx.arc(px - 3, py - 19 - bob, isSpecialClass ? 3 : 2, 0, Math.PI * 2);
         ctx.fill();
@@ -8288,6 +10061,20 @@ export default function SpellBrigade() {
           ctx.fillStyle = '#f59e0b';
           ctx.font = '10px sans-serif';
           ctx.fillText('THE BRUTE', px, py + 40);
+        } else if (isCustomWizard) {
+          const cwColor = player.customColor || classColor;
+          ctx.shadowColor = cwColor;
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = cwColor;
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('✨ ' + player.name, px, py + 28);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = cwColor;
+          ctx.globalAlpha = 0.8;
+          ctx.font = '9px sans-serif';
+          ctx.fillText((player.customClassName || 'CUSTOM').toUpperCase(), px, py + 40);
+          ctx.globalAlpha = 1;
         } else {
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 11px sans-serif';
@@ -9675,6 +11462,86 @@ export default function SpellBrigade() {
             ctx.fill();
           }
         }
+        else if (ef.type === 'customUltWarning') {
+          // Pulsing warning circle before custom ultimate hits
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const progress = elapsed / (ef.duration || 1000);
+          const pulse = 0.7 + 0.3 * Math.sin(progress * Math.PI * 6);
+          const alpha = Math.min(1, progress * 2) * pulse;
+          
+          // Warning ring
+          ctx.beginPath();
+          ctx.arc(ex, ey, ef.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = ef.color + Math.floor(alpha * 160).toString(16).padStart(2, '0');
+          ctx.lineWidth = 2;
+          ctx.setLineDash([8, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          
+          // Fill with translucent color
+          ctx.beginPath();
+          ctx.arc(ex, ey, ef.radius, 0, Math.PI * 2);
+          ctx.fillStyle = ef.color + Math.floor(alpha * 30).toString(16).padStart(2, '0');
+          ctx.fill();
+          
+          // Ability name above
+          ctx.fillStyle = ef.color + Math.floor(alpha * 200).toString(16).padStart(2, '0');
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(ef.name || 'Ultimate', ex, ey - ef.radius - 8);
+        }
+        else if (ef.type === 'customUltExplosion') {
+          // Big explosion burst for custom ultimate
+          const ex = ef.x - cx;
+          const ey = ef.y - cy;
+          const progress = elapsed / (ef.duration || 1500);
+          const fadeAlpha = Math.max(0, 1 - progress);
+          const expandRadius = ef.radius * (0.5 + progress * 0.8);
+          
+          // Shockwave ring
+          ctx.beginPath();
+          ctx.arc(ex, ey, expandRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
+          ctx.lineWidth = 4 * fadeAlpha;
+          ctx.stroke();
+          
+          // Inner flash
+          if (progress < 0.3) {
+            const flashAlpha = (0.3 - progress) / 0.3;
+            const flashGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, ef.radius);
+            flashGrad.addColorStop(0, ef.color + Math.floor(flashAlpha * 150).toString(16).padStart(2, '0'));
+            flashGrad.addColorStop(0.5, ef.color + Math.floor(flashAlpha * 60).toString(16).padStart(2, '0'));
+            flashGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = flashGrad;
+            ctx.beginPath();
+            ctx.arc(ex, ey, ef.radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Scattered sparks
+          for (let i = 0; i < 12; i++) {
+            const sparkAngle = (i * Math.PI * 2 / 12) + progress * 2;
+            const sparkDist = expandRadius * (0.3 + Math.random() * 0.7);
+            const sx = ex + Math.cos(sparkAngle) * sparkDist;
+            const sy = ey + Math.sin(sparkAngle) * sparkDist;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 2 * fadeAlpha, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff' + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+            ctx.fill();
+          }
+          
+          // Name text
+          if (progress < 0.5) {
+            ctx.fillStyle = '#fff' + Math.floor((1 - progress * 2) * 255).toString(16).padStart(2, '0');
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = ef.color;
+            ctx.shadowBlur = 10;
+            ctx.fillText(ef.name || 'Ultimate', ex, ey - ef.radius - 12);
+            ctx.shadowBlur = 0;
+          }
+        }
 
         return true;
       });
@@ -9892,7 +11759,7 @@ export default function SpellBrigade() {
             const isMe = p.id === playerIdRef.current;
             mmCtx.beginPath();
             mmCtx.arc(p.x * scale, p.y * scale, isMe ? 4 : 3, 0, Math.PI * 2);
-            mmCtx.fillStyle = isMe ? '#00ffff' : '#60a5fa';  // Cyan for self, lighter blue for others
+            mmCtx.fillStyle = isMe ? '#00ffff' : (p.isCustomWizard && p.customColor ? p.customColor : '#60a5fa');
             mmCtx.fill();
             // White border for self to make it stand out
             if (isMe) {
@@ -9943,26 +11810,39 @@ export default function SpellBrigade() {
     const charId = savedPlayer.id || null;
     const skinToUse = selectedSkin || savedPlayer.selectedSkin;
     
-    // Ensure socket is connected
-    if (!socketRef.current?.connected) {
-      socketRef.current?.connect();
-      socketRef.current?.once('connect', () => {
-        socketRef.current?.emit('join', {
-          playerId: charId,
-          playerName: savedPlayer.name,
-          playerClass: savedPlayer.class,
-          selectedSkin: skinToUse,
-          sessionToken: sessionTokenRef.current || null,
+    const joinData = {
+      playerId: charId,
+      playerName: savedPlayer.name,
+      playerClass: savedPlayer.class,
+      selectedSkin: skinToUse,
+      sessionToken: sessionTokenRef.current || null,
+      isCustomWizard: savedPlayer.isCustomWizard || false,
+      customIconStyle: savedPlayer.customIconStyle || null,
+    };
+    
+    const doJoin = () => {
+      if (!socketRef.current?.connected) {
+        socketRef.current?.connect();
+        socketRef.current?.once('connect', () => {
+          socketRef.current?.emit('join', joinData);
         });
+      } else {
+        socketRef.current?.emit('join', joinData);
+      }
+    };
+    
+    // If already in game, leave first then rejoin after server processes it
+    // If already in game, leave first then rejoin after server confirms
+    if (playerIdRef.current) {
+      socketRef.current?.emit('leave');
+      playerIdRef.current = null;
+      const fallback = setTimeout(doJoin, 500);
+      socketRef.current?.once('left', () => {
+        clearTimeout(fallback);
+        doJoin();
       });
     } else {
-      socketRef.current?.emit('join', {
-        playerId: charId,
-        playerName: savedPlayer.name,
-        playerClass: savedPlayer.class,
-        selectedSkin: skinToUse,
-        sessionToken: sessionTokenRef.current || null,
-      });
+      doJoin();
     }
   };
 
@@ -10004,14 +11884,6 @@ export default function SpellBrigade() {
   const handleJoin = (customClassId = null) => {
     initAudio();
     
-    // If already connected with a player, leave first
-    if (socketRef.current?.connected && playerIdRef.current) {
-      socketRef.current.emit('leave');
-    }
-    
-    // Clear any existing player state before joining
-    playerIdRef.current = null;
-    
     const name = playerName.trim() || generateWizardName();
     
     const joinData = {
@@ -10025,16 +11897,28 @@ export default function SpellBrigade() {
     
     console.log('🎮 Joining with:', joinData.playerClass, customClassId ? '(custom wizard)' : '');
     
-    if (!socketRef.current?.connected) {
-      socketRef.current?.connect();
-      socketRef.current?.once('connect', () => {
+    const doJoin = () => {
+      if (!socketRef.current?.connected) {
+        socketRef.current?.connect();
+        socketRef.current?.once('connect', () => {
+          socketRef.current?.emit('join', joinData);
+        });
+      } else {
         socketRef.current?.emit('join', joinData);
+      }
+    };
+    
+    // If already in game, leave first then rejoin after server confirms
+    if (socketRef.current?.connected && playerIdRef.current) {
+      socketRef.current.emit('leave');
+      playerIdRef.current = null;
+      const fallback = setTimeout(doJoin, 500);
+      socketRef.current.once('left', () => {
+        clearTimeout(fallback);
+        doJoin();
       });
     } else {
-      // Small delay to let leave process
-      setTimeout(() => {
-        socketRef.current?.emit('join', joinData);
-      }, 100);
+      doJoin();
     }
   };
 
@@ -10256,6 +12140,14 @@ export default function SpellBrigade() {
 
               upgrades: playerInfo.upgrades || {},
 
+              isCustomWizard: playerInfo.isCustomWizard || false,
+
+              customColor: playerInfo.customColor,
+
+              customSecondaryColor: playerInfo.customSecondaryColor,
+
+              customClassName: playerInfo.customClassName,
+
             };
 
             setSavedPlayer(charSummary);
@@ -10266,16 +12158,11 @@ export default function SpellBrigade() {
 
           }
 
-          // Emit leave before disconnecting so server removes player
+          // Emit leave so server removes player (keep socket connected for character switching)
           socketRef.current?.emit('leave');
           
-          // Clear player state BEFORE disconnecting to prevent reconnection attempts
+          // Clear player state
           playerIdRef.current = null;
-          
-          // Small delay to let leave process on server
-          setTimeout(() => {
-            socketRef.current?.disconnect();
-          }, 100);
 
           inDungeonRef.current = false;
 
@@ -10391,8 +12278,10 @@ export default function SpellBrigade() {
             <div style={styles.hud}>
               <div style={styles.hudPanel}>
                 <div style={styles.playerHeader}>
-                  <div style={styles.avatar(classes[playerInfo.class]?.color || '#fff')}>
-                    <span style={styles.avatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
+                  <div style={styles.avatar(playerInfo.isCustomWizard ? (playerInfo.customColor || playerInfo.color || '#a78bfa') : (classes[playerInfo.class]?.color || '#fff'))}>
+                    <span style={styles.avatarIcon}>{playerInfo.isCustomWizard ? (
+                      WIZARD_ICONS[playerInfo.customIconStyle] || WIZARD_ICONS.star
+                    ) : CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '1.05rem', fontWeight: 600, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerInfo.name}</div>
@@ -10670,8 +12559,17 @@ export default function SpellBrigade() {
                 let abilityIcon = abilityIcons[playerInfo.class]?.[slot];
                 let color = abilityColors[playerInfo.class];
                 
+                // Custom wizard - look up from server-sent class data first (works after reconnect)
+                if (!abilityName && classes[playerInfo.class]?.classAbilities) {
+                  const ab = classes[playerInfo.class].classAbilities[slot - 1];
+                  if (ab) {
+                    abilityName = ab.name;
+                    abilityDesc = ab.description || '';
+                    color = ab.color || classes[playerInfo.class]?.color;
+                  }
+                }
+                // Fallback to generatedWizard (current session only)
                 if (!abilityName && generatedWizard?.spellDefs) {
-                  // Custom wizard - look up ability from generated data
                   const abilityId = generatedWizard.classDef?.abilities?.[slot];
                   if (abilityId && generatedWizard.spellDefs[abilityId]) {
                     const ab = generatedWizard.spellDefs[abilityId];
@@ -10775,8 +12673,10 @@ export default function SpellBrigade() {
                   </div>
                 )}
                 <div style={styles.mobilePlayerHeader}>
-                  <div style={styles.mobileAvatar(classes[playerInfo.class]?.color || '#fff')}>
-                    <span style={styles.mobileAvatarIcon}>{CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
+                  <div style={styles.mobileAvatar(playerInfo.isCustomWizard ? (playerInfo.customColor || playerInfo.color || '#a78bfa') : (classes[playerInfo.class]?.color || '#fff'))}>
+                    <span style={styles.mobileAvatarIcon}>{playerInfo.isCustomWizard ? (
+                      WIZARD_ICONS[playerInfo.customIconStyle] || WIZARD_ICONS.star
+                    ) : CLASS_SVG[playerInfo.class] || SVG.arcane}</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playerInfo.name}</div>
@@ -10886,77 +12786,11 @@ export default function SpellBrigade() {
                   })()}
                 </div>
 
-                {/* Settings + Leaderboard row - positioned below quest section */}
-                <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 6 }}>
-                  <button
-                    onClick={() => setShowInGameSettings(true)}
-                    style={{
-                      background: 'rgba(100,100,100,0.3)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      borderRadius: 6,
-                      padding: '5px 10px',
-                      color: '#aaa',
-                      fontSize: '0.6rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/>
-                    </svg>
-                  </button>
-                  <div style={{ flex: 1, fontSize: '0.55rem', color: '#666', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
-                    <span style={{ color: '#ffd93d', fontWeight: 600 }}>LEADERBOARD</span>
-                  </div>
-                </div>
-
-                {/* Always-visible compact leaderboard */}
+                {/* Settings + Leaderboard row - removed from nameplate, settings accessible via ESC key */}
+                {/* Compact online player count */}
                 {leaderboardData.length > 0 && (
-                  <div style={{
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRadius: 8,
-                    border: '1px solid rgba(255,215,61,0.1)',
-                    padding: '4px 6px',
-                  }}>
-                    {leaderboardData.slice(0, 5).map((p, i) => (
-                      <div key={i} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        padding: '2px 0',
-                        borderBottom: i < Math.min(leaderboardData.length, 5) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                      }}>
-                        <span style={{
-                          width: 12,
-                          fontSize: '0.55rem',
-                          fontWeight: 700,
-                          color: i === 0 ? '#ffd93d' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#555',
-                          textAlign: 'center',
-                        }}>
-                          {i + 1}
-                        </span>
-                        <span style={{
-                          flex: 1,
-                          fontSize: '0.6rem',
-                          color: p.name === playerInfo?.name ? '#ffd93d' : '#bbb',
-                          fontWeight: p.name === playerInfo?.name ? 600 : 400,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {p.name}
-                        </span>
-                        <span style={{ fontSize: '0.5rem', color: '#777' }}>Lv{p.level}</span>
-                        <span style={{ fontSize: '0.55rem', color: '#ef4444', fontWeight: 600, minWidth: 18, textAlign: 'right' }}>
-                          {p.kills}
-                        </span>
-                        <svg width="7" height="7" viewBox="0 0 24 24" fill="#ef4444" style={{ flexShrink: 0 }}>
-                          <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-                        </svg>
-                      </div>
-                    ))}
+                  <div style={{ fontSize: '0.5rem', color: '#555', textAlign: 'center', marginTop: 2 }}>
+                    {leaderboardData.length} player{leaderboardData.length !== 1 ? 's' : ''} online
                   </div>
                 )}
             </div>
@@ -10975,6 +12809,33 @@ export default function SpellBrigade() {
                 </span>
               )}
             </div>
+          )}
+
+          {/* Mobile Settings Gear - floating top-right */}
+          {isMobile && (
+            <button
+              onClick={() => setShowInGameSettings(true)}
+              style={{
+                position: 'fixed',
+                top: 8,
+                right: 8,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: 'rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: '#888',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 100,
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/>
+              </svg>
+            </button>
           )}
 
           {/* Mobile Touch Controls */}

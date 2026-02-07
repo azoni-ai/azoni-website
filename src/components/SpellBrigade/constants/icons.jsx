@@ -169,3 +169,92 @@ export const CLASS_SVG = {
     </svg>
   ),
 };
+
+/**
+ * Themed icons for AI-generated custom wizard classes.
+ * The AI picks an iconStyle and we render the matching SVG.
+ */
+export const WIZARD_ICONS = {
+  skull: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="9" cy="9" r="2.5" fill="currentColor"/>
+      <circle cx="15" cy="9" r="2.5" fill="currentColor"/>
+      <path d="M9 14v3M12 14v4M15 14v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  flame: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C8 8 4 11 4 15a8 8 0 0016 0c0-4-4-7-8-13z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M12 9c-2 3-3 5-3 7a3 3 0 006 0c0-2-1-4-3-7z" fill="currentColor" opacity="0.6"/>
+    </svg>
+  ),
+  crystal: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L6 8l6 14 6-14z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M6 8h12" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M12 2l6 6" stroke="currentColor" strokeWidth="1"/>
+      <path d="M12 8v14" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+    </svg>
+  ),
+  moon: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="12" cy="8" r="1" fill="currentColor"/>
+      <circle cx="16" cy="13" r="1.2" fill="currentColor"/>
+      <circle cx="10" cy="14" r="0.8" fill="currentColor"/>
+    </svg>
+  ),
+  bolt: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13 2L4 14h7l-2 8 9-12h-7z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M13 2L4 14h7l-2 8 9-12h-7z" fill="currentColor" opacity="0.2"/>
+    </svg>
+  ),
+  leaf: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 22c5-3 8-8 8-14C15 8 12 2 12 2S9 8 4 8c0 6 3 11 8 14z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M12 22V8" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+      <path d="M8 13l4-3M16 11l-4 2" stroke="currentColor" strokeWidth="1" opacity="0.4"/>
+    </svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l8 4v6c0 5.25-3.5 9.74-8 11-4.5-1.26-8-5.75-8-11V6l8-4z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M12 8v4l3 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  eye: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+    </svg>
+  ),
+  sword: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M14.5 3.5l6 6-9 9-6-6 9-9z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M5.5 12.5L2 16l3 3 3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M17.5 6.5l-11 11" stroke="currentColor" strokeWidth="1" opacity="0.4"/>
+    </svg>
+  ),
+  spiral: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 3a9 9 0 019 9 7 7 0 01-7 7 5 5 0 01-5-5 3 3 0 013-3 1 1 0 011 1" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="1" fill="currentColor"/>
+    </svg>
+  ),
+  wave: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M2 12c2-3 4-4 6-4s4 4 6 4 4-4 6-4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M2 17c2-3 4-4 6-4s4 4 6 4 4-4 6-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.5"/>
+      <path d="M2 7c2-3 4-4 6-4s4 4 6 4 4-4 6-4" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.3"/>
+    </svg>
+  ),
+  star: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.6"/>
+    </svg>
+  ),
+};

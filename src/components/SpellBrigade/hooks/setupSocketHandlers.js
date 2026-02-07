@@ -337,6 +337,34 @@ export function setupSocketHandlers(socket, {
     });
   });
 
+  // Custom ultimate warning circle (before impact)
+  socket.on('customUltWarning', (data) => {
+    effectsRef.current.push({
+      type: 'customUltWarning',
+      x: data.x,
+      y: data.y,
+      radius: data.radius,
+      color: data.color,
+      name: data.name,
+      createdAt: Date.now(),
+      duration: data.delay || 1000,
+    });
+  });
+
+  // Custom ultimate explosion (on impact)
+  socket.on('customUltExplosion', (data) => {
+    effectsRef.current.push({
+      type: 'customUltExplosion',
+      x: data.x,
+      y: data.y,
+      radius: data.radius,
+      color: data.color,
+      name: data.name,
+      createdAt: Date.now(),
+      duration: 1500,
+    });
+  });
+
   // Return cleanup function
   return () => {
     socket.off('connect');
@@ -371,5 +399,7 @@ export function setupSocketHandlers(socket, {
     socket.off('wizardGenerated');
     socket.off('wizardApplied');
     socket.off('customAbilityEffect');
+    socket.off('customUltWarning');
+    socket.off('customUltExplosion');
   };
 }

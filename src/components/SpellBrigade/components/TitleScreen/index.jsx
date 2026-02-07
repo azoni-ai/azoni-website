@@ -55,7 +55,6 @@ export default function TitleScreen({
   setScreen,
   playerIdRef,
   handleNewCharacter,
-  resetGameState,
   // Settings props
   settings,
   setSettings,
@@ -106,7 +105,6 @@ export default function TitleScreen({
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
         padding: isMobile ? '0 15px 80px' : '0 40px 40px',
         maxWidth: 1200,
         margin: '0 auto',
@@ -168,7 +166,6 @@ export default function TitleScreen({
             socketRef={socketRef}
             playerIdRef={playerIdRef}
             handleNewCharacter={handleNewCharacter}
-            resetGameState={resetGameState}
             setAdminKey={setAdminKey}
             SVG={SVG}
             CLASS_SVG={CLASS_SVG}
@@ -188,7 +185,6 @@ export default function TitleScreen({
             styles={styles}
             settings={settings}
             setSettings={setSettings}
-            SVG={SVG}
             authState={authState}
             setAuthState={() => {}}
             setScreen={setScreen}

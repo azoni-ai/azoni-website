@@ -1,4 +1,5 @@
 import React from 'react';
+import { WIZARD_ICONS } from '../../constants/icons';
 
 /**
  * Play tab - Character display, skin selection, and enter game
@@ -24,7 +25,6 @@ export default function PlayTab({
   socketRef,
   playerIdRef,
   handleNewCharacter,
-  resetGameState,
   setAdminKey,
   SVG,
   CLASS_SVG,
@@ -44,29 +44,33 @@ export default function PlayTab({
       playerClass: char.class,
       selectedSkin: selectedSkin || char.selectedSkin,
       sessionToken: sessionTokenRef?.current || null,
+      isCustomWizard: char.isCustomWizard || false,
+      customIconStyle: char.customIconStyle || null,
     };
     
-    if (!socketRef.current.connected) {
-      socketRef.current.connect();
-      socketRef.current.once('connect', () => {
-        socketRef.current.emit('join', joinData);
-      });
-    } else {
-      // If already connected with a different character, fully disconnect then rejoin
-      if (playerIdRef?.current && playerIdRef.current !== char.id) {
-        socketRef.current.emit('leave');
-        playerIdRef.current = null;
-        // Disconnect and reconnect cleanly
-        socketRef.current.disconnect();
-        setTimeout(() => {
+    // If already in game, leave first then rejoin after server confirms
+    if (playerIdRef?.current) {
+      socketRef.current.emit('leave');
+      if (playerIdRef) playerIdRef.current = null;
+      // Wait for server 'left' confirmation, with 500ms fallback
+      const doJoin = () => {
+        if (!socketRef.current.connected) {
           socketRef.current.connect();
-          socketRef.current.once('connect', () => {
-            socketRef.current.emit('join', joinData);
-          });
-        }, 300);
-      } else {
-        socketRef.current.emit('join', joinData);
-      }
+          socketRef.current.once('connect', () => socketRef.current.emit('join', joinData));
+        } else {
+          socketRef.current.emit('join', joinData);
+        }
+      };
+      const fallback = setTimeout(doJoin, 500);
+      socketRef.current.once('left', () => {
+        clearTimeout(fallback);
+        doJoin();
+      });
+    } else if (!socketRef.current.connected) {
+      socketRef.current.connect();
+      socketRef.current.once('connect', () => socketRef.current.emit('join', joinData));
+    } else {
+      socketRef.current.emit('join', joinData);
     }
   };
 
@@ -93,17 +97,19 @@ export default function PlayTab({
   };
 
   const handleLogout = () => {
-    if (resetGameState) {
-      resetGameState();
-    }
     setAuthState?.({ isAuthenticated: false, isGuest: false, user: null, sessionToken: null });
+    localStorage.removeItem('spellBrigadeSession');
+    localStorage.removeItem('spellBrigadePlayerId');
+    setSavedPlayer(null);
+    setCharacters([]);
+    setAdminKey?.('');
     setScreen('auth');
   };
 
   // No character - show create prompt
   if (!char) {
     return (
-      <div style={{ textAlign: 'center', padding: isMobile ? 20 : 40, maxWidth: 500, margin: '0 auto', width: '100%' }}>
+      <div style={{ textAlign: 'center', padding: isMobile ? 20 : 40, maxWidth: 500 }}>
         <div style={{
           width: 140, height: 140, margin: '0 auto 25px', borderRadius: '50%',
           background: 'linear-gradient(135deg, rgba(155,93,229,0.2), rgba(255,107,53,0.15))',
@@ -141,10 +147,18 @@ export default function PlayTab({
     );
   }
 
-  const charClass = classes[char.class] || DEFAULT_CLASSES[char.class] || {};
-  const charColor = charClass.color || '#888';
+  const isCustomChar = char.isCustomWizard || false;
+  const cwDef = isCustomChar ? (char.customWizardData?.classDef || {}) : {};
+  const charClass = isCustomChar ? {} : (classes[char.class] || DEFAULT_CLASSES[char.class] || {});
+  const charColor = isCustomChar ? (char.customColor || cwDef.color || '#a78bfa') : (charClass.color || '#888');
+  const charClassName = isCustomChar ? (char.customClassName || cwDef.name || 'Custom Wizard') : (charClass.name || char.class);
+  const charSecondaryColor = isCustomChar ? (char.customSecondaryColor || cwDef.secondaryColor || charColor) : (charClass.secondaryColor || charColor);
+  const charDescription = isCustomChar ? (cwDef.description || '') : (charClass.description || '');
+  const charLore = isCustomChar ? (cwDef.lore || '') : '';
   const charSkin = DEFAULT_SKINS.find(s => s.id === (selectedSkin || char.selectedSkin));
   const skinColor = charSkin?.color || charColor;
+
+  const customIcon = isCustomChar ? (WIZARD_ICONS[char.customIconStyle || cwDef.iconStyle || 'star'] || WIZARD_ICONS.star) : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
@@ -157,10 +171,13 @@ export default function PlayTab({
           gap: 8, maxWidth: 560, width: '100%', marginBottom: 8,
         }}>
           {characters.map((c, idx) => {
-            const cc = classes[c.class] || DEFAULT_CLASSES[c.class] || {};
+            const isCustom = c.isCustomWizard || false;
+            const cwData = isCustom ? (c.customWizardData?.classDef || {}) : {};
+            const cc = isCustom ? {} : (classes[c.class] || DEFAULT_CLASSES[c.class] || {});
             const isActive = c.id === char.id;
-            const iconColor = cc.secondaryColor || cc.color || '#888';
-            const bgColor = cc.color || '#888';
+            const bgColor = isCustom ? (c.customColor || cwData.color || '#a78bfa') : (cc.color || '#888');
+            const iconColor = isCustom ? (c.customSecondaryColor || cwData.secondaryColor || bgColor) : (cc.secondaryColor || cc.color || '#888');
+            const displayName = isCustom ? (c.customClassName || cwData.name || 'Custom') : (cc.name || c.class);
             return (
               <button key={c.id} onClick={() => {
                 setSavedPlayer(c);
@@ -186,12 +203,14 @@ export default function PlayTab({
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <span style={{ width: 20, height: 20, color: iconColor, filter: `drop-shadow(0 0 3px ${iconColor}60)` }}>
-                    {CLASS_SVG[c.class] || SVG.arcane}
+                    {isCustom ? (
+                      WIZARD_ICONS[c.customIconStyle || cwData.iconStyle || 'star'] || WIZARD_ICONS.star
+                    ) : (CLASS_SVG[c.class] || SVG.arcane)}
                   </span>
                 </div>
                 <div style={{ textAlign: 'left', minWidth: 0 }}>
                   <div style={{ color: isActive ? '#fff' : '#ccc', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                  <div style={{ color: isActive ? iconColor : '#777', fontSize: '0.65rem', fontWeight: 500 }}>Lv.{c.level || 1} {cc.name || c.class}</div>
+                  <div style={{ color: isActive ? iconColor : '#777', fontSize: '0.65rem', fontWeight: 500 }}>Lv.{c.level || 1} {displayName}</div>
                 </div>
                 {isActive && (
                   <div style={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: 3, background: bgColor, boxShadow: `0 0 6px ${bgColor}` }} />
@@ -240,14 +259,17 @@ export default function PlayTab({
                 animation: 'pulse 2s ease-in-out infinite',
               }} />
             )}
-            <span style={{ width: 60, height: 60, color: charSkin?.secondaryColor || charClass.secondaryColor || skinColor, position: 'relative', zIndex: 1, filter: `drop-shadow(0 0 8px ${skinColor}80)` }}>
-              {CLASS_SVG[char.class] || SVG.arcane}
+            <span style={{ width: 60, height: 60, color: charSkin?.secondaryColor || charSecondaryColor || skinColor, position: 'relative', zIndex: 1, filter: `drop-shadow(0 0 8px ${skinColor}80)` }}>
+              {isCustomChar ? customIcon : (CLASS_SVG[char.class] || SVG.arcane)}
             </span>
           </div>
           <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.5rem' }}>{char.name}</div>
           <div style={{ color: charClass.secondaryColor || charColor, fontSize: '0.95rem', marginTop: 4, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>
-            {charClass.name || char.class}
+            {charClassName}
           </div>
+          {isCustomChar && charDescription && (
+            <div style={{ color: '#777', fontSize: '0.72rem', marginTop: 4 }}>{charDescription}</div>
+          )}
           {charSkin && charSkin.id !== `${char.class}_default` && (
             <div style={{ color: skinColor, fontSize: '0.7rem', marginTop: 3, opacity: 0.8 }}>✦ {charSkin.name}</div>
           )}
@@ -262,7 +284,8 @@ export default function PlayTab({
           <StatBox value={char.kills || 0} label="Kills" color="#ef4444" />
         </div>
         
-        {/* Skin Selector */}
+        {/* Skin Selector - only for standard classes */}
+        {!isCustomChar && (
         <div style={{ marginBottom: 15 }}>
           <div style={{ color: '#666', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, textAlign: 'center' }}>Skins</div>
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -290,6 +313,15 @@ export default function PlayTab({
             })}
           </div>
         </div>
+        )}
+        
+        {/* Custom Wizard Info */}
+        {isCustomChar && (
+          <div style={{ marginBottom: 15, padding: '12px 14px', background: 'rgba(0,0,0,0.3)', borderRadius: 10, border: `1px solid ${charColor}20` }}>
+            <div style={{ color: '#666', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, textAlign: 'center' }}>AI-Created Wizard</div>
+            {charLore && <div style={{ color: '#777', fontSize: '0.72rem', fontStyle: 'italic', textAlign: 'center', lineHeight: 1.5 }}>"{charLore}"</div>}
+          </div>
+        )}
         
         {/* Enter Button */}
         <button 

@@ -29,7 +29,7 @@ export default function TutorialTab({ styles, SVG }) {
           <span style={styles.tutorialIcon}>{SVG.star}</span> Progression
         </h3>
         <p style={styles.tutorialText}>
-          Kill enemies, collect XP orbs, level up, unlock skins! Visit the Shop to spend gold on health, mana, and damage upgrades. Costs scale up as you buy more!
+          Kill enemies, collect XP orbs, level up, unlock skins!
         </p>
       </div>
 
@@ -43,18 +43,8 @@ export default function TutorialTab({ styles, SVG }) {
           <ZoneItem styles={styles} color="#166534" icon={SVG.arcane} name="Forest (Lv5)" desc="Medium" />
           <ZoneItem styles={styles} color="#dc2626" icon={SVG.fire} name="Volcanic (Lv10)" desc="Hard" />
           <ZoneItem styles={styles} color="#0ea5e9" icon={SVG.ice} name="Frozen (Lv15)" desc="Harder" />
-          <ZoneItem styles={styles} color="#ec4899" icon={SVG.star} name="Crystal Caves (Lv18)" desc="Very Hard" />
           <ZoneItem styles={styles} color="#581c87" icon={SVG.skull} name="Abyss (Lv20)" desc="Bosses!" />
         </div>
-      </div>
-
-      <div style={styles.tutorialSection}>
-        <h3 style={styles.tutorialTitle}>
-          <span style={styles.tutorialIcon}>{SVG.skull}</span> Tips
-        </h3>
-        <p style={styles.tutorialText}>
-          Watch for warning circles on the ground - dodge them! Bosses have powerful attacks with visual telegraphs. Press ESC to close menus or open settings.
-        </p>
       </div>
     </div>
   );

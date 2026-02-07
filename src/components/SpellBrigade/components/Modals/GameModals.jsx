@@ -127,6 +127,7 @@ export default function GameModals({
         nearbyBuilding={nearbyBuilding}
         nearbyNpc={nearbyNpc}
         nearbyPortal={nearbyPortal}
+        playerInfo={playerInfo}
         showShop={showShop}
         npcDialogue={npcDialogue}
         showSkinSelect={showSkinSelect}
@@ -264,7 +265,6 @@ export default function GameModals({
       {showQuestLog && (
         <QuestLogContent
           styles={styles}
-          SVG={SVG}
           questLog={questLog}
           onClose={() => setShowQuestLog(false)}
         />
@@ -338,8 +338,17 @@ export default function GameModals({
 }
 
 // Sub-components
-function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal, showShop, npcDialogue, showSkinSelect, setShowShop, socketRef, setDungeonVictoryPortal, dungeonVictoryPortalRef }) {
+function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal, playerInfo, showShop, npcDialogue, showSkinSelect, setShowShop, socketRef, setDungeonVictoryPortal, dungeonVictoryPortalRef }) {
   if (showShop || npcDialogue || showSkinSelect) return null;
+
+  // Check if building is locked (boss not defeated)
+  const bossZoneMap = {
+    forest_ruins: 'forest', volcano_fortress: 'volcanic', ice_citadel: 'frozen',
+    void_shrine: 'abyss', crystal_sanctum: 'crystal_caves',
+  };
+  const bossKills = playerInfo?.bossKills || {};
+  const buildingBossZone = nearbyBuilding ? bossZoneMap[nearbyBuilding.id] : null;
+  const isBuildingLocked = buildingBossZone && !bossKills[buildingBossZone];
 
   return (
     <>
@@ -347,12 +356,17 @@ function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal,
         <div style={{
           position: 'fixed', bottom: isMobile ? 180 : 100, left: '50%', transform: 'translateX(-50%)',
           background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', padding: '12px 25px',
-          borderRadius: 15, zIndex: 800, border: `2px solid ${nearbyBuilding.color}`,
+          borderRadius: 15, zIndex: 800, border: `2px solid ${isBuildingLocked ? '#ef4444' : nearbyBuilding.color}`,
           textAlign: 'center', cursor: 'pointer',
         }} onClick={() => setShowShop(true)}>
-          <div style={{ color: nearbyBuilding.color, fontWeight: 'bold', fontSize: '0.9rem' }}>{nearbyBuilding.name}</div>
+          <div style={{ color: isBuildingLocked ? '#ef4444' : nearbyBuilding.color, fontWeight: 'bold', fontSize: '0.9rem' }}>
+            {isBuildingLocked ? '🔒 ' : ''}{nearbyBuilding.name}
+          </div>
           <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
-            {isMobile ? 'Tap to interact' : 'Press E or Click to interact'}
+            {isBuildingLocked
+              ? 'Defeat the zone boss to unlock'
+              : (isMobile ? 'Tap to interact' : 'Press E or Click to interact')
+            }
           </div>
         </div>
       )}
@@ -414,6 +428,8 @@ function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal,
 }
 
 function ShopModalContent({ styles, nearbyBuilding, playerInfo, socketRef, playSound, onClose }) {
+  const [showUpgrade, setShowUpgrade] = React.useState(false);
+  
   const upgradeMap = {
     forest_ruins: { type: 'health', icon: '❤️', name: 'Max Health +5', desc: 'Permanently increase max health', baseCost: 1000, color: '#ef4444', flavorText: 'Ancient vitality courses through the stone walls.' },
     volcano_fortress: { type: 'damage', icon: '⚔️', name: 'Damage +1%', desc: 'Increase all spell damage', baseCost: 1500, color: '#f97316', flavorText: 'The forge burns with unstoppable fury.' },
@@ -422,31 +438,257 @@ function ShopModalContent({ styles, nearbyBuilding, playerInfo, socketRef, playS
     crystal_sanctum: { type: 'attackSpeed', icon: '⚡', name: 'Attack Speed +2%', desc: 'Auto-attack fires faster', baseCost: 1500, color: '#ec4899', flavorText: 'Crystal energy quickens your reflexes.' },
   };
 
+  // Building lore and info
+  const buildingLore = {
+    wizard_tower: {
+      emoji: '🏰',
+      keeper: 'The Archmage',
+      lore: [
+        "Welcome to the Archmage's Tower, heart of the Sanctuary.",
+        "From here, I have watched the corruption spread across every zone.",
+        "Six ancient bosses guard the land — each must be defeated to unlock the buildings in their domain.",
+        "Prove your worth, young wizard, and the power of each stronghold shall be yours.",
+      ],
+      warning: null, // Always accessible
+      bossZone: null,
+    },
+    forest_ruins: {
+      emoji: '🏚️',
+      keeper: 'The Runekeeper',
+      lore: [
+        "These ruins predate even the oldest trees of the forest.",
+        "The Ancient Treant wrapped its roots through the walls, sealing the vitality magic within.",
+        "Only those who have felled the Treant may draw upon its ancient power.",
+      ],
+      warning: 'The Ancient Treant\'s roots seal this ruin. Defeat it to unlock.',
+      bossZone: 'forest',
+    },
+    volcano_fortress: {
+      emoji: '🏯',
+      keeper: 'The Forgemaster',
+      lore: [
+        "This fortress was built upon a river of magma by the first fire wizards.",
+        "The Magma Titan claimed it as its throne — melting all who dared approach.",
+        "Only those who have toppled the Titan may wield the forge's power.",
+      ],
+      warning: 'The Magma Titan guards this fortress. Defeat it to unlock.',
+      bossZone: 'volcanic',
+    },
+    ice_citadel: {
+      emoji: '🏔️',
+      keeper: 'The Frostweaver',
+      lore: [
+        "The Ice Citadel once housed the greatest chronomancers in the realm.",
+        "The Frost Wyrm's breath froze them mid-spell — their magic lingers still.",
+        "Slay the Wyrm to shatter the ice and claim mastery over time itself.",
+      ],
+      warning: 'The Frost Wyrm\'s ice seals this citadel. Defeat it to unlock.',
+      bossZone: 'frozen',
+    },
+    void_shrine: {
+      emoji: '🕳️',
+      keeper: 'The Void Speaker',
+      lore: [
+        "This shrine exists between dimensions — a tear in reality itself.",
+        "The Void Colossus feeds on the rift's energy, growing stronger each day.",
+        "Destroy the Colossus and the shrine's power over space will be yours.",
+      ],
+      warning: 'The Void Colossus guards this rift. Defeat it to unlock.',
+      bossZone: 'abyss',
+    },
+    crystal_sanctum: {
+      emoji: '💎',
+      keeper: 'The Crystal Oracle',
+      lore: [
+        "Deep within the caves, this sanctum pulses with prismatic energy.",
+        "The Crystal Golem has absorbed most of it — shattering the balance.",
+        "Break the Golem and the sanctum will amplify your reflexes beyond mortal limits.",
+      ],
+      warning: 'The Crystal Golem guards this sanctum. Defeat it to unlock.',
+      bossZone: 'crystal_caves',
+    },
+  };
+
+  const lore = buildingLore[nearbyBuilding.id] || { emoji: '🏛️', keeper: 'Unknown', lore: ['An ancient structure...'], warning: null, bossZone: null };
+  const bossKills = playerInfo?.bossKills || {};
+  const isLocked = lore.bossZone && !bossKills[lore.bossZone];
+  const upgrade = upgradeMap[nearbyBuilding.id];
+
   return (
     <>
       <div style={styles.modalBackdrop} onClick={onClose} />
-      <div style={{ ...styles.modal, maxWidth: 420, maxHeight: '80vh', overflowY: 'auto' }}>
+      <div style={{ ...styles.modal, maxWidth: 440, maxHeight: '85vh', overflowY: 'auto' }}>
         <button style={styles.modalClose} onClick={onClose}>×</button>
-        <h3 style={{ ...styles.modalTitle, color: nearbyBuilding.color }}>{nearbyBuilding.name}</h3>
         
-        {nearbyBuilding.id === 'wizard_tower' ? (
-          <div style={{ textAlign: 'center', padding: '20px 10px' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 15 }}>🧙‍♂️</div>
-            <div style={{ color: '#ffd93d', fontWeight: 600, fontSize: '1rem', marginBottom: 12 }}>The Archmage speaks...</div>
-            <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: 15 }}>
-              "Seek the buildings scattered across the realm to grow stronger, young wizard."
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>{lore.emoji}</div>
+          <h3 style={{ ...styles.modalTitle, color: nearbyBuilding.color, margin: 0 }}>{nearbyBuilding.name}</h3>
+          <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>{lore.keeper}</div>
+        </div>
+
+        {/* Lore Section */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '14px 16px', marginBottom: 16, border: `1px solid ${nearbyBuilding.color}15` }}>
+          {lore.lore.map((line, i) => (
+            <p key={i} style={{ color: '#bbb', fontSize: '0.85rem', lineHeight: 1.7, margin: i === 0 ? 0 : '8px 0 0', fontStyle: 'italic' }}>
+              "{line}"
+            </p>
+          ))}
+        </div>
+
+        {/* Locked Warning */}
+        {isLocked && (
+          <div style={{
+            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+            borderRadius: 10, padding: '14px 18px', marginBottom: 16, textAlign: 'center',
+          }}>
+            <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', marginBottom: 6 }}>
+              🔒 Sealed
             </div>
+            <div style={{ color: '#f87171', fontSize: '0.8rem' }}>{lore.warning}</div>
           </div>
-        ) : (() => {
-          const upgrade = upgradeMap[nearbyBuilding.id];
-          if (!upgrade) return <div style={{ color: '#888', textAlign: 'center', padding: 20 }}>Nothing to offer here.</div>;
+        )}
+
+        {/* Wizard Tower - special hub content */}
+        {nearbyBuilding.id === 'wizard_tower' && (() => {
+          const allBossesDefeated = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'].every(z => bossKills[z]);
+          return (
+            <>
+              {/* Stronghold Status */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, textAlign: 'center' }}>
+                  Stronghold Status
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    { id: 'forest_ruins', name: 'Ancient Ruins', zone: 'forest', color: '#78716c', upgrade: 'Health' },
+                    { id: 'volcano_fortress', name: 'Obsidian Fortress', zone: 'volcanic', color: '#7f1d1d', upgrade: 'Damage' },
+                    { id: 'ice_citadel', name: 'Ice Citadel', zone: 'frozen', color: '#0284c7', upgrade: 'Cooldown' },
+                    { id: 'void_shrine', name: 'Void Shrine', zone: 'abyss', color: '#7c3aed', upgrade: 'Speed' },
+                    { id: 'crystal_sanctum', name: 'Crystal Sanctum', zone: 'crystal_caves', color: '#ec4899', upgrade: 'Atk Speed' },
+                  ].map(b => {
+                    const unlocked = bossKills[b.zone];
+                    return (
+                      <div key={b.id} style={{
+                        background: unlocked ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${unlocked ? '#22c55e' : '#333'}40`,
+                        borderRadius: 8, padding: '8px 10px', textAlign: 'center',
+                      }}>
+                        <div style={{ color: unlocked ? '#22c55e' : '#555', fontSize: '0.7rem', fontWeight: 600 }}>
+                          {unlocked ? '✓' : '🔒'} {b.name}
+                        </div>
+                        <div style={{ color: unlocked ? b.color : '#444', fontSize: '0.6rem', marginTop: 2 }}>
+                          {unlocked ? `+${b.upgrade}` : 'Defeat boss'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Enter Tower Button */}
+              {!showUpgrade ? (
+                <div style={{ textAlign: 'center' }}>
+                  <button
+                    onClick={() => setShowUpgrade(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,217,61,0.2), rgba(255,217,61,0.05))',
+                      border: '2px solid #ffd93d',
+                      borderRadius: 12, padding: '16px 40px', color: '#ffd93d',
+                      fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 10,
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    🏰 Enter the Tower
+                  </button>
+                  <div style={{ color: '#666', fontSize: '0.7rem', marginTop: 8 }}>
+                    Explore the Archmage's sanctum
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {/* Tower Interior */}
+                  <div style={{ background: 'rgba(255,217,61,0.04)', border: '1px solid rgba(255,217,61,0.15)', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+                    <div style={{ textAlign: 'center', marginBottom: 14 }}>
+                      <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🧙‍♂️</div>
+                      <div style={{ color: '#ffd93d', fontWeight: 600, fontSize: '0.9rem' }}>The Archmage's Chamber</div>
+                      <div style={{ color: '#888', fontSize: '0.75rem', marginTop: 4 }}>
+                        Enchanted scrolls line the walls. A crystal orb pulses with arcane energy.
+                      </div>
+                    </div>
+
+                    {/* Boss Progress Summary */}
+                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 12, marginBottom: 10 }}>
+                      <div style={{ color: '#ccc', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>
+                        📜 Your Journey — {Object.keys(bossKills).filter(z => bossKills[z]).length}/6 Bosses Defeated
+                      </div>
+                      <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', borderRadius: 3, transition: 'width 0.3s',
+                          width: `${(Object.keys(bossKills).filter(z => bossKills[z]).length / 6) * 100}%`,
+                          background: allBossesDefeated ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #ffd93d, #f59e0b)',
+                        }} />
+                      </div>
+                    </div>
+
+                    {/* Dragon Warning or Congratulations */}
+                    {allBossesDefeated ? (
+                      <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: 12, textAlign: 'center' }}>
+                        <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.85rem' }}>🐉 The Dragon Awaits</div>
+                        <div style={{ color: '#f87171', fontSize: '0.75rem', marginTop: 4 }}>
+                          All six strongholds are unsealed. Seek the Dragon Gate in the Sanctuary center.
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: 12, textAlign: 'center' }}>
+                        <div style={{ color: '#888', fontSize: '0.75rem', lineHeight: 1.6 }}>
+                          The Archmage speaks: <span style={{ color: '#ffd93d', fontStyle: 'italic' }}>"Defeat all six zone bosses to unlock the path to the Dragon."</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <button onClick={() => setShowUpgrade(false)} style={{
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 8, padding: '8px 20px', color: '#888', fontSize: '0.8rem', cursor: 'pointer',
+                    }}>
+                      ← Back
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Enter Building / Shop Section */}
+        {!isLocked && upgrade && !showUpgrade && (
+          <div style={{ textAlign: 'center' }}>
+            <button
+              onClick={() => setShowUpgrade(true)}
+              style={{
+                background: `linear-gradient(135deg, ${nearbyBuilding.color}40, ${nearbyBuilding.color}20)`,
+                border: `2px solid ${nearbyBuilding.color}`,
+                borderRadius: 12, padding: '14px 32px', color: nearbyBuilding.color,
+                fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              ⚡ Enter & Upgrade
+            </button>
+          </div>
+        )}
+
+        {/* Upgrade Panel - shown after clicking Enter */}
+        {!isLocked && upgrade && showUpgrade && (() => {
           const currentLevel = playerInfo?.upgrades?.[upgrade.type] || 0;
           const cost = Math.floor(upgrade.baseCost * (1 + currentLevel * 0.15));
           const isMaxed = upgrade.maxLevel && currentLevel >= upgrade.maxLevel;
           return (
-            <div style={{ padding: '10px 0' }}>
-              <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 20, textAlign: 'center', fontStyle: 'italic' }}>{upgrade.flavorText}</div>
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 16px', marginBottom: 15, textAlign: 'center', border: `1px solid ${upgrade.color}20` }}>
+            <div style={{ padding: '0' }}>
+              <div style={{ color: '#888', fontSize: '0.85rem', marginBottom: 16, textAlign: 'center', fontStyle: 'italic' }}>{upgrade.flavorText}</div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 16px', marginBottom: 12, textAlign: 'center', border: `1px solid ${upgrade.color}20` }}>
                 <div style={{ color: '#666', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Current Level</div>
                 <div style={{ color: upgrade.color, fontSize: '1.6rem', fontWeight: 700 }}>{currentLevel}{upgrade.maxLevel ? ` / ${upgrade.maxLevel}` : ''}</div>
               </div>
@@ -469,8 +711,10 @@ function ShopModalContent({ styles, nearbyBuilding, playerInfo, socketRef, playS
             </div>
           );
         })()}
+
+        {/* XP Display */}
         <div style={{ marginTop: 20, textAlign: 'center', color: '#666', fontSize: '0.8rem' }}>
-          Your XP: <span style={{ color: '#ffd93d', fontWeight: 'bold' }}>{playerInfo?.totalXp || 0}</span>
+          Your XP: <span style={{ color: '#ffd93d', fontWeight: 'bold' }}>{(playerInfo?.totalXp || 0).toLocaleString()}</span>
         </div>
       </div>
     </>
@@ -939,14 +1183,14 @@ function NPCDialogueContent({
   );
 }
 
-function QuestLogContent({ styles, SVG, questLog, onClose }) {
+function QuestLogContent({ styles, questLog, onClose }) {
   return (
     <>
       <div style={styles.modalBackdrop} onClick={onClose} />
       <div style={{ ...styles.modal, maxWidth: 400 }}>
         <button style={styles.modalClose} onClick={onClose}>×</button>
         <h3 style={{ ...styles.modalTitle, color: '#ffd93d' }}>
-          <span style={{ width: 24, height: 24 }}>{SVG.scroll}</span> Quest Log
+          📜 Quest Log
         </h3>
         {(!questLog || questLog.length === 0) ? (
           <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No active quests. Talk to NPCs to find quests!</p>
@@ -1009,6 +1253,44 @@ function InGameSettingsContent({ styles, SVG, isMobile, settings, setSettings, p
           <SettingRow label="Minimap" icon={SVG.star}>
             <Toggle value={settings.showMinimap} onChange={() => setSettings(s => ({ ...s, showMinimap: !s.showMinimap }))} />
           </SettingRow>
+        </div>
+        
+        {/* Key Mappings */}
+        <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ color: '#888', fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: 10, fontWeight: 600, letterSpacing: '0.05em' }}>
+            ⌨️ Key Bindings
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+            {[
+              ['WASD / Arrows', 'Move'],
+              ['Left Click', 'Attack'],
+              ['Right Click', 'Secondary'],
+              ['Space', 'Dash'],
+              ['Q', 'Ultimate'],
+              ['1 / 2 / 3', 'Abilities'],
+              ['E', 'Interact / NPC'],
+              ['B', 'Spellbook'],
+              ['T', 'Emotes'],
+              ['ESC', 'Settings / Close'],
+            ].map(([key, action]) => (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
+                <span style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: 4,
+                  padding: '2px 6px',
+                  fontSize: '0.65rem',
+                  color: '#ccc',
+                  fontFamily: 'monospace',
+                  fontWeight: 600,
+                  minWidth: 28,
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                }}>{key}</span>
+                <span style={{ color: '#888', fontSize: '0.7rem' }}>{action}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10 }}>
           <button onClick={() => { 
@@ -1162,6 +1444,69 @@ function DesktopSidePanel({ showLeaderboard, setShowLeaderboard, showInGameSetti
     </div>
   );
 }
+// Build spellbook data dynamically from server-sent class data (for custom wizards)
+function buildCustomSpellData(classData) {
+  if (!classData || !classData.spellName) return null;
+  
+  const fmtCd = (ms) => ms < 1000 ? ms + 'ms' : (ms / 1000).toFixed(1).replace(/\.0$/, '') + 's';
+  
+  const result = {
+    autoAttack: {
+      name: classData.spellName || 'Primary',
+      icon: '✨',
+      damage: String(classData.spellDamage || '?'),
+      cooldown: classData.spellCooldown ? fmtCd(classData.spellCooldown) : '?',
+      range: String(classData.spellRange || '?'),
+      desc: classData.spellDescription || 'Primary attack.',
+    },
+    secondary: {
+      name: classData.secondaryName || 'Secondary',
+      icon: '🔮',
+      damage: String(classData.secondaryDamage || '?') + (classData.secondaryRange ? '' : ' AOE'),
+      cooldown: classData.secondaryCooldown ? fmtCd(classData.secondaryCooldown) : '?',
+      range: String(classData.secondaryRange || '?'),
+      desc: classData.secondaryDescription || 'Secondary attack.',
+    },
+    dash: {
+      name: classData.dash || classData.dashAbility?.name || 'Dash',
+      icon: '💨',
+      cooldown: classData.dashCooldown ? fmtCd(classData.dashCooldown) : '3s',
+      distance: String(classData.dashAbility?.distance || 200),
+      desc: classData.dashAbility?.description || 'Quick movement ability.',
+    },
+    ultimate: {
+      name: classData.ultimate || classData.ultimateAbility?.name || 'Ultimate',
+      icon: '⚡',
+      damage: String(classData.ultimateAbility?.damage || '?'),
+      cooldown: classData.ultimateCooldown ? fmtCd(classData.ultimateCooldown) : '30s',
+      radius: String(classData.ultimateAbility?.radius || '?'),
+      desc: classData.ultimateAbility?.description || 'Powerful ultimate ability.',
+    },
+    abilities: {},
+  };
+  
+  // Build abilities from classAbilities array
+  if (classData.classAbilities) {
+    const levels = [10, 20, 30];
+    classData.classAbilities.forEach((ab, i) => {
+      if (ab) {
+        result.abilities[i + 1] = {
+          name: ab.name || `Ability ${i + 1}`,
+          icon: '✨',
+          damage: String(ab.damage || '?'),
+          cooldown: ab.cooldown ? fmtCd(ab.cooldown) : '?',
+          radius: ab.isAoe ? String(ab.aoeRadius || '?') : undefined,
+          range: !ab.isAoe ? String(ab.range || '?') : undefined,
+          level: levels[i],
+          desc: ab.description || '',
+        };
+      }
+    });
+  }
+  
+  return result;
+}
+
 function SpellbookContent({ styles, playerInfo, classes, onClose }) {
   const classId = playerInfo?.class;
   const classData = classes?.[classId];
@@ -1249,7 +1594,7 @@ function SpellbookContent({ styles, playerInfo, classes, onClose }) {
     },
   };
   
-  const data = spellData[classId] || spellData.pyromancer;
+  const data = spellData[classId] || buildCustomSpellData(classData) || spellData.pyromancer;
   
   const SpellRow = ({ spell, label, unlockLevel, isUnlocked }) => (
     <div style={{
