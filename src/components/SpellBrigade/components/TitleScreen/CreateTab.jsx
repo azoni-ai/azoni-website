@@ -37,6 +37,7 @@ export default function CreateTab({
   CLASS_SVG,
 }) {
   const [showAICreator, setShowAICreator] = useState(false);
+  const [modelQuality, setModelQuality] = useState('premium');
   
   const onGenerate = () => {
     if (socketRef.current && wizardPrompt.trim().length >= 3) {
@@ -45,7 +46,8 @@ export default function CreateTab({
       setGeneratedWizard(null);
       socketRef.current.emit('generateWizard', { 
         prompt: wizardPrompt.trim(), 
-        sessionToken: sessionTokenRef.current 
+        sessionToken: sessionTokenRef.current,
+        quality: modelQuality,
       });
     }
   };
@@ -131,7 +133,7 @@ export default function CreateTab({
             }}
           />
           
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
             <button
               disabled={wizardGenerating || wizardPrompt.trim().length < 3}
               onClick={onGenerate}
@@ -150,6 +152,53 @@ export default function CreateTab({
             <span style={{ color: '#444', fontSize: '0.7rem' }}>
               {wizardPrompt.trim().length}/600
             </span>
+          </div>
+
+          {/* Model Quality Selector */}
+          <div style={{
+            display: 'flex', gap: 8, marginBottom: 12,
+            padding: '10px 12px',
+            background: 'rgba(0,0,0,0.25)',
+            borderRadius: 8,
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <span style={{ color: '#888', fontSize: '0.75rem', lineHeight: '32px', marginRight: 4, whiteSpace: 'nowrap' }}>AI Model:</span>
+            <button
+              onClick={() => setModelQuality('standard')}
+              disabled={wizardGenerating}
+              style={{
+                flex: 1, padding: '6px 12px',
+                background: modelQuality === 'standard' ? 'rgba(34,197,94,0.15)' : 'transparent',
+                border: `1px solid ${modelQuality === 'standard' ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: 6, cursor: wizardGenerating ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ color: modelQuality === 'standard' ? '#22c55e' : '#888', fontWeight: 600, fontSize: '0.8rem' }}>
+                ⚡ Standard
+              </div>
+              <div style={{ color: '#555', fontSize: '0.65rem', marginTop: 2 }}>
+                Haiku · Fast (~3s)
+              </div>
+            </button>
+            <button
+              onClick={() => setModelQuality('premium')}
+              disabled={wizardGenerating}
+              style={{
+                flex: 1, padding: '6px 12px',
+                background: modelQuality === 'premium' ? 'rgba(139,92,246,0.15)' : 'transparent',
+                border: `1px solid ${modelQuality === 'premium' ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: 6, cursor: wizardGenerating ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ color: modelQuality === 'premium' ? '#a78bfa' : '#888', fontWeight: 600, fontSize: '0.8rem' }}>
+                ✨ Premium
+              </div>
+              <div style={{ color: '#555', fontSize: '0.65rem', marginTop: 2 }}>
+                Sonnet · Best quality (~6s)
+              </div>
+            </button>
           </div>
 
           {/* Preset Ideas */}
@@ -178,6 +227,9 @@ export default function CreateTab({
             <div style={{ color: '#a78bfa', fontSize: '0.8rem', marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 12, height: 12, border: '2px solid #a78bfa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               {wizardStatus}
+              <span style={{ color: '#555', fontSize: '0.7rem' }}>
+                ({modelQuality === 'premium' ? 'Sonnet' : 'Haiku'})
+              </span>
             </div>
           )}
           {wizardError && <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: 10 }}>{wizardError}</div>}
@@ -248,12 +300,13 @@ export default function CreateTab({
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: isMobile ? 'none' : '0 0 auto' }}>
           <input
             style={{ 
-              width: isMobile ? '100%' : 140, padding: '12px 14px',
-              background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8, color: '#fff', fontSize: '0.9rem',
+              width: isMobile ? '100%' : 180, padding: '12px 16px',
+              background: 'rgba(0,0,0,0.5)', border: `2px solid ${playerName.trim() ? classColor + '50' : 'rgba(255,255,255,0.12)'}`,
+              borderRadius: 10, color: '#fff', fontSize: '1rem', fontWeight: 500,
               textAlign: 'center', outline: 'none', boxSizing: 'border-box',
+              transition: 'border-color 0.2s',
             }}
-            type="text" placeholder="Wizard name" maxLength={20}
+            type="text" placeholder="Your wizard name" maxLength={20}
             value={playerName} onChange={(e) => setPlayerName(e.target.value)}
           />
           <button 
@@ -291,13 +344,16 @@ export default function CreateTab({
  * Full wizard result card - shows everything like a real class
  */
 function WizardResultCard({ wizard, onPlay, playerName, setPlayerName, isMobile }) {
-  const { classDef, spellDefs } = wizard;
+  const { classDef, spellDefs, generatedBy, modelUsed } = wizard;
   const c = classDef;
   const spells = Object.values(spellDefs);
   const primary = spells[0];
   const secondary = spells[1];
   // Abilities are spells with type 'classAbility'
   const abilities = spells.filter(s => s.type === 'classAbility');
+  
+  const isAI = generatedBy === 'ai';
+  const modelLabel = isAI ? (modelUsed === 'standard' ? 'Haiku' : 'Sonnet') : 'Template';
 
   const StatPill = ({ label, value, color }) => (
     <span style={{
@@ -372,7 +428,15 @@ function WizardResultCard({ wizard, onPlay, playerName, setPlayerName, isMobile 
               <div style={{ color: '#999', fontSize: '0.78rem', marginTop: 2 }}>{c.description}</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
+            <span style={{
+              padding: '3px 8px', borderRadius: 4, fontSize: '0.65rem', fontWeight: 700,
+              background: isAI ? 'rgba(139,92,246,0.15)' : 'rgba(255,165,0,0.15)',
+              border: `1px solid ${isAI ? 'rgba(139,92,246,0.4)' : 'rgba(255,165,0,0.4)'}`,
+              color: isAI ? '#a78bfa' : '#f59e0b',
+            }}>
+              {isAI ? `🤖 ${modelLabel}` : '📋 Template'}
+            </span>
             <StatPill label="HP" value={c.baseHealth} color="#ff6b6b" />
             <StatPill label="SPD" value={c.baseSpeed} color="#74c0fc" />
           </div>
@@ -450,36 +514,53 @@ function WizardResultCard({ wizard, onPlay, playerName, setPlayerName, isMobile 
 
       {/* Play Footer */}
       <div style={{
-        padding: '14px 18px',
+        padding: '16px 18px',
         background: `linear-gradient(135deg, ${c.color}10, rgba(0,0,0,0.3))`,
         borderTop: `1px solid ${c.color}15`,
-        display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <input
-          style={{ 
-            flex: 1, padding: '10px 14px',
-            background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 8, color: '#fff', fontSize: '0.9rem',
-            textAlign: 'center', outline: 'none', boxSizing: 'border-box',
-            maxWidth: 160,
-          }}
-          type="text" placeholder="Wizard name" maxLength={20}
-          value={playerName} onChange={(e) => setPlayerName(e.target.value)}
-        />
+        {/* Wizard Name - prominent */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: '#aaa', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'block' }}>
+            Your Wizard's Name
+          </label>
+          <input
+            style={{ 
+              width: '100%', padding: '14px 18px',
+              background: 'rgba(0,0,0,0.5)', 
+              border: `2px solid ${playerName.trim() ? c.color + '60' : 'rgba(255,255,255,0.15)'}`,
+              borderRadius: 10, color: '#fff', fontSize: '1.1rem', fontWeight: 600,
+              textAlign: 'center', outline: 'none', boxSizing: 'border-box',
+              letterSpacing: 0.5,
+              transition: 'border-color 0.2s',
+            }}
+            type="text" placeholder="Enter a name for your wizard..." maxLength={20}
+            value={playerName} onChange={(e) => setPlayerName(e.target.value)}
+            onFocus={(e) => e.target.style.borderColor = c.color}
+            onBlur={(e) => e.target.style.borderColor = playerName.trim() ? c.color + '60' : 'rgba(255,255,255,0.15)'}
+          />
+        </div>
         <button
           onClick={onPlay}
           style={{
-            flex: 1, padding: '12px 20px',
+            width: '100%', padding: '14px 20px',
             background: `linear-gradient(135deg, ${c.color}, ${c.secondaryColor || c.color})`,
-            border: 'none', borderRadius: 8,
-            color: '#fff', fontWeight: 700, fontSize: '1rem',
+            border: 'none', borderRadius: 10,
+            color: '#fff', fontWeight: 700, fontSize: '1.05rem',
             cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 8,
-            boxShadow: `0 4px 15px ${c.color}40`,
+            justifyContent: 'center', gap: 10,
+            boxShadow: `0 4px 20px ${c.color}50`,
+            transition: 'transform 0.1s, box-shadow 0.1s',
           }}
+          onMouseEnter={(e) => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = `0 6px 25px ${c.color}60`; }}
+          onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = `0 4px 20px ${c.color}50`; }}
         >
-          <span style={{ fontSize: '1.1rem' }}>▶</span> Play as {c.name}
+          <span style={{ fontSize: '1.2rem' }}>▶</span> Enter World as {c.name}
         </button>
+        {!isAI && (
+          <div style={{ color: '#f59e0b', fontSize: '0.7rem', textAlign: 'center', marginTop: 8, padding: '6px 10px', background: 'rgba(245,158,11,0.08)', borderRadius: 6, border: '1px solid rgba(245,158,11,0.15)' }}>
+            ⚠️ AI unavailable — used template fallback. Results may not match your prompt. Try again or check server API key.
+          </div>
+        )}
       </div>
     </div>
   );

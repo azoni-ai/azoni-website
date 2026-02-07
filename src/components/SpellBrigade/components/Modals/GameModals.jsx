@@ -1184,6 +1184,8 @@ function NPCDialogueContent({
 }
 
 function QuestLogContent({ styles, questLog, onClose }) {
+  // questLog may be an object {allBosses: {...}, dragonSlayer: {...}} — convert to array
+  const quests = Array.isArray(questLog) ? questLog : Object.values(questLog || {});
   return (
     <>
       <div style={styles.modalBackdrop} onClick={onClose} />
@@ -1192,26 +1194,42 @@ function QuestLogContent({ styles, questLog, onClose }) {
         <h3 style={{ ...styles.modalTitle, color: '#ffd93d' }}>
           📜 Quest Log
         </h3>
-        {(!questLog || questLog.length === 0) ? (
+        {(!quests || quests.length === 0) ? (
           <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No active quests. Talk to NPCs to find quests!</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {questLog.map(q => (
+            {quests.filter(q => q && q.active).map(q => (
               <div key={q.id} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${q.completed ? '#22c55e' : '#ffd93d'}30`, borderRadius: 10, padding: 14 }}>
                 <div style={{ color: q.completed ? '#22c55e' : '#ffd93d', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6 }}>
-                  {q.completed ? '✓ ' : ''}{q.title}
+                  {q.completed ? '✓ ' : ''}{q.name || q.title}
                 </div>
                 <p style={{ color: '#888', fontSize: '0.8rem', margin: 0 }}>{q.description}</p>
-                {q.progress !== undefined && !q.completed && (
+                {q.bosses && !q.completed && (
                   <div style={{ marginTop: 8 }}>
-                    <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                      <div style={{ height: '100%', background: '#ffd93d', borderRadius: 2, width: `${(q.progress / q.target) * 100}%` }} />
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {q.bosses.map(b => {
+                        const done = q.progress?.[b];
+                        return (
+                          <span key={b} style={{
+                            padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', fontWeight: 600,
+                            background: done ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${done ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                            color: done ? '#22c55e' : '#666',
+                          }}>
+                            {done ? '✓' : '○'} {b}
+                          </span>
+                        );
+                      })}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#666', marginTop: 4 }}>{q.progress}/{q.target}</div>
                   </div>
                 )}
               </div>
             ))}
+            {quests.filter(q => q && !q.active).length > 0 && (
+              <div style={{ color: '#555', fontSize: '0.75rem', textAlign: 'center', marginTop: 8 }}>
+                Talk to NPCs to discover more quests
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1416,21 +1434,14 @@ function AdminPanelContent({ styles, socketRef, onClose }) {
 }
 
 function DesktopSidePanel({ showLeaderboard, setShowLeaderboard, showInGameSettings, setShowInGameSettings, leaderboardData, playerInfo }) {
+  if (!showLeaderboard || !leaderboardData.length) return null;
   return (
-    <div style={{ position: 'fixed', top: 220, left: 20, zIndex: 50 }}>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={() => setShowInGameSettings(true)}
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#888"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-        </button>
-        <button onClick={() => setShowLeaderboard(p => !p)}
-          style={{ background: showLeaderboard ? 'rgba(255,215,61,0.15)' : 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', padding: 10, borderRadius: 10, border: `1px solid ${showLeaderboard ? 'rgba(255,215,61,0.4)' : 'rgba(255,255,255,0.15)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={showLeaderboard ? '#ffd93d' : '#888'}><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
-        </button>
-      </div>
-      {showLeaderboard && leaderboardData.length > 0 && (
-        <div style={{ marginTop: 8, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', borderRadius: 12, border: '1px solid rgba(255,215,61,0.2)', padding: 12, minWidth: 200 }}>
-          <div style={{ fontSize: '0.7rem', color: '#ffd93d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Top Players</div>
+    <div style={{ position: 'fixed', top: 20, left: 260, zIndex: 50 }}>
+      <div style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', borderRadius: 12, border: '1px solid rgba(255,215,61,0.2)', padding: 12, minWidth: 200 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontSize: '0.7rem', color: '#ffd93d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Top Players</div>
+            <button onClick={() => setShowLeaderboard(false)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}>×</button>
+          </div>
           {leaderboardData.map((p, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: i < leaderboardData.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
               <span style={{ width: 16, fontSize: '0.7rem', fontWeight: 700, color: i === 0 ? '#ffd93d' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#666' }}>{i + 1}</span>
@@ -1440,7 +1451,6 @@ function DesktopSidePanel({ showLeaderboard, setShowLeaderboard, showInGameSetti
             </div>
           ))}
         </div>
-      )}
     </div>
   );
 }

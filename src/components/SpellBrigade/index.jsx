@@ -1856,7 +1856,7 @@ export default function SpellBrigade() {
         radius: data.radius,
         color: data.color,
         name: data.name,
-        createdAt: Date.now(),
+        startTime: Date.now(),
         duration: data.duration || 3000,
       });
     });
@@ -1869,7 +1869,7 @@ export default function SpellBrigade() {
         radius: data.radius,
         color: data.color,
         name: data.name,
-        createdAt: Date.now(),
+        startTime: Date.now(),
         duration: data.delay || 1000,
       });
     });
@@ -1881,7 +1881,7 @@ export default function SpellBrigade() {
         radius: data.radius,
         color: data.color,
         name: data.name,
-        createdAt: Date.now(),
+        startTime: Date.now(),
         duration: 1500,
       });
     });
@@ -3221,7 +3221,7 @@ export default function SpellBrigade() {
 
       // ========== HIGH-QUALITY ZONE DECORATIONS + AMBIENT NPCs ========== (SKIP IN DUNGEON)
       if (!inDungeonRef.current) {
-        const tileSize = 80; // Larger tiles for bigger, more detailed decorations
+        const tileSize = 140; // Sparser spacing so decor feels intentional, not spammed
         const startX = Math.floor(cx / tileSize) * tileSize;
         const startY = Math.floor(cy / tileSize) * tileSize;
         
@@ -3240,7 +3240,7 @@ export default function SpellBrigade() {
             const sx = x - cx + tileSize/2;
             const sy = y - cy + tileSize/2;
             
-            if (rand > 0.45) continue; // 45% coverage
+            if (rand > 0.22) continue; // ~22% coverage (down from 45%)
             
             const dr = seededRandom(x, y, 1); // decoration type selector
             const dr2 = seededRandom(x, y, 2); // sub-variation
@@ -10251,8 +10251,10 @@ export default function SpellBrigade() {
 
       // Effects (explosions, ice nova, dash trails)
       effectsRef.current = effectsRef.current.filter(ef => {
-        const elapsed = now - ef.startTime;
+        const elapsed = now - (ef.startTime || ef.createdAt || now);
         if (elapsed > ef.duration) return false;
+        // Safety cap: kill any effect older than 15 seconds regardless
+        if (elapsed > 15000) return false;
 
         const progress = elapsed / ef.duration;
         const alpha = 1 - progress;
@@ -12395,6 +12397,35 @@ export default function SpellBrigade() {
                       </div>
                     );
                   })()}
+                </div>
+
+                {/* Action buttons row - Settings & Leaderboard */}
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <button 
+                    onClick={() => setShowInGameSettings(true)}
+                    style={{
+                      flex: 1, padding: '6px 0', borderRadius: 8, cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      color: '#888', fontSize: '0.7rem',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                    Settings
+                  </button>
+                  <button 
+                    onClick={() => setShowLeaderboard(p => !p)}
+                    style={{
+                      flex: 1, padding: '6px 0', borderRadius: 8, cursor: 'pointer',
+                      background: showLeaderboard ? 'rgba(255,215,61,0.1)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${showLeaderboard ? 'rgba(255,215,61,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      color: showLeaderboard ? '#ffd93d' : '#888', fontSize: '0.7rem',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
+                    Ranks
+                  </button>
                 </div>
               </div>
               
