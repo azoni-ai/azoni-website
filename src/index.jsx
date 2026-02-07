@@ -103,7 +103,6 @@ export default function SpellBrigade() {
   const showChatRef = useRef(!(window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
   const dashCooldownRef = useRef(0);
   const ultCooldownRef = useRef(0);
-  const autoAttackRef = useRef(true);
   const recallCooldownRef = useRef(0);
   const lastZoneRef = useRef(null);
   const musicIntervalRef = useRef(null);
@@ -1603,7 +1602,6 @@ export default function SpellBrigade() {
 
     socket.on('autoAttackToggled', (data) => {
       setAutoAttack(data.enabled);
-      autoAttackRef.current = data.enabled;
       console.log(`⚔️ Auto-attack ${data.enabled ? 'enabled' : 'disabled'}`);
     });
 
@@ -2087,18 +2085,12 @@ export default function SpellBrigade() {
       if (e.button !== 0) return;
       initAudio();
       
+      // Click to move (only on canvas, not UI elements)
       if (screen === 'game' && !isMobile && e.target?.tagName === 'CANVAS' && socketRef.current && playerIdRef.current) {
         const zoom = zoomRef.current || 1;
         const targetX = (e.clientX / zoom) + cameraRef.current.x;
         const targetY = (e.clientY / zoom) + cameraRef.current.y;
-        
-        if (!autoAttackRef.current) {
-          // Manual attack mode: click fires projectile at cursor
-          socketRef.current.emit('manualAttack', { targetX, targetY });
-        } else {
-          // Auto-attack mode: click to move
-          socketRef.current.emit('clickMove', { targetX, targetY });
-        }
+        socketRef.current.emit('clickMove', { targetX, targetY });
       }
     };
 
@@ -2589,19 +2581,10 @@ export default function SpellBrigade() {
     // Find a touch that's not in control areas
     for (const touch of e.changedTouches) {
       if (!isInControlArea(touch.clientX, touch.clientY)) {
+        // Set target to tapped world position
         const zoom = zoomRef.current || 1;
-        const worldX = (touch.clientX / zoom) + cameraRef.current.x;
-        const worldY = (touch.clientY / zoom) + cameraRef.current.y;
-        
-        // Manual attack mode: tap fires at position
-        if (!autoAttackRef.current && socketRef.current) {
-          socketRef.current.emit('manualAttack', { targetX: worldX, targetY: worldY });
-          break;
-        }
-        
-        // Auto-attack mode: tap to move
-        touchTargetRef.current.x = worldX;
-        touchTargetRef.current.y = worldY;
+        touchTargetRef.current.x = (touch.clientX / zoom) + cameraRef.current.x;
+        touchTargetRef.current.y = (touch.clientY / zoom) + cameraRef.current.y;
         touchTargetRef.current.active = true;
         touchTargetRef.current.identifier = touch.identifier;
         
@@ -12508,7 +12491,7 @@ export default function SpellBrigade() {
       {/* Game Canvas */}
       <canvas 
         ref={canvasRef} 
-        style={{ ...styles.canvas, cursor: (!autoAttack && screen === 'game') ? 'crosshair' : undefined }} 
+        style={styles.canvas} 
         onTouchStart={isMobile ? handleScreenTouchStart : undefined}
         onTouchMove={isMobile ? handleScreenTouchMove : undefined}
         onTouchEnd={isMobile ? handleScreenTouchEnd : undefined}
@@ -13124,7 +13107,6 @@ export default function SpellBrigade() {
                   voidlord: { 1: 'Void Rift', 2: 'Soul Drain', 3: 'Apocalypse' },
                   shadowarcher: { 1: "Hunter's Mark", 2: 'Multishot', 3: 'Death Arrow' },
                   brute: { 1: 'Protein Shake', 2: 'Barbell Spin', 3: 'Ultimate Flex' },
-                  swordsman: { 1: 'Riposte', 2: "Executioner's Strike", 3: 'Bladestorm' },
                 };
                 const abilityDescs = {
                   pyromancer: { 1: 'Damage aura around you', 2: 'Delayed AOE at target', 3: 'Massive explosion' },
@@ -13134,7 +13116,6 @@ export default function SpellBrigade() {
                   voidlord: { 1: 'Pull enemies', 2: 'Lifesteal', 3: 'Devastation' },
                   shadowarcher: { 1: 'Piercing shot', 2: 'Arrow burst', 3: 'Lethal strike' },
                   brute: { 1: 'Heal + speed boost', 2: 'Spinning AOE', 3: 'Shockwave flex' },
-                  swordsman: { 1: 'Parry & counter', 2: 'Devastating overhead', 3: 'Whirlwind of steel' },
                 };
                 const abilityIcons = {
                   pyromancer: { 1: '🔥', 2: '☄️', 3: '💥' },
@@ -13144,7 +13125,6 @@ export default function SpellBrigade() {
                   voidlord: { 1: '🕳️', 2: '💀', 3: '☠️' },
                   shadowarcher: { 1: '🎯', 2: '🏹', 3: '💀' },
                   brute: { 1: '🥤', 2: '🏋️', 3: '💪' },
-                  swordsman: { 1: '🛡️', 2: '⚔️', 3: '🌀' },
                 };
                 const abilityColors = {
                   pyromancer: '#ff6b35',
@@ -13154,7 +13134,6 @@ export default function SpellBrigade() {
                   voidlord: '#ff00ff',
                   shadowarcher: '#dc2626',
                   brute: '#fbbf24',
-                  swordsman: '#708090',
                 };
                 
                 // Check for custom wizard ability data
@@ -13244,44 +13223,6 @@ export default function SpellBrigade() {
               
               {/* Spellbook Button */}
               <div style={{ width: 2, background: 'rgba(255,255,255,0.1)', margin: '5px 3px' }} />
-              
-              {/* Auto-Attack Toggle */}
-              <div
-                onClick={() => {
-                  if (socketRef.current) socketRef.current.emit('toggleAutoAttack');
-                }}
-                title={`Auto-Attack: ${autoAttack ? 'ON (½ dmg)' : 'OFF (click to aim)'} (X)`}
-                style={{
-                  width: 52,
-                  height: 65,
-                  borderRadius: 10,
-                  background: autoAttack 
-                    ? 'linear-gradient(135deg, rgba(251,191,36,0.3), rgba(251,191,36,0.1))'
-                    : 'linear-gradient(135deg, rgba(100,100,100,0.3), rgba(60,60,60,0.1))',
-                  border: `2px solid ${autoAttack ? '#fbbf24' : '#555'}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div style={{ position: 'absolute', top: 3, left: 5, fontSize: '0.55rem', color: '#fff80', fontWeight: 'bold' }}>X</div>
-                <span style={{ fontSize: '1.1rem' }}>{autoAttack ? '⚔️' : '🎯'}</span>
-                <div style={{ fontSize: '0.45rem', color: autoAttack ? '#fbbf24' : '#888', textAlign: 'center', lineHeight: 1.1, fontWeight: 600 }}>
-                  {autoAttack ? 'AUTO' : 'AIM'}
-                </div>
-                {!autoAttack && (
-                  <div style={{
-                    position: 'absolute', top: -2, right: -2, width: 8, height: 8,
-                    borderRadius: '50%', background: '#22c55e',
-                    boxShadow: '0 0 4px #22c55e',
-                  }} />
-                )}
-              </div>
-              
               <div
                 onClick={() => setShowSpellbook(prev => !prev)}
                 style={{
@@ -13510,23 +13451,22 @@ export default function SpellBrigade() {
               }}>
                 {/* Row 1: Secondary buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {/* Auto-Attack Toggle (all classes) */}
-                  <button
-                    style={{
-                      ...styles.actionButton(autoAttack ? '#fbbf24' : '#666'),
-                      width: 44,
-                      height: 44,
-                    }}
-                    onTouchStart={(e) => { 
-                      e.preventDefault(); 
-                      socketRef.current?.emit('toggleAutoAttack');
-                    }}
-                  >
-                    <span style={{ fontSize: '0.9rem' }}>{autoAttack ? '⚔️' : '🎯'}</span>
-                    <span style={{ fontSize: '0.45rem', color: autoAttack ? '#fbbf24' : '#aaa', fontWeight: 600 }}>
-                      {autoAttack ? 'AUTO' : 'AIM'}
-                    </span>
-                  </button>
+                  {/* Auto-Attack Toggle (for PvP classes) */}
+                  {(playerInfo?.class === 'voidlord' || playerInfo?.class === 'shadowarcher' || playerInfo?.class === 'brute') && (
+                    <button
+                      style={{
+                        ...styles.actionButton(autoAttack ? '#fbbf24' : '#666'),
+                        width: 44,
+                        height: 44,
+                      }}
+                      onTouchStart={(e) => { 
+                        e.preventDefault(); 
+                        socketRef.current?.emit('toggleAutoAttack');
+                      }}
+                    >
+                      <span style={{ fontSize: '0.9rem' }}>{autoAttack ? '⚔️' : '🛡️'}</span>
+                    </button>
+                  )}
                   {/* PvP Toggle (for PvP classes) */}
                   {(playerInfo?.class === 'voidlord' || playerInfo?.class === 'shadowarcher' || playerInfo?.class === 'brute') && (
                     <button

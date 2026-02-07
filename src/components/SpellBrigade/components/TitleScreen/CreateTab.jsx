@@ -17,6 +17,8 @@ export default function CreateTab({
   authState,
   playerInfo,
   adminKey,
+  adminStartLevel,
+  setAdminStartLevel,
   wizardPrompt,
   setWizardPrompt,
   wizardGenerating,
@@ -312,6 +314,21 @@ export default function CreateTab({
           >
             <span style={{ fontSize: '1.1rem' }}>▶</span> Play
           </button>
+          {adminKey && (
+            <button
+              onClick={() => setAdminStartLevel?.(!adminStartLevel)}
+              style={{
+                padding: '8px 12px', fontSize: '0.75rem', fontWeight: 600,
+                background: adminStartLevel ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)',
+                border: `1px solid ${adminStartLevel ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`,
+                borderRadius: 6, color: adminStartLevel ? '#fbbf24' : '#888',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+              title="Start at level 30 for testing"
+            >
+              Lv30
+            </button>
+          )}
         </div>
       </div>
       
@@ -443,6 +460,42 @@ function WizardResultCard({ wizard, onPlay, playerName, setPlayerName, isMobile 
           </div>
         )}
       </div>
+
+      {/* Visual Style Badges */}
+      {(c.bodyStyle || c.projectileShape || c.headgear) && (
+        <div style={{ 
+          display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 18px 10px',
+        }}>
+          {c.bodyStyle && c.bodyStyle !== 'wizard' && (
+            <span style={{
+              padding: '2px 8px', borderRadius: 10, fontSize: '0.65rem', fontWeight: 600,
+              background: `${c.color}12`, border: `1px solid ${c.color}25`, color: c.color,
+            }}>
+              {c.bodyStyle === 'hulk' ? '💪 Hulk' : c.bodyStyle === 'warrior' ? '⚔️ Warrior' : c.bodyStyle === 'archer' ? '🏹 Archer' : 
+               c.bodyStyle === 'beast' ? '🐾 Beast' : c.bodyStyle === 'elemental' ? '✨ Elemental' : c.bodyStyle === 'creature' ? '👾 Creature' : '🧙 Wizard'}
+            </span>
+          )}
+          {c.projectileShape && c.projectileShape !== 'orb' && (
+            <span style={{
+              padding: '2px 8px', borderRadius: 10, fontSize: '0.65rem', fontWeight: 600,
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#aaa',
+            }}>
+              {c.projectileShape === 'bolt' ? '⚡ Bolts' : c.projectileShape === 'thrown' ? '🎯 Thrown' : c.projectileShape === 'shard' ? '💎 Shards' : 
+               c.projectileShape === 'wisp' ? '👻 Wisps' : c.projectileShape === 'arrow' ? '🏹 Arrows' : '🔮 Orbs'}
+            </span>
+          )}
+          {c.headgear && c.headgear !== 'pointyHat' && (
+            <span style={{
+              padding: '2px 8px', borderRadius: 10, fontSize: '0.65rem', fontWeight: 600,
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#aaa',
+            }}>
+              {c.headgear === 'helmet' ? '🪖 Helmet' : c.headgear === 'hood' ? '🥷 Hood' : c.headgear === 'crown' ? '👑 Crown' : 
+               c.headgear === 'horns' ? '😈 Horns' : c.headgear === 'antlers' ? '🦌 Antlers' : c.headgear === 'halo' ? '😇 Halo' : 
+               c.headgear === 'ears' ? '🐱 Ears' : c.headgear === 'none' ? '—' : '🎩 Hat'}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Spells Section */}
       <div style={{ padding: '14px 18px' }}>
