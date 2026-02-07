@@ -96,6 +96,7 @@ export const createStyles = (isMobile, settings, screen) => ({
     content: {
       width: '100%',
       maxWidth: 900,
+      margin: '0 auto',
       padding: isMobile ? 10 : 20,
       paddingBottom: isMobile ? 40 : 60,
       flexShrink: 0,
@@ -408,7 +409,8 @@ export const createStyles = (isMobile, settings, screen) => ({
     },
     // Settings styles
     settingsContent: {
-      maxWidth: 380,
+      maxWidth: 480,
+      margin: '0 auto',
       padding: isMobile ? '0 10px' : 0,
     },
     settingRow: {

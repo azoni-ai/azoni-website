@@ -64,16 +64,7 @@ export default function CreateTab({
 
   // Filter visible classes
   const visibleClasses = Object.entries(classes).filter(([id, c]) => {
-    if (adminKey === 'azoni-voidlord-2026') return true;
-    if (id === 'voidlord' || id === 'shadowarcher') {
-      const hasDragonKill = savedPlayer?.bossKills?.dragon || 
-        characters?.some(ch => ch.bossKills?.dragon) ||
-        authState?.user?.characters?.some(ch => ch.bossKills?.dragon) ||
-        playerInfo?.bossKills?.dragon;
-      return hasDragonKill;
-    }
-    if ((c.hidden || c.isAdmin) && adminKey !== 'azoni-voidlord-2026') return false;
-    return true;
+    return true; // All classes available to everyone
   });
 
   const PRESETS = [

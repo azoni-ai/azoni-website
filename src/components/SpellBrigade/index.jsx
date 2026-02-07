@@ -10219,6 +10219,8 @@ export default function SpellBrigade() {
         ctx.fillText(dmg.amount, dx + 1, dy + 1);
         ctx.fillStyle = dmg.isCrit
           ? `rgba(255,215,0,${dmg.alpha || 1})`
+          : dmg.color
+          ? dmg.color
           : `rgba(255,255,255,${dmg.alpha || 1})`;
         ctx.fillText(dmg.amount, dx, dy);
       }

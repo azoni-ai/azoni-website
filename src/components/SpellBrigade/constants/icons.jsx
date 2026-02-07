@@ -168,6 +168,16 @@ export const CLASS_SVG = {
       <path d="M9 17l-1 5h2l1-3 1 3h2l-1-5" fill="currentColor"/>
     </svg>
   ),
+  swordsman: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M14.5 2L12 10l-1.5-1L9 10l1-4L8.5 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <path d="M12 10l5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M15.5 3.5l2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="12" y1="10" x2="12" y2="22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="12" cy="13" r="1.5" fill="currentColor"/>
+    </svg>
+  ),
 };
 
 /**
