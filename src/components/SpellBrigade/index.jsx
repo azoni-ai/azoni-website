@@ -6491,6 +6491,7 @@ export default function SpellBrigade() {
         else {
           const time = Date.now() / 1000;
           const enemyType = enemy.type;
+          const r = 14; // Base radius for regular enemies
           
           if (enemyType === 'slime') {
             // Bouncy slime blob
