@@ -217,7 +217,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
         <div className="agent-feed-header">
           <div className="feed-title">
             <span className="feed-pulse"></span>
-            Agent Activity
+            All Agent Activity
           </div>
         </div>
         <div className="feed-loading">Loading activity...</div>
@@ -231,7 +231,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
         <div className="agent-feed-header">
           <div className="feed-title">
             <span className="feed-pulse"></span>
-            Agent Activity
+            All Agent Activity
           </div>
         </div>
         <div className="feed-empty">No recent activity</div>
@@ -244,7 +244,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
       <div className="agent-feed-header">
         <div className="feed-title">
           <span className="feed-pulse"></span>
-          Agent Activity
+          All Agent Activity
         </div>
         <span className="feed-live-badge">Live</span>
       </div>

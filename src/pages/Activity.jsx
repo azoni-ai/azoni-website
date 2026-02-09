@@ -162,11 +162,13 @@ const ACTIVITY_LABELS = {
 
 // Source filter config with brand colors
 const SOURCE_FILTERS = [
-  { value: 'all', label: 'All Sources', color: '#888' },
-  { value: 'moltbook-agent', label: 'Moltbook Agent', color: '#ff6b35' },
+  { value: 'all', label: 'All Agents', color: '#888' },
+  { value: 'azoni-ai', label: 'Azoni AI', color: '#3b82f6' },
+  { value: 'moltbook-agent', label: 'Social Agent', color: '#ff6b35' },
   { value: 'benchpressonly', label: 'BenchPressOnly', color: '#4ade80' },
-  { value: 'spell-brigade', label: 'Spell Brigade', color: '#c084fc' },
   { value: 'rowcrew', label: 'RowCrew', color: '#06b6d4' },
+  { value: 'spell-brigade', label: 'Spell Brigade', color: '#c084fc' },
+  { value: 'old-ways-today', label: 'Old Ways Today', color: '#fb923c' },
 ];
 
 const Activity = () => {
@@ -292,9 +294,9 @@ const Activity = () => {
             <div className="activity-title-section">
               <h1>
                 <span className="activity-pulse"></span>
-                Agent Activity
+                All Agent Activity
               </h1>
-              <p>Real-time feed of AI agent actions and reasoning</p>
+              <p>Real-time feed of all AI agent actions across the Azoni ecosystem</p>
             </div>
             
             <div className="activity-controls">

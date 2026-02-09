@@ -253,10 +253,37 @@ const Home = () => {
           <div className="container">
             <div className="section-header">
               <h2><span className="section-header-pulse"></span> AI Agents</h2>
-              <Link to="/activity" className="view-all">Full activity log →</Link>
+              <Link to="/activity" className="view-all">All agent activity →</Link>
             </div>
 
             <div className="agent-banners-grid">
+              {/* Azoni AI - Master Agent */}
+              <AgentBanner
+                name="Azoni AI"
+                description="Central intelligence that orchestrates all agents, manages this website, and powers the portfolio chatbot"
+                color="#3b82f6"
+                secondaryColor="#8b5cf6"
+                sources={['azoni-ai']}
+                links={[
+                  { label: 'Chat →', url: '/chat', external: false },
+                ]}
+                statusLabel="Coming Soon"
+                statusType="scheduled"
+                stats={[
+                  { value: '5', label: 'agents' },
+                  { value: 'RAG', label: 'powered' },
+                ]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="18" stroke="#3b82f6" strokeWidth="2.5" fill="none"/>
+                    <circle cx="24" cy="24" r="8" stroke="#8b5cf6" strokeWidth="2" fill="none"/>
+                    <circle cx="24" cy="24" r="3" fill="#3b82f6"/>
+                    <path d="M24 6V12M24 36V42M6 24H12M36 24H42" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M11 11L15.5 15.5M32.5 32.5L37 37M37 11L32.5 15.5M15.5 32.5L11 37" stroke="#8b5cf6" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
+                  </svg>
+                }
+              />
+
               {/* Social Agent - Moltbook */}
               <AgentBanner
                 name="Social Agent"
