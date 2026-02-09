@@ -147,30 +147,38 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
   useEffect(() => {
     // Real-time listener for agent activity
     const activityRef = collection(db, 'agent_activity');
-    const q = query(activityRef, orderBy('timestamp', 'desc'), limit(maxItems));
+    let unsubscribe;
+    try {
+      const q = query(activityRef, orderBy('timestamp', 'desc'), limit(maxItems));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setActivities(items);
-      setLoading(false);
-      
-      // Auto-expand first item with reasoning on first load
-      if (firstLoad && items.length > 0) {
-        const firstWithReasoning = items.find(item => item.reasoning);
-        if (firstWithReasoning) {
-          setExpandedId(firstWithReasoning.id);
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setActivities(items);
+        setLoading(false);
+        
+        // Auto-expand first item with reasoning on first load
+        if (firstLoad && items.length > 0) {
+          const firstWithReasoning = items.find(item => item.reasoning);
+          if (firstWithReasoning) {
+            setExpandedId(firstWithReasoning.id);
+          }
+          setFirstLoad(false);
         }
-        setFirstLoad(false);
-      }
-    }, (error) => {
-      console.error('Failed to fetch agent activity:', error);
+      }, (error) => {
+        console.error('Failed to fetch agent activity:', error);
+        setLoading(false);
+      });
+    } catch (err) {
+      console.error('Error setting up activity listener:', err);
       setLoading(false);
-    });
+    }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [maxItems, firstLoad]);
 
   const formatTimeAgo = (timestamp) => {

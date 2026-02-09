@@ -188,29 +188,37 @@ const Activity = () => {
       constraints = [where('source', '==', sourceFilter), ...constraints];
     }
     
-    const q = query(activityRef, ...constraints);
+    let unsubscribe;
+    try {
+      const q = query(activityRef, ...constraints);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // Check for new items
-      if (lastCountRef.current > 0 && items.length > lastCountRef.current) {
-        const newCount = items.length - lastCountRef.current;
-        setNewActivityCount(prev => prev + newCount);
-      }
-      lastCountRef.current = items.length;
-      
-      setActivities(items);
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Check for new items
+        if (lastCountRef.current > 0 && items.length > lastCountRef.current) {
+          const newCount = items.length - lastCountRef.current;
+          setNewActivityCount(prev => prev + newCount);
+        }
+        lastCountRef.current = items.length;
+        
+        setActivities(items);
+        setLoading(false);
+      }, (error) => {
+        console.error('Failed to fetch activity:', error);
+        setLoading(false);
+      });
+    } catch (err) {
+      console.error('Error setting up activity listener:', err);
       setLoading(false);
-    }, (error) => {
-      console.error('Failed to fetch activity:', error);
-      setLoading(false);
-    });
+    }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [sourceFilter]);
 
   const formatTime = (timestamp) => {
@@ -241,14 +249,18 @@ const Activity = () => {
 
   const formatCost = (cost) => {
     if (cost == null || cost === 0) return null;
-    return cost < 0.01 ? `$${cost.toFixed(6)}` : `$${cost.toFixed(4)}`;
+    const numCost = Number(cost);
+    if (isNaN(numCost) || numCost === 0) return null;
+    return numCost < 0.01 ? `$${numCost.toFixed(6)}` : `$${numCost.toFixed(4)}`;
   };
 
   const formatTokens = (tokens) => {
     if (!tokens?.total) return null;
-    return tokens.total >= 1000
-      ? `${(tokens.total / 1000).toFixed(1)}k tokens`
-      : `${tokens.total} tokens`;
+    const total = Number(tokens.total);
+    if (isNaN(total)) return null;
+    return total >= 1000
+      ? `${(total / 1000).toFixed(1)}k tokens`
+      : `${total} tokens`;
   };
 
   const getActivityLink = (activity) => {
@@ -345,6 +357,7 @@ const Activity = () => {
                   const link = getActivityLink(activity);
                   const costStr = formatCost(activity.cost);
                   const tokenStr = formatTokens(activity.tokens);
+                  const title = activity.title || 'Untitled activity';
                   
                   return (
                     <div 
@@ -375,9 +388,9 @@ const Activity = () => {
                         <div className="activity-card-body">
                           <h3 className="activity-title">
                             {link ? (
-                              <Link to={link}>{activity.title}</Link>
+                              <Link to={link}>{title}</Link>
                             ) : (
-                              activity.title
+                              title
                             )}
                           </h3>
                           
@@ -420,7 +433,7 @@ const Activity = () => {
                                 <span className="meta-tag">s/{activity.metadata.submolt}</span>
                               )}
                               {activity.metadata.post_id && (
-                                <span className="meta-tag">Post: {activity.metadata.post_id.slice(0, 8)}...</span>
+                                <span className="meta-tag">Post: {String(activity.metadata.post_id).slice(0, 8)}...</span>
                               )}
                               {activity.metadata.projectId && (
                                 <span className="meta-tag">Project: {activity.metadata.projectId}</span>

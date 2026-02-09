@@ -124,48 +124,68 @@ const AgentBanner = ({
   secondaryColor,
   sources = [],      // filter by source field (array for multi-source like fitness)
   types = [],        // alternatively filter by type field
-  link,              // where the banner links to
+  link,              // single link (backward compat)
   linkLabel = 'View →',
+  links = [],        // [{label, url, external}] for multiple buttons
   statusLabel,       // e.g. "Autonomous", "Playable", "Daily 9am"
   statusType = 'live', // 'live' | 'scheduled' | 'active'
   stats = [],        // [{value, label}]
   maxItems = 5,
   externalLink = false,
+  children,          // custom content (e.g. blog preview)
 }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const feedRef = useRef(null);
 
   useEffect(() => {
-    const activityRef = collection(db, 'agent_activity');
-    let constraints = [orderBy('timestamp', 'desc'), limit(maxItems)];
-
-    // Build filter — use 'in' for multiple sources, '==' for single
-    if (sources.length === 1) {
-      constraints = [where('source', '==', sources[0]), ...constraints];
-    } else if (sources.length > 1) {
-      constraints = [where('source', 'in', sources), ...constraints];
-    } else if (types.length === 1) {
-      constraints = [where('type', '==', types[0]), ...constraints];
-    } else if (types.length > 1) {
-      constraints = [where('type', 'in', types), ...constraints];
+    // If no sources or types provided, skip the query entirely
+    if (sources.length === 0 && types.length === 0) {
+      setLoading(false);
+      return;
     }
 
-    const q = query(activityRef, ...constraints);
+    let unsubscribe;
+    try {
+      const activityRef = collection(db, 'agent_activity');
+      let constraints = [orderBy('timestamp', 'desc'), limit(maxItems)];
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setActivities(items);
-      setLoading(false);
-    }, (error) => {
-      console.error(`Failed to fetch activity for ${name}:`, error);
-      setLoading(false);
-    });
+      // Build filter — use 'in' for multiple sources, '==' for single
+      if (sources.length === 1) {
+        constraints = [where('source', '==', sources[0]), ...constraints];
+      } else if (sources.length > 1) {
+        constraints = [where('source', 'in', sources), ...constraints];
+      } else if (types.length === 1) {
+        constraints = [where('type', '==', types[0]), ...constraints];
+      } else if (types.length > 1) {
+        constraints = [where('type', 'in', types), ...constraints];
+      }
 
-    return () => unsubscribe();
+      const q = query(activityRef, ...constraints);
+
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setActivities(items);
+        setLoading(false);
+        setError(false);
+      }, (err) => {
+        console.error(`Failed to fetch activity for ${name}:`, err);
+        setLoading(false);
+        setError(true);
+      });
+    } catch (err) {
+      console.error(`Error setting up listener for ${name}:`, err);
+      setLoading(false);
+      setError(true);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [sources, types, maxItems, name]);
 
   const formatTimeAgo = (timestamp) => {
@@ -182,20 +202,22 @@ const AgentBanner = ({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const BannerWrapper = ({ children }) => {
-    if (!link) return <div className="agent-banner" style={{ '--banner-color': color, '--banner-color-secondary': secondaryColor || color }}>{children}</div>;
-    if (externalLink) {
-      return (
-        <a href={link} target="_blank" rel="noopener noreferrer" className="agent-banner" style={{ '--banner-color': color, '--banner-color-secondary': secondaryColor || color }}>
-          {children}
-        </a>
-      );
+  // Normalize links: if old single-link API used, convert
+  const allLinks = links.length > 0 ? links : (link ? [{ label: linkLabel, url: link, external: externalLink }] : []);
+  const hasMultipleLinks = allLinks.length > 1 || children;
+
+  const BannerWrapper = ({ children: wrapChildren }) => {
+    const style = { '--banner-color': color, '--banner-color-secondary': secondaryColor || color };
+    // If multiple links or custom children, don't wrap in a single link
+    if (hasMultipleLinks || allLinks.length === 0) {
+      return <div className="agent-banner" style={style}>{wrapChildren}</div>;
     }
-    return (
-      <Link to={link} className="agent-banner" style={{ '--banner-color': color, '--banner-color-secondary': secondaryColor || color }}>
-        {children}
-      </Link>
-    );
+    // Single link — wrap entire banner
+    const lnk = allLinks[0];
+    if (lnk.external) {
+      return <a href={lnk.url} target="_blank" rel="noopener noreferrer" className="agent-banner" style={style}>{wrapChildren}</a>;
+    }
+    return <Link to={lnk.url} className="agent-banner" style={style}>{wrapChildren}</Link>;
   };
 
   return (
@@ -229,6 +251,10 @@ const AgentBanner = ({
           </div>
           {loading ? (
             <div className="mini-feed-empty">Loading...</div>
+          ) : error ? (
+            <div className="mini-feed-empty">Feed connecting...</div>
+          ) : sources.length === 0 && types.length === 0 ? (
+            <div className="mini-feed-empty" style={{ opacity: 0.6 }}>Activity feed coming soon</div>
           ) : activities.length === 0 ? (
             <div className="mini-feed-empty">No recent activity</div>
           ) : (
@@ -249,7 +275,14 @@ const AgentBanner = ({
           )}
         </div>
 
-        {/* Right: Stats + CTA */}
+        {/* Custom content (e.g. blog preview) */}
+        {children && (
+          <div className="agent-banner-extra">
+            {children}
+          </div>
+        )}
+
+        {/* Right: Stats + CTA(s) */}
         <div className="agent-banner-right">
           {stats.length > 0 && (
             <div className="agent-banner-stats">
@@ -261,9 +294,23 @@ const AgentBanner = ({
               ))}
             </div>
           )}
-          {link && (
-            <span className="agent-banner-cta">{linkLabel}</span>
-          )}
+          {hasMultipleLinks ? (
+            <div className="agent-banner-ctas">
+              {allLinks.map((lnk, i) => (
+                lnk.external ? (
+                  <a key={i} href={lnk.url} target="_blank" rel="noopener noreferrer" className="agent-banner-cta" onClick={e => e.stopPropagation()}>
+                    {lnk.label}
+                  </a>
+                ) : (
+                  <Link key={i} to={lnk.url} className="agent-banner-cta" onClick={e => e.stopPropagation()}>
+                    {lnk.label}
+                  </Link>
+                )
+              ))}
+            </div>
+          ) : allLinks.length === 1 ? (
+            <span className="agent-banner-cta">{allLinks[0].label}</span>
+          ) : null}
         </div>
       </div>
     </BannerWrapper>
