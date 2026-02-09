@@ -1,14 +1,20 @@
 /**
- * Webhook for Moltbook Agent to log activity
+ * Webhook for all apps to log AI activity to the portfolio feed
  * 
  * POST https://azoni.ai/.netlify/functions/log-agent-activity
  * 
  * Body: {
- *   type: 'moltbook_post' | 'moltbook_comment' | 'moltbook_upvote' | 'moltbook_reply',
- *   title: 'Posted to Moltbook',
- *   description: 'Post title or action summary',
- *   reasoning: 'Why the agent did this',
- *   metadata: { postId, submolt, etc },
+ *   type: 'workout_generated' | 'group_workout_generated' | 'progress_analyzed' | 
+ *         'assistant_chat' | 'workout_autofilled' | 'wizard_created' | 'dungeon_created' |
+ *         'moltbook_post' | 'moltbook_comment' | 'moltbook_upvote' | ...,
+ *   title: 'Generated Push/Pull Workout',
+ *   description: 'Created a 6-exercise upper body workout for azoni',
+ *   reasoning: 'Why the AI made this decision (optional)',
+ *   source: 'benchpressonly' | 'spell-brigade' | 'moltbook-agent' | 'rowcrew',
+ *   model: 'gpt-4o-mini' | 'claude-sonnet-4' | ...,
+ *   tokens: { prompt: 1200, completion: 800, total: 2000 },
+ *   cost: 0.0012,
+ *   metadata: { workoutId, wizardName, etc },
  *   secret: process.env.AGENT_WEBHOOK_SECRET
  * }
  */
@@ -55,7 +61,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { type, title, description, reasoning, metadata } = body;
+    const { type, title, description, reasoning, metadata, source, model, tokens, cost } = body;
 
     if (!type || !title) {
       return {
@@ -71,14 +77,19 @@ exports.handler = async (event, context) => {
       title,
       description: description || '',
       reasoning: reasoning || '',
+      source: source || 'unknown',
       metadata: metadata || {},
-      source: 'moltbook-agent',
-      timestamp: admin.firestore.Timestamp.now()
+      timestamp: admin.firestore.Timestamp.now(),
     };
+
+    // Add AI cost/usage fields if provided
+    if (model) activity.model = model;
+    if (tokens) activity.tokens = tokens;
+    if (cost !== undefined && cost !== null) activity.cost = cost;
 
     const ref = await db.collection('agent_activity').add(activity);
 
-    console.log(`[log-agent-activity] Logged ${type}: ${title} (${ref.id})`);
+    console.log(`[activity] ${source || '?'}/${type}: ${title} (${ref.id})${cost ? ` $${cost.toFixed(6)}` : ''}`);
 
     return {
       statusCode: 200,

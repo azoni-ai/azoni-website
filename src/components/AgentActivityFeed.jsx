@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import '../styles/agent-feed.css';
 
 const ACTIVITY_ICONS = {
+  // Moltbook agent (existing)
   blog_generated: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
@@ -63,10 +64,59 @@ const ACTIVITY_ICONS = {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
     </svg>
-  )
+  ),
+
+  // BenchPressOnly
+  workout_generated: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6.5 6.5h11M6.5 17.5h11M2 12h3M19 12h3M6.5 6.5v11M17.5 6.5v11"/>
+    </svg>
+  ),
+  group_workout_generated: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+  progress_analyzed: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  ),
+  assistant_chat: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <path d="M8 10h.01M12 10h.01M16 10h.01"/>
+    </svg>
+  ),
+  workout_autofilled: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+
+  // Spell Brigade
+  wizard_created: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7L2 9.4h7.6z"/>
+    </svg>
+  ),
+  dungeon_created: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7"/>
+      <rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/>
+    </svg>
+  ),
 };
 
 const ACTIVITY_COLORS = {
+  // Moltbook
   blog_generated: '#9b5de5',
   moltbook_post: '#ff7a5c',
   moltbook_comment: '#ff7a5c',
@@ -77,8 +127,37 @@ const ACTIVITY_COLORS = {
   chat_answered: '#3b82f6',
   agent_observing: '#f59e0b',
   agent_deciding: '#ec4899',
-  agent_drafting: '#8b5cf6'
+  agent_drafting: '#8b5cf6',
+  // BenchPressOnly
+  workout_generated: '#4ade80',
+  group_workout_generated: '#22d3ee',
+  progress_analyzed: '#f59e0b',
+  assistant_chat: '#818cf8',
+  workout_autofilled: '#a78bfa',
+  // Spell Brigade
+  wizard_created: '#c084fc',
+  dungeon_created: '#fb923c',
 };
+
+const SOURCE_LABELS = {
+  'benchpressonly': 'BenchPressOnly',
+  'spell-brigade': 'Spell Brigade',
+  'moltbook-agent': 'Moltbook Agent',
+  'rowcrew': 'RowCrew',
+};
+
+function formatCost(cost) {
+  if (cost === undefined || cost === null) return null;
+  if (cost < 0.001) return `$${cost.toFixed(6)}`;
+  if (cost < 0.01) return `$${cost.toFixed(4)}`;
+  return `$${cost.toFixed(3)}`;
+}
+
+function formatTokens(tokens) {
+  if (!tokens?.total) return null;
+  if (tokens.total > 1000) return `${(tokens.total / 1000).toFixed(1)}k tokens`;
+  return `${tokens.total} tokens`;
+}
 
 const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false }) => {
   const [activities, setActivities] = useState([]);
@@ -190,6 +269,9 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
           const color = ACTIVITY_COLORS[activity.type] || '#888';
           const hasReasoning = showReasoning && activity.reasoning;
 
+          const costStr = formatCost(activity.cost);
+          const tokensStr = formatTokens(activity.tokens);
+
           const handleItemClick = (e) => {
             // Don't toggle if clicking a link
             if (e.target.tagName === 'A') return;
@@ -226,7 +308,16 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
                   <div className="feed-meta">
                     <span className="feed-time">{formatTimeAgo(activity.timestamp)}</span>
                     {activity.source && (
-                      <span className="feed-source">{activity.source}</span>
+                      <span className="feed-source">{SOURCE_LABELS[activity.source] || activity.source}</span>
+                    )}
+                    {activity.model && (
+                      <span className="feed-model">{activity.model}</span>
+                    )}
+                    {costStr && (
+                      <span className="feed-cost">{costStr}</span>
+                    )}
+                    {tokensStr && !compact && (
+                      <span className="feed-tokens">{tokensStr}</span>
                     )}
                   </div>
                 </div>

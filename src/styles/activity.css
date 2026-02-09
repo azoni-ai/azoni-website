@@ -386,6 +386,27 @@
   border-radius: var(--radius-sm);
 }
 
+.meta-tag.meta-model {
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.meta-tag.meta-cost {
+  color: #4ade80;
+  font-weight: 600;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.meta-tag.meta-tokens {
+  color: var(--text-muted);
+}
+
+.meta-tag.meta-source {
+  text-transform: lowercase;
+}
+
 .activity-card-footer {
   padding: var(--space-sm) var(--space-md);
   border-top: 1px solid var(--border-subtle);

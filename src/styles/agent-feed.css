@@ -130,6 +130,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
   font-size: 0.75rem;
 }
 
@@ -143,6 +144,36 @@
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   text-transform: lowercase;
+}
+
+.feed-model {
+  font-family: var(--font-mono, 'SF Mono', Monaco, 'Courier New', monospace);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.feed-cost {
+  font-family: var(--font-mono, 'SF Mono', Monaco, 'Courier New', monospace);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #4ade80;
+  padding: 2px 6px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.feed-tokens {
+  font-family: var(--font-mono, 'SF Mono', Monaco, 'Courier New', monospace);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
 }
 
 .feed-expand-btn {
@@ -261,5 +292,10 @@
   
   .feed-reasoning {
     padding-left: var(--space-md);
+  }
+
+  .feed-model,
+  .feed-tokens {
+    display: none;
   }
 }
