@@ -62,6 +62,47 @@ const ACTIVITY_ICONS = {
       <circle cx="12" cy="12" r="10"/>
       <path d="M12 6v6l4 2"/>
     </svg>
+  ),
+  // BenchPressOnly
+  workout_generated: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6.5 6.5h11M6.5 17.5h11M4 10h2.5v4H4zM17.5 10H20v4h-2.5zM6.5 11h11v2h-11z"/>
+    </svg>
+  ),
+  group_workout_generated: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+  progress_analyzed: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      <path d="M22 2L12 12"/>
+    </svg>
+  ),
+  assistant_chat: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <path d="M8 10h.01M12 10h.01M16 10h.01"/>
+    </svg>
+  ),
+  workout_autofilled: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+    </svg>
+  ),
+  // Spell Brigade
+  wizard_created: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+  dungeon_created: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
+    </svg>
   )
 };
 
@@ -75,7 +116,16 @@ const ACTIVITY_COLORS = {
   agent_observing: '#f59e0b',
   agent_deciding: '#ec4899',
   agent_drafting: '#8b5cf6',
-  agent_thinking: '#ec4899'
+  agent_thinking: '#ec4899',
+  // BenchPressOnly
+  workout_generated: '#4ade80',
+  group_workout_generated: '#4ade80',
+  progress_analyzed: '#22d3ee',
+  assistant_chat: '#60a5fa',
+  workout_autofilled: '#a78bfa',
+  // Spell Brigade
+  wizard_created: '#c084fc',
+  dungeon_created: '#fb923c'
 };
 
 const ACTIVITY_LABELS = {
@@ -88,13 +138,31 @@ const ACTIVITY_LABELS = {
   agent_observing: 'Observing',
   agent_deciding: 'Deciding',
   agent_drafting: 'Drafting',
-  agent_thinking: 'Thinking'
+  agent_thinking: 'Thinking',
+  // BenchPressOnly
+  workout_generated: 'Workout Generated',
+  group_workout_generated: 'Group Workout',
+  progress_analyzed: 'Progress Analyzed',
+  assistant_chat: 'AI Chat',
+  workout_autofilled: 'Auto-filled',
+  // Spell Brigade
+  wizard_created: 'Wizard Created',
+  dungeon_created: 'Dungeon Created'
 };
+
+// Source filter config with brand colors
+const SOURCE_FILTERS = [
+  { value: 'all', label: 'All Sources', color: '#888' },
+  { value: 'moltbook-agent', label: 'Moltbook Agent', color: '#ff6b35' },
+  { value: 'benchpressonly', label: 'BenchPressOnly', color: '#4ade80' },
+  { value: 'spell-brigade', label: 'Spell Brigade', color: '#c084fc' },
+];
 
 const Activity = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [isLive, ] = useState(true);
   const feedRef = useRef(null);
   const [newActivityCount, setNewActivityCount] = useState(0);
@@ -102,12 +170,21 @@ const Activity = () => {
 
   useEffect(() => {
     const activityRef = collection(db, 'agent_activity');
-    let q = query(activityRef, orderBy('timestamp', 'desc'), limit(100));
     
-    // For specific filters (except 'thinking' which needs client-side filtering)
+    // Build query based on both filters
+    let constraints = [orderBy('timestamp', 'desc'), limit(100)];
+    
+    // Type filter (Firestore where clause for specific types, except 'thinking')
     if (filter !== 'all' && filter !== 'thinking') {
-      q = query(activityRef, where('type', '==', filter), orderBy('timestamp', 'desc'), limit(100));
+      constraints = [where('type', '==', filter), ...constraints];
     }
+    
+    // Source filter (Firestore where clause)
+    if (sourceFilter !== 'all') {
+      constraints = [where('source', '==', sourceFilter), ...constraints];
+    }
+    
+    const q = query(activityRef, ...constraints);
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let items = snapshot.docs.map(doc => ({
@@ -136,7 +213,7 @@ const Activity = () => {
     });
 
     return () => unsubscribe();
-  }, [filter]);
+  }, [filter, sourceFilter]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -162,6 +239,18 @@ const Activity = () => {
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
+  };
+
+  const formatCost = (cost) => {
+    if (cost == null || cost === 0) return null;
+    return cost < 0.01 ? `$${cost.toFixed(6)}` : `$${cost.toFixed(4)}`;
+  };
+
+  const formatTokens = (tokens) => {
+    if (!tokens?.total) return null;
+    return tokens.total >= 1000
+      ? `${(tokens.total / 1000).toFixed(1)}k tokens`
+      : `${tokens.total} tokens`;
   };
 
   const getActivityLink = (activity) => {
@@ -225,6 +314,21 @@ const Activity = () => {
                 Live
               </div>
             </div>
+
+            {/* Source filter tabs */}
+            <div className="source-filters">
+              {SOURCE_FILTERS.map(opt => (
+                <button
+                  key={opt.value}
+                  className={`source-btn ${sourceFilter === opt.value ? 'active' : ''}`}
+                  style={{ '--source-color': opt.color }}
+                  onClick={() => setSourceFilter(opt.value)}
+                >
+                  <span className="source-dot" style={{ background: opt.color }}></span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* New activity notification */}
@@ -250,7 +354,11 @@ const Activity = () => {
                   </svg>
                 </div>
                 <h3>No activity yet</h3>
-                <p>Agent actions will appear here in real-time</p>
+                <p>
+                  {sourceFilter !== 'all' 
+                    ? `No activity from ${SOURCE_FILTERS.find(s => s.value === sourceFilter)?.label || sourceFilter}`
+                    : 'Agent actions will appear here in real-time'}
+                </p>
               </div>
             ) : (
               <div className="activity-timeline">
@@ -259,6 +367,8 @@ const Activity = () => {
                   const icon = ACTIVITY_ICONS[activity.type] || ACTIVITY_ICONS.project_updated;
                   const label = ACTIVITY_LABELS[activity.type] || activity.type;
                   const link = getActivityLink(activity);
+                  const costStr = formatCost(activity.cost);
+                  const tokenStr = formatTokens(activity.tokens);
                   
                   return (
                     <div 
@@ -312,7 +422,22 @@ const Activity = () => {
                             </div>
                           )}
                           
-                          {/* Metadata */}
+                          {/* Cost / Model / Tokens badges */}
+                          {(activity.model || costStr || tokenStr) && (
+                            <div className="activity-metadata">
+                              {activity.model && (
+                                <span className="meta-tag meta-model">{activity.model}</span>
+                              )}
+                              {costStr && (
+                                <span className="meta-tag meta-cost">{costStr}</span>
+                              )}
+                              {tokenStr && (
+                                <span className="meta-tag meta-tokens">{tokenStr}</span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Other metadata */}
                           {activity.metadata && Object.keys(activity.metadata).length > 0 && (
                             <div className="activity-metadata">
                               {activity.metadata.submolt && (
