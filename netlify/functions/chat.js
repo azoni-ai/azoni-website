@@ -126,6 +126,17 @@ function detectIntent(query) {
     return { intent: 'moltbook', confidence: 'HIGH', reason: 'moltbook_keyword' };
   }
   
+  // PRIORITY 0.5: AI activity / cost / usage queries
+  const activityTriggers = [
+    'ai activity', 'ai cost', 'ai spend', 'ai usage', 'token usage', 'token cost',
+    'activity feed', 'activity log', 'how much.*spent.*ai', 'how much.*cost',
+    'what.*ai.*doing', 'what.*ai.*been', 'api cost', 'api spend',
+    'spell brigade.*ai', 'benchpress.*ai', 'ai.*spell brigade', 'ai.*benchpress'
+  ];
+  if (activityTriggers.some(t => new RegExp(t).test(q))) {
+    return { intent: 'activity', confidence: 'HIGH', reason: 'activity_keyword' };
+  }
+  
   // PRIORITY 0.5: Explicit NON-fitness qualifiers (check first)
   const nonFitnessQualifiers = ['career', 'job', 'work', 'professional', 'life', 'personal', 'future'];
   const hasNonFitnessQualifier = nonFitnessQualifiers.some(t => q.includes(t));
@@ -451,8 +462,46 @@ async function getFitnessContext(query) {
   return { context, toolsCalled };
 }
 
-// ============ SYSTEM PROMPT BUILDER ============
-function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = []) {
+// ============ ACTIVITY CONTEXT (from MCP) ============
+async function getActivityContext(query) {
+  const q = query.toLowerCase();
+  const context = [];
+  const toolsCalled = [];
+
+  try {
+    // Always fetch recent activity
+    const recent = await callMCPTool('/activity/recent?limit=15');
+    if (recent && !recent.error) {
+      context.push({ title: 'Recent AI Activity', data: recent });
+      toolsCalled.push('get_recent_activity');
+    }
+
+    // Fetch costs if cost/spend/usage related
+    if (/cost|spend|usage|token|price|expensive|cheap|money|dollar|\$|budget/.test(q)) {
+      const days = /month|30/.test(q) ? 30 : /week|7/.test(q) ? 7 : /year|365/.test(q) ? 365 : 30;
+      const costs = await callMCPTool(`/activity/costs?days=${days}`);
+      if (costs && !costs.error) {
+        context.push({ title: `AI Cost Summary (${days} days)`, data: costs });
+        toolsCalled.push('get_cost_summary');
+      }
+    }
+
+    // Fetch stats if frequency/trend related
+    if (/active|busy|frequent|trend|stats|how (much|often|many)/.test(q)) {
+      const days = /month|30/.test(q) ? 30 : 7;
+      const stats = await callMCPTool(`/activity/stats?days=${days}`);
+      if (stats && !stats.error) {
+        context.push({ title: `Activity Stats (${days} days)`, data: stats });
+        toolsCalled.push('get_activity_stats');
+      }
+    }
+  } catch (error) {
+    console.error('Activity context error:', error);
+  }
+
+  return { context, toolsCalled };
+}
+function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], activityData = []) {
   const toneInstructions = {
     professional: 'Be professional, concise, and highlight relevant qualifications.',
     friendly: 'Be warm and approachable while remaining informative.',
@@ -468,20 +517,26 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = []) {
     ? `\n\nLIVE FITNESS DATA (from BenchPressOnly app - use these real numbers):\n${fitnessData.map(f => `--- ${f.title} ---\n${JSON.stringify(f.data, null, 2)}`).join('\n\n')}`
     : '';
 
+  const activitySection = activityData.length > 0
+    ? `\n\nLIVE AI ACTIVITY DATA (real-time from across all apps - BenchPressOnly, Spell Brigade, Moltbook Agent):\n${activityData.map(a => `--- ${a.title} ---\n${JSON.stringify(a.data, null, 2)}`).join('\n\n')}`
+    : '';
+
   return `You are Azoni-GPT, an AI assistant representing Charlton Smith, a software engineer in Seattle. Answer questions about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton.
 
 TONE: ${toneInstructions[mode] || toneInstructions.professional}
 
 CRITICAL RULES - YOU MUST FOLLOW THESE:
-1. ONLY use information from the RETRIEVED CONTEXT and LIVE FITNESS DATA below. Do not make up details.
+1. ONLY use information from the RETRIEVED CONTEXT and LIVE FITNESS DATA and LIVE AI ACTIVITY DATA below. Do not make up details.
 2. If the context doesn't contain specific information about what the user is asking, say "I don't have detailed information about that in my knowledge base" and suggest they contact Charlton directly.
 3. NEVER invent dates, job titles, company names, or responsibilities that aren't in the context.
 4. NEVER fabricate project details, technologies, or achievements.
 5. If you're unsure, say so. It's better to be honest than to hallucinate.
 6. For fitness questions, use the LIVE FITNESS DATA to give specific, real numbers. This data is pulled in real-time from Charlton's BenchPressOnly app.
 7. When discussing fitness data, mention that this is live data from his actual training log.
+8. For AI activity questions, use the LIVE AI ACTIVITY DATA to give specific numbers about costs, token usage, and activity across apps. This is real-time data from Charlton's AI systems.
 ${contextSection}
 ${fitnessSection}
+${activitySection}
 
 BASIC INFO (always available):
 - Name: Charlton Smith
@@ -532,8 +587,17 @@ exports.handler = async (event, context) => {
       fitnessToolsCalled = fitnessResult.toolsCalled;
     }
     
+    // Fetch AI activity data if relevant
+    let activityContext = [];
+    let activityToolsCalled = [];
+    if (intent.intent === 'activity') {
+      const activityResult = await getActivityContext(latestUserMessage);
+      activityContext = activityResult.context;
+      activityToolsCalled = activityResult.toolsCalled;
+    }
+    
     // Build system prompt with context
-    const systemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext);
+    const systemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext, activityContext);
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -602,6 +666,13 @@ exports.handler = async (event, context) => {
           source: 'azoni-mcp (BenchPressOnly)',
           toolsCalled: fitnessToolsCalled,
           dataPoints: fitnessContext.map(f => f.title)
+        },
+        // Activity/MCP debug info
+        _activity: {
+          enabled: activityContext.length > 0,
+          source: 'azoni-mcp (AI Activity)',
+          toolsCalled: activityToolsCalled,
+          dataPoints: activityContext.map(a => a.title)
         },
         usage: {
           ...usage,
