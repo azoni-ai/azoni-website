@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../styles/agent-banner.css';
 
 // Shared icon/color maps (matching AgentActivityFeed)
@@ -138,6 +138,7 @@ const AgentBanner = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const feedRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // If no sources or types provided, skip the query entirely
@@ -204,24 +205,27 @@ const AgentBanner = ({
 
   // Normalize links: if old single-link API used, convert
   const allLinks = links.length > 0 ? links : (link ? [{ label: linkLabel, url: link, external: externalLink }] : []);
-  const hasMultipleLinks = allLinks.length > 1 || children;
 
-  const BannerWrapper = ({ children: wrapChildren }) => {
-    const style = { '--banner-color': color, '--banner-color-secondary': secondaryColor || color };
-    // If multiple links or custom children, don't wrap in a single link
-    if (hasMultipleLinks || allLinks.length === 0) {
-      return <div className="agent-banner" style={style}>{wrapChildren}</div>;
+  const handleBannerClick = (e) => {
+    // Don't navigate if clicking an actual link/button inside
+    if (e.target.closest('a') || e.target.closest('button')) return;
+    // Navigate to primary link
+    if (allLinks.length > 0) {
+      const primary = allLinks[0];
+      if (primary.external) {
+        window.open(primary.url, '_blank', 'noopener,noreferrer');
+      } else {
+        navigate(primary.url);
+      }
     }
-    // Single link — wrap entire banner
-    const lnk = allLinks[0];
-    if (lnk.external) {
-      return <a href={lnk.url} target="_blank" rel="noopener noreferrer" className="agent-banner" style={style}>{wrapChildren}</a>;
-    }
-    return <Link to={lnk.url} className="agent-banner" style={style}>{wrapChildren}</Link>;
   };
 
   return (
-    <BannerWrapper>
+    <div
+      className="agent-banner"
+      style={{ '--banner-color': color, '--banner-color-secondary': secondaryColor || color, cursor: allLinks.length > 0 ? 'pointer' : 'default' }}
+      onClick={handleBannerClick}
+    >
       <div className="agent-banner-bg"></div>
       <div className="agent-banner-content">
         {/* Left: Icon + Info */}
@@ -294,26 +298,24 @@ const AgentBanner = ({
               ))}
             </div>
           )}
-          {hasMultipleLinks ? (
-            <div className="agent-banner-ctas">
+          {allLinks.length > 0 && (
+            <div className={allLinks.length > 1 ? 'agent-banner-ctas' : ''}>
               {allLinks.map((lnk, i) => (
                 lnk.external ? (
-                  <a key={i} href={lnk.url} target="_blank" rel="noopener noreferrer" className="agent-banner-cta" onClick={e => e.stopPropagation()}>
+                  <a key={i} href={lnk.url} target="_blank" rel="noopener noreferrer" className="agent-banner-cta">
                     {lnk.label}
                   </a>
                 ) : (
-                  <Link key={i} to={lnk.url} className="agent-banner-cta" onClick={e => e.stopPropagation()}>
+                  <Link key={i} to={lnk.url} className="agent-banner-cta">
                     {lnk.label}
                   </Link>
                 )
               ))}
             </div>
-          ) : allLinks.length === 1 ? (
-            <span className="agent-banner-cta">{allLinks[0].label}</span>
-          ) : null}
+          )}
         </div>
       </div>
-    </BannerWrapper>
+    </div>
   );
 };
 

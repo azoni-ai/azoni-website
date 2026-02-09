@@ -64,7 +64,7 @@
 
 .agent-banner-content {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: flex;
   align-items: stretch;
   gap: var(--space-xl);
@@ -278,6 +278,8 @@
   justify-content: space-between;
   flex-shrink: 0;
   gap: var(--space-md);
+  position: relative;
+  z-index: 5;
 }
 
 .agent-banner-stats {
@@ -319,6 +321,9 @@
   white-space: nowrap;
   text-decoration: none;
   display: inline-block;
+  position: relative;
+  z-index: 5;
+  cursor: pointer;
 }
 
 .agent-banner:hover .agent-banner-cta {
@@ -331,6 +336,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
+  z-index: 5;
 }
 
 .agent-banner-ctas .agent-banner-cta {
@@ -361,6 +368,8 @@
   text-decoration: none;
   color: inherit;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 5;
 }
 
 .banner-blog-preview:hover {
