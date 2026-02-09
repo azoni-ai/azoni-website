@@ -168,10 +168,17 @@ export default function SpellBrigade() {
       id: 'dragonSlayer',
       name: 'Dragon Slayer', 
       description: 'Enter the Dragon\'s Gauntlet and slay the Infernal Dragon.',
-      active: false, 
+      active: true, 
       completed: false,
       reward: { xp: 10000, title: 'Dragon Slayer' },
     },
+    // Zone-specific quests (always active - defeat zone bosses for rewards)
+    meadow_quest: { id: 'meadow_quest', name: 'Cleanse the Meadow', description: 'Defeat the Blossom Behemoth corrupting the meadow flowers.', zone: 'meadow', bossName: 'Blossom Behemoth', active: true, completed: false, reward: { xp: 500 } },
+    forest_quest: { id: 'forest_quest', name: 'Fell the Ancient Treant', description: 'Track and destroy the Ancient Treant terrorizing the forest.', zone: 'forest', bossName: 'Ancient Treant', active: true, completed: false, reward: { xp: 1000 } },
+    volcanic_quest: { id: 'volcanic_quest', name: 'Quench the Magma Titan', description: 'Defeat the Magma Titan in the volcanic wastes.', zone: 'volcanic', bossName: 'Magma Titan', active: true, completed: false, reward: { xp: 2000 } },
+    frozen_quest: { id: 'frozen_quest', name: 'Slay the Frost Wyrm', description: 'Hunt down the Frost Wyrm in the frozen expanse.', zone: 'frozen', bossName: 'Frost Wyrm', active: true, completed: false, reward: { xp: 3000 } },
+    crystal_quest: { id: 'crystal_quest', name: 'Shatter the Crystal Golem', description: 'Destroy the Crystal Golem deep in the crystal caves.', zone: 'crystal_caves', bossName: 'Crystal Golem', active: true, completed: false, reward: { xp: 2500 } },
+    abyss_quest: { id: 'abyss_quest', name: 'Banish the Void Overlord', description: 'Confront and banish the Void Overlord from the abyss.', zone: 'abyss', bossName: 'Void Overlord', active: true, completed: false, reward: { xp: 4000 } },
   });
   const [showQuestLog, setShowQuestLog] = useState(false);
   
@@ -905,7 +912,7 @@ export default function SpellBrigade() {
       setPlayerInfo(data.player);
       setScreen('game');
       setTimeout(() => playSound('gameEnter'), 200);
-      if (data.classes) setClasses(data.classes);
+      if (data.classes) setClasses(prev => ({ ...prev, ...data.classes }));
       if (data.world) gameStateRef.current.world = data.world;
       
       // Update saved player and characters list
@@ -958,6 +965,37 @@ export default function SpellBrigade() {
       // Reset input state on join to prevent stuck movement
       inputRef.current = { up: false, down: false, left: false, right: false };
       socket.emit('input', inputRef.current);
+      
+      // Sync quest state from server
+      if (data.player.bossKills || data.player.questActive || data.player.questComplete) {
+        const bossProgress = {};
+        if (data.player.bossKills) {
+          for (const zone of Object.keys(data.player.bossKills)) {
+            bossProgress[zone] = true;
+          }
+        }
+        setQuestLog(prev => {
+          const updated = { ...prev };
+          updated.allBosses = {
+            ...prev.allBosses,
+            active: data.player.questActive || data.player.questComplete || Object.keys(bossProgress).length > 0,
+            progress: bossProgress,
+            completed: data.player.questComplete || false,
+          };
+          // Restore zone quest completion from saved bossKills
+          const zoneQuestMap = {
+            meadow: 'meadow_quest', forest: 'forest_quest', volcanic: 'volcanic_quest',
+            frozen: 'frozen_quest', crystal_caves: 'crystal_quest', abyss: 'abyss_quest',
+          };
+          for (const zone of Object.keys(bossProgress)) {
+            const qid = zoneQuestMap[zone];
+            if (qid && updated[qid]) {
+              updated[qid] = { ...updated[qid], active: true, completed: true };
+            }
+          }
+          return updated;
+        });
+      }
       
       // Link character to account if logged in
       const savedSession = localStorage.getItem('spellBrigadeSession');
@@ -1581,11 +1619,103 @@ export default function SpellBrigade() {
     socket.on('questComplete', (data) => {
       console.log(`🏆 Quest complete: ${data.quest}! Reward: ${data.reward}`);
       setQuestComplete(data);
+      setQuestLog(prev => ({
+        ...prev,
+        allBosses: { ...prev.allBosses, completed: true },
+      }));
       playSound('levelUp');
       setTimeout(() => playSound('levelUp'), 200);
       setTimeout(() => playSound('levelUp'), 400);
       // Auto-hide after 8 seconds
       setTimeout(() => setQuestComplete(null), 8000);
+    });
+
+    socket.on('questAccepted', (data) => {
+      console.log(`📜 Quest accepted: ${data.name}`);
+      const bossProgress = {};
+      if (data.bossKills) {
+        for (const zone of Object.keys(data.bossKills)) {
+          bossProgress[zone] = true;
+        }
+      }
+      setQuestLog(prev => {
+        const updated = { ...prev };
+        // Activate main quest
+        updated.allBosses = { ...prev.allBosses, active: true, progress: bossProgress };
+        // Also activate all zone quests
+        if (data.activateZoneQuests) {
+          const zoneQuests = ['meadow_quest', 'forest_quest', 'volcanic_quest', 'frozen_quest', 'crystal_quest', 'abyss_quest'];
+          for (const qid of zoneQuests) {
+            if (updated[qid]) {
+              updated[qid] = { ...updated[qid], active: true, completed: bossProgress[updated[qid].zone] || false };
+            }
+          }
+        }
+        // Activate dragon slayer quest too
+        updated.dragonSlayer = { ...prev.dragonSlayer, active: true };
+        return updated;
+      });
+    });
+
+    socket.on('questProgress', (data) => {
+      console.log(`📜 Quest progress: boss killed in ${data.zone}`);
+      setQuestLog(prev => {
+        const updated = { ...prev };
+        // Update main Champion quest
+        if (updated.allBosses && !updated.allBosses.completed) {
+          const newProgress = { ...updated.allBosses.progress };
+          if (data.bossKills) {
+            for (const zone of Object.keys(data.bossKills)) {
+              newProgress[zone] = true;
+            }
+          }
+          updated.allBosses = { ...updated.allBosses, progress: newProgress };
+          if (Object.keys(newProgress).length >= 6) {
+            updated.allBosses.completed = true;
+          }
+        }
+        // Complete zone-specific quests
+        if (data.zone) {
+          const zoneQuestMap = {
+            meadow: 'meadow_quest',
+            forest: 'forest_quest', 
+            volcanic: 'volcanic_quest',
+            frozen: 'frozen_quest',
+            crystal_caves: 'crystal_quest',
+            abyss: 'abyss_quest',
+          };
+          const questId = zoneQuestMap[data.zone];
+          if (questId && updated[questId] && updated[questId].active && !updated[questId].completed) {
+            updated[questId] = { ...updated[questId], completed: true };
+          }
+        }
+        return updated;
+      });
+    });
+
+    socket.on('zoneQuestReward', (data) => {
+      console.log(`🎉 Zone quest reward: +${data.xp} XP for defeating ${data.bossName}`);
+      // Update quest log - mark this zone quest as completed
+      const zoneQuestMap = {
+        meadow: 'meadow_quest', forest: 'forest_quest', volcanic: 'volcanic_quest',
+        frozen: 'frozen_quest', crystal_caves: 'crystal_quest', abyss: 'abyss_quest',
+      };
+      const qid = zoneQuestMap[data.zone];
+      if (qid) {
+        setQuestLog(prev => ({
+          ...prev,
+          [qid]: { ...prev[qid], active: true, completed: true },
+        }));
+      }
+      // Show floating notification
+      setQuestComplete({
+        quest: data.zone + '_quest',
+        title: `${data.bossName} Defeated!`,
+        xp: data.xp,
+        bonuses: [`Zone Boss Reward`],
+      });
+      playSound('levelUp');
+      setTimeout(() => setQuestComplete(null), 5000);
     });
 
     socket.on('respawned', () => {
@@ -1626,6 +1756,22 @@ export default function SpellBrigade() {
       if (slot === 3) ability3CooldownRef.current = cooldownEnd;
       setAbilityCooldowns(prev => ({ ...prev, [slot]: cooldownEnd }));
       playSound('ability');
+      
+      // Show ability name as floating text for feedback
+      if (data.abilityName) {
+        const me = playerDataRef.current;
+        if (me) {
+          effectsRef.current.push({
+            type: 'castText',
+            text: data.abilityName,
+            x: me.x,
+            y: me.y - 40,
+            color: data.abilityColor || classes[playerInfo?.class]?.color || '#a78bfa',
+            startTime: Date.now(),
+            duration: 1200,
+          });
+        }
+      }
     });
     
     socket.on('abilityError', (data) => {
@@ -2232,7 +2378,8 @@ export default function SpellBrigade() {
               const dy = me.y - qnpc.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
               if (dist < 100) {
-                // Open dialogue client-side
+                // Open dialogue client-side with quest acceptance
+                const zoneQuestId = qnpc.targetZone.replace('crystal_caves', 'crystal') + '_quest';
                 setNpcDialogue({
                   npcType: 'quest_giver',
                   npcName: qnpc.name,
@@ -2240,6 +2387,11 @@ export default function SpellBrigade() {
                   dialogue: qnpc.lore,
                   followUp: [qnpc.questPrompt, `Recommended: Level ${qnpc.recommendedLevel}+`, `Target: ${qnpc.targetBoss} in ${qnpc.targetZone === 'crystal_caves' ? 'Crystal Caves' : qnpc.targetZone}`],
                   questGiverColor: qnpc.color,
+                  hasChoice: true,
+                  prompt: qnpc.questPrompt,
+                  questId: zoneQuestId,
+                  targetZone: qnpc.targetZone,
+                  targetBoss: qnpc.targetBoss,
                 });
                 return;
               }
@@ -12101,6 +12253,19 @@ export default function SpellBrigade() {
             ctx.shadowBlur = 0;
           }
         }
+        
+        // === CAST TEXT (ability name float) ===
+        else if (ef.type === 'castText') {
+          const tx = ef.x - cx;
+          const ty = ef.y - cy - progress * 40; // Float upward
+          ctx.font = 'bold 14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = `${ef.color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+          ctx.shadowColor = ef.color;
+          ctx.shadowBlur = 6;
+          ctx.fillText(ef.text || '', tx, ty);
+          ctx.shadowBlur = 0;
+        }
 
         return true;
       });
@@ -12605,6 +12770,7 @@ export default function SpellBrigade() {
         setSavedPlayer={setSavedPlayer}
         setSelectedCharIdx={setSelectedCharIdx}
         setScreen={setScreen}
+        setTab={setTab}
         playersOnline={playersOnline}
         socketRef={socketRef}
         sessionTokenRef={sessionTokenRef}
@@ -12659,6 +12825,7 @@ export default function SpellBrigade() {
         setScreen={setScreen}
         playerIdRef={playerIdRef}
         handleNewCharacter={() => { setSavedPlayer(null); setTab('create'); }}
+        adminKeyRef={adminKeyRef}
         settings={settings}
         setSettings={setSettings}
         SVG={SVG}

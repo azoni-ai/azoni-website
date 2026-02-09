@@ -32,6 +32,9 @@ export default function PlayTab({
   DEFAULT_SKINS,
   SERVER_URL,
   sessionTokenRef,
+  adminKeyRef,
+  adminStartLevel,
+  setAdminStartLevel,
 }) {
   const char = savedPlayer || characters[0];
   
@@ -43,9 +46,11 @@ export default function PlayTab({
       playerName: char.name,
       playerClass: char.class,
       selectedSkin: selectedSkin || char.selectedSkin,
+      adminKey: adminKeyRef?.current || undefined,
       sessionToken: sessionTokenRef?.current || null,
       isCustomWizard: char.isCustomWizard || false,
       customIconStyle: char.customIconStyle || null,
+      startLevel: adminStartLevel ? 30 : undefined,
     };
     
     // If already in game, leave first then rejoin after server confirms
@@ -162,6 +167,17 @@ export default function PlayTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+      
+      {/* Guest Mode Banner */}
+      {authState.isGuest && (
+        <div style={{
+          background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)',
+          borderRadius: 10, padding: '10px 16px', maxWidth: 560, width: '100%', textAlign: 'center',
+        }}>
+          <div style={{ color: '#fbbf24', fontSize: '0.85rem', fontWeight: 600 }}>👤 Playing as Guest</div>
+          <div style={{ color: '#888', fontSize: '0.7rem', marginTop: 4 }}>Progress won't be saved. Create an account to keep your characters!</div>
+        </div>
+      )}
       
       {/* Character Roster */}
       {characters.length > 1 && (
@@ -324,19 +340,36 @@ export default function PlayTab({
         )}
         
         {/* Enter Button */}
-        <button 
-          style={{ 
-            width: '100%', padding: '16px 24px', fontSize: '1.1rem', fontWeight: 700,
-            background: `linear-gradient(135deg, ${charColor}, ${charColor}cc)`,
-            border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            boxShadow: `0 4px 20px ${charColor}50`, transition: 'all 0.2s',
-          }} 
-          onClick={handleContinue}
-        >
-          <span style={{ width: 24, height: 24 }}>{SVG.play}</span>
-          Enter World
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button 
+            style={{ 
+              flex: 1, padding: '16px 24px', fontSize: '1.1rem', fontWeight: 700,
+              background: `linear-gradient(135deg, ${charColor}, ${charColor}cc)`,
+              border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              boxShadow: `0 4px 20px ${charColor}50`, transition: 'all 0.2s',
+            }} 
+            onClick={handleContinue}
+          >
+            <span style={{ width: 24, height: 24 }}>{SVG.play}</span>
+            Enter World
+          </button>
+          {adminKeyRef?.current && (
+            <button
+              onClick={() => setAdminStartLevel?.(!adminStartLevel)}
+              style={{
+                padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700,
+                background: adminStartLevel ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)',
+                border: `2px solid ${adminStartLevel ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`,
+                borderRadius: 10, color: adminStartLevel ? '#fbbf24' : '#888',
+                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+              title="Start at level 30 for testing"
+            >
+              Lv30
+            </button>
+          )}
+        </div>
       </div>
       
       {/* Quick Actions */}
@@ -346,7 +379,7 @@ export default function PlayTab({
         >+ New Character</button>
         <button onClick={handleLogout}
           style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
-        >Logout</button>
+        >{authState.isGuest ? 'Sign In / Create Account' : 'Logout'}</button>
       </div>
       
       {/* Delete Confirmation Modal */}

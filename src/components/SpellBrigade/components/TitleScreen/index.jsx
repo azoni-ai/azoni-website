@@ -55,6 +55,9 @@ export default function TitleScreen({
   setScreen,
   playerIdRef,
   handleNewCharacter,
+  adminKeyRef,
+  adminStartLevel,
+  setAdminStartLevel,
   // Settings props
   settings,
   setSettings,
@@ -123,6 +126,8 @@ export default function TitleScreen({
             authState={authState}
             playerInfo={playerInfo}
             adminKey={adminKey}
+            adminStartLevel={adminStartLevel}
+            setAdminStartLevel={setAdminStartLevel}
             wizardPrompt={wizardPrompt}
             setWizardPrompt={setWizardPrompt}
             wizardGenerating={wizardGenerating}
@@ -173,6 +178,9 @@ export default function TitleScreen({
             DEFAULT_SKINS={DEFAULT_SKINS}
             SERVER_URL={SERVER_URL}
             sessionTokenRef={sessionTokenRef}
+            adminKeyRef={adminKeyRef}
+            adminStartLevel={adminStartLevel}
+            setAdminStartLevel={setAdminStartLevel}
           />
         )}
 
