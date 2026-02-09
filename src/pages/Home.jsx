@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
+import AgentBanner from '../components/AgentBanner';
 import '../styles/bento.css';
 
 // Map repo names to live sites
@@ -85,7 +86,6 @@ const Home = () => {
     const fetchFeaturedProjects = async () => {
       try {
         const projectsRef = collection(db, 'projects');
-        // Try to get featured projects, sorted by order
         const q = query(
           projectsRef,
           where('featured', '==', true),
@@ -101,7 +101,6 @@ const Home = () => {
         setFeaturedProjects(projects);
       } catch (err) {
         console.error('Failed to fetch featured projects:', err);
-        // Fallback: try without the compound query (in case index doesn't exist)
         try {
           const projectsRef = collection(db, 'projects');
           const snapshot = await getDocs(projectsRef);
@@ -249,143 +248,109 @@ const Home = () => {
           </div>
         </section>
 
-        {/* AI Ecosystem Section */}
-        <section className="ai-ecosystem-section">
+        {/* ===== AI AGENT BANNERS ===== */}
+        <section className="agent-banners-section">
           <div className="container">
-            <div className="ecosystem-grid">
-              {/* MCP Server */}
-              <Link to="/projects/azoni-mcp" className="ecosystem-card mcp-card">
-                <div className="card-glow mcp-glow"></div>
-                <div className="ecosystem-card-header">
-                  <div className="ecosystem-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="2"/>
-                      <circle cx="16" cy="16" r="4" fill="currentColor"/>
-                      <path d="M16 4V8M16 24V28M4 16H8M24 16H28" stroke="currentColor" strokeWidth="2"/>
-                    </svg>
-                  </div>
-                  <div className="ecosystem-status">
-                    <span className="status-live"><span className="pulse-dot"></span>Live</span>
-                  </div>
-                </div>
-                <h3>MCP Data Server</h3>
-                <p>Exposes live fitness data, project stats, and more to AI agents via Model Context Protocol</p>
-                <div className="ecosystem-stats">
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">REST</span>
-                    <span className="eco-stat-label">API</span>
-                  </div>
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">Real-time</span>
-                    <span className="eco-stat-label">data</span>
-                  </div>
-                </div>
-                <span className="ecosystem-arrow">→</span>
-              </Link>
-
-              {/* AI Blog Writer */}
-              <Link to="/blog" className="ecosystem-card blog-card">
-                <div className="card-glow blog-glow"></div>
-                <div className="ecosystem-card-header">
-                  <div className="ecosystem-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <path d="M8 4H24C25.1 4 26 4.9 26 6V26C26 27.1 25.1 28 24 28H8C6.9 28 6 27.1 6 26V6C6 4.9 6.9 4 8 4Z" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M10 10H22M10 15H22M10 20H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      <circle cx="22" cy="22" r="4" fill="currentColor"/>
-                      <path d="M21 22L22.5 23.5M22.5 20.5L21 22" stroke="var(--bg-primary)" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                  </div>
-                  <div className="ecosystem-status">
-                    <span className="status-scheduled">⏰ Daily 9am</span>
-                  </div>
-                </div>
-                <h3>AI Blog Writer</h3>
-                <p>Reads my GitHub commits every morning and writes a dev log post automatically</p>
-                <div className="ecosystem-stats">
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">{githubStats?.today || 0}</span>
-                    <span className="eco-stat-label">commits today</span>
-                  </div>
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">Auto</span>
-                    <span className="eco-stat-label">generated</span>
-                  </div>
-                </div>
-                <span className="ecosystem-arrow">→</span>
-              </Link>
-
-              {/* RAG Chatbot */}
-              <Link to="/chat" className="ecosystem-card chat-card">
-                <div className="card-glow chat-glow"></div>
-                <div className="ecosystem-card-header">
-                  <div className="ecosystem-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <path d="M4 8C4 6.9 4.9 6 6 6H26C27.1 6 28 6.9 28 8V20C28 21.1 27.1 22 26 22H20L16 26L12 22H6C4.9 22 4 21.1 4 20V8Z" stroke="currentColor" strokeWidth="2"/>
-                      <circle cx="10" cy="14" r="1.5" fill="currentColor"/>
-                      <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
-                      <circle cx="22" cy="14" r="1.5" fill="currentColor"/>
-                    </svg>
-                  </div>
-                  <div className="ecosystem-status">
-                    <span className="status-live"><span className="pulse-dot"></span>Ready</span>
-                  </div>
-                </div>
-                <h3>RAG Chatbot</h3>
-                <p>Ask about my work, skills, or paste a job description for AI-powered fit analysis</p>
-                <div className="ecosystem-stats">
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">RAG</span>
-                    <span className="eco-stat-label">powered</span>
-                  </div>
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">MCP</span>
-                    <span className="eco-stat-label">connected</span>
-                  </div>
-                </div>
-                <span className="ecosystem-arrow">→</span>
-              </Link>
+            <div className="section-header">
+              <h2><span className="section-header-pulse"></span> AI Agents</h2>
+              <Link to="/activity" className="view-all">Full activity log →</Link>
             </div>
-          </div>
-        </section>
 
-        {/* Moltbook Agent Banner - moved below ecosystem cards */}
-        <section className="moltbook-banner-section">
-          <div className="container">
-            <Link to="/moltbook" className="moltbook-banner">
-              <div className="moltbook-banner-bg"></div>
-              <div className="moltbook-banner-content">
-                <div className="moltbook-banner-icon">
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <div className="agent-banners-grid">
+              {/* Social Agent - Moltbook */}
+              <AgentBanner
+                name="Social Agent"
+                description="LangGraph-powered agent that browses, reasons, and posts to Moltbook independently"
+                color="#ff6b35"
+                secondaryColor="#ff9a5c"
+                sources={['moltbook-agent']}
+                link="/moltbook"
+                linkLabel="View Agent →"
+                statusLabel={moltbookStatus?.autonomous_mode ? 'Autonomous' : 'Active'}
+                statusType="live"
+                stats={[
+                  { value: moltbookStatus?.posts_today || 0, label: 'today' },
+                  { value: moltbookStatus?.total_actions || '∞', label: 'actions' },
+                ]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
                     <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="#ff6b35"/>
                     <circle cx="20" cy="12" r="2" fill="#0f0f1a"/>
                     <circle cx="28" cy="12" r="2" fill="#0f0f1a"/>
                   </svg>
-                </div>
-                <div className="moltbook-banner-text">
-                  <div className="moltbook-banner-header">
-                    <h3>AI Social Agent</h3>
-                    {moltbookStatus?.autonomous_mode && (
-                      <span className="moltbook-status-badge">
-                        <span className="status-dot-live"></span>
-                        Autonomous
-                      </span>
-                    )}
-                  </div>
-                  <p>LangGraph-powered agent that browses, reasons, and posts to Moltbook independently</p>
-                </div>
-                <div className="moltbook-banner-stats">
-                  <div className="moltbook-stat">
-                    <span className="moltbook-stat-value">{moltbookStatus?.posts_today || 0}</span>
-                    <span className="moltbook-stat-label">today</span>
-                  </div>
-                  <div className="moltbook-stat">
-                    <span className="moltbook-stat-value">{moltbookStatus?.total_actions || '∞'}</span>
-                    <span className="moltbook-stat-label">actions</span>
-                  </div>
-                </div>
-                <span className="moltbook-banner-btn">View Agent →</span>
-              </div>
-            </Link>
+                }
+              />
+
+              {/* Gaming Agent - Spell Brigade */}
+              <AgentBanner
+                name="Gaming Agent"
+                description="Multiplayer wizard survival — AI generates wizards, dungeons, and enemy encounters"
+                color="#9b5de5"
+                secondaryColor="#ffd93d"
+                sources={['spell-brigade']}
+                link="/game"
+                linkLabel="Play Now"
+                externalLink={false}
+                statusLabel="Playable"
+                statusType="live"
+                stats={[]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
+                    <circle cx="24" cy="22" r="6" fill="#9b5de5"/>
+                  </svg>
+                }
+              />
+
+              {/* Fitness Agent - BenchPressOnly + RowCrew */}
+              <AgentBanner
+                name="Fitness Agent"
+                description="AI workout generation, progress tracking, and rowing verification across BenchPressOnly and RowCrew"
+                color="#4ade80"
+                secondaryColor="#22d3ee"
+                sources={['benchpressonly', 'rowcrew']}
+                link="https://benchpressonly.com"
+                linkLabel="BenchPressOnly →"
+                externalLink={true}
+                statusLabel="Active"
+                statusType="live"
+                stats={[]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+                    <rect x="8" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
+                    <rect x="34" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
+                    <rect x="14" y="18" width="20" height="4" rx="1" fill="#22d3ee"/>
+                    <rect x="14" y="26" width="20" height="4" rx="1" fill="#22d3ee"/>
+                    <rect x="22" y="10" width="4" height="28" rx="2" fill="#4ade80" opacity="0.6"/>
+                  </svg>
+                }
+              />
+
+              {/* Blog Writer Agent */}
+              <AgentBanner
+                name="Blog Writer Agent"
+                description="Reads GitHub commits every morning and writes a dev log post automatically"
+                color="#9b5de5"
+                secondaryColor="#3b82f6"
+                types={['blog_generated']}
+                link="/blog"
+                linkLabel="Read Blog →"
+                statusLabel="Daily 9am"
+                statusType="scheduled"
+                stats={[
+                  { value: githubStats?.today || 0, label: 'commits' },
+                  { value: 'Auto', label: 'generated' },
+                ]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+                    <path d="M12 6H36C37.66 6 39 7.34 39 9V39C39 40.66 37.66 42 36 42H12C10.34 42 9 40.66 9 39V9C9 7.34 10.34 6 12 6Z" stroke="#9b5de5" strokeWidth="2.5" fill="none"/>
+                    <path d="M15 15H33M15 22.5H33M15 30H24" stroke="#9b5de5" strokeWidth="2.5" strokeLinecap="round"/>
+                    <circle cx="33" cy="33" r="6" fill="#9b5de5"/>
+                    <path d="M31.5 33L33.5 35M33.5 31L31.5 33" stroke="#0f0f1a" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                }
+              />
+            </div>
           </div>
         </section>
 
@@ -428,36 +393,102 @@ const Home = () => {
           </section>
         )}
 
-        {/* Spell Brigade Game Banner */}
-        <section className="cta-section">
+        {/* AI Ecosystem Section */}
+        <section className="ai-ecosystem-section">
           <div className="container">
-            <a href="/game" target="_blank" rel="noopener noreferrer" className="game-banner">
-              <div className="game-banner-bg"></div>
-              <div className="game-banner-content">
-                <div className="game-banner-icon">
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
-                    <circle cx="24" cy="22" r="6" fill="#ff6b35"/>
-                  </svg>
-                </div>
-                <div className="game-banner-text">
-                  <div className="game-banner-header">
-                    <h3>Spell Brigade</h3>
-                    <span className="game-status-badge">
-                      <span className="status-dot-live"></span>
-                      Playable
-                    </span>
+            <div className="ecosystem-grid ecosystem-grid-3">
+              {/* MCP Server */}
+              <Link to="/projects/azoni-mcp" className="ecosystem-card mcp-card">
+                <div className="card-glow mcp-glow"></div>
+                <div className="ecosystem-card-header">
+                  <div className="ecosystem-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="2"/>
+                      <circle cx="16" cy="16" r="4" fill="currentColor"/>
+                      <path d="M16 4V8M16 24V28M4 16H8M24 16H28" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
                   </div>
-                  <p>Multiplayer wizard survival — choose your class, explore dangerous zones, defeat enemies</p>
+                  <div className="ecosystem-status">
+                    <span className="status-live"><span className="pulse-dot"></span>Live</span>
+                  </div>
                 </div>
-                <div className="game-banner-classes">
-                  <span className="class-dot pyro" title="Pyromancer"></span>
-                  <span className="class-dot cryo" title="Cryomancer"></span>
-                  <span className="class-dot arcane" title="Arcanist"></span>
+                <h3>MCP Data Server</h3>
+                <p>Exposes live fitness data, project stats, and more to AI agents via Model Context Protocol</p>
+                <div className="ecosystem-stats">
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">REST</span>
+                    <span className="eco-stat-label">API</span>
+                  </div>
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">Real-time</span>
+                    <span className="eco-stat-label">data</span>
+                  </div>
                 </div>
-                <span className="game-banner-btn">Play Now</span>
-              </div>
-            </a>
+                <span className="ecosystem-arrow">→</span>
+              </Link>
+
+              {/* RAG Chatbot */}
+              <Link to="/chat" className="ecosystem-card chat-card">
+                <div className="card-glow chat-glow"></div>
+                <div className="ecosystem-card-header">
+                  <div className="ecosystem-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M4 8C4 6.9 4.9 6 6 6H26C27.1 6 28 6.9 28 8V20C28 21.1 27.1 22 26 22H20L16 26L12 22H6C4.9 22 4 21.1 4 20V8Z" stroke="currentColor" strokeWidth="2"/>
+                      <circle cx="10" cy="14" r="1.5" fill="currentColor"/>
+                      <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
+                      <circle cx="22" cy="14" r="1.5" fill="currentColor"/>
+                    </svg>
+                  </div>
+                  <div className="ecosystem-status">
+                    <span className="status-live"><span className="pulse-dot"></span>Ready</span>
+                  </div>
+                </div>
+                <h3>RAG Chatbot</h3>
+                <p>Ask about my work, skills, or paste a job description for AI-powered fit analysis</p>
+                <div className="ecosystem-stats">
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">RAG</span>
+                    <span className="eco-stat-label">powered</span>
+                  </div>
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">MCP</span>
+                    <span className="eco-stat-label">connected</span>
+                  </div>
+                </div>
+                <span className="ecosystem-arrow">→</span>
+              </Link>
+
+              {/* Old Ways Today */}
+              <a href="https://oldwaystoday.com" target="_blank" rel="noopener noreferrer" className="ecosystem-card oldways-card">
+                <div className="card-glow oldways-glow"></div>
+                <div className="ecosystem-card-header">
+                  <div className="ecosystem-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M16 4C9.4 4 4 9.4 4 16s5.4 12 12 12 12-5.4 12-12S22.6 4 16 4z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M10 14c0-2 1.5-4 3.5-4s3 1.5 3 3c0 2-3 3-3 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <circle cx="13.5" cy="22" r="1.5" fill="currentColor"/>
+                      <path d="M20 11l4-3M20 16h4M20 21l4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div className="ecosystem-status">
+                    <span className="status-live"><span className="pulse-dot"></span>Live</span>
+                  </div>
+                </div>
+                <h3>Old Ways Today</h3>
+                <p>AI-powered platform helping families discover non-toxic, traditional product alternatives</p>
+                <div className="ecosystem-stats">
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">RAG</span>
+                    <span className="eco-stat-label">chat</span>
+                  </div>
+                  <div className="eco-stat">
+                    <span className="eco-stat-value">AI</span>
+                    <span className="eco-stat-label">blog</span>
+                  </div>
+                </div>
+                <span className="ecosystem-arrow">→</span>
+              </a>
+            </div>
           </div>
         </section>
 

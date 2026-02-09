@@ -1,0 +1,406 @@
+/* ============ AGENT BANNERS ============ */
+
+.agent-banners-section {
+  padding: var(--space-lg) 0 var(--space-2xl);
+}
+
+.agent-banners-section .section-header {
+  margin-bottom: var(--space-lg);
+}
+
+.agent-banners-section .section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-header-pulse {
+  width: 10px;
+  height: 10px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+  display: inline-block;
+}
+
+.agent-banners-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Individual Banner */
+.agent-banner {
+  display: block;
+  position: relative;
+  padding: var(--space-lg) var(--space-xl);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--banner-color) 12%, transparent) 0%,
+    color-mix(in srgb, var(--banner-color-secondary) 5%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--banner-color) 25%, transparent);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.agent-banner:hover {
+  border-color: color-mix(in srgb, var(--banner-color) 50%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--banner-color) 15%, transparent);
+}
+
+.agent-banner-bg {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 5% 50%, color-mix(in srgb, var(--banner-color) 10%, transparent), transparent 40%),
+    radial-gradient(circle at 95% 30%, color-mix(in srgb, var(--banner-color-secondary) 6%, transparent), transparent 40%);
+  pointer-events: none;
+}
+
+.agent-banner-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-xl);
+}
+
+/* Left: Icon + Text */
+.agent-banner-info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  flex: 0 0 280px;
+  min-width: 0;
+}
+
+.agent-banner-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--banner-color) 15%, transparent);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--banner-color) 20%, transparent);
+}
+
+.agent-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-banner-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.agent-banner-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.agent-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.agent-status-badge.status-live {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.agent-status-badge.status-scheduled {
+  color: var(--banner-color);
+  background: color-mix(in srgb, var(--banner-color) 10%, transparent);
+}
+
+.agent-status-badge.status-active {
+  color: var(--banner-color);
+  background: color-mix(in srgb, var(--banner-color) 10%, transparent);
+}
+
+.status-dot-live {
+  width: 6px;
+  height: 6px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+}
+
+.status-dot-scheduled,
+.status-dot-active {
+  width: 6px;
+  height: 6px;
+  background: var(--banner-color);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.agent-banner-text p {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Middle: Mini Activity Feed */
+.agent-banner-feed {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.agent-banner-feed-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.mini-feed-pulse {
+  width: 6px;
+  height: 6px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+}
+
+.mini-feed-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.mini-feed-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.mini-feed-list {
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.mini-feed-list::-webkit-scrollbar {
+  width: 3px;
+}
+
+.mini-feed-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mini-feed-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.mini-feed-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+.mini-feed-item:last-child {
+  border-bottom: none;
+}
+
+.mini-feed-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mini-feed-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.mini-feed-title {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 400;
+}
+
+.mini-feed-time {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono, monospace);
+}
+
+/* Right: Stats + CTA */
+.agent-banner-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: var(--space-md);
+}
+
+.agent-banner-stats {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.agent-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.agent-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+}
+
+.agent-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.agent-banner-cta {
+  padding: 8px 20px;
+  background: linear-gradient(135deg, var(--banner-color), var(--banner-color-secondary));
+  color: #0f0f1a;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.agent-banner:hover .agent-banner-cta {
+  filter: brightness(1.15);
+  transform: translateX(2px);
+}
+
+/* ============ MOBILE RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .agent-banner-content {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .agent-banner-info {
+    flex: 1 1 100%;
+  }
+
+  .agent-banner-feed {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .agent-banner-right {
+    flex-direction: row;
+    align-items: center;
+    flex: 1 1 100%;
+    order: 2;
+  }
+
+  .agent-banner-cta {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .agent-banner {
+    padding: var(--space-md);
+  }
+
+  .agent-banner-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .agent-banner-header h3 {
+    font-size: 1rem;
+  }
+
+  .agent-banner-text p {
+    font-size: 0.78rem;
+  }
+
+  .agent-banner-feed {
+    max-height: none;
+  }
+
+  .mini-feed-list {
+    max-height: 120px;
+  }
+
+  .agent-banner-stats {
+    gap: var(--space-md);
+  }
+
+  .agent-stat-value {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .agent-banner-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+  
+  .agent-banner-right {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .agent-banner-cta {
+    width: 100%;
+    text-align: center;
+  }
+}

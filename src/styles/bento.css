@@ -944,6 +944,14 @@ a.commit-repo:hover {
 .mcp-glow { background: radial-gradient(ellipse at top, rgba(32, 217, 210, 0.2), transparent 70%); }
 .blog-glow { background: radial-gradient(ellipse at top, rgba(155, 93, 229, 0.2), transparent 70%); }
 .chat-glow { background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.2), transparent 70%); }
+.oldways-glow { background: radial-gradient(ellipse at top, rgba(251, 146, 60, 0.2), transparent 70%); }
+
+/* 3-column variant for ecosystem grid */
+.ecosystem-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.oldways-card .ecosystem-icon { color: #fb923c; }
 
 .ecosystem-card-header {
   display: flex;
@@ -1200,10 +1208,14 @@ a.commit-repo:hover {
   .ecosystem-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .ecosystem-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-  .ecosystem-grid {
+  .ecosystem-grid,
+  .ecosystem-grid-3 {
     grid-template-columns: 1fr;
   }
   
