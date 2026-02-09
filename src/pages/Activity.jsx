@@ -103,6 +103,12 @@ const ACTIVITY_ICONS = {
       <rect x="3" y="3" width="18" height="18" rx="2"/>
       <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
     </svg>
+  ),
+  // RowCrew
+  row_verified: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M2 12h4l3-9 6 18 3-9h4"/>
+    </svg>
   )
 };
 
@@ -125,7 +131,9 @@ const ACTIVITY_COLORS = {
   workout_autofilled: '#a78bfa',
   // Spell Brigade
   wizard_created: '#c084fc',
-  dungeon_created: '#fb923c'
+  dungeon_created: '#fb923c',
+  // RowCrew
+  row_verified: '#06b6d4'
 };
 
 const ACTIVITY_LABELS = {
@@ -147,7 +155,9 @@ const ACTIVITY_LABELS = {
   workout_autofilled: 'Auto-filled',
   // Spell Brigade
   wizard_created: 'Wizard Created',
-  dungeon_created: 'Dungeon Created'
+  dungeon_created: 'Dungeon Created',
+  // RowCrew
+  row_verified: 'Row Verified'
 };
 
 // Source filter config with brand colors
@@ -156,12 +166,12 @@ const SOURCE_FILTERS = [
   { value: 'moltbook-agent', label: 'Moltbook Agent', color: '#ff6b35' },
   { value: 'benchpressonly', label: 'BenchPressOnly', color: '#4ade80' },
   { value: 'spell-brigade', label: 'Spell Brigade', color: '#c084fc' },
+  { value: 'rowcrew', label: 'RowCrew', color: '#06b6d4' },
 ];
 
 const Activity = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [isLive, ] = useState(true);
   const feedRef = useRef(null);
@@ -171,15 +181,9 @@ const Activity = () => {
   useEffect(() => {
     const activityRef = collection(db, 'agent_activity');
     
-    // Build query based on both filters
     let constraints = [orderBy('timestamp', 'desc'), limit(100)];
     
-    // Type filter (Firestore where clause for specific types, except 'thinking')
-    if (filter !== 'all' && filter !== 'thinking') {
-      constraints = [where('type', '==', filter), ...constraints];
-    }
-    
-    // Source filter (Firestore where clause)
+    // Source filter
     if (sourceFilter !== 'all') {
       constraints = [where('source', '==', sourceFilter), ...constraints];
     }
@@ -187,16 +191,10 @@ const Activity = () => {
     const q = query(activityRef, ...constraints);
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      let items = snapshot.docs.map(doc => ({
+      const items = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      
-      // Client-side filter for "thinking" types
-      if (filter === 'thinking') {
-        const thinkingTypes = ['agent_observing', 'agent_deciding', 'agent_drafting'];
-        items = items.filter(item => thinkingTypes.includes(item.type));
-      }
       
       // Check for new items
       if (lastCountRef.current > 0 && items.length > lastCountRef.current) {
@@ -213,7 +211,7 @@ const Activity = () => {
     });
 
     return () => unsubscribe();
-  }, [filter, sourceFilter]);
+  }, [sourceFilter]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -273,15 +271,6 @@ const Activity = () => {
     setNewActivityCount(0);
   };
 
-  const filterOptions = [
-    { value: 'all', label: 'All Activity' },
-    { value: 'moltbook_post', label: 'Posts' },
-    { value: 'moltbook_comment', label: 'Comments' },
-    { value: 'blog_generated', label: 'Blog' },
-    { value: 'rag_chunk_created', label: 'Knowledge' },
-    { value: 'thinking', label: 'Thinking' }
-  ];
-
   return (
     <Layout>
       <div className="activity-page">
@@ -297,13 +286,15 @@ const Activity = () => {
             </div>
             
             <div className="activity-controls">
-              <div className="activity-filters">
-                {filterOptions.map(opt => (
+              <div className="source-filters">
+                {SOURCE_FILTERS.map(opt => (
                   <button
                     key={opt.value}
-                    className={`filter-btn ${filter === opt.value ? 'active' : ''}`}
-                    onClick={() => setFilter(opt.value)}
+                    className={`source-btn ${sourceFilter === opt.value ? 'active' : ''}`}
+                    style={{ '--source-color': opt.color }}
+                    onClick={() => setSourceFilter(opt.value)}
                   >
+                    <span className="source-dot" style={{ background: opt.color }}></span>
                     {opt.label}
                   </button>
                 ))}
@@ -313,21 +304,6 @@ const Activity = () => {
                 <span className="live-dot"></span>
                 Live
               </div>
-            </div>
-
-            {/* Source filter tabs */}
-            <div className="source-filters">
-              {SOURCE_FILTERS.map(opt => (
-                <button
-                  key={opt.value}
-                  className={`source-btn ${sourceFilter === opt.value ? 'active' : ''}`}
-                  style={{ '--source-color': opt.color }}
-                  onClick={() => setSourceFilter(opt.value)}
-                >
-                  <span className="source-dot" style={{ background: opt.color }}></span>
-                  {opt.label}
-                </button>
-              ))}
             </div>
           </div>
 
