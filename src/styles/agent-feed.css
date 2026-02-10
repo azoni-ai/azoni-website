@@ -30,8 +30,6 @@
   height: 8px;
   background: #4ade80;
   border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
 }
 
 .feed-live-badge {

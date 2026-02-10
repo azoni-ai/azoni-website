@@ -436,6 +436,64 @@ const Home = () => {
           </div>
         </section>
 
+        {/* Services */}
+        <section className="services-section">
+          <div className="container">
+            <div className="section-header">
+              <h2>Services</h2>
+            </div>
+            <div className="services-grid">
+              <Link to="/projects/azoni-mcp" className="service-card">
+                <div className="service-card-accent" style={{ background: 'var(--accent-primary)' }} />
+                <div className="service-card-body">
+                  <div className="service-card-header">
+                    <h3>MCP Data Server</h3>
+                    <span className="service-status">Live</span>
+                  </div>
+                  <p>Exposes live fitness data, project stats, and more to AI agents via Model Context Protocol.</p>
+                  <div className="service-tech">
+                    <span>Node.js</span>
+                    <span>REST API</span>
+                    <span>Firebase</span>
+                  </div>
+                </div>
+              </Link>
+
+              <Link to="/chat" className="service-card">
+                <div className="service-card-accent" style={{ background: '#8b5cf6' }} />
+                <div className="service-card-body">
+                  <div className="service-card-header">
+                    <h3>RAG Chatbot</h3>
+                    <span className="service-status">Live</span>
+                  </div>
+                  <p>Ask about my work, skills, or paste a job description for AI-powered fit analysis.</p>
+                  <div className="service-tech">
+                    <span>Claude API</span>
+                    <span>RAG</span>
+                    <span>MCP</span>
+                  </div>
+                </div>
+              </Link>
+
+              <a href="https://www.embedroute.com" target="_blank" rel="noopener noreferrer" className="service-card">
+                <div className="service-card-accent" style={{ background: '#22d3ee' }} />
+                <div className="service-card-body">
+                  <div className="service-card-header">
+                    <h3>EmbedRoute</h3>
+                    <span className="service-status">Live</span>
+                  </div>
+                  <p>Unified embedding API — one endpoint for OpenAI, Cohere, Voyage, and more. Powers RAG across all apps.</p>
+                  <div className="service-tech">
+                    <span>Node.js</span>
+                    <span>REST API</span>
+                    <span>Multi-provider</span>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* Projects */}
         <section className="projects-section">
           <div className="container">
@@ -448,38 +506,6 @@ const Home = () => {
               <p style={{ color: 'var(--text-muted)' }}>Loading projects...</p>
             ) : (
               <div className="projects-grid">
-                {/* MCP Data Server */}
-                <Link to="/projects/azoni-mcp" className="project-card">
-                  <div className="project-top">
-                    <span className="project-live">Live</span>
-                  </div>
-                  <h3>MCP Data Server</h3>
-                  <p className="project-tagline">Model Context Protocol</p>
-                  <p className="project-desc">Exposes live fitness data, project stats, and more to AI agents via REST API with real-time data feeds.</p>
-                  <div className="project-tech">
-                    <span>Node.js</span>
-                    <span>MCP</span>
-                    <span>REST API</span>
-                    <span>Firebase</span>
-                  </div>
-                </Link>
-
-                {/* RAG Chatbot */}
-                <Link to="/chat" className="project-card">
-                  <div className="project-top">
-                    <span className="project-live">Live</span>
-                  </div>
-                  <h3>RAG Chatbot</h3>
-                  <p className="project-tagline">AI-Powered Portfolio Assistant</p>
-                  <p className="project-desc">Ask about my work, skills, or paste a job description for AI-powered fit analysis.</p>
-                  <div className="project-tech">
-                    <span>Claude API</span>
-                    <span>RAG</span>
-                    <span>EmbedRoute</span>
-                    <span>MCP</span>
-                  </div>
-                </Link>
-
                 {featuredProjects.map((project) => (
                   <Link key={project.id} to={`/projects/${project.id}`} className="project-card">
                     <div className="project-top">
