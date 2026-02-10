@@ -257,15 +257,15 @@ const Home = () => {
               {/* Azoni AI - Master Agent */}
               <AgentBanner
                 name="Azoni AI"
-                description="Central intelligence that orchestrates all agents, manages this website, and powers the portfolio chatbot"
+                description="RAG-powered portfolio chatbot with MCP integration. Answers questions about my work, analyzes job fit, and pulls live data from all projects."
                 color="#3b82f6"
                 secondaryColor="#8b5cf6"
                 sources={['azoni-ai']}
                 links={[
                   { label: 'Chat →', url: '/chat', external: false },
                 ]}
-                statusLabel="Coming Soon"
-                statusType="scheduled"
+                statusLabel="Active"
+                statusType="live"
                 stats={[
                   { value: '5', label: 'agents' },
                   { value: 'RAG', label: 'powered' },
@@ -366,7 +366,7 @@ const Home = () => {
               {/* Gaming Agent - Spell Brigade */}
               <AgentBanner
                 name="Gaming Agent"
-                description="Multiplayer wizard survival — AI generates wizards, dungeons, and enemy encounters"
+                description="Multiplayer wizard survival — procedurally generated classes, dungeons, and encounters with AI-driven monster behavior"
                 color="#ffd93d"
                 secondaryColor="#f59e0b"
                 sources={['spell-brigade']}

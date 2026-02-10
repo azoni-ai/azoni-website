@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import '../styles/agent-banner.css';
 
 // Shared icon/color maps (matching AgentActivityFeed)
@@ -138,7 +138,6 @@ const AgentBanner = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const feedRef = useRef(null);
-  const navigate = useNavigate();
 
   // Stabilize array props to prevent infinite re-renders
   const sourcesKey = useMemo(() => JSON.stringify(sources), [sources]);
@@ -206,25 +205,10 @@ const AgentBanner = ({
   // Normalize links: if old single-link API used, convert
   const allLinks = links.length > 0 ? links : (link ? [{ label: linkLabel, url: link, external: externalLink }] : []);
 
-  const handleBannerClick = (e) => {
-    // Don't navigate if clicking an actual link/button inside
-    if (e.target.closest('a') || e.target.closest('button')) return;
-    // Navigate to primary link
-    if (allLinks.length > 0) {
-      const primary = allLinks[0];
-      if (primary.external) {
-        window.open(primary.url, '_blank', 'noopener,noreferrer');
-      } else {
-        navigate(primary.url);
-      }
-    }
-  };
-
   return (
     <div
       className="agent-banner"
-      style={{ '--banner-color': color, '--banner-color-secondary': secondaryColor || color, cursor: allLinks.length > 0 ? 'pointer' : 'default' }}
-      onClick={handleBannerClick}
+      style={{ '--banner-color': color, '--banner-color-secondary': secondaryColor || color }}
     >
       <div className="agent-banner-bg"></div>
       <div className="agent-banner-content">

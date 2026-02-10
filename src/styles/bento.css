@@ -152,7 +152,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 260px;
+  height: 340px;
 }
 
 /* Agent activity card in half width */
@@ -268,8 +268,6 @@
 .commits-list {
   padding: 0;
   flex: 1;
-  overflow-y: auto;
-  min-height: 0;
 }
 
 .commit-row {
