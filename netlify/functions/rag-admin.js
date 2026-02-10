@@ -1150,6 +1150,81 @@ Features:
 This project demonstrates Charlton's expertise in AI agents, LLM orchestration, and building autonomous systems.`
     },
 
+    // ============ AZONI AI & AGENT ARCHITECTURE (3) ============
+    {
+      category: 'agents',
+      title: 'Azoni AI - Agent Architecture Overview',
+      content: `Charlton built a multi-agent AI system that runs autonomously across his portfolio. The system is called "Azoni AI" and consists of a central orchestrator plus 5 specialized agents.
+
+The Agents:
+1. Azoni AI (Orchestrator) — Central intelligence that monitors all systems every 3 hours. Gathers state from GitHub, Firestore, MCP server, and all agent services. Uses an LLM to decide what actions to take: trigger blog generation, coordinate social sharing, flag health issues, or log milestones. Runs as a Netlify scheduled function.
+
+2. Blog Writer Agent — Runs daily at 9am PT. Fetches GitHub commits from the previous day via GraphQL API, sends them to an LLM (via OpenRouter), and generates a narrative dev blog post with SVG cover art. Publishes to Firestore automatically. Logs a 4-step workflow: Observe → Decide → Draft → Publish.
+
+3. Social Agent (Moltbook) — Autonomous LangGraph agent on Moltbook (a social network for AI agents). Observes the feed, decides whether to engage, drafts content, evaluates quality, and posts — all autonomously. Runs on Python/FastAPI on Render.
+
+4. Fitness Agent — AI features embedded across two fitness apps. BenchPressOnly has 4 AI serverless functions: workout generation, progress analysis, workout autofill, and AI coach chat (GPT-4o-mini). RowCrew uses Claude Vision API for workout photo verification.
+
+5. Gaming Agent — Powers character creation in Spell Brigade, a multiplayer wizard survival game. Users describe their character concept and an LLM generates unique wizard classes with custom abilities, stats, and lore.
+
+All agent activity is logged to a unified feed on azoni.ai with full reasoning chains visible to visitors.`
+    },
+    {
+      category: 'agents',
+      title: 'Azoni AI - Orchestrator Technical Details',
+      content: `Technical implementation of the Azoni AI orchestrator:
+
+How it works:
+1. Observe: Gathers state in parallel — GitHub commits (GraphQL), recent blog posts (Firestore), agent activity feed (Firestore), Moltbook agent status (REST), fitness data (MCP server)
+2. Decide: Sends full state snapshot to GPT-4o-mini with structured JSON output. The LLM picks from: trigger_blog, share_blog, flag_health, log_milestone, or none
+3. Act: Executes each decision — calls blog endpoint, nudges social agent, logs milestones
+4. Log: Every step is written to agent_activity collection with reasoning visible in the portfolio feed
+
+Available actions:
+- trigger_blog: Generate a blog post if the daily cron missed it (only 10am-8pm PT, hard-coded guard)
+- share_blog: Tell the social agent to share a new blog post on Moltbook
+- flag_health: Log system health concerns (agent offline, no activity for 24h+)
+- log_milestone: Highlight commit streaks, new launches, unusual activity
+
+Tech stack:
+- Netlify Scheduled Functions (runs every 3 hours)
+- OpenRouter + GPT-4o-mini for decisions
+- Firebase Firestore for state and logging
+- MCP Data Server for fitness data
+- GitHub GraphQL API for commit data
+
+The orchestrator makes Azoni AI the central nervous system — it's the only component that has visibility into all other agents and can coordinate between them.`
+    },
+    {
+      category: 'agents',
+      title: 'Azoni AI - Infrastructure & Data Layer',
+      content: `Supporting infrastructure for the Azoni AI agent system:
+
+MCP Data Server:
+- Model Context Protocol server that exposes live data to AI agents
+- Endpoints for fitness data (BenchPressOnly), project stats, and activity logs
+- Built with Node.js, deployed on Render
+- Used by the chatbot and orchestrator to access real-time data
+
+EmbedRoute:
+- Unified embedding API that routes requests to multiple providers (OpenAI, Cohere, etc.)
+- Built as a standalone service for use across all projects
+- Admin dashboard for monitoring usage
+
+Activity Feed System:
+- All agents log to a single agent_activity Firestore collection
+- Each entry includes: type, title, description, reasoning, source, model, tokens, cost
+- The portfolio website displays this feed in real-time
+- Webhook endpoint (log-agent-activity) allows any app to log activity with a shared secret
+
+RAG Chatbot (this system):
+- You (Azoni AI chatbot) are the user-facing interface of the agent system
+- Built with intent detection, RAG retrieval from Firestore, and MCP integration
+- Supports multiple LLM providers via OpenRouter (GPT-4o-mini default)
+- Can pull live fitness data, AI activity costs, and project information
+- Anti-hallucination rules ensure you only speak from verified knowledge`
+    },
+
     // ============ SERVICES (1) ============
     {
       category: 'services',

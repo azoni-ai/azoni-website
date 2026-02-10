@@ -120,8 +120,17 @@ const FALLBACK_CHUNK = {
 function detectIntent(query) {
   const q = query.toLowerCase();
   
-  // PRIORITY 0: Moltbook/Agent queries → special handling
-  const moltbookTriggers = ['moltbook', 'azoni-ai', 'azoni ai', 'autonomous agent', 'ai agent'];
+  // PRIORITY 0: Agent architecture / orchestrator / "what do you do" queries
+  const agentTriggers = ['orchestrat', 'agent system', 'agent architect', 'how do you work', 'what do you do', 
+    'what are you', 'tell me about yourself', 'how does this work', 'how does azoni ai',
+    'azoni ai', 'ai agent', 'blog.*agent', 'fitness.*agent', 'gaming.*agent', 'social.*agent', 'blog writer',
+    'multi.?agent', 'central intelligence'];
+  if (agentTriggers.some(t => new RegExp(t).test(q))) {
+    return { intent: 'agents', confidence: 'HIGH', reason: 'agent_keyword' };
+  }
+
+  // PRIORITY 0: Moltbook-specific queries
+  const moltbookTriggers = ['moltbook', 'azoni-ai', 'autonomous agent'];
   if (moltbookTriggers.some(t => q.includes(t))) {
     return { intent: 'moltbook', confidence: 'HIGH', reason: 'moltbook_keyword' };
   }
@@ -293,6 +302,7 @@ async function retrieveChunks(query, intent, maxChunks = 5) {
     if (intent.intent === 'contact' && chunk.category === 'personal') score += 30;
     if (intent.intent === 'fitness' && (chunk.id === 'proj-benchpressonly' || chunk.category === 'fitness')) score += 30;
     if (intent.intent === 'moltbook' && (chunk.category === 'moltbook' || chunk.id?.includes('moltbook'))) score += 30;
+    if (intent.intent === 'agents' && (chunk.category === 'agents' || chunk.category === 'moltbook')) score += 30;
     if (intent.intent === 'services' && (chunk.category === 'services' || chunk.category === 'personal')) score += 30;
     if (intent.intent === 'general') score += 5; // Small bonus for all in general queries
     
@@ -521,7 +531,11 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], acti
     ? `\n\nLIVE AI ACTIVITY DATA (real-time from across all apps - BenchPressOnly, Spell Brigade, Moltbook Agent):\n${activityData.map(a => `--- ${a.title} ---\n${JSON.stringify(a.data, null, 2)}`).join('\n\n')}`
     : '';
 
-  return `You are Azoni-GPT, an AI assistant representing Charlton Smith, a software engineer in Seattle. Answer questions about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton.
+  return `You are Azoni AI, the portfolio chatbot for Charlton Smith, a software engineer in Seattle. You are part of a multi-agent AI system that Charlton built — you serve as the user-facing interface while a central orchestrator coordinates blog writing, social posting, fitness tracking, and gaming agents behind the scenes.
+
+Your primary job is helping recruiters, hiring managers, and visitors learn about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton.
+
+When asked about yourself or "what do you do" or "how does this work," explain the agent architecture — you're one of 5 AI agents running autonomously across Charlton's portfolio. You can reference the orchestrator, blog agent, social agent, fitness agent, and gaming agent.
 
 TONE: ${toneInstructions[mode] || toneInstructions.professional}
 
