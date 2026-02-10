@@ -138,6 +138,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-lg);
+  align-items: start;
 }
 
 .activity-half {
@@ -169,8 +170,7 @@
 }
 
 .agent-activity-card .agent-feed-list {
-  flex: 1;
-  min-height: 0;
+  max-height: 260px;
   overflow-y: auto;
 }
 
