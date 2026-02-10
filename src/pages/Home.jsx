@@ -239,7 +239,7 @@ const Home = () => {
 
               {/* Agent Activity */}
               <div className="activity-card activity-half agent-activity-card">
-                <AgentActivityFeed maxItems={6} showReasoning={true} compact={true} />
+                <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
               </div>
             </div>
           </div>
@@ -281,77 +281,7 @@ const Home = () => {
                 }
               />
 
-              {/* Social Agent - Moltbook */}
-              <AgentBanner
-                name="Social Agent"
-                description="LangGraph-powered agent that browses, reasons, and posts to Moltbook independently"
-                color="#ff6b35"
-                secondaryColor="#ff9a5c"
-                sources={['moltbook-agent']}
-                link="/moltbook"
-                linkLabel="View Agent →"
-                statusLabel={moltbookStatus?.autonomous_mode ? 'Autonomous' : 'Active'}
-                statusType="live"
-                stats={[
-                  { value: moltbookStatus?.posts_today || 0, label: 'today' },
-                  { value: moltbookStatus?.total_actions || '∞', label: 'actions' },
-                ]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="#ff6b35"/>
-                    <circle cx="20" cy="12" r="2" fill="#0f0f1a"/>
-                    <circle cx="28" cy="12" r="2" fill="#0f0f1a"/>
-                  </svg>
-                }
-              />
-
-              {/* Gaming Agent - Spell Brigade */}
-              <AgentBanner
-                name="Gaming Agent"
-                description="Multiplayer wizard survival — AI generates wizards, dungeons, and enemy encounters"
-                color="#9b5de5"
-                secondaryColor="#ffd93d"
-                sources={['spell-brigade']}
-                link="/game"
-                linkLabel="Play Now"
-                externalLink={false}
-                statusLabel="Playable"
-                statusType="live"
-                stats={[]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
-                    <circle cx="24" cy="22" r="6" fill="#9b5de5"/>
-                  </svg>
-                }
-              />
-
-              {/* Fitness Agent - BenchPressOnly + RowCrew */}
-              <AgentBanner
-                name="Fitness Agent"
-                description="AI workout generation, progress tracking, and rowing verification across BenchPressOnly and RowCrew"
-                color="#4ade80"
-                secondaryColor="#22d3ee"
-                sources={['benchpressonly', 'rowcrew']}
-                links={[
-                  { label: 'BenchPressOnly →', url: 'https://benchpressonly.com', external: true },
-                  { label: 'RowCrew →', url: 'https://rowcrew.netlify.app', external: true },
-                ]}
-                statusLabel="Active"
-                statusType="live"
-                stats={[]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-                    <rect x="8" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
-                    <rect x="34" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
-                    <rect x="14" y="18" width="20" height="4" rx="1" fill="#22d3ee"/>
-                    <rect x="14" y="26" width="20" height="4" rx="1" fill="#22d3ee"/>
-                    <rect x="22" y="10" width="4" height="28" rx="2" fill="#4ade80" opacity="0.6"/>
-                  </svg>
-                }
-              />
-
-              {/* Blog Writer Agent — combined with latest post */}
+              {/* Blog Writer Agent */}
               <AgentBanner
                 name="Blog Writer Agent"
                 description="Reads GitHub commits every morning and writes a dev log post automatically"
@@ -408,6 +338,77 @@ const Home = () => {
                 )}
               </AgentBanner>
 
+              {/* Fitness Agent - BenchPressOnly + RowCrew */}
+              <AgentBanner
+                name="Fitness Agent"
+                description="AI workout generation, progress tracking, and rowing verification across BenchPressOnly and RowCrew"
+                color="#4ade80"
+                secondaryColor="#22d3ee"
+                sources={['benchpressonly', 'rowcrew']}
+                links={[
+                  { label: 'BenchPressOnly →', url: 'https://benchpressonly.com', external: true },
+                  { label: 'RowCrew →', url: 'https://rowcrew.netlify.app', external: true },
+                ]}
+                statusLabel="Active"
+                statusType="live"
+                stats={[]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+                    <rect x="8" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
+                    <rect x="34" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
+                    <rect x="14" y="18" width="20" height="4" rx="1" fill="#22d3ee"/>
+                    <rect x="14" y="26" width="20" height="4" rx="1" fill="#22d3ee"/>
+                    <rect x="22" y="10" width="4" height="28" rx="2" fill="#4ade80" opacity="0.6"/>
+                  </svg>
+                }
+              />
+
+              {/* Gaming Agent - Spell Brigade */}
+              <AgentBanner
+                name="Gaming Agent"
+                description="Multiplayer wizard survival — AI generates wizards, dungeons, and enemy encounters"
+                color="#ffd93d"
+                secondaryColor="#f59e0b"
+                sources={['spell-brigade']}
+                link="/game"
+                linkLabel="Play Now"
+                externalLink={false}
+                statusLabel="Playable"
+                statusType="live"
+                stats={[]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
+                    <circle cx="24" cy="22" r="6" fill="#0f0f1a"/>
+                  </svg>
+                }
+              />
+
+              {/* Social Agent - Moltbook */}
+              <AgentBanner
+                name="Social Agent"
+                description="LangGraph-powered agent that browses, reasons, and posts to Moltbook independently"
+                color="#ff6b35"
+                secondaryColor="#ff9a5c"
+                sources={['moltbook-agent']}
+                link="/moltbook"
+                linkLabel="View Agent →"
+                statusLabel={moltbookStatus?.autonomous_mode ? 'Autonomous' : 'Active'}
+                statusType="live"
+                stats={[
+                  { value: moltbookStatus?.posts_today || 0, label: 'today' },
+                  { value: moltbookStatus?.total_actions || '∞', label: 'actions' },
+                ]}
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="#ff6b35"/>
+                    <circle cx="20" cy="12" r="2" fill="#0f0f1a"/>
+                    <circle cx="28" cy="12" r="2" fill="#0f0f1a"/>
+                  </svg>
+                }
+              />
+
+              {/* Old Ways Today */}
               <AgentBanner
                 name="Old Ways Today"
                 description="AI-powered platform helping families discover non-toxic, traditional product alternatives"

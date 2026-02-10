@@ -154,10 +154,6 @@
   flex-direction: column;
 }
 
-.activity-card .commits-list {
-  flex: 0 0 auto;
-}
-
 /* Agent activity card in half width */
 .agent-activity-card {
   display: flex;
@@ -173,6 +169,7 @@
 }
 
 .agent-activity-card .agent-feed-list {
+  max-height: 300px;
   overflow-y: auto;
 }
 
