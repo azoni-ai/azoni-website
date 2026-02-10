@@ -25,7 +25,6 @@ const Home = () => {
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [moltbookStatus, setMoltbookStatus] = useState(null);
   const [latestBlog, setLatestBlog] = useState(null);
   const heroRef = useRef(null);
@@ -129,15 +128,15 @@ const Home = () => {
       .catch(err => console.error('Failed to fetch GitHub stats:', err));
   }, []);
 
-  // Mouse tracking for hero glow effect
+  // Mouse tracking for hero glow effect — uses ref to avoid re-rendering whole page
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (heroRef.current) {
         const rect = heroRef.current.getBoundingClientRect();
-        setMousePos({
-          x: (e.clientX - rect.left) / rect.width,
-          y: (e.clientY - rect.top) / rect.height,
-        });
+        const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+        const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+        heroRef.current.style.setProperty('--mouse-x', `${x}%`);
+        heroRef.current.style.setProperty('--mouse-y', `${y}%`);
       }
     };
     window.addEventListener('mousemove', handleMouseMove);
@@ -162,10 +161,7 @@ const Home = () => {
       <div className="home-page">
         {/* Hero */}
         <section className="hero" ref={heroRef}>
-          <div className="hero-glow" style={{
-            '--mouse-x': `${mousePos.x * 100}%`,
-            '--mouse-y': `${mousePos.y * 100}%`,
-          }} />
+          <div className="hero-glow" />
           
           <div className="container">
             <div className="hero-top">
@@ -219,7 +215,7 @@ const Home = () => {
                 </div>
                 
                 <div className="commits-list">
-                  {githubStats?.recentCommits?.slice(0, 4).map((commit, i) => (
+                  {githubStats?.recentCommits?.slice(0, 6).map((commit, i) => (
                     <div key={`${commit.sha}-${i}`} className="commit-row">
                       <span className="commit-msg">{commit.message}</span>
                       <div className="commit-meta">
@@ -243,7 +239,7 @@ const Home = () => {
 
               {/* Agent Activity */}
               <div className="activity-card activity-half agent-activity-card">
-                <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
+                <AgentActivityFeed maxItems={6} showReasoning={true} compact={true} />
               </div>
             </div>
           </div>
@@ -440,46 +436,6 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Infrastructure */}
-        <section className="projects-section" style={{ paddingBottom: 0 }}>
-          <div className="container">
-            <div className="section-header">
-              <h2>Infrastructure</h2>
-            </div>
-            <div className="projects-grid">
-              <Link to="/projects/azoni-mcp" className="project-card">
-                <div className="project-top">
-                  <span className="project-live">Live</span>
-                </div>
-                <h3>MCP Data Server</h3>
-                <p className="project-tagline">Model Context Protocol</p>
-                <p className="project-desc">Exposes live fitness data, project stats, and more to AI agents via REST API with real-time data feeds.</p>
-                <div className="project-tech">
-                  <span>Node.js</span>
-                  <span>MCP</span>
-                  <span>REST API</span>
-                  <span>Firebase</span>
-                </div>
-              </Link>
-
-              <Link to="/chat" className="project-card">
-                <div className="project-top">
-                  <span className="project-live">Ready</span>
-                </div>
-                <h3>RAG Chatbot</h3>
-                <p className="project-tagline">AI-Powered Portfolio Assistant</p>
-                <p className="project-desc">Ask about my work, skills, or paste a job description for AI-powered fit analysis. RAG-powered with MCP integration.</p>
-                <div className="project-tech">
-                  <span>Claude API</span>
-                  <span>RAG</span>
-                  <span>EmbedRoute</span>
-                  <span>MCP</span>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </section>
-
         {/* Projects */}
         <section className="projects-section">
           <div className="container">
@@ -490,8 +446,40 @@ const Home = () => {
             
             {loading ? (
               <p style={{ color: 'var(--text-muted)' }}>Loading projects...</p>
-            ) : featuredProjects.length > 0 ? (
+            ) : (
               <div className="projects-grid">
+                {/* MCP Data Server */}
+                <Link to="/projects/azoni-mcp" className="project-card">
+                  <div className="project-top">
+                    <span className="project-live">Live</span>
+                  </div>
+                  <h3>MCP Data Server</h3>
+                  <p className="project-tagline">Model Context Protocol</p>
+                  <p className="project-desc">Exposes live fitness data, project stats, and more to AI agents via REST API with real-time data feeds.</p>
+                  <div className="project-tech">
+                    <span>Node.js</span>
+                    <span>MCP</span>
+                    <span>REST API</span>
+                    <span>Firebase</span>
+                  </div>
+                </Link>
+
+                {/* RAG Chatbot */}
+                <Link to="/chat" className="project-card">
+                  <div className="project-top">
+                    <span className="project-live">Live</span>
+                  </div>
+                  <h3>RAG Chatbot</h3>
+                  <p className="project-tagline">AI-Powered Portfolio Assistant</p>
+                  <p className="project-desc">Ask about my work, skills, or paste a job description for AI-powered fit analysis.</p>
+                  <div className="project-tech">
+                    <span>Claude API</span>
+                    <span>RAG</span>
+                    <span>EmbedRoute</span>
+                    <span>MCP</span>
+                  </div>
+                </Link>
+
                 {featuredProjects.map((project) => (
                   <Link key={project.id} to={`/projects/${project.id}`} className="project-card">
                     <div className="project-top">
@@ -507,8 +495,6 @@ const Home = () => {
                   </Link>
                 ))}
               </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)' }}>No featured projects yet. Mark projects as featured in the admin panel.</p>
             )}
 
             {/* Earlier Work - Static */}

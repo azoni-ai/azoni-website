@@ -169,10 +169,12 @@
   flex: 1;
   border: none;
   background: transparent;
+  display: flex;
+  flex-direction: column;
 }
 
 .agent-activity-card .agent-feed-list {
-  max-height: 360px;
+  flex: 1;
   overflow-y: auto;
 }
 
