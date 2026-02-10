@@ -231,22 +231,23 @@
   color: var(--text-muted);
 }
 
-.activity-header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.view-all-sm {
-  font-size: 0.75rem;
+/* Activity footer links */
+.activity-view-all {
+  display: block;
+  padding: var(--space-md) var(--space-lg);
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--accent-primary);
   text-decoration: none;
-  transition: color 0.2s;
+  background: rgba(255, 122, 92, 0.05);
+  border-top: 1px solid var(--border-subtle);
+  transition: all 0.15s ease;
 }
 
-.view-all-sm:hover {
-  color: var(--text-primary);
+.activity-view-all:hover {
+  color: #fff;
+  background: rgba(255, 122, 92, 0.12);
 }
 
 /* Commits */

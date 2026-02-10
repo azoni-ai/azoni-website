@@ -248,17 +248,17 @@
   padding: var(--space-md) var(--space-lg);
   text-align: center;
   font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--accent-primary);
   text-decoration: none;
-  background: var(--bg-secondary);
+  background: rgba(255, 122, 92, 0.05);
   border-top: 1px solid var(--border-subtle);
   transition: all 0.15s ease;
 }
 
 .feed-view-all:hover {
-  color: var(--accent-primary);
-  background: var(--bg-card-hover);
+  color: #fff;
+  background: rgba(255, 122, 92, 0.12);
 }
 
 /* Compact variant for sidebar */

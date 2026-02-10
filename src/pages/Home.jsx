@@ -216,14 +216,11 @@ const Home = () => {
                       <span className="stat-label">this month</span>
                     </div>
                   </div>
-                  <div className="activity-header-right">
-                    <span className="activity-label">commits</span>
-                    <Link to="/commits" className="view-all-sm">View all →</Link>
-                  </div>
+                  <span className="activity-label">commits</span>
                 </div>
                 
                 <div className="commits-list">
-                  {githubStats?.recentCommits?.slice(0, 6).map((commit, i) => (
+                  {githubStats?.recentCommits?.slice(0, 4).map((commit, i) => (
                     <div key={`${commit.sha}-${i}`} className="commit-row">
                       <span className="commit-msg">{commit.message}</span>
                       <div className="commit-meta">
@@ -242,11 +239,12 @@ const Home = () => {
                     </div>
                   ))}
                 </div>
+                <Link to="/commits" className="activity-view-all">View all commits →</Link>
               </div>
 
               {/* Agent Activity */}
               <div className="activity-card activity-half agent-activity-card">
-                <AgentActivityFeed maxItems={15} showReasoning={true} compact={true} />
+                <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
               </div>
             </div>
           </div>
@@ -441,75 +439,6 @@ const Home = () => {
                   </svg>
                 }
               />
-            </div>
-          </div>
-        </section>
-
-        {/* AI Ecosystem Section */}
-        <section className="ai-ecosystem-section">
-          <div className="container">
-            <div className="ecosystem-grid">
-              {/* MCP Server */}
-              <Link to="/projects/azoni-mcp" className="ecosystem-card mcp-card">
-                <div className="card-glow mcp-glow"></div>
-                <div className="ecosystem-card-header">
-                  <div className="ecosystem-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="2"/>
-                      <circle cx="16" cy="16" r="4" fill="currentColor"/>
-                      <path d="M16 4V8M16 24V28M4 16H8M24 16H28" stroke="currentColor" strokeWidth="2"/>
-                    </svg>
-                  </div>
-                  <div className="ecosystem-status">
-                    <span className="status-live"><span className="pulse-dot"></span>Live</span>
-                  </div>
-                </div>
-                <h3>MCP Data Server</h3>
-                <p>Exposes live fitness data, project stats, and more to AI agents via Model Context Protocol</p>
-                <div className="ecosystem-stats">
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">REST</span>
-                    <span className="eco-stat-label">API</span>
-                  </div>
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">Real-time</span>
-                    <span className="eco-stat-label">data</span>
-                  </div>
-                </div>
-                <span className="ecosystem-arrow">→</span>
-              </Link>
-
-              {/* RAG Chatbot */}
-              <Link to="/chat" className="ecosystem-card chat-card">
-                <div className="card-glow chat-glow"></div>
-                <div className="ecosystem-card-header">
-                  <div className="ecosystem-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                      <path d="M4 8C4 6.9 4.9 6 6 6H26C27.1 6 28 6.9 28 8V20C28 21.1 27.1 22 26 22H20L16 26L12 22H6C4.9 22 4 21.1 4 20V8Z" stroke="currentColor" strokeWidth="2"/>
-                      <circle cx="10" cy="14" r="1.5" fill="currentColor"/>
-                      <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
-                      <circle cx="22" cy="14" r="1.5" fill="currentColor"/>
-                    </svg>
-                  </div>
-                  <div className="ecosystem-status">
-                    <span className="status-live"><span className="pulse-dot"></span>Ready</span>
-                  </div>
-                </div>
-                <h3>RAG Chatbot</h3>
-                <p>Ask about my work, skills, or paste a job description for AI-powered fit analysis</p>
-                <div className="ecosystem-stats">
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">RAG</span>
-                    <span className="eco-stat-label">powered</span>
-                  </div>
-                  <div className="eco-stat">
-                    <span className="eco-stat-value">MCP</span>
-                    <span className="eco-stat-label">connected</span>
-                  </div>
-                </div>
-                <span className="ecosystem-arrow">→</span>
-              </Link>
-
             </div>
           </div>
         </section>
