@@ -529,8 +529,8 @@ exports.handler = async (event, context) => {
 
       await db.collection('agent_activity').add({
         type: 'blog_generated',
-        title: 'Wrote daily dev log',
-        description: blogPost.title,
+        title: `Published: ${blogPost.title}`,
+        description: `${totalCommits} commits across ${repoNames.length} project${repoNames.length > 1 ? 's' : ''} — ${repoNames.join(', ')}`,
         reasoning: reasoning,
         metadata: {
           id: result.id,

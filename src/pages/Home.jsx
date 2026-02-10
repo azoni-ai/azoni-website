@@ -287,7 +287,7 @@ const Home = () => {
                 description="Reads GitHub commits every morning and writes a dev log post automatically"
                 color="#9b5de5"
                 secondaryColor="#3b82f6"
-                types={['blog_generated']}
+                sources={['daily-blog']}
                 links={[
                   { label: 'Read Blog →', url: '/blog', external: false },
                 ]}

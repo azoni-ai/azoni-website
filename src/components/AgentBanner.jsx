@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/agent-banner.css';
@@ -140,32 +140,38 @@ const AgentBanner = ({
   const feedRef = useRef(null);
   const navigate = useNavigate();
 
+  // Stabilize array props to prevent infinite re-renders
+  const sourcesKey = useMemo(() => JSON.stringify(sources), [sources]);
+  const typesKey = useMemo(() => JSON.stringify(types), [types]);
+
   useEffect(() => {
+    const stableSources = JSON.parse(sourcesKey);
+    const stableTypes = JSON.parse(typesKey);
+
     // If no sources or types provided, skip the query entirely
-    if (sources.length === 0 && types.length === 0) {
+    if (stableSources.length === 0 && stableTypes.length === 0) {
       setLoading(false);
       return;
     }
 
-    let unsubscribe;
-    try {
-      const activityRef = collection(db, 'agent_activity');
-      let constraints = [orderBy('timestamp', 'desc'), limit(maxItems)];
+    const fetchActivity = async () => {
+      try {
+        const activityRef = collection(db, 'agent_activity');
+        let constraints = [orderBy('timestamp', 'desc'), limit(maxItems)];
 
-      // Build filter — use 'in' for multiple sources, '==' for single
-      if (sources.length === 1) {
-        constraints = [where('source', '==', sources[0]), ...constraints];
-      } else if (sources.length > 1) {
-        constraints = [where('source', 'in', sources), ...constraints];
-      } else if (types.length === 1) {
-        constraints = [where('type', '==', types[0]), ...constraints];
-      } else if (types.length > 1) {
-        constraints = [where('type', 'in', types), ...constraints];
-      }
+        // Build filter — use 'in' for multiple sources, '==' for single
+        if (stableSources.length === 1) {
+          constraints = [where('source', '==', stableSources[0]), ...constraints];
+        } else if (stableSources.length > 1) {
+          constraints = [where('source', 'in', stableSources), ...constraints];
+        } else if (stableTypes.length === 1) {
+          constraints = [where('type', '==', stableTypes[0]), ...constraints];
+        } else if (stableTypes.length > 1) {
+          constraints = [where('type', 'in', stableTypes), ...constraints];
+        }
 
-      const q = query(activityRef, ...constraints);
-
-      unsubscribe = onSnapshot(q, (snapshot) => {
+        const q = query(activityRef, ...constraints);
+        const snapshot = await getDocs(q);
         const items = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -173,21 +179,15 @@ const AgentBanner = ({
         setActivities(items);
         setLoading(false);
         setError(false);
-      }, (err) => {
+      } catch (err) {
         console.error(`Failed to fetch activity for ${name}:`, err);
         setLoading(false);
         setError(true);
-      });
-    } catch (err) {
-      console.error(`Error setting up listener for ${name}:`, err);
-      setLoading(false);
-      setError(true);
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
+      }
     };
-  }, [sources, types, maxItems, name]);
+
+    fetchActivity();
+  }, [sourcesKey, typesKey, maxItems, name]);
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '';
@@ -270,7 +270,12 @@ const AgentBanner = ({
                     <div className="mini-feed-icon" style={{ color: actColor }}>
                       {ACTIVITY_ICONS[activity.type] || ACTIVITY_ICONS.project_updated}
                     </div>
-                    <span className="mini-feed-title">{activity.title}</span>
+                    <div className="mini-feed-text">
+                      <span className="mini-feed-title">{activity.title}</span>
+                      {activity.description && (
+                        <span className="mini-feed-desc">{activity.description}</span>
+                      )}
+                    </div>
                     <span className="mini-feed-time">{formatTimeAgo(activity.timestamp)}</span>
                   </div>
                 );
