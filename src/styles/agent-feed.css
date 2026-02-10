@@ -282,6 +282,11 @@
 
 /* Mobile */
 @media (max-width: 768px) {
+  .feed-list {
+    max-height: none;
+    overflow-y: visible;
+  }
+
   .feed-item-main {
     padding: var(--space-sm) var(--space-md);
   }

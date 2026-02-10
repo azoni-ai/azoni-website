@@ -1,0 +1,318 @@
+/* ============ ARCHITECTURE DIAGRAM ============ */
+/* Authentic engineering diagram — not a generic AI visual */
+
+.arch {
+  position: relative;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  background: rgba(10, 10, 18, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* Subtle dot grid — engineering paper feel */
+.arch-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+/* Tier layout */
+.arch-tier {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0;
+}
+
+.arch-tier-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+.arch-tier-content {
+  display: flex;
+  gap: 10px;
+}
+
+/* Cards */
+.arch-card {
+  display: flex;
+  background: rgba(255,255,255, 0.025);
+  border: 1px solid rgba(255,255,255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: default;
+}
+
+.arch-card:hover,
+.arch-card.is-active {
+  border-color: rgba(255,255,255, 0.12);
+  background: rgba(255,255,255, 0.04);
+}
+
+/* Color accent bar on left */
+.arch-card-left {
+  width: 3px;
+  flex-shrink: 0;
+}
+
+.arch-card-body {
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.arch-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.arch-card-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Badges */
+.arch-card-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 2px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.badge-live {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.badge-sched {
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+}
+
+.badge-soon {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.arch-card-desc {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+/* Tech stack tags */
+.arch-card-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.arch-card-stack code {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  background: rgba(255,255,255, 0.04);
+  border: 1px solid rgba(255,255,255, 0.06);
+  border-radius: 2px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* I/O labels */
+.arch-card-io {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.arch-card-io code {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  background: none;
+  padding: 0;
+  font-family: var(--font-mono);
+}
+
+/* Main orchestrator card */
+.arch-card-main {
+  max-width: 520px;
+}
+
+/* Agents row */
+.arch-agents-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.arch-agents-row .arch-card {
+  flex-direction: column;
+}
+
+.arch-agents-row .arch-card-left {
+  width: 100%;
+  height: 2px;
+}
+
+/* Connector lines */
+.arch-connectors {
+  position: relative;
+  z-index: 1;
+  height: 28px;
+  margin: 0;
+}
+
+.arch-connector-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Destinations */
+.arch-outputs-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.arch-dest {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dest-color, var(--text-muted));
+  padding: 6px 10px;
+  background: rgba(255,255,255, 0.02);
+  border: 1px solid rgba(255,255,255, 0.05);
+  border-radius: 3px;
+  text-align: center;
+  border-top: 2px solid var(--dest-color, var(--border-subtle));
+}
+
+.arch-dest-split {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.arch-dest-split .arch-dest {
+  padding: 4px 8px;
+  font-size: 0.62rem;
+}
+
+/* Infrastructure bar */
+.arch-infra-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255, 0.05);
+}
+
+.arch-infra-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.arch-infra-bar code {
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  background: rgba(255,255,255, 0.03);
+  border: 1px solid rgba(255,255,255, 0.06);
+  border-radius: 2px;
+  color: var(--text-muted);
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .arch-agents-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .arch-outputs-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .arch-connectors {
+    display: none;
+  }
+
+  .arch-tier {
+    margin-bottom: var(--space-md);
+  }
+}
+
+@media (max-width: 768px) {
+  .arch {
+    padding: var(--space-md);
+  }
+
+  .arch-agents-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .arch-outputs-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .arch-card-main {
+    max-width: none;
+  }
+
+  .arch-card-desc {
+    font-size: 0.68rem;
+  }
+
+  .arch-card-io {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .arch-agents-row {
+    grid-template-columns: 1fr;
+  }
+
+  .arch-outputs-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .arch-agents-row .arch-card {
+    flex-direction: row;
+  }
+
+  .arch-agents-row .arch-card-left {
+    width: 3px;
+    height: auto;
+  }
+
+  .arch-infra-bar {
+    gap: 5px;
+  }
+}

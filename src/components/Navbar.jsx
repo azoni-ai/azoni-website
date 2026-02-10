@@ -11,9 +11,7 @@ const Navbar = () => {
     { path: '/about', label: 'About' },
     { path: '/projects', label: 'Projects' },
     { path: '/blog', label: 'Blog' },
-    { path: '/chat', label: 'Chat' },
-    { path: '/moltbook', label: 'Moltbook' },
-    { path: '/game', label: 'Game',  external: true },
+    { path: '/activity', label: 'Activity' },
     { path: '/resume', label: 'Resume' },
   ];
 

@@ -512,7 +512,8 @@
   }
 
   .mini-feed-list {
-    max-height: 120px;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .agent-banner-stats {

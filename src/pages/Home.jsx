@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import AgentBanner from '../components/AgentBanner';
+import AgentDiagram from '../components/AgentDiagram';
 import '../styles/bento.css';
 
 // Map repo names to live sites
@@ -215,11 +216,14 @@ const Home = () => {
                       <span className="stat-label">this month</span>
                     </div>
                   </div>
-                  <span className="activity-label">commits</span>
+                  <div className="activity-header-right">
+                    <span className="activity-label">commits</span>
+                    <Link to="/commits" className="view-all-sm">View all →</Link>
+                  </div>
                 </div>
                 
-                <div className="commits-list commits-scroll">
-                  {githubStats?.recentCommits?.slice(0, 15).map((commit, i) => (
+                <div className="commits-list">
+                  {githubStats?.recentCommits?.slice(0, 6).map((commit, i) => (
                     <div key={`${commit.sha}-${i}`} className="commit-row">
                       <span className="commit-msg">{commit.message}</span>
                       <div className="commit-meta">
@@ -255,6 +259,8 @@ const Home = () => {
               <h2><span className="section-header-pulse"></span> AI Agents</h2>
               <Link to="/activity" className="view-all">All agent activity →</Link>
             </div>
+
+            <AgentDiagram />
 
             <div className="agent-banners-grid">
               {/* Azoni AI - Master Agent */}

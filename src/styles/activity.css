@@ -488,6 +488,12 @@
   .activity-container {
     padding: 0 var(--space-md);
   }
+
+  .activity-feed-container {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
   
   .activity-title-section h1 {
     font-size: 1.5rem;
