@@ -138,10 +138,25 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-lg);
+  align-items: stretch;
 }
 
 .activity-half {
   min-width: 0;
+}
+
+.activity-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.commits-list {
+  padding: 0;
+  flex: 1;
 }
 
 /* Agent activity card in half width */
@@ -185,12 +200,6 @@
   }
 }
 
-.activity-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
 
 .activity-header {
   display: flex;
@@ -243,6 +252,7 @@
   background: rgba(255, 122, 92, 0.05);
   border-top: 1px solid var(--border-subtle);
   transition: all 0.15s ease;
+  margin-top: auto;
 }
 
 .activity-view-all:hover {

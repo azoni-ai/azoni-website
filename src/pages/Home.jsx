@@ -6,7 +6,6 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import AgentBanner from '../components/AgentBanner';
-import AgentDiagram from '../components/AgentDiagram';
 import '../styles/bento.css';
 
 // Map repo names to live sites
@@ -258,8 +257,6 @@ const Home = () => {
               <Link to="/activity" className="view-all">All agent activity →</Link>
             </div>
 
-            <AgentDiagram />
-
             <div className="agent-banners-grid">
               {/* Azoni AI - Master Agent */}
               <AgentBanner
@@ -439,6 +436,46 @@ const Home = () => {
                   </svg>
                 }
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Infrastructure */}
+        <section className="projects-section" style={{ paddingBottom: 0 }}>
+          <div className="container">
+            <div className="section-header">
+              <h2>Infrastructure</h2>
+            </div>
+            <div className="projects-grid">
+              <Link to="/projects/azoni-mcp" className="project-card">
+                <div className="project-top">
+                  <span className="project-live">Live</span>
+                </div>
+                <h3>MCP Data Server</h3>
+                <p className="project-tagline">Model Context Protocol</p>
+                <p className="project-desc">Exposes live fitness data, project stats, and more to AI agents via REST API with real-time data feeds.</p>
+                <div className="project-tech">
+                  <span>Node.js</span>
+                  <span>MCP</span>
+                  <span>REST API</span>
+                  <span>Firebase</span>
+                </div>
+              </Link>
+
+              <Link to="/chat" className="project-card">
+                <div className="project-top">
+                  <span className="project-live">Ready</span>
+                </div>
+                <h3>RAG Chatbot</h3>
+                <p className="project-tagline">AI-Powered Portfolio Assistant</p>
+                <p className="project-desc">Ask about my work, skills, or paste a job description for AI-powered fit analysis. RAG-powered with MCP integration.</p>
+                <div className="project-tech">
+                  <span>Claude API</span>
+                  <span>RAG</span>
+                  <span>EmbedRoute</span>
+                  <span>MCP</span>
+                </div>
+              </Link>
             </div>
           </div>
         </section>

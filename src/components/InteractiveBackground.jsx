@@ -22,7 +22,7 @@ const InteractiveBackground = () => {
 
     const initParticles = () => {
       particlesRef.current = [];
-      const numParticles = Math.floor((width * height) / 15000);
+      const numParticles = Math.floor((width * height) / 35000);
       
       for (let i = 0; i < numParticles; i++) {
         particlesRef.current.push({
@@ -87,7 +87,7 @@ const InteractiveBackground = () => {
           const dy2 = p.y - p2.y;
           const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
 
-          if (dist2 < 100) {
+          if (dist2 < 80) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
