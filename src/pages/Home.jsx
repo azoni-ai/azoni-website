@@ -190,7 +190,7 @@ const Home = () => {
         <section className="narrative-section">
           <div className="container">
             <p className="narrative-text">
-              I try to build apps that people enjoy, take their feedback, and keep making things better. 
+              I build apps that people actually use, take their feedback, and keep making things better. 
               Below you can see my recent commits and the AI agents I built that run alongside my apps. 
               Everything here is live and updated in real time.
             </p>
@@ -210,7 +210,7 @@ const Home = () => {
             { value: githubStats?.last7Days || '–', label: 'this week' },
             { value: agentActivityCount || '–', label: 'agent events' },
           ]}
-          defaultOpen={true}
+          defaultOpen={false}
         >
         {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
         <section className="activity-section">
