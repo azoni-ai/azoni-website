@@ -197,6 +197,97 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== FEATURED: BLOG AGENT + CHAT AGENT ===== */}
+        <section className="showcase-section">
+          <div className="container">
+            <div className="showcase-grid">
+
+              <Link to="/blog" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#3b82f6' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(59,130,246,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>Blog Agent</h3>
+                        <span className="showcase-status">Autonomous</span>
+                      </div>
+                      <span className="showcase-tagline">Writes and publishes without human input</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Every day the orchestrator reviews my GitHub commits, decides if there's something worth 
+                    writing about, generates a full blog post with code analysis, and publishes it. 
+                    No prompts, no approval step, no drafts to review.
+                  </p>
+                  <div className="showcase-flow">
+                    <span className="showcase-flow-step">GitHub Commits</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Orchestrator</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">GPT-4o Blog</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Published</span>
+                  </div>
+                  {latestBlog && (
+                    <div className="showcase-preview">
+                      <span className="showcase-preview-label">Latest</span>
+                      <span className="showcase-preview-title">{latestBlog.title}</span>
+                    </div>
+                  )}
+                  <div className="showcase-tech">
+                    <span>GPT-4o</span>
+                    <span>GitHub API</span>
+                    <span>Firestore</span>
+                    <span>Cron</span>
+                  </div>
+                </div>
+              </Link>
+
+              <Link to="/chat" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#8b5cf6' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>Azoni AI</h3>
+                        <span className="showcase-status showcase-status-purple">Try it</span>
+                      </div>
+                      <span className="showcase-tagline">RAG chatbot with live MCP data access</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Intent detection classifies your question, retrieves relevant chunks from a vector 
+                    knowledge base via EmbedRoute, and augments the prompt with live data from the MCP 
+                    server. Paste a job description and it analyzes how my skills match the role.
+                  </p>
+                  <div className="showcase-flow">
+                    <span className="showcase-flow-step">Your Question</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Intent Detection</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">RAG + MCP</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Response</span>
+                  </div>
+                  <div className="showcase-tech">
+                    <span>OpenRouter</span>
+                    <span>EmbedRoute</span>
+                    <span>MCP</span>
+                    <span>Firestore RAG</span>
+                  </div>
+                </div>
+              </Link>
+
+            </div>
+          </div>
+        </section>
+
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 
