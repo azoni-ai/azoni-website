@@ -18,7 +18,7 @@ const ChevronIcon = ({ open }) => (
   </svg>
 );
 
-const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', defaultOpen = false, rightLink, rightLinkTo, children }) => {
+const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', stats, defaultOpen = false, rightLink, rightLinkTo, children }) => {
   const [open, setOpen] = useState(defaultOpen);
   const contentRef = useRef(null);
   const [height, setHeight] = useState(defaultOpen ? 'auto' : '0px');
@@ -27,14 +27,11 @@ const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', def
     if (open) {
       const el = contentRef.current;
       if (el) {
-        // Temporarily set to auto to measure
         el.style.height = 'auto';
         const fullHeight = el.scrollHeight;
         el.style.height = '0px';
-        // Force reflow
         el.offsetHeight; // eslint-disable-line no-unused-expressions
         setHeight(`${fullHeight}px`);
-        // After animation, set to auto for dynamic content
         const timer = setTimeout(() => {
           if (contentRef.current) {
             setHeight('auto');
@@ -43,7 +40,6 @@ const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', def
         return () => clearTimeout(timer);
       }
     } else {
-      // Collapse: set explicit height first, then 0
       const el = contentRef.current;
       if (el) {
         const fullHeight = el.scrollHeight;
@@ -64,17 +60,29 @@ const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', def
         aria-expanded={open}
       >
         <div className="collapsible-header-left">
-          <h2 className="collapsible-title">{title}</h2>
-          {badge && (
-            <span className={`collapsible-badge badge-${badgeType}`}>
-              {badge}
-            </span>
-          )}
+          <div className="collapsible-header-top">
+            <h2 className="collapsible-title">{title}</h2>
+            {badge && (
+              <span className={`collapsible-badge badge-${badgeType}`}>
+                {badge}
+              </span>
+            )}
+          </div>
           {subtitle && (
             <span className="collapsible-subtitle">{subtitle}</span>
           )}
         </div>
         <div className="collapsible-header-right">
+          {stats && stats.length > 0 && (
+            <div className="collapsible-stats">
+              {stats.map((stat, i) => (
+                <div key={i} className="collapsible-stat">
+                  <span className="collapsible-stat-value">{stat.value}</span>
+                  <span className="collapsible-stat-label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {rightLink && rightLinkTo && (
             <Link
               className="collapsible-right-link"

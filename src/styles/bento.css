@@ -457,8 +457,8 @@ a.commit-repo:hover {
 
 /* ============ EARLIER WORK ============ */
 .earlier-work-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-lg);
 }
 
@@ -523,6 +523,22 @@ a.commit-repo:hover {
   margin-bottom: var(--space-md);
 }
 
+.earlier-card-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-md);
+}
+
+.earlier-card-highlights span {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+}
+
 .earlier-card-stats {
   display: flex;
   gap: var(--space-lg);
@@ -568,8 +584,13 @@ a.commit-repo:hover {
 }
 
 @media (max-width: 768px) {
-  .earlier-work-grid {
-    grid-template-columns: 1fr;
+  .earlier-card-highlights {
+    flex-direction: column;
+  }
+  
+  .earlier-card-stats {
+    flex-wrap: wrap;
+    gap: var(--space-md);
   }
 }
 

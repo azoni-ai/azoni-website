@@ -1606,30 +1606,36 @@ This site itself demonstrates the React patterns and AI integration skills relev
     {
       id: "dustbunny",
       title: "Dustbunny",
-      tagline: "NFT Trading Operation",
-      description: "Automated NFT bidding system distributed across 50 machines, processing 2,500+ requests/minute with Redis caching and competitive bidding algorithms.",
-      longDescription: `High-performance NFT trading operation built to work around OpenSea's IP-based rate limits by distributing across 50 machines on a local network.
+      tagline: "Autonomous NFT Trading System",
+      description: "Solo-built autonomous NFT bidding system tracking every collection on OpenSea, distributed across 50 machines, processing 2,500+ requests/minute. A real-time battle of the bots.",
+      longDescription: `Fully autonomous NFT trading system built solo by Charlton. Tracked every collection on OpenSea in real-time — not a subset, all of them. Distributed across 50 machines on a local network to work around API rate limits, processing 2,500+ requests per minute.
+
+**Why this was hard:**
+The environment changed constantly. OpenSea added API key requirements, changed their SDK, shifted rate limits — the system had to adapt daily. Other bots were competing for the same bids in real-time, so Dustbunny needed to outmaneuver rival algorithms to stay profitable. It was a genuine battle of the bots.
 
 **Architecture:**
-• Worker machines polling OpenSea API for floor prices
+• Worker machines polling OpenSea API for floor prices across every collection
 • Redis aggregation for sub-second price lookups
 • Bidder machines executing orders via OpenSea SDK
-• Etherscan API for blockchain data
+• Etherscan API for blockchain verification
+• Fully autonomous — no manual intervention required
 
 **Bidding Logic:**
 • Competitive algorithms analyzing floor prices and existing bids
 • Max bid safeguards to prevent overpaying
 • Liquidity analysis to avoid dead collections
+• Maintained bids against competing bots in real-time
 • Support for ERC-721 and ERC-1155 tokens
 
 **Scale:**
 • 50 machines processing 2,500+ requests/minute
-• Real-time floor price tracking across collections
+• Tracked every collection on OpenSea
 • Profitable for ~6 months until market downturn
+• Solo built and operated by Charlton
 
-Learned: The system worked great, but I should have taken profits instead of reinvesting during the decline.`,
-      tech: ["Node.js", "Redis", "OpenSea SDK", "Docker", "Etherscan API"],
-      highlights: ["50 machines, 2,500+ requests/minute", "Redis for real-time floor price caching", "Competitive bidding algorithms with safeguards", "Deployed ERC-721 smart contract"],
+Learned: The system worked great, but should have taken profits instead of reinvesting during the market decline.`,
+      tech: ["Node.js", "Redis", "OpenSea SDK", "Docker", "Etherscan API", "Web3.js"],
+      highlights: ["Solo built — one engineer", "Tracked every collection on OpenSea", "50 machines, 2,500+ requests/minute", "Battle of the bots — real-time competition", "Profitable for 6 months"],
       links: { live: null, github: null },
       image: "/images/dustbunny.png",
       featured: true,
@@ -1641,8 +1647,14 @@ Learned: The system worked great, but I should have taken profits instead of rei
       id: "oli-fitness",
       title: "OLI Fitness",
       tagline: "Computer Vision Startup",
-      description: "Co-founded fitness startup using Kinect SDK to analyze weightlifting form in real-time. Published at ACM CHI 2017, Princeton Tiger Launch finalist.",
-      longDescription: `Co-founded with friends right out of college. Built a fitness app using Microsoft Kinect SDK to track joint positions during squats and deadlifts, comparing against "good form" overlays.
+      description: "Co-founded fitness startup using Kinect SDK to analyze weightlifting form in real-time. Led a team of 5+ including interns. Published at ACM CHI 2017, Princeton Tiger Launch finalist.",
+      longDescription: `Co-founded straight out of college with a team of 5. Charlton was the Co-founder and Engineer who built the core tracking engine. Used Microsoft Kinect SDK to track joint positions during squats and deadlifts, comparing against "good form" overlays in real-time.
+
+**Charlton's Role: Co-founder & Engineer**
+• Built the core computer vision tracking engine
+• Led and mentored interns on the engineering team
+• Managed the technical side from prototype through publication
+• Ran the startup until funding ran out
 
 **Technical Implementation:**
 • C# with Kinect SDK for 25-joint tracking at 30fps
@@ -1656,10 +1668,15 @@ Learned: The system worked great, but I should have taken profits instead of rei
 • Finalist at UW Business Plan Competition
 • Selected for Collision Alpha startup program
 
+**Team & Growth:**
+• Core team of 5 co-founders
+• Managed several interns on the engineering side
+• Ran until funding was exhausted
+
 **Lessons Learned:**
-Ultimately couldn't crack distribution — Kinect was dying as a platform and pivoting to mobile CV wasn't feasible with our resources. But I learned how to ship under uncertainty and build from zero to one.`,
+Ultimately couldn't crack distribution — Kinect was dying as a platform and pivoting to mobile CV wasn't feasible with available resources. But learned how to ship under uncertainty, lead a small team, and build from zero to one.`,
       tech: ["C#", "Kinect SDK", "Computer Vision", "Unity"],
-      highlights: ["Real-time joint position tracking at 30fps", "Movement scoring algorithms with expert input", "ACM CHI 2017 publication", "Princeton Tiger Launch finalist"],
+      highlights: ["Co-founder & Engineer", "Team of 5 plus interns", "Real-time 25-joint tracking at 30fps", "ACM CHI 2017 publication", "Princeton Tiger Launch finalist"],
       links: { live: null, github: null, paper: "https://dl.acm.org/doi/abs/10.1145/3027063.3048429" },
       image: "/images/oli.png",
       featured: true,

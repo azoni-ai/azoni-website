@@ -27,6 +27,7 @@ const Home = () => {
   const [moltbookStatus, setMoltbookStatus] = useState(null);
   const [latestBlog, setLatestBlog] = useState(null);
   const [agentActivityCount, setAgentActivityCount] = useState(0);
+  const [appStats, setAppStats] = useState(null);
   const heroRef = useRef(null);
 
   // Fetch latest blog post
@@ -113,6 +114,16 @@ const Home = () => {
       .catch(err => console.error('Failed to fetch GitHub stats:', err));
   }, []);
 
+  // Fetch app user/player counts
+  useEffect(() => {
+    fetch('/.netlify/functions/app-stats')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setAppStats(data);
+      })
+      .catch(err => console.error('Failed to fetch app stats:', err));
+  }, []);
+
   // Mouse tracking for hero glow effect — uses ref to avoid re-rendering whole page
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -180,9 +191,14 @@ const Home = () => {
 
         <CollapsibleSection
           title="Activity"
-          subtitle={`${githubStats?.today || 0} commits today · ${agentActivityCount} agent events`}
+          subtitle="Live GitHub commits and AI agent actions across all systems"
           badge="Live"
           badgeType="live"
+          stats={[
+            { value: githubStats?.today || '–', label: 'today' },
+            { value: githubStats?.last7Days || '–', label: 'this week' },
+            { value: agentActivityCount || '–', label: 'agent events' },
+          ]}
           defaultOpen={true}
         >
         {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
@@ -243,11 +259,16 @@ const Home = () => {
 
         <CollapsibleSection
           title="AI Agents"
-          subtitle="5 agents running"
+          subtitle="Autonomous systems running 24/7 — writing blogs, posting on social media, coaching workouts, and generating game characters"
           badge="6"
           badgeType="count"
+          stats={appStats ? [
+            { value: appStats.benchpressonly?.users || '–', label: 'lifters' },
+            { value: appStats.spellbrigade?.users || '–', label: 'players' },
+            { value: appStats.rowcrew?.users || '–', label: 'rowers' },
+          ].filter(s => s.value !== '–' && s.value !== 0) : []}
           defaultOpen={false}
-          rightLink="All agent activity →"
+          rightLink="All activity →"
           rightLinkTo="/activity"
         >
         {/* ===== AI AGENT BANNERS ===== */}
@@ -356,7 +377,10 @@ const Home = () => {
                 ]}
                 statusLabel="Active"
                 statusType="live"
-                stats={[]}
+                stats={[
+                  ...(appStats?.benchpressonly?.users ? [{ value: appStats.benchpressonly.users, label: 'lifters' }] : []),
+                  ...(appStats?.rowcrew?.users ? [{ value: appStats.rowcrew.users, label: 'rowers' }] : []),
+                ]}
                 icon={
                   <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
                     <rect x="8" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
@@ -380,7 +404,9 @@ const Home = () => {
                 externalLink={false}
                 statusLabel="Playable"
                 statusType="live"
-                stats={[]}
+                stats={[
+                  ...(appStats?.spellbrigade?.users ? [{ value: appStats.spellbrigade.users, label: 'players' }] : []),
+                ]}
                 icon={
                   <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
@@ -403,6 +429,7 @@ const Home = () => {
                 stats={[
                   { value: moltbookStatus?.posts_today || 0, label: 'today' },
                   { value: moltbookStatus?.total_actions || '∞', label: 'actions' },
+                  ...(appStats?.moltbook?.users ? [{ value: appStats.moltbook.users, label: 'followers' }] : []),
                 ]}
                 icon={
                   <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
@@ -444,8 +471,10 @@ const Home = () => {
         </CollapsibleSection>
 
         <CollapsibleSection
-          title="Infrastructure"
-          subtitle="3 live services"
+          title="Tools & Services"
+          subtitle="Live APIs and tools powering the agent ecosystem — MCP data server, RAG chatbot, and unified embeddings"
+          badge="3 Live"
+          badgeType="live"
           defaultOpen={false}
         >
         {/* Services */}
@@ -509,7 +538,7 @@ const Home = () => {
 
         <CollapsibleSection
           title="Earlier Work"
-          subtitle="2 projects"
+          subtitle="A 50-machine autonomous trading system and an ACM-published computer vision startup"
           defaultOpen={false}
           rightLink="All projects →"
           rightLinkTo="/projects"
@@ -532,14 +561,21 @@ const Home = () => {
                     <img src="/images/dustbunny.png" alt="" className="earlier-card-icon" />
                     <div>
                       <h3>Dustbunny</h3>
-                      <span className="earlier-card-tagline">Web3 Automation Platform</span>
+                      <span className="earlier-card-tagline">Autonomous NFT Trading System · Solo Built</span>
                     </div>
                   </div>
                   <p className="earlier-card-desc">
-                    Automated NFT bidding system distributed across 50 machines on a local network, 
-                    built to work around API rate limits. Real-time floor price tracking with Redis 
-                    caching and competitive bidding algorithms with max-bid safeguards.
+                    Built a fully autonomous bidding system that tracked every collection on OpenSea in real-time, 
+                    distributed across 50 machines on a local network. A constant arms race — OpenSea added API keys, 
+                    changed their SDK, and shifted rate limits regularly. Other bots were competing for the same bids, 
+                    so the system had to adapt daily: monitoring floor prices, maintaining competitive bids, and 
+                    outmaneuvering rival algorithms — all while staying profitable.
                   </p>
+                  <div className="earlier-card-highlights">
+                    <span>🤖 Fully autonomous — no manual intervention</span>
+                    <span>⚔️ Real-time bot-vs-bot competition</span>
+                    <span>🔄 Constant adaptation to API & SDK changes</span>
+                  </div>
                   <div className="earlier-card-stats">
                     <div className="earlier-stat">
                       <span className="earlier-stat-value">50</span>
@@ -550,8 +586,16 @@ const Home = () => {
                       <span className="earlier-stat-label">Req/min</span>
                     </div>
                     <div className="earlier-stat">
+                      <span className="earlier-stat-value">All</span>
+                      <span className="earlier-stat-label">OpenSea</span>
+                    </div>
+                    <div className="earlier-stat">
                       <span className="earlier-stat-value">6 mo</span>
                       <span className="earlier-stat-label">Profitable</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">1</span>
+                      <span className="earlier-stat-label">Engineer</span>
                     </div>
                   </div>
                   <div className="earlier-card-tech">
@@ -560,6 +604,7 @@ const Home = () => {
                     <span>OpenSea SDK</span>
                     <span>Docker</span>
                     <span>Etherscan API</span>
+                    <span>Web3.js</span>
                   </div>
                 </div>
               </Link>
@@ -571,14 +616,20 @@ const Home = () => {
                     <img src="/images/oli.png" alt="" className="earlier-card-icon" />
                     <div>
                       <h3>OLI Fitness</h3>
-                      <span className="earlier-card-tagline">Computer Vision Startup</span>
+                      <span className="earlier-card-tagline">Computer Vision Startup · Co-founder &amp; Engineer</span>
                     </div>
                   </div>
                   <p className="earlier-card-desc">
-                    Co-founded a fitness startup using Microsoft Kinect SDK to track 25 joint positions 
-                    at 30fps and score weightlifting form against expert references in real-time. 
-                    Published research and competed in multiple startup competitions.
+                    Co-founded a fitness startup straight out of college that used Microsoft Kinect to analyze 
+                    weightlifting form in real-time. Built the core tracking engine — 25 joint positions at 30fps, 
+                    scored against expert references and normalized across body types. Led a small team of 5 plus 
+                    interns through ACM publication, startup competitions, and an accelerator program until funding ran out.
                   </p>
+                  <div className="earlier-card-highlights">
+                    <span>📄 Published at ACM CHI 2017</span>
+                    <span>🏆 Princeton Tiger Launch finalist</span>
+                    <span>🎓 UW Business Plan Competition finalist</span>
+                  </div>
                   <div className="earlier-card-stats">
                     <div className="earlier-stat">
                       <span className="earlier-stat-value">ACM</span>
@@ -591,6 +642,10 @@ const Home = () => {
                     <div className="earlier-stat">
                       <span className="earlier-stat-value">25</span>
                       <span className="earlier-stat-label">Joints</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">5+</span>
+                      <span className="earlier-stat-label">Team</span>
                     </div>
                   </div>
                   <div className="earlier-card-tech">
