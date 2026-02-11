@@ -186,6 +186,17 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== NARRATIVE STATEMENT ===== */}
+        <section className="narrative-section">
+          <div className="container">
+            <p className="narrative-text">
+              I build apps for real users, ship updates daily, and iterate on real feedback. 
+              Below is how I work — live commits, AI agents that automate my workflow, 
+              and the tools I've built to keep everything running. Everything you see here is live.
+            </p>
+          </div>
+        </section>
+
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 

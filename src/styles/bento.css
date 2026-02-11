@@ -128,6 +128,31 @@
   margin: 0;
 }
 
+/* Narrative Statement */
+.narrative-section {
+  padding: var(--space-lg) 0 var(--space-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.narrative-text {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 720px;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .narrative-section {
+    padding: var(--space-md) 16px var(--space-lg);
+  }
+
+  .narrative-text {
+    font-size: 1.02rem;
+  }
+}
+
 /* Activity Section */
 .activity-section {
   padding: var(--space-md) 0 var(--space-lg);
