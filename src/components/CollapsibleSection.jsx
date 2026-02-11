@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import '../styles/collapsible.css';
 
 const ChevronIcon = ({ open }) => (
@@ -18,7 +17,7 @@ const ChevronIcon = ({ open }) => (
   </svg>
 );
 
-const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', stats, defaultOpen = false, rightLink, rightLinkTo, children }) => {
+const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', stats, defaultOpen = false, children }) => {
   const [open, setOpen] = useState(defaultOpen);
   const contentRef = useRef(null);
   const [height, setHeight] = useState(defaultOpen ? 'auto' : '0px');
@@ -82,15 +81,6 @@ const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', sta
                 </div>
               ))}
             </div>
-          )}
-          {rightLink && rightLinkTo && (
-            <Link
-              className="collapsible-right-link"
-              to={rightLinkTo}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {rightLink}
-            </Link>
           )}
           <ChevronIcon open={open} />
         </div>

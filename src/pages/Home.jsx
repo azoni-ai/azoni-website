@@ -203,16 +203,16 @@ const Home = () => {
             <div className="showcase-grid">
 
               <Link to="/blog" className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#3b82f6' }} />
+                <div className="showcase-card-accent" style={{ background: '#9b5de5' }} />
                 <div className="showcase-card-body">
                   <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(59,130,246,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <div className="showcase-icon" style={{ background: 'rgba(155,93,229,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9b5de5" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     </div>
                     <div>
                       <div className="showcase-title-row">
                         <h3>Blog Agent</h3>
-                        <span className="showcase-status">Autonomous</span>
+                        <span className="showcase-status showcase-status-purple">Autonomous</span>
                       </div>
                       <span className="showcase-tagline">Writes and publishes without human input</span>
                     </div>
@@ -247,16 +247,16 @@ const Home = () => {
               </Link>
 
               <Link to="/chat" className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#8b5cf6' }} />
+                <div className="showcase-card-accent" style={{ background: '#3b82f6' }} />
                 <div className="showcase-card-body">
                   <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(139,92,246,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    <div className="showcase-icon" style={{ background: 'rgba(59,130,246,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                     </div>
                     <div>
                       <div className="showcase-title-row">
                         <h3>Azoni AI</h3>
-                        <span className="showcase-status showcase-status-purple">Try it</span>
+                        <span className="showcase-status">Try it</span>
                       </div>
                       <span className="showcase-tagline">RAG chatbot with live MCP data access</span>
                     </div>
@@ -370,8 +370,6 @@ const Home = () => {
             { value: appStats.rowcrew?.users || '–', label: 'rowers' },
           ].filter(s => s.value !== '–' && s.value !== 0) : []}
           defaultOpen={false}
-          rightLink="All activity →"
-          rightLinkTo="/activity"
         >
         {/* ===== AI AGENT BANNERS ===== */}
         <section className="agent-banners-section">
@@ -656,8 +654,6 @@ const Home = () => {
           badge="7+ yrs"
           badgeType="count"
           defaultOpen={false}
-          rightLink="Resume →"
-          rightLinkTo="/resume"
         >
         <section className="experience-section">
           <div className="container">
@@ -767,8 +763,6 @@ const Home = () => {
           title="Earlier Work"
           subtitle="A 50-machine autonomous trading system and an ACM-published computer vision startup"
           defaultOpen={false}
-          rightLink="All projects →"
-          rightLinkTo="/projects"
         >
         {/* Projects */}
         <section className="projects-section">

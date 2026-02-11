@@ -97,18 +97,6 @@
   flex-shrink: 0;
 }
 
-.collapsible-right-link {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--accent-primary);
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-
-.collapsible-right-link:hover {
-  opacity: 0.8;
-}
-
 .collapsible-chevron {
   transition: transform 0.3s ease;
   color: var(--text-secondary);
@@ -217,10 +205,6 @@
   }
 
   .collapsible-stats {
-    display: none;
-  }
-
-  .collapsible-right-link {
     display: none;
   }
 }
