@@ -135,6 +135,7 @@ export default function GameModals({
         socketRef={socketRef}
         setDungeonVictoryPortal={setDungeonVictoryPortal}
         dungeonVictoryPortalRef={dungeonVictoryPortalRef}
+        setNpcDialogue={setNpcDialogue}
       />
 
       {/* Skin Selector Modal */}
@@ -338,7 +339,7 @@ export default function GameModals({
 }
 
 // Sub-components
-function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal, playerInfo, showShop, npcDialogue, showSkinSelect, setShowShop, socketRef, setDungeonVictoryPortal, dungeonVictoryPortalRef }) {
+function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal, playerInfo, showShop, npcDialogue, showSkinSelect, setShowShop, socketRef, setDungeonVictoryPortal, dungeonVictoryPortalRef, setNpcDialogue }) {
   if (showShop || npcDialogue || showSkinSelect) return null;
 
   // Check if building is locked (boss not defeated)

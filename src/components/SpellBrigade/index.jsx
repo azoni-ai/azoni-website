@@ -40,6 +40,9 @@ export default function SpellBrigade() {
   const effectsRef = useRef([]);
   const meteorWarningsRef = useRef([]);
   const pendingCustomWizardRef = useRef(null); // Custom wizard to apply after joining game
+  const predictedPosRef = useRef({ x: 10500, y: 9000 }); // Client-side prediction position
+  const lastFrameTimeRef = useRef(Date.now());
+  const cachedNpcsRef = useRef([]); // NPCs cached since server sends them infrequently
   const settingsRef = useRef({ volume: 0.5, sfxEnabled: true, musicEnabled: true, musicVolume: 0.3, showZoneNames: true, showMinimap: true });
 
   // State
@@ -921,9 +924,10 @@ export default function SpellBrigade() {
       if (data.player.activeQuests) setActiveNpcQuests(data.player.activeQuests);
       if (data.player.completedQuests) setCompletedNpcQuests(data.player.completedQuests);
       
-      // Show tutorial for brand new characters
+      // Show tutorial for brand new characters (per-character, not global)
       if (data.player.level <= 1 && (data.player.kills || 0) === 0) {
-        const tutorialSeen = localStorage.getItem('spellBrigadeTutorialSeen');
+        const tutorialKey = `spellBrigadeTutorial_${data.playerId}`;
+        const tutorialSeen = localStorage.getItem(tutorialKey);
         if (!tutorialSeen) {
           setTimeout(() => setShowTutorial(true), 1200);
         }
@@ -1057,8 +1061,37 @@ export default function SpellBrigade() {
     });
 
     socket.on('gameState', (state) => {
-      // Store state directly - no interpolation (was causing freeze on teleport)
+      // Merge self into players array for backward compatibility
+      const allPlayers = state.players || [];
+      if (state.self) allPlayers.unshift(state.self);
+      state.players = allPlayers;
+      
+      // Cache NPCs (server sends them infrequently)
+      if (state.npcs) cachedNpcsRef.current = state.npcs;
+      state.npcs = cachedNpcsRef.current;
+      
+      // Store state
       gameStateRef.current = { ...gameStateRef.current, ...state };
+      
+      // Reconcile prediction with server position
+      if (state.self) {
+        const serverX = state.self.x;
+        const serverY = state.self.y;
+        const pred = predictedPosRef.current;
+        const dx = serverX - pred.x;
+        const dy = serverY - pred.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist > 150) {
+          // Teleport/big desync - snap to server
+          pred.x = serverX;
+          pred.y = serverY;
+        } else if (dist > 3) {
+          // Smooth reconciliation - blend toward server
+          pred.x += dx * 0.3;
+          pred.y += dy * 0.3;
+        }
+      }
       
       // Update players online count
       if (state.players) {
@@ -2895,6 +2928,34 @@ export default function SpellBrigade() {
       const cam = cameraRef.current;
       const shake = screenShakeRef.current;
 
+      // --- Client-side prediction ---
+      const now = Date.now();
+      const frameDt = Math.min((now - lastFrameTimeRef.current) / 1000, 0.05); // Cap at 50ms
+      lastFrameTimeRef.current = now;
+      
+      if (me && me.health > 0) {
+        const input = inputRef.current;
+        const moveX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+        const moveY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+        
+        if (moveX !== 0 || moveY !== 0) {
+          const len = Math.sqrt(moveX * moveX + moveY * moveY);
+          const baseSpeed = me.baseSpeed || 150;
+          const speedMult = me.speedMultiplier || 1;
+          const speed = Math.min(baseSpeed * speedMult, me.isAdmin ? 999 : 350);
+          
+          predictedPosRef.current.x += (moveX / len) * speed * frameDt;
+          predictedPosRef.current.y += (moveY / len) * speed * frameDt;
+        }
+      } else if (me) {
+        // Snap prediction when dead or just spawned
+        predictedPosRef.current.x = me.x;
+        predictedPosRef.current.y = me.y;
+      }
+      
+      const predX = predictedPosRef.current.x;
+      const predY = predictedPosRef.current.y;
+
       // Mobile zoom - zoom out to see more of the world
       const isMobileView = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const zoom = isMobileView ? 0.6 : 1; // 60% zoom on mobile = see ~67% more
@@ -2904,10 +2965,10 @@ export default function SpellBrigade() {
       const width = canvas.width / zoom;
       const height = canvas.height / zoom;
 
-      // Camera follow player
+      // Camera follows predicted position (not server position)
       if (me) {
-        cam.x = lerp(cam.x, me.x - width / 2, 0.15);
-        cam.y = lerp(cam.y, me.y - height / 2, 0.15);
+        cam.x = lerp(cam.x, predX - width / 2, 0.15);
+        cam.y = lerp(cam.y, predY - height / 2, 0.15);
         
         // Different bounds for dungeon vs world
         if (inDungeonRef.current) {
@@ -10049,11 +10110,13 @@ export default function SpellBrigade() {
       // Players
       for (const player of players || []) {
         if (player.health <= 0) continue;
-        const px = player.x - cx;
-        const py = player.y - cy;
-        if (px < -50 || px > width + 50 || py < -50 || py > height + 50) continue;
-
         const isMe = player.id === playerIdRef.current;
+        // Use predicted position for self, server position for others
+        const playerWorldX = isMe ? predictedPosRef.current.x : player.x;
+        const playerWorldY = isMe ? predictedPosRef.current.y : player.y;
+        const px = playerWorldX - cx;
+        const py = playerWorldY - cy;
+        if (px < -50 || px > width + 50 || py < -50 || py > height + 50) continue;
         // Use skin color if available, otherwise class color, or custom wizard color
         const skin = DEFAULT_SKINS.find(s => s.id === player.selectedSkin);
         const classColor = player.customColor || skin?.color || (classes[player.class] || DEFAULT_CLASSES[player.class])?.color || '#fff';
@@ -11049,9 +11112,9 @@ export default function SpellBrigade() {
       }
 
       // Meteor warnings
-      const now = Date.now();
+      const nowMs = Date.now();
       meteorWarningsRef.current = meteorWarningsRef.current.filter(m => {
-        const elapsed = now - m.startTime;
+        const elapsed = nowMs - m.startTime;
         if (elapsed > m.delay) return false;
 
         const mx = m.x - cx;
@@ -14186,7 +14249,7 @@ export default function SpellBrigade() {
       {/* New Player Tutorial Overlay */}
       {showTutorial && screen === 'game' && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 5000 }} onClick={() => { setShowTutorial(false); localStorage.setItem('spellBrigadeTutorialSeen', '1'); }} />
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 5000 }} onClick={() => { setShowTutorial(false); localStorage.setItem(`spellBrigadeTutorial_${playerIdRef.current}`, '1'); }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             background: 'linear-gradient(135deg, rgba(15,15,30,0.98), rgba(25,20,45,0.98))',
@@ -14235,7 +14298,7 @@ export default function SpellBrigade() {
             </div>
             
             <button
-              onClick={() => { setShowTutorial(false); localStorage.setItem('spellBrigadeTutorialSeen', '1'); }}
+              onClick={() => { setShowTutorial(false); localStorage.setItem(`spellBrigadeTutorial_${playerIdRef.current}`, '1'); }}
               style={{
                 width: '100%', marginTop: 18, padding: '14px 20px',
                 background: 'linear-gradient(135deg, #ffd93d, #f97316)',
