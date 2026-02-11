@@ -5,7 +5,8 @@
  * Runs every 3 hours, gathers state from GitHub, Firestore, MCP, and
  * agent services, then uses an LLM to decide what actions to take.
  * 
- * Schedule: Every 3 hours 
+ * Schedule: Every 3 hours (cron: 0 every-3-hours)
+ * 
  * Actions it can take:
  * - Trigger daily-blog if commits exist but no blog was written
  * - Tell social agent to share new blog posts on Moltbook
@@ -66,7 +67,7 @@ async function getRecentActivity(hoursBack = 24) {
 
 async function getRecentBlogPosts(hoursBack = 48) {
   const cutoff = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
-  const snapshot = await db.collection('blog_posts')
+  const snapshot = await db.collection('blogPosts')
     .where('publishedAt', '>=', admin.firestore.Timestamp.fromDate(cutoff))
     .orderBy('publishedAt', 'desc')
     .limit(5)
@@ -191,6 +192,114 @@ async function getLastOrchestratorRun() {
   return snapshot.docs[0].data().timestamp?.toDate?.() || null;
 }
 
+// ===== NEW: Self-improvement state gathering =====
+
+async function getKnowledgeGaps(limit = 20) {
+  try {
+    const snapshot = await db.collection('knowledge_gaps')
+      .where('resolved', '==', false)
+      .orderBy('timestamp', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      query: doc.data().query,
+      intent: doc.data().intent,
+      bestRetrievalScore: doc.data().bestRetrievalScore,
+      responseIndicatesGap: doc.data().responseIndicatesGap,
+      timestamp: doc.data().timestamp?.toDate?.()?.toISOString() || null
+    }));
+  } catch (err) {
+    console.error('[orchestrator] Knowledge gaps fetch failed:', err.message);
+    return [];
+  }
+}
+
+async function getChatStats(hoursBack = 72) {
+  try {
+    const cutoff = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+    const snapshot = await db.collection('chat_logs')
+      .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(cutoff))
+      .orderBy('timestamp', 'desc')
+      .limit(50)
+      .get();
+
+    const logs = snapshot.docs.map(doc => doc.data());
+    const totalChats = logs.length;
+    const totalCost = logs.reduce((sum, l) => sum + (l.cost || 0), 0);
+    const intentCounts = {};
+    const lowScoreQueries = [];
+    
+    for (const log of logs) {
+      intentCounts[log.intent] = (intentCounts[log.intent] || 0) + 1;
+      if (log.bestRetrievalScore < 10) {
+        lowScoreQueries.push(log.query?.slice(0, 100));
+      }
+    }
+
+    return {
+      totalChats,
+      totalCost: totalCost.toFixed(6),
+      intentBreakdown: intentCounts,
+      lowScoreQueries: lowScoreQueries.slice(0, 5),
+      period: `${hoursBack}h`
+    };
+  } catch (err) {
+    console.error('[orchestrator] Chat stats fetch failed:', err.message);
+    return { totalChats: 0, error: err.message };
+  }
+}
+
+async function getRagHealth() {
+  try {
+    const snapshot = await db.collection('rag_knowledge_base').get();
+    const chunks = snapshot.docs.map(doc => ({
+      id: doc.id,
+      category: doc.data().category,
+      title: doc.data().title,
+      hasEmbedding: !!doc.data().embedding,
+      updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || null
+    }));
+
+    const categories = {};
+    let withEmbedding = 0;
+    let withoutEmbedding = 0;
+
+    for (const chunk of chunks) {
+      categories[chunk.category] = (categories[chunk.category] || 0) + 1;
+      if (chunk.hasEmbedding) withEmbedding++;
+      else withoutEmbedding++;
+    }
+
+    return {
+      totalChunks: chunks.length,
+      categories,
+      withEmbedding,
+      withoutEmbedding,
+      titles: chunks.map(c => c.title)
+    };
+  } catch (err) {
+    console.error('[orchestrator] RAG health fetch failed:', err.message);
+    return { totalChunks: 0, error: err.message };
+  }
+}
+
+async function getLastSelfAssessment() {
+  try {
+    const snapshot = await db.collection('agent_activity')
+      .where('type', '==', 'self_assessment')
+      .orderBy('timestamp', 'desc')
+      .limit(1)
+      .get();
+    
+    if (snapshot.empty) return null;
+    return snapshot.docs[0].data().timestamp?.toDate?.() || null;
+  } catch (err) {
+    return null;
+  }
+}
+
 // ============ ACTION EXECUTION ============
 
 async function triggerBlogGeneration(date) {
@@ -245,6 +354,159 @@ async function logStep(type, title, description, reasoning, metadata = {}) {
   }
 }
 
+// ============ NEW ACTION EXECUTION ============
+
+async function fillKnowledgeGap(gapQuery, gapIntent) {
+  // Use GPT-4o (stronger model) to generate a high-quality RAG chunk
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://azoni.ai',
+        'X-Title': 'Azoni AI Knowledge Gap Fill'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-4o',
+        messages: [
+          { role: 'system', content: `You are generating knowledge base content for Charlton Smith's portfolio chatbot. 
+Charlton is a software engineer in Seattle with 7+ years experience. He built:
+- BenchPressOnly (fitness app), Spell Brigade (multiplayer game), RowCrew (rowing verification)
+- An AI agent system: orchestrator, blog writer, social agent, fitness agent, gaming agent
+- MCP data server, EmbedRoute (unified embeddings API), RAG chatbot
+- Previously: T-Mobile (4 yrs, automation platform), Capital One (1 yr, test infrastructure)
+- Earlier: Dustbunny (autonomous NFT trading, 50 machines), OLI Fitness (CV startup, ACM published)
+
+Generate a knowledge chunk that would help the chatbot answer this type of question. Be factual — only include what's reasonable based on Charlton's background. If the question is about something you can't reasonably answer, still create a helpful chunk that addresses the topic area.
+
+Respond with JSON: { "category": "...", "title": "...", "content": "...", "keywords": ["..."] }
+Category must be one of: bio, experience, projects, skills, agents, services, blog, fitness, general` },
+          { role: 'user', content: `A user asked the chatbot: "${gapQuery}" (detected intent: ${gapIntent}) and the chatbot couldn't find good information. Generate a knowledge chunk to fill this gap.` }
+        ],
+        temperature: 0.4,
+        max_tokens: 1000,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+    const usage = data.usage || {};
+    const cost = (usage.prompt_tokens || 0) * 0.0000025 + (usage.completion_tokens || 0) * 0.00001;
+
+    const chunk = JSON.parse(content);
+    
+    if (!chunk.category || !chunk.title || !chunk.content) {
+      return { success: false, error: 'LLM returned incomplete chunk', cost };
+    }
+
+    // Write directly to rag_knowledge_base
+    const ragDoc = {
+      category: chunk.category,
+      title: chunk.title,
+      content: chunk.content,
+      metadata: { 
+        autoGenerated: true, 
+        generatedBy: 'orchestrator',
+        sourceQuery: gapQuery.slice(0, 200),
+        keywords: chunk.keywords || []
+      },
+      tokenEstimate: Math.ceil(chunk.content.length / 4),
+      embedding: null,
+      embeddedAt: null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Check for duplicate titles
+    const existing = await db.collection('rag_knowledge_base')
+      .where('title', '==', chunk.title).get();
+    
+    if (!existing.empty) {
+      return { success: false, error: 'Chunk with this title already exists', cost };
+    }
+
+    const ref = await db.collection('rag_knowledge_base').add(ragDoc);
+    console.log(`[orchestrator] Created RAG chunk: ${chunk.title} (${ref.id})`);
+
+    return { 
+      success: true, 
+      chunkId: ref.id, 
+      title: chunk.title, 
+      category: chunk.category,
+      cost,
+      tokens: { prompt: usage.prompt_tokens, completion: usage.completion_tokens }
+    };
+  } catch (err) {
+    console.error('[orchestrator] Fill knowledge gap failed:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function markGapResolved(gapId) {
+  try {
+    await db.collection('knowledge_gaps').doc(gapId).update({
+      resolved: true,
+      resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      resolvedBy: 'orchestrator'
+    });
+  } catch (err) {
+    console.error('[orchestrator] Failed to mark gap resolved:', err.message);
+  }
+}
+
+async function generateSelfAssessment(state) {
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://azoni.ai',
+        'X-Title': 'Azoni AI Self Assessment'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-4o',
+        messages: [
+          { role: 'system', content: `You are Azoni AI performing a self-assessment of the portfolio's AI systems. 
+Analyze the data provided and write a brief, actionable assessment covering:
+1. What's working well (be specific)
+2. What needs improvement (be specific)  
+3. Top 3 concrete recommendations for the next week
+
+Be direct and honest. No fluff. Focus on actionable insights.
+Respond as JSON: { "working_well": ["..."], "needs_improvement": ["..."], "recommendations": ["..."], "overall_health": "healthy|degraded|concerning" }` },
+          { role: 'user', content: `SYSTEM DATA FOR ASSESSMENT:
+
+Chat Stats (72h): ${JSON.stringify(state.chatStats)}
+Knowledge Gaps (unresolved): ${state.knowledgeGaps.length} gaps
+Top gap queries: ${state.knowledgeGaps.slice(0, 5).map(g => g.query).join('; ')}
+RAG Health: ${JSON.stringify(state.ragHealth)}
+Recent Activity: ${state.activity.length} events in 24h
+Blog Posts (48h): ${state.blogs.length}
+Commits Today: ${state.github?.totalCommits || 0}
+Moltbook: ${state.moltbook.online ? 'Online' : 'Offline'}
+MCP/Fitness: ${state.fitness ? 'Reachable' : 'Unreachable'}` }
+        ],
+        temperature: 0.3,
+        max_tokens: 800,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+    const usage = data.usage || {};
+    const cost = (usage.prompt_tokens || 0) * 0.0000025 + (usage.completion_tokens || 0) * 0.00001;
+
+    return { ...JSON.parse(content), cost, tokens: usage };
+  } catch (err) {
+    console.error('[orchestrator] Self-assessment failed:', err.message);
+    return { error: err.message };
+  }
+}
+
 // ============ LLM DECISION ENGINE ============
 
 async function makeDecisions(state) {
@@ -259,6 +521,8 @@ Available actions (respond with a JSON array of actions):
 - { "action": "share_blog", "blogTitle": "...", "reason": "..." } — Tell social agent to share a recent blog post on Moltbook
 - { "action": "flag_health", "system": "...", "issue": "...", "reason": "..." } — Log a system health concern
 - { "action": "log_milestone", "title": "...", "description": "...", "reason": "..." } — Highlight a notable achievement or milestone
+- { "action": "fill_knowledge_gap", "gapId": "...", "gapQuery": "...", "gapIntent": "...", "reason": "..." } — Generate a new RAG knowledge chunk to fill a chatbot knowledge gap. Use GPT-4o to create high-quality content.
+- { "action": "self_assessment", "reason": "..." } — Generate a weekly self-assessment of system health, chatbot performance, and recommendations. Only do this once per week.
 - { "action": "none", "reason": "..." } — No action needed, explain why
 
 Rules:
@@ -267,6 +531,8 @@ Rules:
 - Don't share a blog on Moltbook if social agent already posted about it
 - Only flag health issues if something seems genuinely broken (agent offline, zero activity for 24h+)
 - Log milestones for things like commit streaks, new project launches, unusual activity spikes
+- Fill knowledge gaps when there are unresolved gaps. Pick the most impactful 1-2 gaps per cycle (don't fill more than 2 at a time). Prioritize gaps that seem like recruiter questions.
+- Only run self_assessment if the last one was more than 5 days ago (or never)
 - Be conservative — don't spam actions. Quality over quantity.
 - Always return valid JSON: { "reasoning": "...", "actions": [...] }`;
 
@@ -288,6 +554,21 @@ ${state.moltbook.online ? `Online. Mode: ${state.moltbook.autonomous_mode ? 'Aut
 
 ## Fitness (BenchPressOnly via MCP)
 ${state.fitness ? JSON.stringify(state.fitness, null, 2) : 'MCP server unreachable'}
+
+## Chatbot Performance (72h)
+${state.chatStats ? `${state.chatStats.totalChats} conversations, $${state.chatStats.totalCost} spent
+Intent breakdown: ${JSON.stringify(state.chatStats.intentBreakdown)}
+Low-score queries: ${state.chatStats.lowScoreQueries?.join('; ') || 'none'}` : 'No chat data'}
+
+## Knowledge Gaps (unresolved)
+${state.knowledgeGaps.length > 0 ? state.knowledgeGaps.slice(0, 10).map(g => `- [${g.id}] "${g.query}" (intent: ${g.intent}, score: ${g.bestRetrievalScore})`).join('\n') : 'No unresolved gaps'}
+
+## RAG Knowledge Base Health
+${state.ragHealth ? `${state.ragHealth.totalChunks} chunks (${state.ragHealth.withEmbedding} embedded, ${state.ragHealth.withoutEmbedding} without)
+Categories: ${JSON.stringify(state.ragHealth.categories)}` : 'Unable to check'}
+
+## Last Self-Assessment
+${state.lastAssessment ? state.lastAssessment.toISOString() : 'Never — should run one'}
 
 ## Last Orchestrator Run
 ${state.lastRun ? state.lastRun.toISOString() : 'First run'}
@@ -360,23 +641,30 @@ exports.handler = async (event, context) => {
       'Starting orchestration cycle — need to understand current state before making decisions'
     );
 
-    const [activity, blogs, github, moltbook, fitness, lastRun] = await Promise.all([
+    const [activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment] = await Promise.all([
       getRecentActivity(24),
       getRecentBlogPosts(48),
       getTodayCommitCount(),
       getMoltbookAgentStatus(),
       getFitnessSummary(),
-      getLastOrchestratorRun()
+      getLastOrchestratorRun(),
+      getKnowledgeGaps(20),
+      getChatStats(72),
+      getRagHealth(),
+      getLastSelfAssessment()
     ]);
 
-    const state = { activity, blogs, github, moltbook, fitness, lastRun };
+    const state = { activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment };
 
     console.log('[orchestrator] State gathered:', {
       activityCount: activity.length,
       blogCount: blogs.length,
       commits: github?.totalCommits,
       moltbookOnline: moltbook.online,
-      fitnessAvailable: !!fitness
+      fitnessAvailable: !!fitness,
+      knowledgeGaps: knowledgeGaps.length,
+      chatCount: chatStats?.totalChats || 0,
+      ragChunks: ragHealth?.totalChunks || 0
     });
 
     // 2. Decide — send state to LLM for analysis
@@ -475,6 +763,61 @@ exports.handler = async (event, context) => {
           results.push({ action: 'none', reason: action.reason });
           break;
         }
+
+        case 'fill_knowledge_gap': {
+          const gapResult = await fillKnowledgeGap(action.gapQuery, action.gapIntent);
+          results.push({ action: 'fill_knowledge_gap', ...gapResult });
+          
+          if (gapResult.success && action.gapId) {
+            await markGapResolved(action.gapId);
+          }
+
+          await logStep(
+            'knowledge_generated',
+            gapResult.success 
+              ? `Created knowledge chunk: ${gapResult.title}` 
+              : `Failed to fill knowledge gap`,
+            gapResult.success
+              ? `Generated "${gapResult.title}" (${gapResult.category}) to answer: "${action.gapQuery?.slice(0, 100)}"`
+              : `Error: ${gapResult.error}`,
+            action.reason,
+            { 
+              gapQuery: action.gapQuery, 
+              gapIntent: action.gapIntent, 
+              chunkId: gapResult.chunkId,
+              cost: gapResult.cost,
+              model: 'gpt-4o'
+            }
+          );
+          break;
+        }
+
+        case 'self_assessment': {
+          const assessment = await generateSelfAssessment(state);
+          results.push({ action: 'self_assessment', ...assessment });
+
+          if (!assessment.error) {
+            await logStep(
+              'self_assessment',
+              `Self-assessment: ${assessment.overall_health || 'complete'}`,
+              [
+                `Working well: ${(assessment.working_well || []).join('; ')}`,
+                `Needs improvement: ${(assessment.needs_improvement || []).join('; ')}`,
+                `Recommendations: ${(assessment.recommendations || []).join('; ')}`
+              ].join('\n\n'),
+              action.reason,
+              {
+                overall_health: assessment.overall_health,
+                working_well: assessment.working_well,
+                needs_improvement: assessment.needs_improvement,
+                recommendations: assessment.recommendations,
+                cost: assessment.cost,
+                model: 'gpt-4o'
+              }
+            );
+          }
+          break;
+        }
       }
     }
 
@@ -511,6 +854,9 @@ exports.handler = async (event, context) => {
           blogCount: blogs.length,
           commits: github?.totalCommits,
           moltbookOnline: moltbook.online,
+          knowledgeGaps: knowledgeGaps.length,
+          chatConversations: chatStats?.totalChats || 0,
+          ragChunks: ragHealth?.totalChunks || 0
         }
       })
     };

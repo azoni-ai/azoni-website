@@ -657,6 +657,44 @@ exports.handler = async (event, context) => {
       similarity: Math.min(c.score / maxScore, 1.0).toFixed(2)
     }));
 
+    // ===== SELF-IMPROVEMENT: Log knowledge gaps + conversations =====
+    const assistantResponse = data.choices?.[0]?.message?.content || '';
+    try {
+      const bestScore = retrievedChunks.length > 0 ? Math.max(...retrievedChunks.map(c => c.score)) : 0;
+      const gapPhrases = ["don't have", "not in my knowledge", "don't have detailed", "cannot find", "no information", "not sure about that"];
+      const responseIndicatesGap = gapPhrases.some(p => assistantResponse.toLowerCase().includes(p));
+      const lowRetrievalScore = bestScore < 10;
+
+      // Log knowledge gap if retrieval was weak or response admits ignorance
+      if ((lowRetrievalScore || responseIndicatesGap) && intent.intent !== 'greeting' && latestUserMessage.length > 10) {
+        await db.collection('knowledge_gaps').add({
+          query: latestUserMessage.slice(0, 500),
+          intent: intent.intent,
+          bestRetrievalScore: bestScore,
+          responseIndicatesGap,
+          topChunkTitles: topChunks.slice(0, 3).map(c => c.title),
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          resolved: false
+        });
+        console.log(`[chat] Knowledge gap logged: "${latestUserMessage.slice(0, 80)}..." (score: ${bestScore})`);
+      }
+
+      // Log conversation for analysis (async, non-blocking)
+      db.collection('chat_logs').add({
+        query: latestUserMessage.slice(0, 1000),
+        response: assistantResponse.slice(0, 1000),
+        intent: intent.intent,
+        intentConfidence: intent.confidence,
+        bestRetrievalScore: bestScore,
+        chunksUsed: topChunks.length,
+        model,
+        cost: totalCost,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      }).catch(err => console.error('[chat] Failed to log conversation:', err.message));
+    } catch (gapErr) {
+      console.error('[chat] Gap detection error (non-fatal):', gapErr.message);
+    }
+
     return {
       statusCode: 200,
       headers,
