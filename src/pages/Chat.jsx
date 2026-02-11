@@ -14,19 +14,19 @@ const INITIAL_QUESTIONS = [
   "What's Charlton's experience with Python and AI?",
   "Tell me about Charlton's projects",
   "Why should I hire Charlton?",
-  "What is Row Crew?",
   "What tech stack does Charlton use?",
   "Tell me about Charlton's time at T-Mobile",
-  "What is EmbedRoute?",
-  "How does this chatbot work?",
+  "How does this AI agent system work?",
   "What's Charlton's background in machine learning?",
-  "Tell me about Bench Only",
-  "What databases has Charlton worked with?",
-  "What cloud platforms does Charlton know?",
+  "What does the orchestrator do?",
   "Where did Charlton go to school?",
   "Is Charlton available for work?",
   "What makes Charlton different from other candidates?",
-  "Tell me about Charlton's work at Capital One"
+  "Tell me about Charlton's work at Capital One",
+  "How many AI agents are running right now?",
+  "What is the MCP Data Server?",
+  "How does the blog get written automatically?",
+  "Paste a job description for fit analysis"
 ];
 
 // Follow-up questions based on detected intent/topic
@@ -78,6 +78,13 @@ const FOLLOW_UP_QUESTIONS = {
     "What's Charlton's development philosophy?",
     "How does Charlton stay current with tech?",
     "What excites Charlton about AI?"
+  ],
+  agents: [
+    "How does the orchestrator coordinate agents?",
+    "What does the blog writer agent do?",
+    "Tell me about the Moltbook social agent",
+    "How does the fitness AI work?",
+    "What data does the MCP server expose?"
   ]
 };
 
@@ -486,7 +493,7 @@ const Chat = () => {
     <Layout hideFooter>
       <div className="chat-container">
         <div className="chat-header">
-          <h1 className="chat-title">Azoni-GPT</h1>
+          <h1 className="chat-title">Azoni AI</h1>
           
           <div className="chat-controls">
             <div className="chat-control">
