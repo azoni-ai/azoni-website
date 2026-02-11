@@ -190,9 +190,9 @@ const Home = () => {
         <section className="narrative-section">
           <div className="container">
             <p className="narrative-text">
-              I build apps for real users, ship updates daily, and iterate on real feedback. 
-              Below is how I work — live commits, AI agents that automate my workflow, 
-              and the tools I've built to keep everything running. Everything you see here is live.
+              I try to build apps that people enjoy, take their feedback, and keep making things better. 
+              Below you can see my recent commits and the AI agents I built that run alongside my apps. 
+              Everything here is live and updated in real time.
             </p>
           </div>
         </section>
