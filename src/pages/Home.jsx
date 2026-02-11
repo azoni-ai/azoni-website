@@ -288,6 +288,18 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== CTA ROW ===== */}
+        <div className="cta-row">
+          <Link to="/resume" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            Resume
+          </Link>
+          <Link to="/projects" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Projects
+          </Link>
+        </div>
+
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 

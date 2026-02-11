@@ -153,6 +153,42 @@
   }
 }
 
+/* ============ CTA ROW ============ */
+.cta-row {
+  display: flex;
+  gap: 12px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 0 var(--space-xl);
+}
+
+.cta-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  transition: all 0.15s ease;
+}
+
+.cta-link:hover {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+  background: var(--bg-card-hover);
+}
+
+@media (max-width: 768px) {
+  .cta-row {
+    padding: 0 8px var(--space-lg);
+  }
+}
+
 /* ============ SHOWCASE: BLOG + CHAT ============ */
 .showcase-section {
   padding: 0 0 var(--space-xl);
