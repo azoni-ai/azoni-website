@@ -531,12 +531,30 @@ a.commit-repo:hover {
 }
 
 .earlier-card-highlights span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.78rem;
   color: var(--text-secondary);
-  padding: 4px 12px;
+  padding: 5px 14px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
+}
+
+.earlier-card-highlights span svg {
+  flex-shrink: 0;
+}
+
+/* Experience icon */
+.experience-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .earlier-card-stats {
@@ -696,7 +714,17 @@ a.commit-repo:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.service-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .service-card-header h3 {

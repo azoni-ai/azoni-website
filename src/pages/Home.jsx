@@ -488,14 +488,18 @@ const Home = () => {
                 <div className="service-card-accent" style={{ background: 'var(--accent-primary)' }} />
                 <div className="service-card-body">
                   <div className="service-card-header">
+                    <div className="service-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </div>
                     <h3>MCP Data Server</h3>
                     <span className="service-status">Live</span>
                   </div>
-                  <p>Exposes live fitness data, project stats, and more to AI agents via Model Context Protocol.</p>
+                  <p>Exposes live fitness data, project stats, and activity logs to AI agents and the orchestrator via Model Context Protocol.</p>
                   <div className="service-tech">
                     <span>Node.js</span>
                     <span>REST API</span>
                     <span>Firebase</span>
+                    <span>Render</span>
                   </div>
                 </div>
               </Link>
@@ -504,14 +508,18 @@ const Home = () => {
                 <div className="service-card-accent" style={{ background: '#8b5cf6' }} />
                 <div className="service-card-body">
                   <div className="service-card-header">
+                    <div className="service-icon" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    </div>
                     <h3>RAG Chatbot</h3>
                     <span className="service-status">Live</span>
                   </div>
-                  <p>Ask about my work, skills, or paste a job description for AI-powered fit analysis.</p>
+                  <p>Intent detection routes queries to RAG knowledge base or live MCP endpoints. Paste a job description for AI-powered fit analysis.</p>
                   <div className="service-tech">
-                    <span>Claude API</span>
+                    <span>OpenRouter</span>
                     <span>RAG</span>
                     <span>MCP</span>
+                    <span>Firestore</span>
                   </div>
                 </div>
               </Link>
@@ -520,17 +528,134 @@ const Home = () => {
                 <div className="service-card-accent" style={{ background: '#22d3ee' }} />
                 <div className="service-card-body">
                   <div className="service-card-header">
+                    <div className="service-icon" style={{ background: 'rgba(34,211,238,0.12)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    </div>
                     <h3>EmbedRoute</h3>
                     <span className="service-status">Live</span>
                   </div>
-                  <p>Unified embedding API — one endpoint for OpenAI, Cohere, Voyage, and more. Powers RAG across all apps.</p>
+                  <p>Unified embedding API — one endpoint that routes to OpenAI, Cohere, Voyage, and more. Powers RAG and semantic search across all apps.</p>
                   <div className="service-tech">
                     <span>Node.js</span>
                     <span>REST API</span>
                     <span>Multi-provider</span>
+                    <span>Standalone SaaS</span>
                   </div>
                 </div>
               </a>
+            </div>
+          </div>
+        </section>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Experience"
+          subtitle="7+ years building internal tools, testing infrastructure, and AI-powered applications at scale"
+          badge="7+ yrs"
+          badgeType="count"
+          defaultOpen={false}
+          rightLink="Resume →"
+          rightLinkTo="/resume"
+        >
+        <section className="experience-section">
+          <div className="container">
+            <div className="section-header"><h2>Experience</h2></div>
+            <div className="earlier-work-grid">
+
+              <div className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#e20074' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <div className="experience-icon" style={{ background: '#e20074' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                    </div>
+                    <div>
+                      <h3>T-Mobile</h3>
+                      <span className="earlier-card-tagline">Software Engineer II · June 2018 – April 2022</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Built an internal automation platform that consolidated 4–5 separate tools into a single interface, 
+                    reducing manual work for network operations teams by over 80%. Migrated the frontend from Django 
+                    templates to Angular with reusable components and contributed to the org-wide migration from Jenkins 
+                    to GitLab CI/CD. Worked across cross-functional teams in a large enterprise environment.
+                  </p>
+                  <div className="earlier-card-highlights">
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg> Reduced manual work by 80%</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Consolidated 4–5 tools into one</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e20074" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Cross-functional enterprise teams</span>
+                  </div>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">4 yr</span>
+                      <span className="earlier-stat-label">Tenure</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">80%</span>
+                      <span className="earlier-stat-label">Work reduced</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">4–5</span>
+                      <span className="earlier-stat-label">Tools unified</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>Python</span>
+                    <span>Django</span>
+                    <span>Angular</span>
+                    <span>PostgreSQL</span>
+                    <span>GitLab CI/CD</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#004977' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <div className="experience-icon" style={{ background: '#004977' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div>
+                      <h3>Capital One</h3>
+                      <span className="earlier-card-tagline">Senior Software Engineer · Nov 2022 – Nov 2023</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Maintained and extended automated testing infrastructure for customer email notifications across the 
+                    financial services platform. Designed a JSON schema system so new test cases could be added without 
+                    code changes — test definitions stored in S3, executed via Lambda, results piped to CloudWatch. 
+                    Mentored a summer intern from project scoping through to production deployment.
+                  </p>
+                  <div className="earlier-card-highlights">
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Zero-code test authoring via JSON schema</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Mentored intern to production deployment</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#004977" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Regulated financial services environment</span>
+                  </div>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">Sr.</span>
+                      <span className="earlier-stat-label">Level</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">AWS</span>
+                      <span className="earlier-stat-label">Platform</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">0-code</span>
+                      <span className="earlier-stat-label">Test schema</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>AWS Lambda</span>
+                    <span>S3</span>
+                    <span>CloudWatch</span>
+                    <span>Python</span>
+                    <span>JSON Schema</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -572,9 +697,9 @@ const Home = () => {
                     outmaneuvering rival algorithms — all while staying profitable.
                   </p>
                   <div className="earlier-card-highlights">
-                    <span>🤖 Fully autonomous — no manual intervention</span>
-                    <span>⚔️ Real-time bot-vs-bot competition</span>
-                    <span>🔄 Constant adaptation to API & SDK changes</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg> Fully autonomous — no manual intervention</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Real-time bot-vs-bot competition</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Constant adaptation to API &amp; SDK changes</span>
                   </div>
                   <div className="earlier-card-stats">
                     <div className="earlier-stat">
@@ -626,9 +751,9 @@ const Home = () => {
                     interns through ACM publication, startup competitions, and an accelerator program until funding ran out.
                   </p>
                   <div className="earlier-card-highlights">
-                    <span>📄 Published at ACM CHI 2017</span>
-                    <span>🏆 Princeton Tiger Launch finalist</span>
-                    <span>🎓 UW Business Plan Competition finalist</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> Published at ACM CHI 2017</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 010-5C5.9 4 7 5 7 5s1.1-1 2.5-1a2.5 2.5 0 010 5H8"/><path d="M12 15l-3-3h6l-3 3z"/><rect x="9" y="15" width="6" height="6" rx="1"/></svg> Princeton Tiger Launch finalist</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b5de5" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> UW Business Plan Competition finalist</span>
                   </div>
                   <div className="earlier-card-stats">
                     <div className="earlier-stat">

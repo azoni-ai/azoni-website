@@ -3,18 +3,16 @@
 .collapsible-wrapper {
   max-width: 1200px;
   margin: 0 auto;
-  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.01);
 }
 
 .collapsible-section {
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 2px;
 }
 
 .collapsible-section:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .collapsible-header {
@@ -22,16 +20,24 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 20px 28px;
-  background: none;
-  border: none;
+  padding: 22px 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--text-primary);
-  transition: background 0.15s ease;
+  transition: all 0.2s ease;
+}
+
+.collapsible-section.is-open .collapsible-header {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-bottom-color: transparent;
+  background: var(--bg-card-hover);
 }
 
 .collapsible-header:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-card-hover);
+  border-color: var(--border-light);
 }
 
 .collapsible-header-left {
@@ -48,7 +54,7 @@
 }
 
 .collapsible-title {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 700;
   margin: 0;
   color: var(--text-primary);
@@ -56,11 +62,11 @@
 
 .collapsible-badge {
   font-size: 0.68rem;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 4px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .badge-live {
@@ -69,17 +75,17 @@
 }
 
 .badge-count {
-  background: rgba(255, 122, 92, 0.12);
+  background: rgba(255, 122, 92, 0.15);
   color: var(--accent-primary);
 }
 
 .badge-default {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
 }
 
 .collapsible-subtitle {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--text-secondary);
   line-height: 1.4;
 }
@@ -87,7 +93,7 @@
 .collapsible-header-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   flex-shrink: 0;
 }
 
@@ -105,19 +111,25 @@
 
 .collapsible-chevron {
   transition: transform 0.3s ease;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .collapsible-chevron.open {
   transform: rotate(180deg);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Stats shown in the collapsed header */
 .collapsible-stats {
   display: flex;
   gap: 20px;
-  margin-right: 8px;
+  margin-right: 4px;
 }
 
 .collapsible-stat {
@@ -145,17 +157,26 @@
 .collapsible-body {
   overflow: hidden;
   transition: height 0.3s ease;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.collapsible-section:not(.is-open) .collapsible-body {
+  border-color: transparent;
 }
 
 .collapsible-content {
-  padding: 0 28px 28px;
+  padding: 4px 28px 28px;
 }
 
 /* Remove existing section padding/headers since collapsible handles it */
 .collapsible-content .activity-section,
 .collapsible-content .agent-banners-section,
 .collapsible-content .services-section,
-.collapsible-content .projects-section {
+.collapsible-content .projects-section,
+.collapsible-content .experience-section {
   padding: 0;
 }
 
@@ -177,7 +198,6 @@
 @media (max-width: 768px) {
   .collapsible-wrapper {
     margin: 0 8px;
-    border-radius: var(--radius-sm);
   }
 
   .collapsible-header {
@@ -185,11 +205,11 @@
   }
 
   .collapsible-content {
-    padding: 0 16px 16px;
+    padding: 4px 16px 16px;
   }
 
   .collapsible-title {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
   }
 
   .collapsible-subtitle {
@@ -197,6 +217,10 @@
   }
 
   .collapsible-stats {
+    display: none;
+  }
+
+  .collapsible-right-link {
     display: none;
   }
 }
