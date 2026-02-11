@@ -182,6 +182,9 @@ export default function SpellBrigade() {
   });
   const [showQuestLog, setShowQuestLog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [activeNpcQuests, setActiveNpcQuests] = useState([]); // [{id, name, type, target, zone, required, progress, rewardText}]
+  const [completedNpcQuests, setCompletedNpcQuests] = useState([]);
+  const [questNotification, setQuestNotification] = useState(null); // {text, color}
   
   // In-game settings modal
   const [showInGameSettings, setShowInGameSettings] = useState(false);
@@ -913,6 +916,10 @@ export default function SpellBrigade() {
       setPlayerInfo(data.player);
       setScreen('game');
       setTimeout(() => playSound('gameEnter'), 200);
+      
+      // Load active NPC quests from server
+      if (data.player.activeQuests) setActiveNpcQuests(data.player.activeQuests);
+      if (data.player.completedQuests) setCompletedNpcQuests(data.player.completedQuests);
       
       // Show tutorial for brand new characters
       if (data.player.level <= 1 && (data.player.kills || 0) === 0) {
@@ -1725,6 +1732,62 @@ export default function SpellBrigade() {
       });
       playSound('levelUp');
       setTimeout(() => setQuestComplete(null), 5000);
+    });
+
+    // NPC Quest handlers
+    socket.on('questAcceptedNpc', (data) => {
+      console.log(`📜 Quest accepted: ${data.quest.name}`);
+      setActiveNpcQuests(prev => [...prev, data.quest]);
+      setQuestNotification({ text: `Quest accepted: ${data.quest.name}`, color: '#ffd93d' });
+      setTimeout(() => setQuestNotification(null), 3000);
+      playSound('levelUp');
+    });
+
+    socket.on('questProgressUpdate', (data) => {
+      setActiveNpcQuests(prev => prev.map(q => 
+        q.id === data.questId ? { ...q, progress: data.progress } : q
+      ));
+      if (data.complete) {
+        setQuestNotification({ text: `${data.name} complete! Return to NPC.`, color: '#22c55e' });
+        setTimeout(() => setQuestNotification(null), 4000);
+        playSound('levelUp');
+      }
+    });
+
+    socket.on('questCompleteNpc', (data) => {
+      console.log(`🏆 Quest complete: ${data.name} → ${data.rewardText}`);
+      setActiveNpcQuests(prev => prev.filter(q => q.id !== data.questId));
+      setCompletedNpcQuests(prev => [...prev, data.questId]);
+      setQuestComplete({
+        title: data.name,
+        xp: data.xp,
+        bonuses: [data.rewardText],
+      });
+      playSound('levelUp');
+      setTimeout(() => setQuestComplete(null), 5000);
+    });
+
+    socket.on('questAbandoned', (data) => {
+      setActiveNpcQuests(prev => prev.filter(q => q.id !== data.questId));
+    });
+
+    socket.on('questError', (data) => {
+      setQuestNotification({ text: data.message, color: '#ef4444' });
+      setTimeout(() => setQuestNotification(null), 3000);
+    });
+
+    socket.on('collectiblePickup', (data) => {
+      // Add floating text effect for collected item
+      const effects = effectsRef.current || [];
+      effects.push({
+        type: 'castText',
+        text: `${data.emoji} Collected!`,
+        x: data.x,
+        y: data.y,
+        color: data.color,
+        startTime: Date.now(),
+        duration: 1200,
+      });
     });
 
     socket.on('respawned', () => {
@@ -2826,7 +2889,7 @@ export default function SpellBrigade() {
     const lerp = (a, b, t) => a + (b - a) * t;
 
     const render = () => {
-      const { world, players, enemies, projectiles, xpOrbs, particles, damageNumbers } = gameStateRef.current;
+      const { world, players, enemies, projectiles, xpOrbs, collectibles, particles, damageNumbers } = gameStateRef.current;
       
       const me = players?.find(p => p.id === playerIdRef.current);
       const cam = cameraRef.current;
@@ -9944,6 +10007,45 @@ export default function SpellBrigade() {
         ctx.fill();
       }
 
+      // Collectible Items (quest items)
+      for (const col of collectibles || []) {
+        const colX = col.x - cx;
+        const colY = col.y - cy;
+        if (colX < -30 || colX > width + 30 || colY < -30 || colY > height + 30) continue;
+
+        const pulse = Math.sin(Date.now() / 300 + col.x * 0.1) * 0.3 + 0.7;
+        const bob = Math.sin(Date.now() / 500 + col.y * 0.05) * 4;
+
+        // Glow ring
+        ctx.beginPath();
+        ctx.arc(colX, colY + bob, 16, 0, Math.PI * 2);
+        const glow = ctx.createRadialGradient(colX, colY + bob, 0, colX, colY + bob, 16);
+        glow.addColorStop(0, col.color + 'aa');
+        glow.addColorStop(0.6, col.color + '44');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // Core sparkle
+        ctx.beginPath();
+        ctx.arc(colX, colY + bob, 8, 0, Math.PI * 2);
+        ctx.fillStyle = col.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Floating sparkle particles
+        for (let s = 0; s < 3; s++) {
+          const angle = (Date.now() / 800 + s * 2.1) % (Math.PI * 2);
+          const dist = 10 + Math.sin(Date.now() / 400 + s) * 4;
+          ctx.beginPath();
+          ctx.arc(colX + Math.cos(angle) * dist, colY + bob + Math.sin(angle) * dist, 1.5 * pulse, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+        }
+      }
+
       // Players
       for (const player of players || []) {
         if (player.health <= 0) continue;
@@ -14151,91 +14253,81 @@ export default function SpellBrigade() {
       {questComplete && (
         <div style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          top: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, rgba(15,15,30,0.95), rgba(40,30,10,0.95))',
+          border: '2px solid rgba(255,217,61,0.6)',
+          borderRadius: 16,
+          padding: '16px 28px',
           zIndex: 2000,
-          animation: 'fadeIn 0.5s ease-out',
-        }}>
-          <div style={{
-            textAlign: 'center',
-            animation: 'dropIn 0.6s ease-out',
-          }}>
-            <div style={{ fontSize: '4rem', marginBottom: 20 }}>
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="35" fill="#ffd93d" stroke="#b8860b" strokeWidth="3"/>
-                <path d="M40 20 L45 35 L60 35 L48 45 L53 60 L40 50 L27 60 L32 45 L20 35 L35 35 Z" fill="#b8860b"/>
-              </svg>
-            </div>
-            <div style={{ 
-              color: '#ffd93d', 
-              fontSize: '2rem', 
-              fontWeight: 700,
-              textShadow: '0 0 30px rgba(255,215,0,0.5)',
-              marginBottom: 10,
-            }}>
-              QUEST COMPLETE!
-            </div>
-            <div style={{ 
-              color: '#fff', 
-              fontSize: '1.5rem', 
-              fontWeight: 600,
-              marginBottom: 30,
-            }}>
-              {questComplete.title}
-            </div>
-            <div style={{
-              display: 'flex',
-              gap: 30,
-              justifyContent: 'center',
-              marginBottom: 30,
-              flexWrap: 'wrap',
-            }}>
-              <div>
-                <div style={{ color: '#888', fontSize: '0.8rem' }}>XP REWARD</div>
-                <div style={{ color: '#3b82f6', fontSize: '1.5rem', fontWeight: 700 }}>+{questComplete.xp}</div>
+          textAlign: 'center',
+          maxWidth: 400,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          animation: 'dropIn 0.4s ease-out',
+          pointerEvents: 'auto',
+          cursor: 'pointer',
+        }} onClick={() => setQuestComplete(null)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+            <span style={{ fontSize: '1.5rem' }}>🏆</span>
+            <div>
+              <div style={{ color: '#ffd93d', fontSize: '1rem', fontWeight: 700 }}>
+                {questComplete.title}
               </div>
-              <div>
-                <div style={{ color: '#888', fontSize: '0.8rem' }}>TITLE UNLOCKED</div>
-                <div style={{ color: '#ffd93d', fontSize: '1.2rem', fontWeight: 600 }}>{questComplete.title}</div>
-              </div>
-            </div>
-            {questComplete.bonuses && questComplete.bonuses.length > 0 && (
-              <div style={{
-                display: 'flex',
-                gap: 15,
-                justifyContent: 'center',
-                marginBottom: 25,
-                flexWrap: 'wrap',
-              }}>
-                {questComplete.bonuses.map((b, i) => (
-                  <div key={i} style={{
-                    background: 'rgba(34,197,94,0.15)',
-                    border: '1px solid rgba(34,197,94,0.4)',
-                    borderRadius: 8,
-                    padding: '8px 16px',
-                    color: '#22c55e',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                  }}>
-                    {b}
-                  </div>
+              <div style={{ color: '#3b82f6', fontSize: '0.9rem', fontWeight: 600 }}>
+                +{questComplete.xp} XP
+                {questComplete.bonuses?.map((b, i) => (
+                  <span key={i} style={{ color: '#22c55e', marginLeft: 8 }}>{b}</span>
                 ))}
               </div>
-            )}
-            <div style={{ 
-              color: '#22c55e', 
-              fontSize: '1rem',
-              animation: 'pulse 1s infinite',
-            }}>
-              You have conquered all zone bosses!
             </div>
           </div>
+          <div style={{ color: '#666', fontSize: '0.7rem', marginTop: 6 }}>click to dismiss</div>
+        </div>
+      )}
+
+      {/* Quest Notification Banner */}
+      {questNotification && screen === 'game' && (
+        <div style={{
+          position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)',
+          background: `${questNotification.color}20`, border: `1px solid ${questNotification.color}60`,
+          borderRadius: 10, padding: '8px 20px', zIndex: 1500,
+          color: questNotification.color, fontWeight: 600, fontSize: '0.85rem',
+          boxShadow: `0 4px 16px ${questNotification.color}30`,
+        }}>
+          {questNotification.text}
+        </div>
+      )}
+
+      {/* Active Quest Tracker */}
+      {activeNpcQuests.length > 0 && screen === 'game' && !showQuestLog && (
+        <div style={{
+          position: 'fixed', top: isMobile ? 55 : 12, right: 12,
+          background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 10, padding: '8px 12px', zIndex: 900,
+          maxWidth: 200, pointerEvents: 'none',
+        }}>
+          <div style={{ color: '#ffd93d', fontSize: '0.7rem', fontWeight: 700, marginBottom: 4 }}>📜 QUESTS</div>
+          {activeNpcQuests.slice(0, 3).map(q => (
+            <div key={q.id} style={{ marginBottom: 4 }}>
+              <div style={{ 
+                color: q.progress >= q.required ? '#4ade80' : '#ccc', 
+                fontSize: '0.7rem', fontWeight: 600,
+              }}>
+                {q.name} {q.progress >= q.required && '✅'}
+              </div>
+              <div style={{
+                height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginTop: 2,
+              }}>
+                <div style={{
+                  height: '100%', borderRadius: 2,
+                  width: `${Math.min(100, (q.progress / q.required) * 100)}%`,
+                  background: q.progress >= q.required ? '#4ade80' : '#fbbf24',
+                }} />
+              </div>
+              <div style={{ color: '#888', fontSize: '0.6rem' }}>{q.progress}/{q.required}</div>
+            </div>
+          ))}
         </div>
       )}
 

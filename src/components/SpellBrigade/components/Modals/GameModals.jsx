@@ -380,10 +380,22 @@ function InteractionPrompts({ isMobile, nearbyBuilding, nearbyNpc, nearbyPortal,
           textAlign: 'center', cursor: 'pointer',
         }} onClick={() => {
           if (nearbyNpc.isQuestGiver) {
-            // Handle quest NPC dialogue client-side
+            // Handle quest NPC dialogue client-side (these NPCs aren't on the server)
             const qnpc = nearbyNpc;
-            // Use the setNpcDialogue from parent - emit a custom event
-            socketRef.current?.emit('interactNpc', { npcId: qnpc.id, isQuestGiver: true });
+            const zoneQuestId = qnpc.targetZone.replace('crystal_caves', 'crystal') + '_quest';
+            setNpcDialogue?.({
+              npcType: 'quest_giver',
+              npcName: qnpc.name,
+              emoji: qnpc.icon,
+              dialogue: qnpc.lore,
+              followUp: [qnpc.questPrompt, `Recommended: Level ${qnpc.recommendedLevel}+`, `Target: ${qnpc.targetBoss} in ${qnpc.targetZone === 'crystal_caves' ? 'Crystal Caves' : qnpc.targetZone}`],
+              questGiverColor: qnpc.color,
+              hasChoice: true,
+              prompt: qnpc.questPrompt,
+              questId: zoneQuestId,
+              targetZone: qnpc.targetZone,
+              targetBoss: qnpc.targetBoss,
+            });
           } else {
             socketRef.current?.emit('interactNpc', { npcId: nearbyNpc.id });
           }
@@ -910,6 +922,8 @@ function NPCDialogueContent({
     : npcDialogue.npcType === 'knight' ? '#dc2626'
     : npcDialogue.npcType === 'dungeon_architect' ? '#8b5cf6'
     : npcDialogue.npcType === 'quest_giver' ? (npcDialogue.questGiverColor || '#4ade80')
+    : npcDialogue.npcType === 'hunt_master' ? '#ef4444'
+    : npcDialogue.npcType === 'herbalist' ? '#4ade80'
     : '#a8a29e';
   
   return (
@@ -923,6 +937,8 @@ function NPCDialogueContent({
           npcDialogue.npcType === 'knight' ? 'linear-gradient(135deg, rgba(40,20,20,0.98), rgba(60,25,25,0.98))' :
           npcDialogue.npcType === 'dungeon_architect' ? 'linear-gradient(135deg, rgba(30,20,50,0.98), rgba(50,30,70,0.98))' :
           npcDialogue.npcType === 'quest_giver' ? 'linear-gradient(135deg, rgba(20,35,20,0.98), rgba(30,50,35,0.98))' :
+          npcDialogue.npcType === 'hunt_master' ? 'linear-gradient(135deg, rgba(50,20,20,0.98), rgba(70,25,15,0.98))' :
+          npcDialogue.npcType === 'herbalist' ? 'linear-gradient(135deg, rgba(15,40,25,0.98), rgba(20,55,30,0.98))' :
           'linear-gradient(135deg, rgba(30,25,20,0.98), rgba(50,40,30,0.98))',
         border: `2px solid ${npcColor}80`,
       }}>
@@ -1016,6 +1032,7 @@ function NPCDialogueContent({
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button
                 onClick={() => {
+                  socketRef.current?.emit('acceptQuest', { questId: 'conquer_realm' });
                   setQuestLog?.(prev => ({
                     ...prev,
                     allBosses: { ...prev?.allBosses, active: true },
@@ -1042,6 +1059,57 @@ function NPCDialogueContent({
         )}
         
         {/* Knight - Dragon Dungeon */}
+        {npcDialogue.npcType === 'quest_giver' && npcDialogue.hasChoice && npcDialogue.prompt && (
+          <div style={{ marginTop: 20 }}>
+            {(() => {
+              const qid = npcDialogue.questId;
+              const quest = questLog?.[qid];
+              const isActive = quest?.active;
+              const isComplete = quest?.completed;
+              
+              if (isComplete) {
+                return <p style={{ color: '#4ade80', textAlign: 'center', fontWeight: 600 }}>✅ Quest Complete! The {npcDialogue.targetBoss} has been vanquished.</p>;
+              }
+              if (isActive) {
+                return <p style={{ color: '#fbbf24', textAlign: 'center', fontWeight: 600 }}>📜 Quest Active — Defeat the {npcDialogue.targetBoss}!</p>;
+              }
+              return (
+                <>
+                  <p style={{ color: '#fff', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
+                    {npcDialogue.prompt}
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <button
+                      onClick={() => {
+                        setQuestLog?.(prev => ({
+                          ...prev,
+                          [qid]: { ...prev?.[qid], active: true },
+                        }));
+                        onClose();
+                        playSound?.('levelUp');
+                      }}
+                      style={{
+                        padding: '12px 25px',
+                        background: `linear-gradient(135deg, ${npcDialogue.questGiverColor || '#4ade80'}, ${npcDialogue.questGiverColor || '#4ade80'}88)`,
+                        border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+                      }}
+                    >
+                      Accept Quest
+                    </button>
+                    <button onClick={onClose} style={{
+                      padding: '12px 25px', background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+                    }}>
+                      Maybe later
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+        
+        {/* Knight - Dragon Dungeon - Enter */}
         {npcDialogue.npcType === 'knight' && npcDialogue.hasChoice && npcDialogue.prompt && (
           <div style={{ marginTop: 20 }}>
             <p style={{ color: '#fff', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
@@ -1156,6 +1224,100 @@ function NPCDialogueContent({
           </div>
         )}
         
+        {/* Quest Menu - Hunt Master & Herbalist */}
+        {npcDialogue.questMenu && (npcDialogue.npcType === 'hunt_master' || npcDialogue.npcType === 'herbalist') && (
+          <div style={{ marginTop: 10 }}>
+            {/* Active quests from this NPC */}
+            {npcDialogue.activeQuests?.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: '#fbbf24', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>ACTIVE QUESTS</div>
+                {npcDialogue.activeQuests.map(q => (
+                  <div key={q.id} style={{
+                    background: q.progress >= q.required ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                    border: q.progress >= q.required ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 8, padding: '10px 12px', marginBottom: 6,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>{q.name}</span>
+                      <span style={{ color: q.progress >= q.required ? '#4ade80' : '#fbbf24', fontSize: '0.8rem', fontWeight: 700 }}>
+                        {q.progress}/{q.required}
+                      </span>
+                    </div>
+                    {q.progress >= q.required && (
+                      <button
+                        onClick={() => {
+                          socketRef.current?.emit('turnInQuest', { questId: q.id });
+                          onClose();
+                        }}
+                        style={{
+                          marginTop: 8, width: '100%', padding: '8px',
+                          background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                          border: 'none', borderRadius: 6, color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem',
+                        }}
+                      >
+                        ✅ Turn In Quest
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Available quests */}
+            {npcDialogue.availableQuests?.length > 0 ? (
+              <div>
+                <div style={{ color: '#888', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>AVAILABLE QUESTS</div>
+                <div style={{ maxHeight: 250, overflowY: 'auto' }}>
+                  {npcDialogue.availableQuests.map(q => (
+                    <div key={q.id} style={{
+                      background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 8, padding: '10px 12px', marginBottom: 6,
+                    }}>
+                      <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600, marginBottom: 2 }}>
+                        {q.itemEmoji || '⚔️'} {q.name}
+                        <span style={{ color: '#666', fontSize: '0.7rem', marginLeft: 6 }}>Tier {q.tier}</span>
+                      </div>
+                      <div style={{ color: '#999', fontSize: '0.78rem', marginBottom: 6, lineHeight: 1.4 }}>{q.description}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#4ade80', fontSize: '0.78rem', fontWeight: 600 }}>🎁 {q.rewardText}</span>
+                        <button
+                          onClick={() => {
+                            socketRef.current?.emit('acceptNpcQuest', { questId: q.id });
+                            onClose();
+                          }}
+                          style={{
+                            padding: '6px 14px',
+                            background: npcDialogue.npcType === 'hunt_master' 
+                              ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+                              : 'linear-gradient(135deg, #4ade80, #22c55e)',
+                            border: 'none', borderRadius: 6, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem',
+                          }}
+                        >
+                          Accept
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: '#666', textAlign: 'center', fontSize: '0.85rem', padding: 10 }}>
+                {npcDialogue.completedCount > 0 
+                  ? `All quests completed! (${npcDialogue.completedCount} done)` 
+                  : 'No quests available right now.'}
+              </div>
+            )}
+            
+            <button onClick={onClose} style={{
+              marginTop: 12, width: '100%', padding: '10px',
+              background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 8, color: '#aaa', cursor: 'pointer', fontSize: '0.85rem',
+            }}>
+              Leave
+            </button>
+          </div>
+        )}
+        
         {/* Simple close for guide or no-choice NPCs */}
         {!npcDialogue.hasChoice && (
           <div style={{ textAlign: 'center' }}>
@@ -1204,6 +1366,11 @@ function QuestLogContent({ styles, questLog, onClose }) {
                   {q.completed ? '✓ ' : ''}{q.name || q.title}
                 </div>
                 <p style={{ color: '#888', fontSize: '0.8rem', margin: 0 }}>{q.description}</p>
+                {q.reward && (
+                  <div style={{ marginTop: 6, color: q.completed ? '#22c55e88' : '#3b82f6', fontSize: '0.7rem', fontWeight: 600 }}>
+                    Reward: {q.reward.xp ? `+${q.reward.xp} XP` : ''}{q.reward.title ? ` • "${q.reward.title}"` : ''}
+                  </div>
+                )}
                 {q.bosses && !q.completed && (
                   <div style={{ marginTop: 8 }}>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
