@@ -1247,6 +1247,59 @@ Please include:
 - Budget range (if applicable)
 
 Note: This chatbot (Azoni) represents Charlton and can answer questions about his skills and experience, but cannot commit to projects on his behalf. For serious inquiries, direct email is best.`
+    },
+    // ============ NEGOTIATION / CAREER (3) ============
+    {
+      category: 'negotiation',
+      title: 'Career Transitions and Why He Left',
+      content: `Why did Charlton leave his last job?
+
+Charlton's career moves have been deliberate and forward-looking:
+
+T-Mobile (2017-2021, 4 years): Left after completing his M.S. while working full-time. He had built and shipped a major internal platform, earned his master's degree, and was ready for a new challenge at a higher level.
+
+Capital One (2021-2022, ~1 year): Left to pursue building his own products full-time. After years in enterprise environments, he wanted to apply his skills to his own ideas — specifically AI-powered applications and tools. This was a calculated decision to go independent and build a portfolio of real, shipped products rather than continuing to climb the corporate ladder.
+
+Since leaving: Charlton has shipped multiple production applications with real users (BenchPressOnly, Spell Brigade, EmbedRoute), built an autonomous AI agent system, and demonstrated the ability to take projects from zero to production independently. He's now open to the right full-time opportunity where he can bring this builder mentality to a team.
+
+This was not a layoff or termination — it was a choice to invest in himself and his own technical growth. The result is a portfolio of live applications that demonstrate more range and initiative than most engineers show in a decade of employment.`
+    },
+    {
+      category: 'negotiation',
+      title: 'Compensation and Salary Expectations',
+      content: `Charlton's compensation expectations:
+
+Charlton does not share a specific salary number through this chatbot. Compensation is something he discusses directly with potential employers because it depends on the full picture: role scope, team, company stage, equity, benefits, remote flexibility, and growth opportunity.
+
+What is fair to say:
+- He has 7+ years of professional experience including 4 years at T-Mobile and a senior role at Capital One
+- He holds an M.S. in Software Engineering
+- His skills span full-stack development, AI/ML integration, and system architecture
+- He has shipped production applications independently with real users
+- His experience level and skill set are calibrated to senior and staff-level engineering roles at major tech companies
+
+Charlton evaluates opportunities holistically. A compelling role at an earlier-stage company with equity upside and high impact might be more attractive than a higher base salary at a less interesting company. He's practical and reasonable — the right conversation can find alignment.
+
+For compensation discussions, the best next step is to reach out directly: charltonuw@gmail.com`
+    },
+    {
+      category: 'negotiation',
+      title: 'Availability and Job Search Status',
+      content: `Charlton's current availability:
+
+Charlton is actively exploring full-time software engineering opportunities. He is open to:
+- Full-time roles (preferring remote or Seattle-based)
+- Senior and staff-level positions
+- Teams working on AI/ML, developer tools, or consumer products
+- Both startups and established companies
+
+He is available to start conversations immediately and can move quickly for the right opportunity. For specific start date availability, it's best to discuss directly.
+
+Charlton is selective about opportunities — he's looking for roles where he can build meaningful products, work with strong engineers, and have real impact. He's not just looking for any job; he's looking for the right fit.
+
+He is responsive to outreach and typically replies within 24 hours.
+Contact: charltonuw@gmail.com
+LinkedIn: linkedin.com/in/charltonsmith`
     }
   ];
 

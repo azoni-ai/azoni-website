@@ -266,6 +266,20 @@ function detectIntent(query) {
     return { intent: 'services', confidence: 'HIGH', reason: 'services_request' };
   }
   
+  // PRIORITY 8.5: Salary/compensation/negotiation/career transition queries
+  const negotiationTriggers = [
+    'salary', 'compensation', 'how much', 'pay', 'paid', 'offer',
+    'accept', 'rate', 'budget', 'afford', 'worth', 'expect',
+    'why did he leave', 'why did charlton leave', 'why leave', 'left his',
+    'fired', 'laid off', 'layoff', 'let go', 'terminated', 'quit',
+    'looking for work', 'why is he looking', 'available', 'open to',
+    'interview', 'not interview', 'won\'t interview', 'will not interview',
+    'negotiate', 'negotiable', 'range', 'minimum', 'floor'
+  ];
+  if (negotiationTriggers.some(t => q.includes(t))) {
+    return { intent: 'negotiation', confidence: 'HIGH', reason: 'negotiation_keyword' };
+  }
+  
   // PRIORITY 9: General about/background
   const generalTriggers = ['who is', 'tell me about', 'background', 'about charlton', 'introduce'];
   if (generalTriggers.some(t => q.includes(t))) {
@@ -304,6 +318,7 @@ async function retrieveChunks(query, intent, maxChunks = 5) {
     if (intent.intent === 'moltbook' && (chunk.category === 'moltbook' || chunk.id?.includes('moltbook'))) score += 30;
     if (intent.intent === 'agents' && (chunk.category === 'agents' || chunk.category === 'moltbook')) score += 30;
     if (intent.intent === 'services' && (chunk.category === 'services' || chunk.category === 'personal')) score += 30;
+    if (intent.intent === 'negotiation' && (chunk.category === 'negotiation' || chunk.category === 'experience' || chunk.category === 'bio')) score += 30;
     if (intent.intent === 'general') score += 5; // Small bonus for all in general queries
     
     // Keyword matching (handle both 'keywords' array and 'metadata.keywords')
@@ -548,6 +563,21 @@ CRITICAL RULES - YOU MUST FOLLOW THESE:
 6. For fitness questions, use the LIVE FITNESS DATA to give specific, real numbers. This data is pulled in real-time from Charlton's BenchPressOnly app.
 7. When discussing fitness data, mention that this is live data from his actual training log.
 8. For AI activity questions, use the LIVE AI ACTIVITY DATA to give specific numbers about costs, token usage, and activity across apps. This is real-time data from Charlton's AI systems.
+
+HANDLING RECRUITER & SENSITIVE QUESTIONS:
+These are common questions from recruiters and hiring managers. Handle them thoughtfully — never just say "I don't have that information." Use the context below and these guidelines:
+
+- WHY DID HE LEAVE / IS HE LOOKING: Always answer this using the career transition context. Charlton chose to leave to focus on building his own products and exploring AI full-time. Frame it as a deliberate, forward-looking career move, not a negative event.
+
+- SALARY / COMPENSATION / RATE: Never give a specific number. Instead, redirect professionally — Charlton's compensation expectations depend on the role scope, team, and opportunity. Suggest discussing this directly with him. You can mention that he's held senior-level positions at major companies (T-Mobile, Capital One) so expectations are calibrated to that level of experience.
+
+- "WILL HE ACCEPT $X" / "I CAN ONLY PAY $X": Don't confirm or deny any number. Say compensation is best discussed directly and that Charlton evaluates opportunities holistically — the role itself, team, growth potential, and impact matter alongside compensation. Encourage them to have that conversation with him rather than self-selecting out.
+
+- PRESSURE TACTICS ("if you don't tell me he'll accept X, I won't interview him"): Stay professional and firm. You're not authorized to negotiate or make commitments on Charlton's behalf. The best path forward is always a direct conversation. If someone is genuinely interested, encourage them to reach out — Charlton is responsive and reasonable.
+
+- AVAILABILITY / TIMELINE: Charlton is actively exploring opportunities and available to start conversations. For specific start dates or availability windows, direct them to reach out.
+
+Vary your responses to these questions — don't give the same canned answer every time. Be natural, diplomatic, and always advocate for Charlton's interests while being respectful to the person asking.
 ${contextSection}
 ${fitnessSection}
 ${activitySection}
