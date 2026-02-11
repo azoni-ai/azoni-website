@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import AgentBanner from '../components/AgentBanner';
+import CollapsibleSection from '../components/CollapsibleSection';
 import '../styles/bento.css';
 
 // Map repo names to live sites
@@ -25,6 +26,7 @@ const Home = () => {
   const [profile, setProfile] = useState(null);
   const [moltbookStatus, setMoltbookStatus] = useState(null);
   const [latestBlog, setLatestBlog] = useState(null);
+  const [agentActivityCount, setAgentActivityCount] = useState(0);
   const heroRef = useRef(null);
 
   // Fetch latest blog post
@@ -59,6 +61,28 @@ const Home = () => {
       }
     };
     fetchProfile();
+  }, []);
+
+  // Fetch agent activity count (recent)
+  useEffect(() => {
+    const fetchActivityCount = async () => {
+      try {
+        const activityRef = collection(db, 'agent_activity');
+        const q = query(activityRef, orderBy('timestamp', 'desc'), limit(50));
+        const snapshot = await getDocs(q);
+        // Count items from last 24h
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        const recentCount = snapshot.docs.filter(d => {
+          const ts = d.data().timestamp;
+          const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+          return ms > cutoff;
+        }).length;
+        setAgentActivityCount(recentCount);
+      } catch (err) {
+        console.error('Failed to fetch activity count:', err);
+      }
+    };
+    fetchActivityCount();
   }, []);
 
   // Fetch Moltbook agent status
@@ -151,6 +175,16 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== COLLAPSIBLE SECTIONS ===== */}
+        <div className="collapsible-wrapper">
+
+        <CollapsibleSection
+          title="Activity"
+          subtitle={`${githubStats?.today || 0} commits today · ${agentActivityCount} agent events`}
+          badge="Live"
+          badgeType="live"
+          defaultOpen={true}
+        >
         {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
         <section className="activity-section">
           <div className="container">
@@ -205,7 +239,17 @@ const Home = () => {
             </div>
           </div>
         </section>
+        </CollapsibleSection>
 
+        <CollapsibleSection
+          title="AI Agents"
+          subtitle="5 agents running"
+          badge="6"
+          badgeType="count"
+          defaultOpen={false}
+          rightLink="All agent activity →"
+          rightLinkTo="/activity"
+        >
         {/* ===== AI AGENT BANNERS ===== */}
         <section className="agent-banners-section">
           <div className="container">
@@ -397,7 +441,13 @@ const Home = () => {
             </div>
           </div>
         </section>
+        </CollapsibleSection>
 
+        <CollapsibleSection
+          title="Infrastructure"
+          subtitle="3 live services"
+          defaultOpen={false}
+        >
         {/* Services */}
         <section className="services-section">
           <div className="container">
@@ -455,7 +505,15 @@ const Home = () => {
             </div>
           </div>
         </section>
+        </CollapsibleSection>
 
+        <CollapsibleSection
+          title="Earlier Work"
+          subtitle="2 projects"
+          defaultOpen={false}
+          rightLink="All projects →"
+          rightLinkTo="/projects"
+        >
         {/* Projects */}
         <section className="projects-section">
           <div className="container">
@@ -546,6 +604,9 @@ const Home = () => {
             </div>
           </div>
         </section>
+        </CollapsibleSection>
+
+        </div>{/* end collapsible-wrapper */}
       </div>
     </Layout>
   );

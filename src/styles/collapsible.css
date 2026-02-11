@@ -1,0 +1,160 @@
+/* ============ COLLAPSIBLE SECTIONS ============ */
+
+.collapsible-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.collapsible-section {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.collapsible-section:last-child {
+  border-bottom: none;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 18px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.15s ease;
+}
+
+.collapsible-header:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.collapsible-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapsible-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.collapsible-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-live {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.badge-count {
+  background: rgba(255, 122, 92, 0.12);
+  color: var(--accent-primary);
+}
+
+.badge-default {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.collapsible-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.collapsible-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapsible-right-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.collapsible-right-link:hover {
+  opacity: 0.8;
+}
+
+.collapsible-chevron {
+  transition: transform 0.3s ease;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.collapsible-chevron.open {
+  transform: rotate(180deg);
+}
+
+.collapsible-body {
+  overflow: hidden;
+  transition: height 0.3s ease;
+}
+
+.collapsible-content {
+  padding: 0 24px 24px;
+}
+
+/* Remove existing section padding/headers since collapsible handles it */
+.collapsible-content .activity-section,
+.collapsible-content .agent-banners-section,
+.collapsible-content .services-section,
+.collapsible-content .projects-section {
+  padding: 0;
+}
+
+.collapsible-content .container {
+  padding: 0;
+  max-width: none;
+}
+
+.collapsible-content .section-header {
+  display: none;
+}
+
+/* Override agent banner section specifics */
+.collapsible-content .agent-banners-section .section-header {
+  display: none;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .collapsible-wrapper {
+    margin: 0 8px;
+    border-radius: var(--radius-sm);
+  }
+
+  .collapsible-header {
+    padding: 14px 16px;
+  }
+
+  .collapsible-content {
+    padding: 0 16px 16px;
+  }
+
+  .collapsible-title {
+    font-size: 1rem;
+  }
+
+  .collapsible-subtitle {
+    display: none;
+  }
+}
