@@ -455,6 +455,124 @@ a.commit-repo:hover {
   border-radius: var(--radius-sm);
 }
 
+/* ============ EARLIER WORK ============ */
+.earlier-work-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+.earlier-card {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.earlier-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-light);
+  transform: translateY(-2px);
+}
+
+.earlier-card-accent {
+  width: 3px;
+  flex-shrink: 0;
+}
+
+.earlier-card-body {
+  padding: var(--space-lg);
+  flex: 1;
+  min-width: 0;
+}
+
+.earlier-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.earlier-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.earlier-card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.earlier-card-tagline {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.earlier-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-md);
+}
+
+.earlier-card-stats {
+  display: flex;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.earlier-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.earlier-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+}
+
+.earlier-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.earlier-card-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.earlier-card-tech span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono, monospace);
+}
+
+@media (max-width: 768px) {
+  .earlier-work-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* Mobile */
 @media (max-width: 768px) {

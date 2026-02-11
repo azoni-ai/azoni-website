@@ -22,9 +22,7 @@ const REPO_TO_SITE = {
 
 const Home = () => {
   const [githubStats, setGithubStats] = useState(null);
-  const [featuredProjects, setFeaturedProjects] = useState([]);
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [moltbookStatus, setMoltbookStatus] = useState(null);
   const [latestBlog, setLatestBlog] = useState(null);
   const heroRef = useRef(null);
@@ -80,43 +78,6 @@ const Home = () => {
     fetchMoltbookStatus();
   }, []);
 
-  // Fetch featured projects from Firestore
-  useEffect(() => {
-    const fetchFeaturedProjects = async () => {
-      try {
-        const projectsRef = collection(db, 'projects');
-        const q = query(
-          projectsRef,
-          where('featured', '==', true),
-          orderBy('order', 'asc')
-        );
-        const snapshot = await getDocs(q);
-        
-        const projects = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        setFeaturedProjects(projects);
-      } catch (err) {
-        console.error('Failed to fetch featured projects:', err);
-        try {
-          const projectsRef = collection(db, 'projects');
-          const snapshot = await getDocs(projectsRef);
-          const projects = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(p => p.featured)
-            .sort((a, b) => (a.order || 99) - (b.order || 99));
-          setFeaturedProjects(projects);
-        } catch (fallbackErr) {
-          console.error('Fallback fetch also failed:', fallbackErr);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFeaturedProjects();
-  }, []);
 
   // Fetch GitHub stats
   useEffect(() => {
@@ -498,63 +459,88 @@ const Home = () => {
         {/* Projects */}
         <section className="projects-section">
           <div className="container">
-            <div className="section-header">
-              <h2>Featured Projects</h2>
-              <Link to="/projects" className="view-all">View all →</Link>
-            </div>
-            
-            {loading ? (
-              <p style={{ color: 'var(--text-muted)' }}>Loading projects...</p>
-            ) : (
-              <div className="projects-grid">
-                {featuredProjects.map((project) => (
-                  <Link key={project.id} to={`/projects/${project.id}`} className="project-card">
-                    <div className="project-top">
-                      {project.image && <img src={project.image} alt="" className="project-icon" />}
-                      {project.links?.live && <span className="project-live">Live</span>}
-                    </div>
-                    <h3>{project.title}</h3>
-                    <p className="project-tagline">{project.tagline}</p>
-                    <p className="project-desc">{project.description}</p>
-                    <div className="project-tech">
-                      {project.tech?.map(t => <span key={t}>{t}</span>)}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
 
-            {/* Earlier Work - Static */}
-            <div className="section-header secondary">
+            {/* Earlier Work - Showcase */}
+            <div className="section-header">
               <h2>Earlier Work</h2>
+              <Link to="/projects" className="view-all">All projects →</Link>
             </div>
             
-            <div className="projects-grid">
-              <Link to="/projects/dustbunny" className="project-card">
-                <div className="project-top">
-                  <img src="/images/dustbunny.png" alt="" className="project-icon" />
-                </div>
-                <h3>Dustbunny</h3>
-                <p className="project-tagline">Web3 Automation Platform</p>
-                <p className="project-desc">NFT bidding system across 50 machines handling 2,500 requests per minute with Redis caching and intelligent algorithms.</p>
-                <div className="project-tech">
-                  <span>Python</span>
-                  <span>Redis</span>
-                  <span>Web3</span>
+            <div className="earlier-work-grid">
+              <Link to="/projects/dustbunny" className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#f59e0b' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <img src="/images/dustbunny.png" alt="" className="earlier-card-icon" />
+                    <div>
+                      <h3>Dustbunny</h3>
+                      <span className="earlier-card-tagline">Web3 Automation Platform</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Automated NFT bidding system distributed across 50 machines on a local network, 
+                    built to work around API rate limits. Real-time floor price tracking with Redis 
+                    caching and competitive bidding algorithms with max-bid safeguards.
+                  </p>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">50</span>
+                      <span className="earlier-stat-label">Machines</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">2,500+</span>
+                      <span className="earlier-stat-label">Req/min</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">6 mo</span>
+                      <span className="earlier-stat-label">Profitable</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>Node.js</span>
+                    <span>Redis</span>
+                    <span>OpenSea SDK</span>
+                    <span>Docker</span>
+                    <span>Etherscan API</span>
+                  </div>
                 </div>
               </Link>
 
-              <Link to="/projects/oli-fitness" className="project-card">
-                <div className="project-top">
-                  <img src="/images/oli.png" alt="" className="project-icon" />
-                </div>
-                <h3>OLI Fitness</h3>
-                <p className="project-tagline">Computer Vision Fitness Startup</p>
-                <p className="project-desc">Co-founded startup using Kinect SDK for real-time exercise form tracking. Published at ACM CHI 2017.</p>
-                <div className="project-tech">
-                  <span>C#</span>
-                  <span>Kinect SDK</span>
-                  <span>Computer Vision</span>
+              <Link to="/projects/oli-fitness" className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#22d3ee' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <img src="/images/oli.png" alt="" className="earlier-card-icon" />
+                    <div>
+                      <h3>OLI Fitness</h3>
+                      <span className="earlier-card-tagline">Computer Vision Startup</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Co-founded a fitness startup using Microsoft Kinect SDK to track 25 joint positions 
+                    at 30fps and score weightlifting form against expert references in real-time. 
+                    Published research and competed in multiple startup competitions.
+                  </p>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">ACM</span>
+                      <span className="earlier-stat-label">Published</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">30fps</span>
+                      <span className="earlier-stat-label">Tracking</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">25</span>
+                      <span className="earlier-stat-label">Joints</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>C#</span>
+                    <span>Kinect SDK</span>
+                    <span>Computer Vision</span>
+                    <span>Unity</span>
+                  </div>
                 </div>
               </Link>
             </div>
