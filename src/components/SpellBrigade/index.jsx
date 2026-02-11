@@ -2108,6 +2108,7 @@ export default function SpellBrigade() {
     socket.on('customAbilityEffect', (data) => {
       effectsRef.current.push({
         type: 'customAbility',
+        style: data.style || 'burst',
         x: data.x,
         y: data.y,
         radius: data.radius,
@@ -2335,6 +2336,18 @@ export default function SpellBrigade() {
     };
 
     const handleMouseDown = (e) => {
+      if (e.button === 2) {
+        // Right-click: fire secondary spell at cursor
+        if (screenRef.current === 'game' && socketRef.current && playerIdRef.current) {
+          if (e.target === canvasRef.current) {
+            const zoom = zoomRef.current || 1;
+            const targetX = (e.clientX / zoom) + cameraRef.current.x;
+            const targetY = (e.clientY / zoom) + cameraRef.current.y;
+            socketRef.current.emit('manualAttack2', { targetX, targetY });
+          }
+        }
+        return;
+      }
       if (e.button !== 0) return;
       initAudio();
       
@@ -12316,41 +12329,142 @@ export default function SpellBrigade() {
         }
 
         else if (ef.type === 'customAbility') {
-          // Generic custom wizard ability - expanding ring with particles
           const ex = ef.x - cx;
           const ey = ef.y - cy;
           const progress = elapsed / (ef.duration || 3000);
-          const ringRadius = ef.radius * Math.min(1, progress * 3);
           const fadeAlpha = Math.max(0, 1 - progress);
+          const style = ef.style || 'burst';
           
-          // Expanding ring
-          ctx.beginPath();
-          ctx.arc(ex, ey, ringRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          
-          // Inner glow
-          if (progress < 0.5) {
-            const glowGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, ringRadius * 0.8);
-            glowGrad.addColorStop(0, ef.color + Math.floor(fadeAlpha * 80).toString(16).padStart(2, '0'));
-            glowGrad.addColorStop(1, 'transparent');
-            ctx.fillStyle = glowGrad;
+          if (style === 'targeted_warning') {
+            // Pulsing warning circle shrinking inward
+            const pulse = 0.6 + 0.4 * Math.sin(elapsed * 0.015);
+            const shrink = 1 - progress * 0.3;
             ctx.beginPath();
-            ctx.arc(ex, ey, ringRadius * 0.8, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          
-          // Orbiting particles
-          for (let i = 0; i < 8; i++) {
-            const pAngle = (Date.now() / 500) + (i * Math.PI * 2 / 8);
-            const pDist = ringRadius * 0.7;
-            const px2 = ex + Math.cos(pAngle) * pDist;
-            const py2 = ey + Math.sin(pAngle) * pDist;
+            ctx.arc(ex, ey, ef.radius * shrink, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(pulse * 180).toString(16).padStart(2, '0');
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            // Fill warning zone
             ctx.beginPath();
-            ctx.arc(px2, py2, 3, 0, Math.PI * 2);
-            ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
+            ctx.arc(ex, ey, ef.radius * shrink, 0, Math.PI * 2);
+            ctx.fillStyle = ef.color + Math.floor(pulse * 30).toString(16).padStart(2, '0');
             ctx.fill();
+            // Converging particles
+            for (let i = 0; i < 6; i++) {
+              const a = (elapsed / 300) + (i * Math.PI * 2 / 6);
+              const d = ef.radius * (1 - progress);
+              const px2 = ex + Math.cos(a) * d;
+              const py2 = ey + Math.sin(a) * d;
+              ctx.beginPath();
+              ctx.arc(px2, py2, 2.5, 0, Math.PI * 2);
+              ctx.fillStyle = ef.color;
+              ctx.fill();
+            }
+          } else if (style === 'targeted_impact') {
+            // Explosive impact ring + shockwave
+            const ringRadius = ef.radius * Math.min(1, progress * 4);
+            ctx.beginPath();
+            ctx.arc(ex, ey, ringRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
+            ctx.lineWidth = 6 * fadeAlpha;
+            ctx.stroke();
+            // Inner flash
+            if (progress < 0.3) {
+              const flashAlpha = (1 - progress / 0.3);
+              const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, ringRadius * 0.8);
+              gr.addColorStop(0, ef.color + Math.floor(flashAlpha * 160).toString(16).padStart(2, '0'));
+              gr.addColorStop(0.6, ef.color + Math.floor(flashAlpha * 60).toString(16).padStart(2, '0'));
+              gr.addColorStop(1, 'transparent');
+              ctx.fillStyle = gr;
+              ctx.beginPath();
+              ctx.arc(ex, ey, ringRadius * 0.8, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            // Debris particles flying outward
+            for (let i = 0; i < 10; i++) {
+              const a = (i * Math.PI * 2 / 10) + 0.3;
+              const d = ringRadius * (0.3 + progress * 0.7);
+              const px2 = ex + Math.cos(a) * d;
+              const py2 = ey + Math.sin(a) * d;
+              ctx.beginPath();
+              ctx.arc(px2, py2, 3 * fadeAlpha, 0, Math.PI * 2);
+              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+              ctx.fill();
+            }
+          } else if (style === 'sustained') {
+            // Persistent pulsing zone with rotating energy
+            const pulse = 0.7 + 0.3 * Math.sin(elapsed * 0.008);
+            const baseRadius = ef.radius * Math.min(1, progress * 5);
+            // Outer ring
+            ctx.beginPath();
+            ctx.arc(ex, ey, baseRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * pulse * 180).toString(16).padStart(2, '0');
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Pulsing fill
+            const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, baseRadius);
+            gr.addColorStop(0, ef.color + Math.floor(fadeAlpha * pulse * 50).toString(16).padStart(2, '0'));
+            gr.addColorStop(0.7, ef.color + Math.floor(fadeAlpha * pulse * 25).toString(16).padStart(2, '0'));
+            gr.addColorStop(1, 'transparent');
+            ctx.fillStyle = gr;
+            ctx.beginPath();
+            ctx.arc(ex, ey, baseRadius, 0, Math.PI * 2);
+            ctx.fill();
+            // Rotating energy arcs
+            for (let i = 0; i < 3; i++) {
+              const arcAngle = (elapsed / 600) + (i * Math.PI * 2 / 3);
+              const arcStart = arcAngle;
+              const arcEnd = arcAngle + 0.8;
+              ctx.beginPath();
+              ctx.arc(ex, ey, baseRadius * 0.6, arcStart, arcEnd);
+              ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
+            // Orbiting sparks
+            for (let i = 0; i < 12; i++) {
+              const a = (elapsed / 400) + (i * Math.PI * 2 / 12);
+              const d = baseRadius * (0.3 + 0.5 * Math.sin(elapsed / 200 + i));
+              const px2 = ex + Math.cos(a) * d;
+              const py2 = ey + Math.sin(a) * d;
+              ctx.beginPath();
+              ctx.arc(px2, py2, 2, 0, Math.PI * 2);
+              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
+              ctx.fill();
+            }
+          } else {
+            // Burst: quick expanding ring with shockwave
+            const ringRadius = ef.radius * Math.min(1, progress * 4);
+            ctx.beginPath();
+            ctx.arc(ex, ey, ringRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
+            ctx.lineWidth = 4 * fadeAlpha;
+            ctx.stroke();
+            // Bright flash at start
+            if (progress < 0.3) {
+              const flashAlpha = (1 - progress / 0.3);
+              const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, ringRadius);
+              gr.addColorStop(0, ef.color + Math.floor(flashAlpha * 120).toString(16).padStart(2, '0'));
+              gr.addColorStop(0.5, ef.color + Math.floor(flashAlpha * 40).toString(16).padStart(2, '0'));
+              gr.addColorStop(1, 'transparent');
+              ctx.fillStyle = gr;
+              ctx.beginPath();
+              ctx.arc(ex, ey, ringRadius, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            // Burst particles
+            for (let i = 0; i < 8; i++) {
+              const a = (i * Math.PI * 2 / 8) + 0.5;
+              const d = ringRadius * progress;
+              const px2 = ex + Math.cos(a) * d;
+              const py2 = ey + Math.sin(a) * d;
+              ctx.beginPath();
+              ctx.arc(px2, py2, 3 * fadeAlpha, 0, Math.PI * 2);
+              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
+              ctx.fill();
+            }
           }
         }
         else if (ef.type === 'customUltWarning') {
@@ -14258,23 +14372,29 @@ export default function SpellBrigade() {
             boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
           }}>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: '2rem', marginBottom: 8 }}>⚔️</div>
-              <h2 style={{ color: '#ffd93d', fontSize: '1.3rem', margin: 0 }}>Welcome to Spell Brigade!</h2>
+              <div style={{ fontSize: '1.6rem', marginBottom: 8, fontWeight: 800, color: '#ffd93d', letterSpacing: 2 }}>SPELL BRIGADE</div>
+              <h2 style={{ color: '#ffd93d', fontSize: '1.1rem', margin: 0, fontWeight: 600 }}>Welcome, Wizard</h2>
               <p style={{ color: '#888', fontSize: '0.8rem', marginTop: 6 }}>Here's how to survive the wilderness</p>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { key: 'WASD / Arrow Keys', desc: 'Move your wizard around the world', icon: '🏃' },
-                { key: 'Click', desc: 'Fire at your cursor — full damage, manual aim', icon: '🎯' },
-                { key: 'X — Auto-Attack', desc: 'Toggle auto-targeting nearest enemy (50% damage)', icon: '⚡' },
-                { key: 'SPACE', desc: 'Dash ability — dodge attacks or close gaps', icon: '💨' },
-                { key: 'Q', desc: 'Ultimate ability — powerful cooldown spell', icon: '✨' },
-                { key: '1 / 2 / 3', desc: 'Class abilities — unlock at levels 10, 20, 30', icon: '🔮' },
-                { key: 'Right-Click', desc: 'Secondary spell — AOE or special attack', icon: '💥' },
+                { key: 'WASD / Arrow Keys', desc: 'Move your wizard around the world', icon: '⬆⬇', iconBg: '#3b82f6' },
+                { key: 'Left-Click', desc: 'Fire primary spell at cursor — full damage, manual aim', icon: 'I', iconBg: '#ef4444' },
+                { key: 'Right-Click', desc: 'Fire secondary spell — AOE blast or special projectile', icon: 'II', iconBg: '#f97316' },
+                { key: 'X — Auto-Attack', desc: 'Toggle auto-targeting nearest enemy (50% damage)', icon: 'AT', iconBg: '#eab308' },
+                { key: 'SPACE', desc: 'Dash ability — dodge attacks or close gaps', icon: '»', iconBg: '#06b6d4' },
+                { key: 'Q', desc: 'Ultimate ability — powerful cooldown spell', icon: 'Q', iconBg: '#a855f7' },
+                { key: '1 / 2 / 3', desc: 'Class abilities — unlock at levels 10, 20, 30', icon: '✦', iconBg: '#22c55e' },
               ].map(item => (
                 <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: '1.1rem', width: 28, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                    background: item.iconBg + '33', border: `1.5px solid ${item.iconBg}88`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.7rem', fontWeight: 800, color: item.iconBg,
+                    fontFamily: 'monospace', letterSpacing: '-1px',
+                  }}>{item.icon}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ color: '#ffd93d', fontWeight: 700, fontSize: '0.85rem' }}>{item.key}</span>
                     <span style={{ color: '#999', fontSize: '0.8rem' }}> — {item.desc}</span>
@@ -14288,7 +14408,7 @@ export default function SpellBrigade() {
               background: 'rgba(255,217,61,0.08)', border: '1px solid rgba(255,217,61,0.2)',
               borderRadius: 10, textAlign: 'center',
             }}>
-              <div style={{ color: '#ffd93d', fontSize: '0.8rem', fontWeight: 600 }}>💡 Tips</div>
+              <div style={{ color: '#ffd93d', fontSize: '0.8rem', fontWeight: 600 }}>Tips</div>
               <div style={{ color: '#aaa', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.5 }}>
                 Stay in the <span style={{ color: '#4ade80' }}>Meadow</span> until you level up.
                 Visit the <span style={{ color: '#67e8f9' }}>Healing Fountain</span> in Sanctuary to recover.
@@ -14306,7 +14426,7 @@ export default function SpellBrigade() {
                 fontSize: '1rem', fontWeight: 700, cursor: 'pointer',
               }}
             >
-              Got it — let's go! ⚔️
+              Got it — let's go!
             </button>
           </div>
         </>
