@@ -181,6 +181,7 @@ export default function SpellBrigade() {
     abyss_quest: { id: 'abyss_quest', name: 'Banish the Void Overlord', description: 'Confront and banish the Void Overlord from the abyss.', zone: 'abyss', bossName: 'Void Overlord', active: true, completed: false, reward: { xp: 4000 } },
   });
   const [showQuestLog, setShowQuestLog] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   
   // In-game settings modal
   const [showInGameSettings, setShowInGameSettings] = useState(false);
@@ -912,6 +913,14 @@ export default function SpellBrigade() {
       setPlayerInfo(data.player);
       setScreen('game');
       setTimeout(() => playSound('gameEnter'), 200);
+      
+      // Show tutorial for brand new characters
+      if (data.player.level <= 1 && (data.player.kills || 0) === 0) {
+        const tutorialSeen = localStorage.getItem('spellBrigadeTutorialSeen');
+        if (!tutorialSeen) {
+          setTimeout(() => setShowTutorial(true), 1200);
+        }
+      }
       if (data.classes) setClasses(prev => ({ ...prev, ...data.classes }));
       if (data.world) gameStateRef.current.world = data.world;
       
@@ -1779,7 +1788,7 @@ export default function SpellBrigade() {
     });
     
     socket.on('abilityCooldown', (data) => {
-      console.log(`⏳ Ability ${data.slot} on cooldown: ${Math.ceil(data.remaining / 1000)}s`);
+      console.log(`⏳ Ability ${data.ability || data.slot || '?'} on cooldown: ${Math.ceil(data.remaining / 1000)}s`);
     });
     
     // Ability visual effects
@@ -2800,6 +2809,12 @@ export default function SpellBrigade() {
 
     const ctx = canvas.getContext('2d');
     let animationId;
+
+    // Safe wrappers to prevent negative radius crashes
+    const _origArc = ctx.arc.bind(ctx);
+    ctx.arc = (x, y, r, ...rest) => _origArc(x, y, Math.max(0, r), ...rest);
+    const _origEllipse = ctx.ellipse.bind(ctx);
+    ctx.ellipse = (x, y, rx, ry, ...rest) => _origEllipse(x, y, Math.max(0, rx), Math.max(0, ry), ...rest);
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -8062,7 +8077,7 @@ export default function SpellBrigade() {
             for (let i = 0; i < 5; i++) {
               const segX = sx - i * 8 + Math.sin(time * 4 + i * 0.8) * 4;
               const segY = sy - bounce + Math.cos(time * 3 + i * 0.8) * 3;
-              const segR = r * 0.35 - i * 1.5;
+              const segR = Math.max(1, r * 0.35 - i * 1.5);
               ctx.beginPath(); ctx.arc(segX, segY, segR, 0, Math.PI * 2); ctx.fill();
             }
             // Head
@@ -14065,6 +14080,72 @@ export default function SpellBrigade() {
         setAdminKey={setAdminKey}
         setAuthState={setAuthState}
       />
+
+      {/* New Player Tutorial Overlay */}
+      {showTutorial && screen === 'game' && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 5000 }} onClick={() => { setShowTutorial(false); localStorage.setItem('spellBrigadeTutorialSeen', '1'); }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: 'linear-gradient(135deg, rgba(15,15,30,0.98), rgba(25,20,45,0.98))',
+            border: '2px solid rgba(255,217,61,0.5)', borderRadius: 20,
+            padding: '28px 32px', zIndex: 5001, maxWidth: 480, width: '92%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: '2rem', marginBottom: 8 }}>⚔️</div>
+              <h2 style={{ color: '#ffd93d', fontSize: '1.3rem', margin: 0 }}>Welcome to Spell Brigade!</h2>
+              <p style={{ color: '#888', fontSize: '0.8rem', marginTop: 6 }}>Here's how to survive the wilderness</p>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { key: 'WASD / Arrow Keys', desc: 'Move your wizard around the world', icon: '🏃' },
+                { key: 'Click', desc: 'Fire at your cursor — full damage, manual aim', icon: '🎯' },
+                { key: 'X — Auto-Attack', desc: 'Toggle auto-targeting nearest enemy (50% damage)', icon: '⚡' },
+                { key: 'SPACE', desc: 'Dash ability — dodge attacks or close gaps', icon: '💨' },
+                { key: 'Q', desc: 'Ultimate ability — powerful cooldown spell', icon: '✨' },
+                { key: '1 / 2 / 3', desc: 'Class abilities — unlock at levels 10, 20, 30', icon: '🔮' },
+                { key: 'Right-Click', desc: 'Secondary spell — AOE or special attack', icon: '💥' },
+              ].map(item => (
+                <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: '1.1rem', width: 28, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ color: '#ffd93d', fontWeight: 700, fontSize: '0.85rem' }}>{item.key}</span>
+                    <span style={{ color: '#999', fontSize: '0.8rem' }}> — {item.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div style={{
+              marginTop: 16, padding: '10px 14px',
+              background: 'rgba(255,217,61,0.08)', border: '1px solid rgba(255,217,61,0.2)',
+              borderRadius: 10, textAlign: 'center',
+            }}>
+              <div style={{ color: '#ffd93d', fontSize: '0.8rem', fontWeight: 600 }}>💡 Tips</div>
+              <div style={{ color: '#aaa', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.5 }}>
+                Stay in the <span style={{ color: '#4ade80' }}>Meadow</span> until you level up.
+                Visit the <span style={{ color: '#67e8f9' }}>Healing Fountain</span> in Sanctuary to recover.
+                Talk to <span style={{ color: '#ffd93d' }}>NPCs</span> for quests and dungeons.
+                Higher zones = harder monsters = more XP!
+              </div>
+            </div>
+            
+            <button
+              onClick={() => { setShowTutorial(false); localStorage.setItem('spellBrigadeTutorialSeen', '1'); }}
+              style={{
+                width: '100%', marginTop: 18, padding: '14px 20px',
+                background: 'linear-gradient(135deg, #ffd93d, #f97316)',
+                border: 'none', borderRadius: 10, color: '#000',
+                fontSize: '1rem', fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              Got it — let's go! ⚔️
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Quest Complete Celebration */}
       {questComplete && (

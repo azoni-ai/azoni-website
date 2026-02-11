@@ -511,9 +511,9 @@ const Home = () => {
                 color="#ffd93d"
                 secondaryColor="#f59e0b"
                 sources={['spell-brigade']}
-                link="/game"
+                link="https://azoni.ai/game"
                 linkLabel="Play Now"
-                externalLink={false}
+                externalLink={true}
                 statusLabel="Playable"
                 statusType="live"
                 stats={[
