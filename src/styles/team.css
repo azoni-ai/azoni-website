@@ -665,3 +665,86 @@
 .home-team-full-link:hover {
   color: var(--text-primary);
 }
+
+/* ===== BETA NOTE ===== */
+.home-team-beta-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding: 10px 14px;
+  margin-bottom: var(--space-md);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: var(--radius-md);
+  background: rgba(251, 191, 36, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-team-beta-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  padding: 2px 8px;
+  border-radius: 3px;
+  letter-spacing: 1.5px;
+  flex-shrink: 0;
+}
+
+/* ===== SCOPE NOTE ===== */
+.team-chat-scope-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 6px var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+  font-style: italic;
+}
+
+.team-chat-scope-note a {
+  text-decoration: none;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.team-chat-scope-note a:hover {
+  text-decoration: underline;
+}
+
+/* ===== ROLE LABEL VISIBILITY ===== */
+.home-team-card .ht-role {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+}
+
+/* ===== FULL PROFILE LINK (PROMINENT) ===== */
+.home-team-expanded-footer {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md) var(--space-xl);
+}
+
+.home-team-full-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  letter-spacing: 0.3px;
+  padding: 10px 20px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  transition: all var(--transition-fast);
+}
+
+.home-team-full-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--text-muted);
+}

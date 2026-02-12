@@ -17,10 +17,15 @@ const ChevronIcon = ({ open }) => (
   </svg>
 );
 
-const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', stats, defaultOpen = false, children }) => {
+const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', stats, defaultOpen = false, forceOpen, children }) => {
   const [open, setOpen] = useState(defaultOpen);
   const contentRef = useRef(null);
   const [height, setHeight] = useState(defaultOpen ? 'auto' : '0px');
+
+  // Allow parent to force open/close
+  useEffect(() => {
+    if (forceOpen !== undefined) setOpen(forceOpen);
+  }, [forceOpen]);
 
   useEffect(() => {
     if (open) {

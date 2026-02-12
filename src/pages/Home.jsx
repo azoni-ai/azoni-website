@@ -28,10 +28,14 @@ function useHomeAgentChat(agentKey) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Scroll within the chat container only — not the page
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
   const sendMessage = useCallback(async (text) => {
     if (!text.trim() || isLoading) return;
@@ -53,7 +57,7 @@ function useHomeAgentChat(agentKey) {
     } finally { setIsLoading(false); }
   }, [agentKey, messages, isLoading]);
 
-  return { messages, isLoading, sendMessage, messagesEndRef };
+  return { messages, isLoading, sendMessage, messagesEndRef, chatContainerRef };
 }
 
 /* ─── Home Team Section ─── */
@@ -63,6 +67,11 @@ function HomeTeamSection() {
 
   return (
     <div>
+      <div className="home-team-beta-note">
+        <span className="home-team-beta-badge">BETA</span>
+        Each agent has its own personality and knowledge scope. Responses are AI-generated and may not always be accurate.
+      </div>
+
       <div className="home-team-grid">
         {AGENT_ORDER.map(key => {
           const a = AGENTS[key];
@@ -71,27 +80,29 @@ function HomeTeamSection() {
               key={key}
               className={`home-team-card ${selected === key ? 'active' : ''}`}
               onClick={() => setSelected(selected === key ? null : key)}
+              style={selected === key ? { borderColor: `${a.color}50` } : {}}
             >
               <div className="ht-dot" style={{ background: a.color }}/>
               <div className="ht-avatar">{avatars[key](48)}</div>
               <div className="ht-name">{a.name}</div>
-              <div className="ht-role">{a.role}</div>
+              <div className="ht-role" style={{ color: a.color }}>{a.role}</div>
             </div>
           );
         })}
       </div>
 
       {sel && (
-        <div className="home-team-expanded" style={{ borderColor: sel.borderColor }}>
+        <div className="home-team-expanded" style={{ borderColor: `${sel.color}40` }}>
           <div className="home-team-expanded-header">
             <div style={{ flexShrink: 0 }}>{avatars[selected](72)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h3>{sel.name}</h3>
-              <span className="home-team-expanded-role" style={{ color: sel.color, background: sel.bg, border: `1px solid ${sel.borderColor}` }}>
-                {sel.role}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h3>{sel.name}</h3>
+                <span className="home-team-expanded-role" style={{ color: sel.color, background: sel.bg, border: `1px solid ${sel.borderColor}` }}>
+                  {sel.role}
+                </span>
+              </div>
               <p className="home-team-expanded-desc">{sel.whatItIs}</p>
-              <p className="home-team-expanded-unique">{sel.whyUnique}</p>
             </div>
           </div>
           <div className="home-team-expanded-tags">
@@ -99,10 +110,15 @@ function HomeTeamSection() {
               <span key={i} className="team-tag" style={{ color: sel.color, borderColor: sel.borderColor }}>{t}</span>
             ))}
           </div>
-          <div className="home-team-expanded-footer">
-            <Link to={`/team`} className="home-team-full-link">Full profile + technical details →</Link>
-          </div>
           <HomeAgentChat key={selected} agentKey={selected} agent={sel} />
+          <div className="home-team-expanded-footer">
+            <Link to="/team" className="home-team-full-link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              View full profile, execution cycles, and code →
+            </Link>
+          </div>
         </div>
       )}
     </div>
@@ -112,7 +128,7 @@ function HomeTeamSection() {
 function HomeAgentChat({ agentKey, agent }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
-  const { messages, isLoading, sendMessage, messagesEndRef } = useHomeAgentChat(agentKey);
+  const { messages, isLoading, sendMessage, chatContainerRef } = useHomeAgentChat(agentKey);
 
   const handleSend = () => { if (input.trim()) { sendMessage(input.trim()); setInput(''); } };
 
@@ -129,7 +145,10 @@ function HomeAgentChat({ agentKey, agent }) {
       </div>
       {open && (
         <>
-          <div className="team-chat-messages">
+          <div className="team-chat-scope-note">
+            {agent.name} only knows about its own domain. <Link to="/team" style={{ color: agent.color }}>See what each agent covers →</Link>
+          </div>
+          <div className="team-chat-messages" ref={chatContainerRef}>
             {messages.length === 0 && (
               <div className="team-chat-msg agent" style={{ background: agent.bg, borderColor: agent.borderColor }}>
                 <span className="agent-msg-name" style={{ color: agent.color }}>{agent.name}</span>
@@ -152,7 +171,6 @@ function HomeAgentChat({ agentKey, agent }) {
                 <span style={{ background: agent.color }}/><span style={{ background: agent.color }}/><span style={{ background: agent.color }}/>
               </div>
             )}
-            <div ref={messagesEndRef}/>
           </div>
           {messages.length === 0 && (
             <div className="team-chat-starters">
@@ -180,6 +198,7 @@ const Home = () => {
   const [latestBlog, setLatestBlog] = useState(null);
   const [agentActivityCount, setAgentActivityCount] = useState(0);
   const [appStats, setAppStats] = useState(null);
+  const [allExpanded, setAllExpanded] = useState(null);
   const heroRef = useRef(null);
 
   // Fetch latest blog post
@@ -459,12 +478,24 @@ const Home = () => {
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 
+        <div className="expand-all-row">
+          <button className="expand-all-btn" onClick={() => {
+            const next = allExpanded === true ? false : true;
+            setAllExpanded(next);
+            // Reset after sections animate so individual toggles work again
+            setTimeout(() => setAllExpanded(null), 400);
+          }}>
+            {allExpanded === true ? 'Collapse all' : 'Expand all'}
+          </button>
+        </div>
+
         <CollapsibleSection
           title="Meet the Team"
           subtitle="Eight AI agents run this portfolio — each with a job, a personality, and a chat"
-          badge="8"
-          badgeType="count"
-          defaultOpen={false}
+          badge="BETA"
+          badgeType="beta"
+          defaultOpen={true}
+          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         <section style={{ padding: '0 0 var(--space-lg)' }}>
           <div className="container">
@@ -483,7 +514,8 @@ const Home = () => {
             { value: githubStats?.last7Days || '–', label: 'this week' },
             { value: agentActivityCount || '–', label: 'agent events' },
           ]}
-          defaultOpen={false}
+          defaultOpen={true}
+          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
         <section className="activity-section">
@@ -552,6 +584,7 @@ const Home = () => {
             { value: appStats.rowcrew?.users || '–', label: 'rowers' },
           ].filter(s => s.value !== '–' && s.value !== 0) : []}
           defaultOpen={false}
+          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         {/* ===== AI AGENT BANNERS ===== */}
         <section className="agent-banners-section">
@@ -758,6 +791,7 @@ const Home = () => {
           badge="3 Live"
           badgeType="live"
           defaultOpen={false}
+          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         {/* Services */}
         <section className="services-section">
@@ -836,6 +870,7 @@ const Home = () => {
           badge="7+ yrs"
           badgeType="count"
           defaultOpen={false}
+          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         <section className="experience-section">
           <div className="container">
@@ -945,6 +980,7 @@ const Home = () => {
           title="Earlier Work"
           subtitle="A 50-machine autonomous trading system and an ACM-published computer vision startup"
           defaultOpen={false}
+          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         {/* Projects */}
         <section className="projects-section">

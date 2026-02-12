@@ -7,11 +7,13 @@ import '../styles/team.css';
 function useAgentChat(agentKey) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
   const sendMessage = useCallback(async (text) => {
     if (!text.trim() || isLoading) return;
@@ -43,14 +45,14 @@ function useAgentChat(agentKey) {
     }
   }, [agentKey, messages, isLoading]);
 
-  return { messages, isLoading, sendMessage, messagesEndRef };
+  return { messages, isLoading, sendMessage, chatContainerRef };
 }
 
 /* ─── Chat Panel Component ─── */
 function AgentChat({ agentKey, agent }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
-  const { messages, isLoading, sendMessage, messagesEndRef } = useAgentChat(agentKey);
+  const { messages, isLoading, sendMessage, chatContainerRef } = useAgentChat(agentKey);
 
   const handleSend = () => {
     if (input.trim()) {
@@ -73,7 +75,10 @@ function AgentChat({ agentKey, agent }) {
 
       {open && (
         <>
-          <div className="team-chat-messages">
+          <div className="team-chat-scope-note">
+            {agent.name} only knows about its own domain and role.
+          </div>
+          <div className="team-chat-messages" ref={chatContainerRef}>
             {messages.length === 0 && (
               <div className="team-chat-msg agent" style={{ background: agent.bg, borderColor: agent.borderColor }}>
                 <span className="agent-msg-name" style={{ color: agent.color }}>{agent.name}</span>
@@ -96,7 +101,6 @@ function AgentChat({ agentKey, agent }) {
                 <span style={{ background: agent.color }}/><span style={{ background: agent.color }}/><span style={{ background: agent.color }}/>
               </div>
             )}
-            <div ref={messagesEndRef}/>
           </div>
 
           {/* Quick starters */}
