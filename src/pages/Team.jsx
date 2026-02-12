@@ -459,7 +459,7 @@ const Team = () => {
                   <div className="team-profile-section-label">Data It Touches</div>
                   {sel.data.map((d, i) => (
                     <div key={i} className="team-data-item">
-                      <span className="team-data-prefix" style={{ color: sel.color }}>//</span>{d}
+                      <span className="team-data-prefix" style={{ color: sel.color }}>{'// '}</span>{d}
                     </div>
                   ))}
                 </div>
