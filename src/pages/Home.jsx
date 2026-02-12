@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -7,7 +7,9 @@ import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import AgentBanner from '../components/AgentBanner';
 import CollapsibleSection from '../components/CollapsibleSection';
+import { avatars, AGENTS, AGENT_ORDER } from '../data/agents';
 import '../styles/bento.css';
+import '../styles/team.css';
 
 // Map repo names to live sites
 const REPO_TO_SITE = {
@@ -20,6 +22,156 @@ const REPO_TO_SITE = {
   'benchonly': 'https://benchpressonly.com',
   'embedroute': 'https://www.embedroute.com',
 };
+
+/* ─── Home Team Chat Hook ─── */
+function useHomeAgentChat(agentKey) {
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = useCallback(async (text) => {
+    if (!text.trim() || isLoading) return;
+    const userMsg = { role: 'user', content: text };
+    setMessages(prev => [...prev, userMsg]);
+    setIsLoading(true);
+    try {
+      const res = await fetch('/.netlify/functions/agent-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: agentKey, message: text, history: [...messages, userMsg].slice(-6) }),
+      });
+      const data = await res.json();
+      if (data.reply) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply, agentName: data.name || agentKey }]);
+      } else throw new Error('No reply');
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Try again?", agentName: agentKey }]);
+    } finally { setIsLoading(false); }
+  }, [agentKey, messages, isLoading]);
+
+  return { messages, isLoading, sendMessage, messagesEndRef };
+}
+
+/* ─── Home Team Section ─── */
+function HomeTeamSection() {
+  const [selected, setSelected] = useState(null);
+  const sel = selected ? AGENTS[selected] : null;
+
+  return (
+    <div>
+      <div className="home-team-grid">
+        {AGENT_ORDER.map(key => {
+          const a = AGENTS[key];
+          return (
+            <div
+              key={key}
+              className={`home-team-card ${selected === key ? 'active' : ''}`}
+              onClick={() => setSelected(selected === key ? null : key)}
+            >
+              <div className="ht-dot" style={{ background: a.color }}/>
+              <div className="ht-avatar">{avatars[key](48)}</div>
+              <div className="ht-name">{a.name}</div>
+              <div className="ht-role">{a.role}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {sel && (
+        <div className="home-team-expanded" style={{ borderColor: sel.borderColor }}>
+          <div className="home-team-expanded-header">
+            <div style={{ flexShrink: 0 }}>{avatars[selected](72)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3>{sel.name}</h3>
+              <span className="home-team-expanded-role" style={{ color: sel.color, background: sel.bg, border: `1px solid ${sel.borderColor}` }}>
+                {sel.role}
+              </span>
+              <p className="home-team-expanded-desc">{sel.whatItIs}</p>
+              <p className="home-team-expanded-unique">{sel.whyUnique}</p>
+            </div>
+          </div>
+          <div className="home-team-expanded-tags">
+            {sel.tech.map((t, i) => (
+              <span key={i} className="team-tag" style={{ color: sel.color, borderColor: sel.borderColor }}>{t}</span>
+            ))}
+          </div>
+          <div className="home-team-expanded-footer">
+            <Link to={`/team`} className="home-team-full-link">Full profile + technical details →</Link>
+          </div>
+          <HomeAgentChat key={selected} agentKey={selected} agent={sel} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HomeAgentChat({ agentKey, agent }) {
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const { messages, isLoading, sendMessage, messagesEndRef } = useHomeAgentChat(agentKey);
+
+  const handleSend = () => { if (input.trim()) { sendMessage(input.trim()); setInput(''); } };
+
+  return (
+    <div className="team-chat-panel" style={{ borderTop: `2px solid ${agent.color}40` }}>
+      <div className="team-chat-header" onClick={() => setOpen(!open)} style={open ? { background: `${agent.color}08` } : {}}>
+        <div className="team-chat-header-left">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={agent.color} strokeWidth="2.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span className="team-chat-header-label" style={{ color: agent.color }}>Chat with {agent.name}</span>
+        </div>
+        <span className={`team-chat-header-toggle ${open ? 'open' : ''}`} style={{ color: agent.color }}>+</span>
+      </div>
+      {open && (
+        <>
+          <div className="team-chat-messages">
+            {messages.length === 0 && (
+              <div className="team-chat-msg agent" style={{ background: agent.bg, borderColor: agent.borderColor }}>
+                <span className="agent-msg-name" style={{ color: agent.color }}>{agent.name}</span>
+                {agent.quote}
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`team-chat-msg ${msg.role === 'user' ? 'user' : 'agent'}`}
+                style={msg.role === 'assistant' ? { background: agent.bg, borderColor: agent.borderColor } : {}}>
+                {msg.role === 'assistant' && (
+                  <span className="agent-msg-name" style={{ color: agent.color }}>
+                    {msg.agentName ? (AGENTS[msg.agentName]?.name || msg.agentName) : agent.name}
+                  </span>
+                )}
+                {msg.content}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="team-chat-typing">
+                <span style={{ background: agent.color }}/><span style={{ background: agent.color }}/><span style={{ background: agent.color }}/>
+              </div>
+            )}
+            <div ref={messagesEndRef}/>
+          </div>
+          {messages.length === 0 && (
+            <div className="team-chat-starters">
+              {agent.starters.map((q, i) => (
+                <button key={i} className="team-chat-starter" onClick={() => sendMessage(q)}>{q}</button>
+              ))}
+            </div>
+          )}
+          <div className="team-chat-input-row">
+            <input className="team-chat-input" placeholder={`Ask ${agent.name} something...`}
+              value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()}
+              maxLength={500} disabled={isLoading} />
+            <button className="team-chat-send" onClick={handleSend} disabled={isLoading || !input.trim()}>Send</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 const Home = () => {
   const [githubStats, setGithubStats] = useState(null);
@@ -300,12 +452,26 @@ const Home = () => {
           </Link>
           <Link to="/team" className="cta-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-            Meet the Team
+            Team Details
           </Link>
         </div>
 
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
+
+        <CollapsibleSection
+          title="Meet the Team"
+          subtitle="Eight AI agents run this portfolio — each with a job, a personality, and a chat"
+          badge="8"
+          badgeType="count"
+          defaultOpen={false}
+        >
+        <section style={{ padding: '0 0 var(--space-lg)' }}>
+          <div className="container">
+            <HomeTeamSection />
+          </div>
+        </section>
+        </CollapsibleSection>
 
         <CollapsibleSection
           title="Activity"
@@ -376,10 +542,10 @@ const Home = () => {
         </CollapsibleSection>
 
         <CollapsibleSection
-          title="AI Agents"
-          subtitle="Autonomous systems running 24/7 — writing blogs, posting on social media, coaching workouts, and generating game characters"
-          badge="6"
-          badgeType="count"
+          title="Live Systems"
+          subtitle="Real-time status of autonomous agents — apps, deployments, and what they're doing right now"
+          badge="Live"
+          badgeType="live"
           stats={appStats ? [
             { value: appStats.benchpressonly?.users || '–', label: 'lifters' },
             { value: appStats.spellbrigade?.users || '–', label: 'players' },
@@ -391,7 +557,7 @@ const Home = () => {
         <section className="agent-banners-section">
           <div className="container">
             <div className="section-header">
-              <h2><span className="section-header-pulse"></span> AI Agents</h2>
+              <h2><span className="section-header-pulse"></span> Live Systems</h2>
               <Link to="/activity" className="view-all">All agent activity →</Link>
             </div>
 
