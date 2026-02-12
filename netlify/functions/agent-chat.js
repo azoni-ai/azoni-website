@@ -1,5 +1,36 @@
 const fetch = require('node-fetch');
 
+// ============ FIREBASE ADMIN SETUP ============
+let db = null;
+let admin = null;
+
+function initFirebase() {
+  if (db) return true;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (!projectId || !clientEmail || !privateKey) return false;
+  try {
+    admin = require('firebase-admin');
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId, clientEmail, privateKey: privateKey.replace(/\\n/g, '\n')
+        })
+      });
+    }
+    db = admin.firestore();
+    return true;
+  } catch (e) {
+    console.error('Firebase init failed:', e.message);
+    return false;
+  }
+}
+
+const MODEL_PRICING = {
+  'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006 },
+};
+
 const AGENT_PERSONAS = {
   orchestrator: {
     name: "The Orchestrator",
@@ -134,13 +165,44 @@ exports.handler = async (event) => {
     const data = await response.json();
 
     if (data.choices?.[0]) {
+      const reply = data.choices[0].message.content;
+      const usage = data.usage || {};
+      const pricing = MODEL_PRICING['openai/gpt-4o-mini'];
+      const inputCost = ((usage.prompt_tokens || 0) / 1000) * pricing.input;
+      const outputCost = ((usage.completion_tokens || 0) / 1000) * pricing.output;
+      const totalCost = (inputCost + outputCost).toFixed(6);
+
+      // Log to Firestore (fire and forget)
+      if (initFirebase()) {
+        db.collection('agentChatLogs').add({
+          agent,
+          agentName: persona.name,
+          userMessage: message,
+          reply,
+          usage: {
+            prompt_tokens: usage.prompt_tokens || 0,
+            completion_tokens: usage.completion_tokens || 0,
+            total_tokens: usage.total_tokens || 0,
+            totalCost,
+          },
+          model: 'openai/gpt-4o-mini',
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        }).catch(err => console.error('Log error:', err));
+      }
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          reply: data.choices[0].message.content,
-          agent: agent,
-          name: persona.name
+          reply,
+          agent,
+          name: persona.name,
+          usage: {
+            prompt_tokens: usage.prompt_tokens || 0,
+            completion_tokens: usage.completion_tokens || 0,
+            total_tokens: usage.total_tokens || 0,
+            totalCost,
+          },
         })
       };
     } else {

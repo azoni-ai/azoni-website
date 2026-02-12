@@ -87,6 +87,12 @@ const Admin = () => {
 
           <div className="admin-main-tabs">
             <button 
+              className={`admin-main-tab ${activeTab === 'agents' ? 'active' : ''}`}
+              onClick={() => setActiveTab('agents')}
+            >
+              Agents
+            </button>
+            <button 
               className={`admin-main-tab ${activeTab === 'usage' ? 'active' : ''}`}
               onClick={() => setActiveTab('usage')}
             >
@@ -124,6 +130,7 @@ const Admin = () => {
             </button>
           </div>
 
+          {activeTab === 'agents' && <AgentsTab />}
           {activeTab === 'usage' && <UsageTab />}
           {activeTab === 'comments' && <CommentsTab />}
           {activeTab === 'blog' && <BlogTab />}
@@ -133,6 +140,445 @@ const Admin = () => {
         </div>
       </section>
     </Layout>
+  );
+};
+
+// ============ AGENTS TAB ============
+const AGENT_COLORS = {
+  orchestrator: '#a78bfa',
+  chat: '#60a5fa',
+  blog: '#fbbf24',
+  fitness: '#4ade80',
+  gaming: '#c084fc',
+  social: '#fb923c',
+  rag: '#34d399',
+  errors: '#f87171',
+};
+
+const AGENT_NAMES = {
+  orchestrator: 'Orchestrator',
+  chat: 'Azoni AI',
+  blog: 'The Scribe',
+  fitness: 'Coach',
+  gaming: 'The Wizard',
+  social: 'The Hype Man',
+  rag: 'The Library',
+  errors: 'The Watchdog',
+};
+
+const AgentsTab = () => {
+  const [agentChats, setAgentChats] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [errorLogs, setErrorLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [subTab, setSubTab] = useState('overview');
+  const [filterAgent, setFilterAgent] = useState('all');
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    const unsubscribes = [];
+
+    // Agent chat logs
+    const q1 = query(
+      collection(db, 'agentChatLogs'),
+      orderBy('timestamp', 'desc')
+    );
+    unsubscribes.push(onSnapshot(q1, (snap) => {
+      setAgentChats(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.error('agentChatLogs error:', err)));
+
+    // Agent activity
+    const q2 = query(
+      collection(db, 'agent_activity'),
+      orderBy('timestamp', 'desc')
+    );
+    unsubscribes.push(onSnapshot(q2, (snap) => {
+      setActivities(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.error('agent_activity error:', err)));
+
+    // Error logs
+    const q3 = query(
+      collection(db, 'error_logs'),
+      orderBy('timestamp', 'desc')
+    );
+    unsubscribes.push(onSnapshot(q3, (snap) => {
+      setErrorLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    }, (err) => { console.error('error_logs error:', err); setLoading(false); }));
+
+    return () => unsubscribes.forEach(u => u());
+  }, []);
+
+  // ─── Stats ───
+  const chatStats = useMemo(() => {
+    const byAgent = {};
+    let totalTokens = 0;
+    let totalCost = 0;
+    const today = new Date(); today.setHours(0,0,0,0);
+    let todayChats = 0;
+    let todayCost = 0;
+
+    agentChats.forEach(log => {
+      const agent = log.agent || 'unknown';
+      if (!byAgent[agent]) byAgent[agent] = { count: 0, tokens: 0, cost: 0 };
+      byAgent[agent].count++;
+      const tok = log.usage?.total_tokens || 0;
+      const cost = parseFloat(log.usage?.totalCost || 0);
+      byAgent[agent].tokens += tok;
+      byAgent[agent].cost += cost;
+      totalTokens += tok;
+      totalCost += cost;
+
+      if (log.timestamp?.toDate && log.timestamp.toDate() >= today) {
+        todayChats++;
+        todayCost += cost;
+      }
+    });
+
+    return { byAgent, totalTokens, totalCost, todayChats, todayCost, total: agentChats.length };
+  }, [agentChats]);
+
+  const activityStats = useMemo(() => {
+    const byType = {};
+    activities.forEach(a => {
+      const type = a.type || a.action || 'unknown';
+      if (!byType[type]) byType[type] = 0;
+      byType[type]++;
+    });
+    return { byType, total: activities.length };
+  }, [activities]);
+
+  const errorStats = useMemo(() => {
+    const bySeverity = { low: 0, medium: 0, high: 0, critical: 0 };
+    const bySource = {};
+    const unresolved = errorLogs.filter(e => !e.resolved).length;
+    errorLogs.forEach(e => {
+      if (bySeverity[e.severity] !== undefined) bySeverity[e.severity]++;
+      const src = e.source || 'unknown';
+      if (!bySource[src]) bySource[src] = 0;
+      bySource[src]++;
+    });
+    return { bySeverity, bySource, unresolved, total: errorLogs.length };
+  }, [errorLogs]);
+
+  const formatDate = (timestamp) => {
+    if (!timestamp?.toDate) return 'N/A';
+    return timestamp.toDate().toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  };
+
+  const filteredChats = filterAgent === 'all' ? agentChats : agentChats.filter(c => c.agent === filterAgent);
+  const filteredActivities = filterAgent === 'all' ? activities : activities.filter(a => {
+    const type = (a.type || a.action || '').toLowerCase();
+    return type.includes(filterAgent);
+  });
+  const filteredErrors = filterAgent === 'all' ? errorLogs : errorLogs.filter(e => (e.source || '').toLowerCase().includes(filterAgent));
+
+  if (loading) return <p>Loading agent data...</p>;
+
+  return (
+    <div className="agents-tab">
+      <div className="admin-tabs" style={{ marginBottom: 'var(--space-md)' }}>
+        <button className={`admin-tab ${subTab === 'overview' ? 'active' : ''}`} onClick={() => setSubTab('overview')}>
+          Overview
+        </button>
+        <button className={`admin-tab ${subTab === 'chats' ? 'active' : ''}`} onClick={() => setSubTab('chats')}>
+          Agent Chats ({agentChats.length})
+        </button>
+        <button className={`admin-tab ${subTab === 'activity' ? 'active' : ''}`} onClick={() => setSubTab('activity')}>
+          Activity ({activities.length})
+        </button>
+        <button className={`admin-tab ${subTab === 'errors' ? 'active' : ''}`} onClick={() => setSubTab('errors')}>
+          Errors ({errorLogs.length})
+        </button>
+      </div>
+
+      {/* Agent filter */}
+      {subTab !== 'overview' && (
+        <div style={{ marginBottom: 'var(--space-md)', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <button
+            className={`admin-tab ${filterAgent === 'all' ? 'active' : ''}`}
+            onClick={() => setFilterAgent('all')}
+            style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+          >All</button>
+          {Object.entries(AGENT_NAMES).map(([key, name]) => (
+            <button
+              key={key}
+              className={`admin-tab ${filterAgent === key ? 'active' : ''}`}
+              onClick={() => setFilterAgent(key)}
+              style={{ fontSize: '0.75rem', padding: '4px 10px', borderColor: filterAgent === key ? AGENT_COLORS[key] : undefined, color: filterAgent === key ? AGENT_COLORS[key] : undefined }}
+            >{name}</button>
+          ))}
+        </div>
+      )}
+
+      {/* OVERVIEW */}
+      {subTab === 'overview' && (
+        <>
+          {/* Top-level stats */}
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-value">{chatStats.total}</div>
+              <div className="stat-label">Agent Chats</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{chatStats.totalTokens.toLocaleString()}</div>
+              <div className="stat-label">Chat Tokens</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">${chatStats.totalCost.toFixed(6)}</div>
+              <div className="stat-label">Chat Cost</div>
+            </div>
+            <div className="stat-card highlight">
+              <div className="stat-value">{chatStats.todayChats}</div>
+              <div className="stat-label">Today's Chats</div>
+            </div>
+            <div className="stat-card highlight">
+              <div className="stat-value">{activityStats.total}</div>
+              <div className="stat-label">Agent Events</div>
+            </div>
+            <div className="stat-card" style={errorStats.unresolved > 0 ? { borderColor: '#f87171' } : {}}>
+              <div className="stat-value">{errorStats.unresolved}</div>
+              <div className="stat-label">Unresolved Errors</div>
+            </div>
+          </div>
+
+          {/* Per-agent chat breakdown */}
+          <h3 style={{ margin: 'var(--space-xl) 0 var(--space-md)' }}>Usage by Agent</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginBottom: 'var(--space-xl)' }}>
+            {Object.entries(chatStats.byAgent).sort((a,b) => b[1].count - a[1].count).map(([agent, data]) => (
+              <div key={agent} style={{
+                background: 'var(--bg-card)', border: `1px solid ${AGENT_COLORS[agent] || '#333'}30`, borderRadius: 'var(--radius-md)',
+                padding: '14px', borderLeft: `3px solid ${AGENT_COLORS[agent] || '#666'}`,
+              }}>
+                <div style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', letterSpacing: '1px', textTransform: 'uppercase', color: AGENT_COLORS[agent] || '#888', marginBottom: '8px' }}>
+                  {AGENT_NAMES[agent] || agent}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '0.8rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Chats</span>
+                  <span style={{ textAlign: 'right', fontWeight: 600 }}>{data.count}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Tokens</span>
+                  <span style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{data.tokens.toLocaleString()}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Cost</span>
+                  <span style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>${data.cost.toFixed(6)}</span>
+                </div>
+              </div>
+            ))}
+            {Object.keys(chatStats.byAgent).length === 0 && (
+              <p style={{ color: 'var(--text-muted)', gridColumn: '1/-1' }}>No agent chats logged yet. Visit the Team page and chat with an agent.</p>
+            )}
+          </div>
+
+          {/* Activity type breakdown */}
+          <h3 style={{ margin: '0 0 var(--space-md)' }}>Activity by Type</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--space-xl)' }}>
+            {Object.entries(activityStats.byType).sort((a,b) => b[1] - a[1]).map(([type, count]) => (
+              <span key={type} style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)',
+                padding: '6px 12px', fontSize: '0.8rem', fontFamily: 'var(--font-mono)',
+              }}>
+                {type} <strong>{count}</strong>
+              </span>
+            ))}
+          </div>
+
+          {/* Error breakdown */}
+          <h3 style={{ margin: '0 0 var(--space-md)' }}>Errors by Severity</h3>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: 'var(--space-md)' }}>
+            {Object.entries(errorStats.bySeverity).map(([sev, count]) => {
+              const sevColors = { low: '#6b7280', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
+              return (
+                <div key={sev} style={{
+                  background: 'var(--bg-card)', border: `1px solid ${sevColors[sev]}40`, borderRadius: 'var(--radius-md)',
+                  padding: '10px 16px', textAlign: 'center', minWidth: '90px',
+                }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 700, color: sevColors[sev] }}>{count}</div>
+                  <div style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)' }}>{sev}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {Object.entries(errorStats.bySource).sort((a,b) => b[1] - a[1]).map(([src, count]) => (
+              <span key={src} style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)',
+                padding: '4px 10px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)',
+              }}>
+                {src} <strong>{count}</strong>
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* AGENT CHATS */}
+      {subTab === 'chats' && (
+        <div className="sessions-list">
+          {filteredChats.length === 0 ? (
+            <p className="comments-empty">No agent chats logged yet.</p>
+          ) : filteredChats.map(log => (
+            <div key={log.id} className="session-card">
+              <div
+                className="session-header"
+                onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+              >
+                <div className="session-info">
+                  <span style={{ color: AGENT_COLORS[log.agent], fontWeight: 600, minWidth: '100px' }}>
+                    {AGENT_NAMES[log.agent] || log.agent}
+                  </span>
+                  <span className="session-date">{formatDate(log.timestamp)}</span>
+                  <span className="session-model">{log.model || 'gpt-4o-mini'}</span>
+                </div>
+                <div className="session-stats">
+                  <span>{(log.usage?.total_tokens || 0).toLocaleString()} tok</span>
+                  <span>${log.usage?.totalCost || '0'}</span>
+                  <span className="expand-icon">{expandedId === log.id ? '▼' : '▶'}</span>
+                </div>
+              </div>
+              {expandedId === log.id && (
+                <div className="session-messages-list">
+                  <div className="chat-log-item">
+                    <div className="chat-log-user"><strong>User:</strong> {log.userMessage}</div>
+                    <div className="chat-log-assistant">
+                      <strong>{AGENT_NAMES[log.agent] || log.agent}:</strong> {log.reply}
+                    </div>
+                    {log.usage && (
+                      <div className="chat-log-meta">
+                        <span>In: {log.usage.prompt_tokens}</span>
+                        <span>Out: {log.usage.completion_tokens}</span>
+                        <span>Total: {log.usage.total_tokens}</span>
+                        <span>${log.usage.totalCost}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ACTIVITY LOGS */}
+      {subTab === 'activity' && (
+        <div className="sessions-list">
+          {filteredActivities.length === 0 ? (
+            <p className="comments-empty">No activity logged yet.</p>
+          ) : filteredActivities.slice(0, 100).map(act => (
+            <div key={act.id} className="session-card">
+              <div
+                className="session-header"
+                onClick={() => setExpandedId(expandedId === act.id ? null : act.id)}
+              >
+                <div className="session-info">
+                  <span style={{ fontWeight: 600, minWidth: '140px', textTransform: 'capitalize', fontSize: '0.85rem' }}>
+                    {act.type || act.action || 'event'}
+                  </span>
+                  <span className="session-date">{formatDate(act.timestamp)}</span>
+                  {act.agent && <span className="session-model">{act.agent}</span>}
+                </div>
+                <div className="session-stats">
+                  {act.cost != null && <span>${parseFloat(act.cost).toFixed(6)}</span>}
+                  {act.tokens && <span>{(act.tokens.prompt || 0) + (act.tokens.completion || 0)} tok</span>}
+                  <span className="expand-icon">{expandedId === act.id ? '▼' : '▶'}</span>
+                </div>
+              </div>
+              {expandedId === act.id && (
+                <div className="session-messages-list">
+                  <div className="chat-log-item">
+                    {act.description && (
+                      <div style={{ marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                        {act.description}
+                      </div>
+                    )}
+                    {act.details && (
+                      <pre style={{
+                        background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)',
+                        padding: '10px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', overflow: 'auto',
+                        maxHeight: '300px', whiteSpace: 'pre-wrap', color: 'var(--text-muted)',
+                      }}>
+                        {typeof act.details === 'string' ? act.details : JSON.stringify(act.details, null, 2)}
+                      </pre>
+                    )}
+                    {act.reasoning && (
+                      <div style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Reasoning: {act.reasoning}
+                      </div>
+                    )}
+                    {(act.tokens || act.cost != null) && (
+                      <div className="chat-log-meta" style={{ marginTop: '8px' }}>
+                        {act.tokens?.prompt && <span>In: {act.tokens.prompt}</span>}
+                        {act.tokens?.completion && <span>Out: {act.tokens.completion}</span>}
+                        {act.cost != null && <span>Cost: ${parseFloat(act.cost).toFixed(6)}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ERROR LOGS */}
+      {subTab === 'errors' && (
+        <div className="sessions-list">
+          {filteredErrors.length === 0 ? (
+            <p className="comments-empty">No errors logged.</p>
+          ) : filteredErrors.slice(0, 100).map(err => {
+            const sevColors = { low: '#6b7280', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
+            return (
+              <div key={err.id} className="session-card" style={{ borderLeft: `3px solid ${sevColors[err.severity] || '#666'}` }}>
+                <div
+                  className="session-header"
+                  onClick={() => setExpandedId(expandedId === err.id ? null : err.id)}
+                >
+                  <div className="session-info">
+                    <span style={{
+                      fontSize: '0.7rem', fontFamily: 'var(--font-mono)', padding: '2px 8px',
+                      background: `${sevColors[err.severity]}20`, color: sevColors[err.severity],
+                      borderRadius: '3px', textTransform: 'uppercase', fontWeight: 600,
+                    }}>
+                      {err.severity}
+                    </span>
+                    <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{err.source || 'unknown'}</span>
+                    <span className="session-date">{formatDate(err.timestamp)}</span>
+                    <span style={{
+                      fontSize: '0.7rem', padding: '2px 6px', borderRadius: '3px',
+                      background: err.resolved ? '#10b98120' : '#ef444420',
+                      color: err.resolved ? '#10b981' : '#ef4444',
+                    }}>
+                      {err.resolved ? 'resolved' : 'open'}
+                    </span>
+                  </div>
+                  <div className="session-stats">
+                    <span className="expand-icon">{expandedId === err.id ? '▼' : '▶'}</span>
+                  </div>
+                </div>
+                {expandedId === err.id && (
+                  <div className="session-messages-list">
+                    <div className="chat-log-item">
+                      <div style={{ marginBottom: '8px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: sevColors[err.severity] }}>
+                        {err.error}
+                      </div>
+                      {err.context && (
+                        <pre style={{
+                          background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)',
+                          padding: '10px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', overflow: 'auto',
+                          maxHeight: '200px', whiteSpace: 'pre-wrap', color: 'var(--text-muted)',
+                        }}>
+                          {typeof err.context === 'string' ? err.context : JSON.stringify(err.context, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
