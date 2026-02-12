@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
-import AgentBanner from '../components/AgentBanner';
 import CollapsibleSection from '../components/CollapsibleSection';
-import { avatars, AGENTS, AGENT_ORDER } from '../data/agents';
+import { avatars, AGENTS, AGENT_ORDER, AGENT_HOME_DATA } from '../data/agents';
 import '../styles/bento.css';
 import '../styles/team.css';
 
@@ -23,65 +22,33 @@ const REPO_TO_SITE = {
   'embedroute': 'https://www.embedroute.com',
 };
 
-/* ─── Home Team Chat Hook ─── */
-function useHomeAgentChat(agentKey) {
-  const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
-  const chatContainerRef = useRef(null);
-
-  useEffect(() => {
-    // Scroll within the chat container only — not the page
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages, isLoading]);
-
-  const sendMessage = useCallback(async (text) => {
-    if (!text.trim() || isLoading) return;
-    const userMsg = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMsg]);
-    setIsLoading(true);
-    try {
-      const res = await fetch('/.netlify/functions/agent-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent: agentKey, message: text, history: [...messages, userMsg].slice(-6) }),
-      });
-      const data = await res.json();
-      if (data.reply) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.reply, agentName: data.name || agentKey }]);
-      } else throw new Error('No reply');
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Try again?", agentName: agentKey }]);
-    } finally { setIsLoading(false); }
-  }, [agentKey, messages, isLoading]);
-
-  return { messages, isLoading, sendMessage, messagesEndRef, chatContainerRef };
-}
-
-/* ─── Home Team Section ─── */
-function HomeTeamSection() {
+/* ─── Home Team Section (merged with live data) ─── */
+function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) {
   const [selected, setSelected] = useState(null);
   const sel = selected ? AGENTS[selected] : null;
+  const homeData = selected ? AGENT_HOME_DATA[selected] : null;
+
+  const getAgentStats = (key) => {
+    const stats = [];
+    if (key === 'fitness') {
+      if (appStats?.benchpressonly?.users) stats.push({ value: appStats.benchpressonly.users, label: 'lifters' });
+      if (appStats?.rowcrew?.users) stats.push({ value: appStats.rowcrew.users, label: 'rowers' });
+    }
+    if (key === 'gaming' && appStats?.spellbrigade?.users) stats.push({ value: appStats.spellbrigade.users, label: 'players' });
+    if (key === 'social' && moltbookStatus?.posts_today) stats.push({ value: moltbookStatus.posts_today, label: 'posts today' });
+    if (key === 'blog' && githubStats?.today) stats.push({ value: githubStats.today, label: 'commits today' });
+    return stats;
+  };
 
   return (
     <div>
-      <div className="home-team-beta-note">
-        <span className="home-team-beta-badge">BETA</span>
-        Each agent has its own personality and knowledge scope. Responses are AI-generated and may not always be accurate.
-      </div>
-
       <div className="home-team-grid">
         {AGENT_ORDER.map(key => {
           const a = AGENTS[key];
           return (
-            <div
-              key={key}
-              className={`home-team-card ${selected === key ? 'active' : ''}`}
+            <div key={key} className={`home-team-card ${selected === key ? 'active' : ''}`}
               onClick={() => setSelected(selected === key ? null : key)}
-              style={selected === key ? { borderColor: `${a.color}50` } : {}}
-            >
+              style={selected === key ? { borderColor: `${a.color}50` } : {}}>
               <div className="ht-dot" style={{ background: a.color }}/>
               <div className="ht-avatar">{avatars[key](48)}</div>
               <div className="ht-name">{a.name}</div>
@@ -91,101 +58,57 @@ function HomeTeamSection() {
         })}
       </div>
 
-      {sel && (
+      {sel && homeData && (
         <div className="home-team-expanded" style={{ borderColor: `${sel.color}40` }}>
           <div className="home-team-expanded-header">
             <div style={{ flexShrink: 0 }}>{avatars[selected](72)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div className="home-team-name-row">
                 <h3>{sel.name}</h3>
-                <span className="home-team-expanded-role" style={{ color: sel.color, background: sel.bg, border: `1px solid ${sel.borderColor}` }}>
-                  {sel.role}
-                </span>
+                <span className="home-team-expanded-role" style={{ color: sel.color, background: sel.bg, border: `1px solid ${sel.borderColor}` }}>{sel.role}</span>
+                <span className={`home-team-status home-team-status-${homeData.statusType}`}>{homeData.status}</span>
               </div>
-              <p className="home-team-expanded-desc">{sel.whatItIs}</p>
+              <p className="home-team-expanded-desc">{homeData.shortDesc}</p>
             </div>
           </div>
-          <div className="home-team-expanded-tags">
-            {sel.tech.map((t, i) => (
-              <span key={i} className="team-tag" style={{ color: sel.color, borderColor: sel.borderColor }}>{t}</span>
-            ))}
-          </div>
-          <HomeAgentChat key={selected} agentKey={selected} agent={sel} />
-          <div className="home-team-expanded-footer">
-            <Link to="/team" className="home-team-full-link">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-              View full profile, execution cycles, and code →
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-function HomeAgentChat({ agentKey, agent }) {
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const { messages, isLoading, sendMessage, chatContainerRef } = useHomeAgentChat(agentKey);
-
-  const handleSend = () => { if (input.trim()) { sendMessage(input.trim()); setInput(''); } };
-
-  return (
-    <div className="team-chat-panel" style={{ borderTop: `2px solid ${agent.color}40` }}>
-      <div className="team-chat-header" onClick={() => setOpen(!open)} style={open ? { background: `${agent.color}08` } : {}}>
-        <div className="team-chat-header-left">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={agent.color} strokeWidth="2.5">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span className="team-chat-header-label" style={{ color: agent.color }}>Chat with {agent.name}</span>
-        </div>
-        <span className={`team-chat-header-toggle ${open ? 'open' : ''}`} style={{ color: agent.color }}>+</span>
-      </div>
-      {open && (
-        <>
-          <div className="team-chat-scope-note">
-            {agent.name} only knows about its own domain. <Link to="/team" style={{ color: agent.color }}>See what each agent covers →</Link>
-          </div>
-          <div className="team-chat-messages" ref={chatContainerRef}>
-            {messages.length === 0 && (
-              <div className="team-chat-msg agent" style={{ background: agent.bg, borderColor: agent.borderColor }}>
-                <span className="agent-msg-name" style={{ color: agent.color }}>{agent.name}</span>
-                {agent.quote}
-              </div>
-            )}
-            {messages.map((msg, i) => (
-              <div key={i} className={`team-chat-msg ${msg.role === 'user' ? 'user' : 'agent'}`}
-                style={msg.role === 'assistant' ? { background: agent.bg, borderColor: agent.borderColor } : {}}>
-                {msg.role === 'assistant' && (
-                  <span className="agent-msg-name" style={{ color: agent.color }}>
-                    {msg.agentName ? (AGENTS[msg.agentName]?.name || msg.agentName) : agent.name}
-                  </span>
-                )}
-                {msg.content}
-              </div>
-            ))}
-            {isLoading && (
-              <div className="team-chat-typing">
-                <span style={{ background: agent.color }}/><span style={{ background: agent.color }}/><span style={{ background: agent.color }}/>
-              </div>
-            )}
-          </div>
-          {messages.length === 0 && (
-            <div className="team-chat-starters">
-              {agent.starters.map((q, i) => (
-                <button key={i} className="team-chat-starter" onClick={() => sendMessage(q)}>{q}</button>
+          <div className="home-team-expanded-meta">
+            <div className="home-team-expanded-tags">
+              {sel.tech.map((t, i) => (
+                <span key={i} className="team-tag" style={{ color: sel.color, borderColor: sel.borderColor }}>{t}</span>
               ))}
             </div>
-          )}
-          <div className="team-chat-input-row">
-            <input className="team-chat-input" placeholder={`Ask ${agent.name} something...`}
-              value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()}
-              maxLength={500} disabled={isLoading} />
-            <button className="team-chat-send" onClick={handleSend} disabled={isLoading || !input.trim()}>Send</button>
+            {getAgentStats(selected).length > 0 && (
+              <div className="home-team-live-stats">
+                {getAgentStats(selected).map((s, i) => (
+                  <span key={i} className="home-team-live-stat">
+                    <strong style={{ color: sel.color }}>{s.value}</strong> {s.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        </>
+
+          <div className="home-team-expanded-footer">
+            <div className="home-team-links">
+              {homeData.links.map((link, i) => (
+                link.external ? (
+                  <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="home-team-action-link" style={{ color: sel.color, borderColor: `${sel.color}40` }}>{link.label}</a>
+                ) : (
+                  <Link key={i} to={link.url} className="home-team-action-link" style={{ color: sel.color, borderColor: `${sel.color}40` }}>{link.label}</Link>
+                )
+              ))}
+              <Link to="/team" className="home-team-full-link">Full profile + chat →</Link>
+            </div>
+          </div>
+
+          {selected === 'blog' && latestBlog && (
+            <Link to={`/blog/${latestBlog.slug || latestBlog.id}`} className="home-team-blog-preview">
+              <span className="home-team-blog-label">Latest post</span>
+              <span className="home-team-blog-title">{latestBlog.title}</span>
+            </Link>
+          )}
+        </div>
       )}
     </div>
   );
@@ -362,8 +285,7 @@ const Home = () => {
           <div className="container">
             <p className="narrative-text">
               I build apps that people actually use, take their feedback, and keep making things better. 
-              Below you can see my recent commits and the AI agents I built that run alongside my apps. 
-              Everything here is live and updated in real time.
+              Everything here is live — real commits, real users, real agents working autonomously.
             </p>
           </div>
         </section>
@@ -469,9 +391,9 @@ const Home = () => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Projects
           </Link>
-          <Link to="/team" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-            Team Details
+          <Link to="/chat" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Chat
           </Link>
         </div>
 
@@ -488,21 +410,6 @@ const Home = () => {
             {allExpanded === true ? 'Collapse all' : 'Expand all'}
           </button>
         </div>
-
-        <CollapsibleSection
-          title="Meet the Team"
-          subtitle="Eight AI agents run this portfolio — each with a job, a personality, and a chat"
-          badge="BETA"
-          badgeType="beta"
-          defaultOpen={true}
-          forceOpen={allExpanded !== null ? allExpanded : undefined}
-        >
-        <section style={{ padding: '0 0 var(--space-lg)' }}>
-          <div className="container">
-            <HomeTeamSection />
-          </div>
-        </section>
-        </CollapsibleSection>
 
         <CollapsibleSection
           title="Activity"
@@ -574,213 +481,20 @@ const Home = () => {
         </CollapsibleSection>
 
         <CollapsibleSection
-          title="Live Systems"
-          subtitle="Real-time status of autonomous agents — apps, deployments, and what they're doing right now"
-          badge="Live"
-          badgeType="live"
+          title="The Agents"
+          subtitle="Eight autonomous systems running this portfolio — click any agent to see what it does and where it lives"
+          badge="8 agents"
+          badgeType="count"
           stats={appStats ? [
             { value: appStats.benchpressonly?.users || '–', label: 'lifters' },
             { value: appStats.spellbrigade?.users || '–', label: 'players' },
-            { value: appStats.rowcrew?.users || '–', label: 'rowers' },
           ].filter(s => s.value !== '–' && s.value !== 0) : []}
-          defaultOpen={false}
+          defaultOpen={true}
           forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
-        {/* ===== AI AGENT BANNERS ===== */}
-        <section className="agent-banners-section">
+        <section style={{ padding: '0 0 var(--space-lg)' }}>
           <div className="container">
-            <div className="section-header">
-              <h2><span className="section-header-pulse"></span> Live Systems</h2>
-              <Link to="/activity" className="view-all">All agent activity →</Link>
-            </div>
-
-            <div className="agent-banners-grid">
-              {/* Azoni AI - Master Agent */}
-              <AgentBanner
-                name="Azoni AI"
-                description="Central intelligence that orchestrates all agents, manages this website, and powers the portfolio chatbot"
-                color="#3b82f6"
-                secondaryColor="#8b5cf6"
-                sources={['azoni-ai']}
-                links={[
-                  { label: 'Chat →', url: '/chat', external: false },
-                ]}
-                statusLabel="Active"
-                statusType="live"
-                stats={[
-                  { value: '5', label: 'agents' },
-                  { value: 'RAG', label: 'powered' },
-                ]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="18" stroke="#3b82f6" strokeWidth="2.5" fill="none"/>
-                    <circle cx="24" cy="24" r="8" stroke="#8b5cf6" strokeWidth="2" fill="none"/>
-                    <circle cx="24" cy="24" r="3" fill="#3b82f6"/>
-                    <path d="M24 6V12M24 36V42M6 24H12M36 24H42" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M11 11L15.5 15.5M32.5 32.5L37 37M37 11L32.5 15.5M15.5 32.5L11 37" stroke="#8b5cf6" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
-                  </svg>
-                }
-              />
-
-              {/* Blog Writer Agent */}
-              <AgentBanner
-                name="Blog Writer Agent"
-                description="Reads GitHub commits every morning and writes a dev log post automatically"
-                color="#9b5de5"
-                secondaryColor="#3b82f6"
-                sources={['daily-blog']}
-                links={[
-                  { label: 'Read Blog →', url: '/blog', external: false },
-                ]}
-                statusLabel="Daily 9am"
-                statusType="scheduled"
-                stats={[
-                  { value: githubStats?.today || 0, label: 'commits' },
-                  { value: 'Auto', label: 'generated' },
-                ]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-                    <path d="M12 6H36C37.66 6 39 7.34 39 9V39C39 40.66 37.66 42 36 42H12C10.34 42 9 40.66 9 39V9C9 7.34 10.34 6 12 6Z" stroke="#9b5de5" strokeWidth="2.5" fill="none"/>
-                    <path d="M15 15H33M15 22.5H33M15 30H24" stroke="#9b5de5" strokeWidth="2.5" strokeLinecap="round"/>
-                    <circle cx="33" cy="33" r="6" fill="#9b5de5"/>
-                    <path d="M31.5 33L33.5 35M33.5 31L31.5 33" stroke="#0f0f1a" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                }
-              >
-                {latestBlog && (
-                  <Link to={`/blog/${latestBlog.slug || latestBlog.id}`} className="banner-blog-preview" onClick={e => e.stopPropagation()}>
-                    <div className="banner-blog-meta">
-                      {latestBlog.autoGenerated && (
-                        <span className="banner-blog-ai-badge">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/>
-                          </svg>
-                          AI Generated
-                        </span>
-                      )}
-                      <span className="banner-blog-date">
-                        {latestBlog.publishedAt?.toDate ? 
-                          latestBlog.publishedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) :
-                          new Date(latestBlog.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        }
-                      </span>
-                    </div>
-                    <h4 className="banner-blog-title">{latestBlog.title}</h4>
-                    <p className="banner-blog-excerpt">{latestBlog.excerpt || latestBlog.description}</p>
-                    <div className="banner-blog-footer">
-                      <div className="banner-blog-tags">
-                        {latestBlog.tags?.slice(0, 3).map(tag => (
-                          <span key={tag} className="banner-blog-tag">{tag}</span>
-                        ))}
-                      </div>
-                      <span className="banner-blog-read">Read Post →</span>
-                    </div>
-                  </Link>
-                )}
-              </AgentBanner>
-
-              {/* Fitness Agent - BenchPressOnly + RowCrew */}
-              <AgentBanner
-                name="Fitness Agent"
-                description="AI workout generation, progress tracking, and rowing verification across BenchPressOnly and RowCrew"
-                color="#4ade80"
-                secondaryColor="#22d3ee"
-                sources={['benchpressonly', 'rowcrew']}
-                links={[
-                  { label: 'BenchPressOnly →', url: 'https://benchpressonly.com', external: true },
-                  { label: 'RowCrew →', url: 'https://rowcrew.netlify.app', external: true },
-                ]}
-                statusLabel="Active"
-                statusType="live"
-                stats={[
-                  ...(appStats?.benchpressonly?.users ? [{ value: appStats.benchpressonly.users, label: 'lifters' }] : []),
-                  ...(appStats?.rowcrew?.users ? [{ value: appStats.rowcrew.users, label: 'rowers' }] : []),
-                ]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-                    <rect x="8" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
-                    <rect x="34" y="14" width="6" height="20" rx="2" fill="#4ade80"/>
-                    <rect x="14" y="18" width="20" height="4" rx="1" fill="#22d3ee"/>
-                    <rect x="14" y="26" width="20" height="4" rx="1" fill="#22d3ee"/>
-                    <rect x="22" y="10" width="4" height="28" rx="2" fill="#4ade80" opacity="0.6"/>
-                  </svg>
-                }
-              />
-
-              {/* Gaming Agent - Spell Brigade */}
-              <AgentBanner
-                name="Gaming Agent"
-                description="Multiplayer wizard survival — AI generates unique character classes from player prompts, with procedural dungeons and encounters"
-                color="#ffd93d"
-                secondaryColor="#f59e0b"
-                sources={['spell-brigade']}
-                link="https://azoni.ai/game"
-                linkLabel="Play Now"
-                externalLink={true}
-                statusLabel="Playable"
-                statusType="live"
-                stats={[
-                  ...(appStats?.spellbrigade?.users ? [{ value: appStats.spellbrigade.users, label: 'players' }] : []),
-                ]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#ffd93d"/>
-                    <circle cx="24" cy="22" r="6" fill="#0f0f1a"/>
-                  </svg>
-                }
-              />
-
-              {/* Social Agent - Moltbook */}
-              <AgentBanner
-                name="Social Agent"
-                description="LangGraph-powered agent that browses, reasons, and posts to Moltbook independently"
-                color="#ff6b35"
-                secondaryColor="#ff9a5c"
-                sources={['moltbook-agent']}
-                link="/moltbook"
-                linkLabel="View Agent →"
-                statusLabel={moltbookStatus?.autonomous_mode ? 'Autonomous' : 'Active'}
-                statusType="live"
-                stats={[
-                  { value: moltbookStatus?.posts_today || 0, label: 'today' },
-                  { value: moltbookStatus?.total_actions || '∞', label: 'actions' },
-                  ...(appStats?.moltbook?.users ? [{ value: appStats.moltbook.users, label: 'followers' }] : []),
-                ]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-                    <path d="M24 4C20 4 17 7 17 11V16C17 18 15 20 13 20H10C8 20 6 22 6 24C6 26 8 28 10 28H13L11 34C10 37 12 40 15 40H17L16 44H20L21 40H27L28 44H32L31 40H33C36 40 38 37 37 34L35 28H38C40 28 42 26 42 24C42 22 40 20 38 20H35C33 20 31 18 31 16V11C31 7 28 4 24 4Z" fill="#ff6b35"/>
-                    <circle cx="20" cy="12" r="2" fill="#0f0f1a"/>
-                    <circle cx="28" cy="12" r="2" fill="#0f0f1a"/>
-                  </svg>
-                }
-              />
-
-              {/* Old Ways Today */}
-              <AgentBanner
-                name="Old Ways Today"
-                description="AI-powered platform helping families discover non-toxic, traditional product alternatives"
-                color="#fb923c"
-                secondaryColor="#f59e0b"
-                sources={['old-ways-today']}
-                externalLink={true}
-                link="https://oldwaystoday.com"
-                linkLabel="Visit Site →"
-                statusLabel="Coming Soon"
-                statusType="scheduled"
-                stats={[
-                  { value: 'RAG', label: 'chat' },
-                  { value: 'AI', label: 'blog' },
-                ]}
-                icon={
-                  <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                    <path d="M16 4C9.4 4 4 9.4 4 16s5.4 12 12 12 12-5.4 12-12S22.6 4 16 4z" stroke="#fb923c" strokeWidth="2.5" fill="none"/>
-                    <path d="M10 14c0-2 1.5-4 3.5-4s3 1.5 3 3c0 2-3 3-3 5" stroke="#fb923c" strokeWidth="2.5" strokeLinecap="round"/>
-                    <circle cx="13.5" cy="22" r="1.5" fill="#fb923c"/>
-                    <path d="M20 11l4-3M20 16h4M20 21l4 3" stroke="#fb923c" strokeWidth="2.5" strokeLinecap="round"/>
-                  </svg>
-                }
-              />
-            </div>
+            <HomeTeamSection appStats={appStats} moltbookStatus={moltbookStatus} latestBlog={latestBlog} githubStats={githubStats} />
           </div>
         </section>
         </CollapsibleSection>

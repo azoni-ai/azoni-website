@@ -127,7 +127,7 @@ const AGENTS = {
     color: "#a78bfa",
     bg: "#a78bfa15",
     borderColor: "#a78bfa30",
-    quote: "Every 3 hours I wake up, check on the crew, and decide what needs doing. I see everything.",
+    quote: "Runs every 3 hours. Gathers state from all systems, picks 1-3 actions, executes them, logs everything.",
     whatItIs: "A Netlify scheduled function that runs every 3 hours. Gathers state from 10+ sources across the entire ecosystem, feeds it all into GPT-4o as a single massive prompt, and executes whatever actions the LLM decides on.",
     whyUnique: "Most portfolio sites are static. This one has a brain that wakes up every 3 hours, reviews everything that happened, and makes autonomous decisions — writing blog posts, filling knowledge gaps, reorganizing the RAG database, reviewing error logs, and running self-assessments.",
     tech: ["Netlify Cron", "GPT-4o via OpenRouter", "Firestore", "Multi-action loop"],
@@ -142,7 +142,7 @@ const AGENTS = {
     color: "#60a5fa",
     bg: "#60a5fa15",
     borderColor: "#60a5fa30",
-    quote: "Recruiters talk to me, and I make Charlton look great. If I don't know something? I teach myself on the spot.",
+    quote: "Handles recruiter questions, analyzes job fit, and teaches itself new topics when the knowledge base comes up short.",
     whatItIs: "The user-facing chatbot on azoni.ai. Classifies every message across 12+ intent types, retrieves relevant RAG chunks from Firestore, and generates responses with GPT-4o-mini. When retrieval score is below 10, it generates new knowledge in real-time.",
     whyUnique: "It self-improves. When someone asks something new and the RAG score is low, it generates a new knowledge chunk on the spot, saves it to Firestore, uses it immediately, and logs the learning. Next person who asks gets an instant answer. Protected by a 4-layer safety system.",
     tech: ["GPT-4o-mini", "Firestore RAG", "Real-time knowledge gen", "4-layer safety"],
@@ -157,7 +157,7 @@ const AGENTS = {
     color: "#fbbf24",
     bg: "#fbbf2415",
     borderColor: "#fbbf2430",
-    quote: "Every morning I read through Charlton's commits and write about them. He codes, I narrate.",
+    quote: "Fetches yesterday's commits via GraphQL, groups by repo, and writes a technical blog post with auto-generated SVG art.",
     whatItIs: "A daily scheduled function (5PM UTC) that fetches yesterday's GitHub commits via GraphQL, groups them by repo, and has GPT-4o write a technical blog post with auto-generated SVG cover art.",
     whyUnique: "It doesn't just list commits — it writes narrative-driven technical content explaining what was built and why. After publishing, it auto-seeds a RAG chunk so the chatbot can reference the blog.",
     tech: ["GitHub GraphQL API", "GPT-4o", "Auto SVG covers", "RAG auto-seeding"],
@@ -172,7 +172,7 @@ const AGENTS = {
     color: "#4ade80",
     bg: "#4ade8015",
     borderColor: "#4ade8030",
-    quote: "LETS GOOOO! 315lb bench PR. I track every rep, every set, every PR. No days off.",
+    quote: "Powers AI workout generation in BenchPressOnly. Tracks PRs, generates personalized plans, analyzes progress trends.",
     whatItIs: "The AI backend of BenchPressOnly, a real fitness tracking app with actual users. Generates personalized AI workouts, tracks personal records, analyzes progress, and feeds data back to the orchestrator.",
     whyUnique: "It's not a demo — real users log real workouts. The AI tailors plans to user history and goals. Live fitness data is available in chatbot responses.",
     tech: ["React Native / Web", "Firebase Auth", "AI workout gen", "Serverless functions"],
@@ -187,7 +187,7 @@ const AGENTS = {
     color: "#c084fc",
     bg: "#c084fc15",
     borderColor: "#c084fc30",
-    quote: "I create wizards with unique backstories and abilities. I also control the dungeon enemies... shhh.",
+    quote: "Generates unique wizard characters with AI-written backstories and custom abilities. Also runs enemy AI in dungeons.",
     whatItIs: "The AI layer inside Spell Brigade, a real-time multiplayer wizard combat game. Generates unique characters with AI-written backstories and custom abilities, controls enemy AI behavior in dungeons.",
     whyUnique: "Every character is genuinely unique — AI writes backstory, personality, and creates custom abilities that affect gameplay. Server was refactored from a 6,743-line monolith into 16 modular files.",
     tech: ["Node.js server", "Socket.io", "Three.js 3D", "GPT-4o-mini"],
@@ -202,7 +202,7 @@ const AGENTS = {
     color: "#fb923c",
     bg: "#fb923c15",
     borderColor: "#fb923c30",
-    quote: "I handle the social game so Charlton can focus on building. I never sleep because I literally can't.",
+    quote: "Posts to Moltbook when the orchestrator decides there's an activity gap. Content is generated based on recent project updates.",
     whatItIs: "Autonomous social presence manager. Posts content, engages with discussions, and maintains visibility across platforms. Managed entirely by the orchestrator's decisions.",
     whyUnique: "Operates on the orchestrator's judgment rather than a fixed schedule. The orchestrator evaluates whether social activity is needed based on recent posts, project updates, and engagement gaps.",
     tech: ["Orchestrator-triggered", "LLM content gen", "Platform APIs", "Activity logging"],
@@ -217,7 +217,7 @@ const AGENTS = {
     color: "#34d399",
     bg: "#34d39915",
     borderColor: "#34d39930",
-    quote: "Chat reads from me, Blog writes to me, the Orchestrator keeps me tidy. I grow smarter every day.",
+    quote: "Firestore knowledge base with keyword-scored retrieval. Grows through manual seeding, blog summaries, and real-time generation.",
     whatItIs: "Firestore-backed RAG system with 20+ seeded chunks plus auto-generated ones. The chat agent queries it, the blog agent writes to it, and the orchestrator maintains it by merging duplicates.",
     whyUnique: "Grows through three channels: manually seeded chunks, auto-generated blog summaries, and real-time chunks from the chat agent. The orchestrator reviews and cleans up when auto-generated chunks exceed 30.",
     tech: ["Firestore collection", "Keyword scoring", "Category filtering", "Auto-generation pipeline"],
@@ -232,7 +232,7 @@ const AGENTS = {
     color: "#f87171",
     bg: "#f8717115",
     borderColor: "#f8717130",
-    quote: "I watch everything. Every crash, every timeout, every 500 across all apps. Nothing escapes me.",
+    quote: "Centralized error logging across all apps. High-severity errors surface in the activity feed. The orchestrator reviews patterns each cycle.",
     whatItIs: "Centralized error logging endpoint. Any app POSTs errors here with severity levels. High/critical errors surface immediately in the activity feed. The orchestrator reviews patterns each cycle.",
     whyUnique: "Single source of truth for errors across 5 applications. The orchestrator can spot recurring patterns, mark errors resolved, and include error health in self-assessments.",
     tech: ["Netlify Function", "Firestore error_logs", "4 severity levels", "Activity feed integration"],
@@ -245,4 +245,51 @@ const AGENTS = {
 
 const AGENT_ORDER = ['orchestrator', 'chat', 'rag', 'blog', 'fitness', 'gaming', 'social', 'errors'];
 
-export { avatars, AGENTS, AGENT_ORDER };
+/* ─── Homepage-specific data (status, links, short descriptions) ─── */
+const AGENT_HOME_DATA = {
+  orchestrator: {
+    shortDesc: "Runs every 3 hours. Gathers state from 10+ sources, decides what needs doing, and executes autonomously.",
+    status: 'Active', statusType: 'live',
+    links: [{ label: 'Activity →', url: '/activity' }],
+  },
+  chat: {
+    shortDesc: "RAG chatbot with intent detection across 12+ types. Self-improves by generating new knowledge when stumped.",
+    status: 'Active', statusType: 'live',
+    links: [{ label: 'Try it →', url: '/chat' }],
+  },
+  rag: {
+    shortDesc: "Firestore-backed knowledge base with 20+ chunks. Chat reads, Blog writes, Orchestrator maintains.",
+    status: 'Active', statusType: 'live',
+    links: [],
+  },
+  blog: {
+    shortDesc: "Reads yesterday's GitHub commits via GraphQL and writes a narrative technical blog post with auto-generated SVG covers.",
+    status: 'Daily 5PM UTC', statusType: 'scheduled',
+    links: [{ label: 'Read Blog →', url: '/blog' }],
+  },
+  fitness: {
+    shortDesc: "AI workout generation and progress tracking across BenchPressOnly and RowCrew. Real users, real data.",
+    status: 'Active', statusType: 'live',
+    links: [
+      { label: 'BenchPressOnly →', url: 'https://benchpressonly.com', external: true },
+      { label: 'RowCrew →', url: 'https://rowcrew.netlify.app', external: true },
+    ],
+  },
+  gaming: {
+    shortDesc: "AI generates unique wizard characters with custom abilities and backstories. Real-time multiplayer via Socket.io.",
+    status: 'Playable', statusType: 'live',
+    links: [{ label: 'Play →', url: 'https://azoni.ai/game', external: true }],
+  },
+  social: {
+    shortDesc: "Autonomous social presence on Moltbook. The orchestrator decides when and what to post based on activity gaps.",
+    status: 'Autonomous', statusType: 'live',
+    links: [{ label: 'View Profile →', url: 'https://www.moltbook.com/u/Azoni-AI', external: true }],
+  },
+  errors: {
+    shortDesc: "Centralized error logging across 5 applications. The orchestrator reviews patterns and resolves issues each cycle.",
+    status: 'Watching', statusType: 'live',
+    links: [{ label: 'Activity →', url: '/activity' }],
+  },
+};
+
+export { avatars, AGENTS, AGENT_ORDER, AGENT_HOME_DATA };
