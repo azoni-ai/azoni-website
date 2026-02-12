@@ -109,6 +109,17 @@ const ACTIVITY_ICONS = {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M2 12h4l3-9 6 18 3-9h4"/>
     </svg>
+  ),
+  // Self-improvement
+  knowledge_generated: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+    </svg>
+  ),
+  self_assessment: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+    </svg>
   )
 };
 
@@ -133,7 +144,10 @@ const ACTIVITY_COLORS = {
   wizard_created: '#c084fc',
   dungeon_created: '#fb923c',
   // RowCrew
-  row_verified: '#06b6d4'
+  row_verified: '#06b6d4',
+  // Self-improvement
+  knowledge_generated: '#10b981',
+  self_assessment: '#f59e0b'
 };
 
 const ACTIVITY_LABELS = {
@@ -157,7 +171,10 @@ const ACTIVITY_LABELS = {
   wizard_created: 'Wizard Created',
   dungeon_created: 'Dungeon Created',
   // RowCrew
-  row_verified: 'Row Verified'
+  row_verified: 'Row Verified',
+  // Self-improvement
+  knowledge_generated: 'Knowledge Learned',
+  self_assessment: 'Self-Assessment'
 };
 
 // Source filter config with brand colors
@@ -174,7 +191,7 @@ const SOURCE_FILTERS = [
 const Activity = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('azoni-ai');
   const [isLive, ] = useState(true);
   const feedRef = useRef(null);
   const [newActivityCount, setNewActivityCount] = useState(0);
