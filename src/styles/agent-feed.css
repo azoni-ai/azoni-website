@@ -41,6 +41,39 @@
   padding: 3px 8px;
   background: rgba(74, 222, 128, 0.1);
   border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.feed-filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.feed-filter-btn {
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.feed-filter-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-card);
+}
+
+.feed-filter-btn.active {
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
 }
 
 .feed-loading,
@@ -250,6 +283,7 @@
   color: var(--accent-primary);
   text-decoration: none;
   background: rgba(255, 122, 92, 0.05);
+  margin-top: auto;
   border-top: 1px solid var(--border-subtle);
   transition: all 0.15s ease;
 }

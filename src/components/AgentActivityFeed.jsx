@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Link } from 'react-router-dom';
 import '../styles/agent-feed.css';
@@ -152,18 +152,30 @@ const ACTIVITY_COLORS = {
   self_assessment: '#f59e0b'
 };
 
+const SOURCE_FILTERS = [
+  { key: 'azoni-ai', label: 'Azoni AI' },
+  { key: 'all', label: 'All Agents' },
+  { key: 'benchpressonly', label: 'Fitness' },
+  { key: 'spell-brigade', label: 'Gaming' },
+  { key: 'rowcrew', label: 'Rowing' },
+];
+
 const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [firstLoad, setFirstLoad] = useState(true);
+  const [sourceFilter, setSourceFilter] = useState('azoni-ai');
 
   useEffect(() => {
     // Real-time listener for agent activity
     const activityRef = collection(db, 'agent_activity');
     let unsubscribe;
     try {
-      const q = query(activityRef, orderBy('timestamp', 'desc'), limit(maxItems));
+      const constraints = sourceFilter === 'all'
+        ? [orderBy('timestamp', 'desc'), limit(maxItems)]
+        : [where('source', '==', sourceFilter), orderBy('timestamp', 'desc'), limit(maxItems)];
+      const q = query(activityRef, ...constraints);
 
       unsubscribe = onSnapshot(q, (snapshot) => {
         const items = snapshot.docs.map(doc => ({
@@ -193,7 +205,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [maxItems, firstLoad]);
+  }, [maxItems, firstLoad, sourceFilter]);
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '';
@@ -225,15 +237,27 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
     }
   };
 
+  const filterHeader = (
+    <div className="agent-feed-header">
+      <div className="feed-filters">
+        {SOURCE_FILTERS.map(f => (
+          <button
+            key={f.key}
+            className={`feed-filter-btn${sourceFilter === f.key ? ' active' : ''}`}
+            onClick={() => { setSourceFilter(f.key); setLoading(true); setFirstLoad(true); }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <span className="feed-live-badge">Live</span>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="agent-feed">
-        <div className="agent-feed-header">
-          <div className="feed-title">
-            <span className="feed-pulse"></span>
-            All Agent Activity
-          </div>
-        </div>
+        {filterHeader}
         <div className="feed-loading">Loading activity...</div>
       </div>
     );
@@ -242,12 +266,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
   if (activities.length === 0) {
     return (
       <div className="agent-feed">
-        <div className="agent-feed-header">
-          <div className="feed-title">
-            <span className="feed-pulse"></span>
-            All Agent Activity
-          </div>
-        </div>
+        {filterHeader}
         <div className="feed-empty">No recent activity</div>
       </div>
     );
@@ -255,13 +274,7 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
 
   return (
     <div className="agent-feed">
-      <div className="agent-feed-header">
-        <div className="feed-title">
-          <span className="feed-pulse"></span>
-          All Agent Activity
-        </div>
-        <span className="feed-live-badge">Live</span>
-      </div>
+      {filterHeader}
 
       <div className={`feed-list agent-feed-list ${compact ? 'compact' : ''}`}>
         {activities.map((activity) => {
