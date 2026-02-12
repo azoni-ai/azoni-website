@@ -169,6 +169,7 @@ const ACTIVITY_COLORS = {
 const SOURCE_FILTERS = [
   { key: 'azoni-ai', label: 'Azoni AI' },
   { key: 'all', label: 'All Agents' },
+  { key: 'daily-blog', label: 'Blog Writer' },
   { key: 'benchpressonly', label: 'Fitness' },
   { key: 'spell-brigade', label: 'Gaming' },
   { key: 'rowcrew', label: 'Rowing' },

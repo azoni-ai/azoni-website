@@ -195,6 +195,7 @@ const ACTIVITY_LABELS = {
 const SOURCE_FILTERS = [
   { value: 'all', label: 'All Agents', color: '#888' },
   { value: 'azoni-ai', label: 'Azoni AI', color: '#3b82f6' },
+  { value: 'daily-blog', label: 'Blog Writer', color: '#f59e0b' },
   { value: 'moltbook-agent', label: 'Social Agent', color: '#ff6b35' },
   { value: 'benchpressonly', label: 'BenchPressOnly', color: '#4ade80' },
   { value: 'rowcrew', label: 'RowCrew', color: '#06b6d4' },
