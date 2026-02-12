@@ -32,6 +32,22 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Centralized error logger
+async function logError(source, error, severity = 'medium', context = {}) {
+  try {
+    await db.collection('error_logs').add({
+      source,
+      error: String(error).slice(0, 2000),
+      severity,
+      context,
+      resolved: false,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (err) {
+    console.error('[logError] Failed to log error:', err.message);
+  }
+}
+
 const GITHUB_USERNAME = 'azoni';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -594,6 +610,7 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error(`[daily-blog] Error:`, error);
+    await logError('daily-blog', error.message, 'high', { function: 'main-handler', date: targetDate });
     return {
       statusCode: 500,
       headers,

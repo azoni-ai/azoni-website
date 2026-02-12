@@ -120,6 +120,16 @@ const ACTIVITY_ICONS = {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
     </svg>
+  ),
+  error_logged: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  error_reviewed: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 11l3 3L22 4"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
   )
 };
 
@@ -147,7 +157,9 @@ const ACTIVITY_COLORS = {
   row_verified: '#06b6d4',
   // Self-improvement
   knowledge_generated: '#10b981',
-  self_assessment: '#f59e0b'
+  self_assessment: '#f59e0b',
+  error_logged: '#ef4444',
+  error_reviewed: '#f97316'
 };
 
 const ACTIVITY_LABELS = {
@@ -174,7 +186,9 @@ const ACTIVITY_LABELS = {
   row_verified: 'Row Verified',
   // Self-improvement
   knowledge_generated: 'Knowledge Learned',
-  self_assessment: 'Self-Assessment'
+  self_assessment: 'Self-Assessment',
+  error_logged: 'Error Detected',
+  error_reviewed: 'Errors Reviewed'
 };
 
 // Source filter config with brand colors

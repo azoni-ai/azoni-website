@@ -105,6 +105,24 @@ async function getKnowledgeChunks() {
 }
 
 // ============ FALLBACK CHUNK (used if Firestore unavailable) ============
+
+// Centralized error logger
+async function logError(source, error, severity = 'medium', context = {}) {
+  if (!db) return;
+  try {
+    await db.collection('error_logs').add({
+      source,
+      error: String(error).slice(0, 2000),
+      severity,
+      context,
+      resolved: false,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (err) {
+    console.error('[logError] Failed to log error:', err.message);
+  }
+}
+
 const FALLBACK_CHUNK = {
   id: 'fallback-intro',
   category: 'general',
@@ -230,6 +248,7 @@ Respond ONLY with JSON: { "category": "bio|experience|projects|skills|agents|neg
     };
   } catch (err) {
     console.error('[chat] Real-time knowledge generation failed:', err.message);
+    logError('chat', `Real-time knowledge gen failed: ${err.message}`, 'medium', { function: 'generateKnowledgeOnTheFly', query: query.slice(0, 100) }).catch(() => {});
     return null;
   }
 }
@@ -948,6 +967,7 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error('Function error:', error);
+    logError('chat', error.message, 'high', { function: 'main-handler' }).catch(() => {});
     return {
       statusCode: 500,
       headers,

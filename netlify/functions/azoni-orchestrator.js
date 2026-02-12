@@ -37,6 +37,22 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
+// Centralized error logger
+async function logError(source, error, severity = 'medium', context = {}) {
+  try {
+    await db.collection('error_logs').add({
+      source,
+      error: String(error).slice(0, 2000),
+      severity,
+      context,
+      resolved: false,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (err) {
+    console.error('[logError] Failed to log error:', err.message);
+  }
+}
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_USERNAME = 'azoni';
 const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.com';
@@ -301,6 +317,46 @@ async function getLastSelfAssessment() {
     return snapshot.docs[0].data().timestamp?.toDate?.() || null;
   } catch (err) {
     return null;
+  }
+}
+
+async function getRecentErrors(hoursBack = 24) {
+  try {
+    const cutoff = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+    const snapshot = await db.collection('error_logs')
+      .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(cutoff))
+      .orderBy('timestamp', 'desc')
+      .limit(30)
+      .get();
+
+    const errors = snapshot.docs.map(doc => ({
+      id: doc.id,
+      source: doc.data().source,
+      error: doc.data().error,
+      severity: doc.data().severity,
+      context: doc.data().context,
+      resolved: doc.data().resolved,
+      timestamp: doc.data().timestamp?.toDate?.()?.toISOString() || null
+    }));
+
+    // Summarize by source
+    const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
+    const bySource = {};
+    for (const err of errors) {
+      bySeverity[err.severity] = (bySeverity[err.severity] || 0) + 1;
+      bySource[err.source] = (bySource[err.source] || 0) + 1;
+    }
+
+    return {
+      total: errors.length,
+      unresolved: errors.filter(e => !e.resolved).length,
+      bySeverity,
+      bySource,
+      recent: errors.slice(0, 10)
+    };
+  } catch (err) {
+    console.error('[orchestrator] Error logs fetch failed:', err.message);
+    return { total: 0, error: err.message };
   }
 }
 
@@ -627,6 +683,7 @@ Available actions (respond with a JSON array of actions):
 - { "action": "fill_knowledge_gap", "gapId": "...", "gapQuery": "...", "gapIntent": "...", "reason": "..." } — Generate a new RAG knowledge chunk to fill a chatbot knowledge gap. Use GPT-4o to create high-quality content.
 - { "action": "self_assessment", "reason": "..." } — Generate a weekly self-assessment of system health, chatbot performance, and recommendations. Only do this once per week.
 - { "action": "reorganize_knowledge", "reason": "..." } — Review and clean up the RAG knowledge base. Merge duplicate auto-generated chunks, remove low-quality ones. Run when auto-generated chunks exceed 30 or weekly.
+- { "action": "review_errors", "reason": "..." } — Acknowledge and summarize error patterns. Flag recurring issues or critical failures. Mark errors as reviewed.
 - { "action": "none", "reason": "..." } — No action needed, explain why
 
 Rules:
@@ -674,6 +731,13 @@ Categories: ${JSON.stringify(state.ragHealth.categories)}` : 'Unable to check'}
 
 ## Last Self-Assessment
 ${state.lastAssessment ? state.lastAssessment.toISOString() : 'Never — should run one'}
+
+## Error Logs (last 24h)
+${state.recentErrors?.total > 0 ? `${state.recentErrors.total} errors (${state.recentErrors.unresolved} unresolved)
+By severity: ${JSON.stringify(state.recentErrors.bySeverity)}
+By source: ${JSON.stringify(state.recentErrors.bySource)}
+Recent errors:
+${(state.recentErrors.recent || []).map(e => `- [${e.severity.toUpperCase()}] ${e.source}: ${e.error.slice(0, 120)}${e.context?.function ? ` (in ${e.context.function})` : ''}`).join('\n')}` : 'No errors in the last 24 hours ✓'}
 
 ## Last Orchestrator Run
 ${state.lastRun ? state.lastRun.toISOString() : 'First run'}
@@ -756,10 +820,11 @@ exports.handler = async (event, context) => {
       getKnowledgeGaps(20),
       getChatStats(72),
       getRagHealth(),
-      getLastSelfAssessment()
+      getLastSelfAssessment(),
+      getRecentErrors(24)
     ]);
 
-    const state = { activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment };
+    const state = { activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors };
 
     console.log('[orchestrator] State gathered:', {
       activityCount: activity.length,
@@ -769,7 +834,8 @@ exports.handler = async (event, context) => {
       fitnessAvailable: !!fitness,
       knowledgeGaps: knowledgeGaps.length,
       chatCount: chatStats?.totalChats || 0,
-      ragChunks: ragHealth?.totalChunks || 0
+      ragChunks: ragHealth?.totalChunks || 0,
+      errors: recentErrors?.total || 0
     });
 
     // 2. Decide — send state to LLM for analysis
@@ -945,6 +1011,53 @@ exports.handler = async (event, context) => {
           );
           break;
         }
+
+        case 'review_errors': {
+          // Summarize and mark errors as reviewed
+          const errorsData = state.recentErrors;
+          if (errorsData && errorsData.total > 0) {
+            // Mark unresolved errors as resolved
+            const unresolvedSnapshot = await db.collection('error_logs')
+              .where('resolved', '==', false)
+              .limit(30)
+              .get();
+            
+            const batch = db.batch();
+            let resolved = 0;
+            unresolvedSnapshot.docs.forEach(doc => {
+              batch.update(doc.ref, { resolved: true, resolvedAt: admin.firestore.FieldValue.serverTimestamp() });
+              resolved++;
+            });
+            if (resolved > 0) await batch.commit();
+
+            // Build summary for activity feed
+            const sourceSummary = Object.entries(errorsData.bySource || {})
+              .map(([src, count]) => `${src}: ${count}`)
+              .join(', ');
+            const severitySummary = Object.entries(errorsData.bySeverity || {})
+              .filter(([, count]) => count > 0)
+              .map(([sev, count]) => `${count} ${sev}`)
+              .join(', ');
+
+            await logStep(
+              'error_reviewed',
+              `Reviewed ${errorsData.total} errors (${severitySummary})`,
+              `Sources: ${sourceSummary}\n\nTop errors:\n${(errorsData.recent || []).slice(0, 5).map(e => `• [${e.severity}] ${e.source}: ${e.error.slice(0, 100)}`).join('\n')}\n\nMarked ${resolved} errors as resolved.`,
+              action.reason,
+              {
+                totalErrors: errorsData.total,
+                resolved,
+                bySeverity: errorsData.bySeverity,
+                bySource: errorsData.bySource
+              }
+            );
+
+            results.push({ action: 'review_errors', resolved, total: errorsData.total });
+          } else {
+            results.push({ action: 'review_errors', resolved: 0, note: 'No errors to review' });
+          }
+          break;
+        }
       }
     }
 
@@ -990,6 +1103,7 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error('[orchestrator] Error:', error);
+    await logError('orchestrator', error.message, 'high', { function: 'main-handler' });
 
     await logStep(
       'agent_deciding',
