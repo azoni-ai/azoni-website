@@ -45,11 +45,13 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
       <div className="home-team-grid">
         {AGENT_ORDER.map(key => {
           const a = AGENTS[key];
+          const tryable = key === 'fitness' || key === 'gaming' || key === 'chat';
           return (
             <div key={key} className={`home-team-card ${selected === key ? 'active' : ''}`}
               onClick={() => setSelected(selected === key ? null : key)}
               style={selected === key ? { borderColor: `${a.color}50` } : {}}>
               <div className="ht-dot" style={{ background: a.color }}/>
+              {tryable && <span className="ht-try-badge" style={{ color: a.color, borderColor: `${a.color}50` }}>{key === 'gaming' ? 'Play' : 'Try it'}</span>}
               <div className="ht-avatar">{avatars[key](48)}</div>
               <div className="ht-name">{a.name}</div>
               <div className="ht-role" style={{ color: a.color }}>{a.role}</div>
@@ -69,6 +71,7 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
                 <span className={`home-team-status home-team-status-${homeData.statusType}`}>{homeData.status}</span>
               </div>
               <p className="home-team-expanded-desc">{homeData.shortDesc}</p>
+              <p className="home-team-expanded-why">{sel.whyUnique}</p>
             </div>
           </div>
 
@@ -89,6 +92,15 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
             )}
           </div>
 
+          {/* Data it touches */}
+          <div className="home-team-data-row">
+            {sel.data.slice(0, 3).map((d, i) => (
+              <span key={i} className="home-team-data-item">
+                <span style={{ color: sel.color, opacity: 0.6 }}>{'// '}</span>{d.split(' — ')[0]}
+              </span>
+            ))}
+          </div>
+
           <div className="home-team-expanded-footer">
             <div className="home-team-links">
               {homeData.links.map((link, i) => (
@@ -98,7 +110,7 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
                   <Link key={i} to={link.url} className="home-team-action-link" style={{ color: sel.color, borderColor: `${sel.color}40` }}>{link.label}</Link>
                 )
               ))}
-              <Link to="/team" className="home-team-full-link">Full profile + chat →</Link>
+              <Link to={`/team?agent=${selected}`} className="home-team-full-link">Full profile + chat →</Link>
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { avatars, AGENTS, AGENT_ORDER } from '../data/agents';
 import '../styles/team.css';
@@ -136,7 +137,20 @@ function AgentChat({ agentKey, agent }) {
 
 /* ─── Main Team Page ─── */
 const Team = () => {
+  const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
+
+  // Deep-link: /team?agent=orchestrator opens that agent
+  useEffect(() => {
+    const agentParam = searchParams.get('agent');
+    if (agentParam && AGENTS[agentParam]) {
+      setSelected(agentParam);
+      setTimeout(() => {
+        const el = document.getElementById(`profile-${agentParam}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
+    }
+  }, [searchParams]);
 
   const scrollToProfile = (key) => {
     setSelected(key);

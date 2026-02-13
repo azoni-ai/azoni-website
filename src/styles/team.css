@@ -858,3 +858,42 @@
   background: var(--bg-elevated);
   border-color: var(--text-muted);
 }
+
+/* ===== TRY-IT BADGE ON CARDS ===== */
+.ht-try-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: 3px;
+}
+
+/* ===== WHY UNIQUE (additional detail) ===== */
+.home-team-expanded-why {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+
+/* ===== DATA ROW ===== */
+.home-team-data-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: var(--space-sm) var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.home-team-data-item {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
