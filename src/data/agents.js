@@ -267,7 +267,7 @@ const AGENTS = {
     data: ["rag_knowledge_base — product/ingredient chunks", "blogPosts — auto-generated articles", "chatLogs — user conversations", "agent_activity — blog + RAG events"],
     cycle: ["User asks about a product or ingredient", "Intent detection classifies the query", "RAG retrieves relevant knowledge chunks", "If no chunk exists, real-time generation fills the gap", "Auto-blog pipeline publishes articles on schedule", "Orchestrator monitors health alongside other agents"],
     code: `// Same RAG pattern as azoni.ai:\nconst chunks = await getKnowledgeChunks();\nconst scored = scoreChunks(chunks, query);\nconst context = scored.slice(0, 5);\n// Augment prompt with retrieved knowledge\nconst response = await callLLM({\n  system: buildPrompt(context),\n  messages: history\n});`,
-    starters: ["What does Old Ways Today do?", "How is it connected to the agent system?", "What kind of products do you cover?", "When is it launching?"],
+    starters: ["What does Old Ways Today do?", "How is it connected to the agent system?", "What kind of products do you cover?", "What's the most popular question?"],
   },
 };
 
@@ -310,7 +310,7 @@ const AGENT_HOME_DATA = {
   },
   oldways: {
     shortDesc: "Standalone product: AI-powered platform helping families find non-toxic, traditional alternatives. Same RAG + blog architecture as azoni.ai.",
-    status: 'Coming Soon', statusType: 'scheduled',
+    status: 'Active', statusType: 'live',
     links: [{ label: 'Visit Site →', url: 'https://oldwaystoday.com', external: true }],
   },
 };

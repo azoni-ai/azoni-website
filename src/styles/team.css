@@ -626,7 +626,7 @@
 .home-team-expanded-desc {
   font-size: 0.92rem;
   line-height: 1.65;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   margin: var(--space-sm) 0 0;
 }
 
@@ -694,8 +694,8 @@
 
 .home-team-live-stat {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .home-team-live-stat strong {
@@ -736,7 +736,7 @@
 .home-team-full-link {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
@@ -876,9 +876,9 @@
 
 /* ===== WHY UNIQUE (additional detail) ===== */
 .home-team-expanded-why {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   line-height: 1.6;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   margin: 6px 0 0;
 }
 
@@ -893,7 +893,7 @@
 
 .home-team-data-item {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--text-muted);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
   line-height: 1.6;
 }

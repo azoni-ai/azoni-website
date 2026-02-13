@@ -45,15 +45,13 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
       <div className="home-team-grid">
         {AGENT_ORDER.map(key => {
           const a = AGENTS[key];
-          const tryable = key === 'fitness' || key === 'gaming' || key === 'chat';
-          const comingSoon = key === 'oldways';
+          const tryable = key === 'fitness' || key === 'gaming' || key === 'chat' || key === 'oldways';
           return (
-            <div key={key} className={`home-team-card ${selected === key ? 'active' : ''} ${comingSoon ? 'coming-soon' : ''}`}
+            <div key={key} className={`home-team-card ${selected === key ? 'active' : ''}`}
               onClick={() => setSelected(selected === key ? null : key)}
               style={selected === key ? { borderColor: `${a.color}50` } : {}}>
-              <div className="ht-dot" style={{ background: comingSoon ? '#fbbf24' : a.color }}/>
+              <div className="ht-dot" style={{ background: a.color }}/>
               {tryable && <span className="ht-try-badge" style={{ color: a.color, borderColor: `${a.color}50` }}>{key === 'gaming' ? 'Play' : 'Try it'}</span>}
-              {comingSoon && <span className="ht-try-badge" style={{ color: '#fbbf24', borderColor: '#fbbf2450' }}>Soon</span>}
               <div className="ht-avatar">{avatars[key](48)}</div>
               <div className="ht-name">{a.name}</div>
               <div className="ht-role" style={{ color: a.color }}>{a.role}</div>
@@ -496,8 +494,8 @@ const Home = () => {
 
         <CollapsibleSection
           title="The Agents"
-          subtitle="Nine autonomous systems running this portfolio — click any agent to see what it does and where it lives"
-          badge="9 agents"
+          subtitle="Seven autonomous systems running this portfolio — click any agent to see what it does and where it lives"
+          badge="7 agents"
           badgeType="count"
           stats={appStats ? [
             { value: appStats.benchpressonly?.users || '–', label: 'lifters' },
