@@ -810,7 +810,7 @@ exports.handler = async (event, context) => {
       'Starting orchestration cycle — need to understand current state before making decisions'
     );
 
-    const [activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment] = await Promise.all([
+    const [activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors] = await Promise.all([
       getRecentActivity(24),
       getRecentBlogPosts(48),
       getTodayCommitCount(),

@@ -57,7 +57,7 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields: source, error' }) };
     }
 
-    const validSources = ['benchpressonly', 'spell-brigade', 'azoni-ai', 'rowcrew', 'moltbook-agent', 'embedroute', 'daily-blog', 'orchestrator', 'chat', 'rag-admin'];
+    const validSources = ['benchpressonly', 'spell-brigade', 'azoni-ai', 'rowcrew', 'moltbook-agent', 'embedroute', 'daily-blog', 'orchestrator', 'chat', 'rag-admin', 'old-ways-today'];
     const validSeverities = ['low', 'medium', 'high', 'critical'];
 
     const doc = {
