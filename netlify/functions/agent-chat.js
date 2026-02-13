@@ -150,6 +150,63 @@ exports.handler = async (event) => {
 
     const persona = AGENT_PERSONAS[agent];
 
+    // ─── Old Ways Today: proxy to OWT backend ───
+    if (agent === 'oldways') {
+      try {
+        // OWT backend expects { messages: [{role, content}, ...] }
+        const owtMessages = [
+          ...history.slice(-6).map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: message }
+        ];
+
+        const owtResponse = await fetch('https://oldwaystoday-backend.onrender.com/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: owtMessages,
+            source: 'azoni-portfolio',
+          })
+        });
+
+        const owtData = await owtResponse.json();
+        // OWT returns { message, usage }
+        const reply = owtData.message;
+
+        if (reply) {
+          // Log to Firestore
+          if (initFirebase()) {
+            db.collection('agentChatLogs').add({
+              agent: 'oldways',
+              agentName: 'Old Ways Today',
+              userMessage: message,
+              reply,
+              usage: owtData.usage || {},
+              model: owtData.usage?.model || 'owt-backend',
+              proxied: true,
+              timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            }).catch(err => console.error('Log error:', err));
+          }
+
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              reply,
+              agent: 'oldways',
+              name: 'Old Ways Today',
+              usage: owtData.usage || {},
+              proxied: true,
+            })
+          };
+        }
+        // If no reply from OWT, fall through to local persona
+        console.warn('[agent-chat] OWT backend returned no reply, falling back to local persona');
+      } catch (owtErr) {
+        console.error('[agent-chat] OWT backend proxy failed:', owtErr.message);
+        // Fall through to local persona as fallback
+      }
+    }
+
     // Build conversation with history (max last 6 messages)
     const recentHistory = history.slice(-6).map(m => ({
       role: m.role,
