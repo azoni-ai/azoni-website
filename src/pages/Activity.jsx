@@ -193,14 +193,13 @@ const ACTIVITY_LABELS = {
 
 // Source filter config with brand colors
 const SOURCE_FILTERS = [
-  { value: 'all', label: 'All Agents', color: '#888' },
-  { value: 'azoni-ai', label: 'Azoni AI', color: '#3b82f6' },
-  { value: 'daily-blog', label: 'Blog Writer', color: '#f59e0b' },
-  { value: 'moltbook-agent', label: 'Social Agent', color: '#ff6b35' },
-  { value: 'benchpressonly', label: 'BenchPressOnly', color: '#4ade80' },
-  { value: 'rowcrew', label: 'RowCrew', color: '#06b6d4' },
-  { value: 'spell-brigade', label: 'Spell Brigade', color: '#c084fc' },
-  { value: 'old-ways-today', label: 'Old Ways Today', color: '#fb923c' },
+  { value: 'all', label: 'All Agents', color: '#888', sources: null },
+  { value: 'azoni-ai', label: 'Azoni AI', color: '#3b82f6', sources: ['azoni-ai'] },
+  { value: 'daily-blog', label: 'Blog Writer', color: '#f59e0b', sources: ['daily-blog'] },
+  { value: 'moltbook-agent', label: 'Social Agent', color: '#ff6b35', sources: ['moltbook-agent'] },
+  { value: 'fitness', label: 'Fitness', color: '#4ade80', sources: ['benchpressonly', 'rowcrew'] },
+  { value: 'spell-brigade', label: 'Spell Brigade', color: '#c084fc', sources: ['spell-brigade'] },
+  { value: 'old-ways-today', label: 'Old Ways Today', color: '#d97706', sources: ['old-ways-today'] },
 ];
 
 const Activity = () => {
@@ -218,8 +217,13 @@ const Activity = () => {
     let constraints = [orderBy('timestamp', 'desc'), limit(100)];
     
     // Source filter
-    if (sourceFilter !== 'all') {
-      constraints = [where('source', '==', sourceFilter), ...constraints];
+    const filterDef = SOURCE_FILTERS.find(f => f.value === sourceFilter);
+    if (filterDef && filterDef.sources) {
+      if (filterDef.sources.length === 1) {
+        constraints = [where('source', '==', filterDef.sources[0]), ...constraints];
+      } else {
+        constraints = [where('source', 'in', filterDef.sources), ...constraints];
+      }
     }
     
     let unsubscribe;

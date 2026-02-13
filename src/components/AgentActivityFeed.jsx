@@ -167,12 +167,12 @@ const ACTIVITY_COLORS = {
 };
 
 const SOURCE_FILTERS = [
-  { key: 'azoni-ai', label: 'Azoni AI' },
-  { key: 'all', label: 'All Agents' },
-  { key: 'daily-blog', label: 'Blog Writer' },
-  { key: 'benchpressonly', label: 'Fitness' },
-  { key: 'spell-brigade', label: 'Gaming' },
-  { key: 'rowcrew', label: 'Rowing' },
+  { key: 'azoni-ai', label: 'Azoni AI', sources: ['azoni-ai'] },
+  { key: 'all', label: 'All Agents', sources: null },
+  { key: 'daily-blog', label: 'Blog Writer', sources: ['daily-blog'] },
+  { key: 'fitness', label: 'Fitness', sources: ['benchpressonly', 'rowcrew'] },
+  { key: 'spell-brigade', label: 'Gaming', sources: ['spell-brigade'] },
+  { key: 'old-ways-today', label: 'Old Ways Today', sources: ['old-ways-today'] },
 ];
 
 const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false }) => {
@@ -187,9 +187,17 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
     const activityRef = collection(db, 'agent_activity');
     let unsubscribe;
     try {
-      const constraints = sourceFilter === 'all'
-        ? [orderBy('timestamp', 'desc'), limit(maxItems)]
-        : [where('source', '==', sourceFilter), orderBy('timestamp', 'desc'), limit(maxItems)];
+      const filterDef = SOURCE_FILTERS.find(f => f.key === sourceFilter);
+      let constraints;
+      if (!filterDef || !filterDef.sources) {
+        // 'all' — no source filter
+        constraints = [orderBy('timestamp', 'desc'), limit(maxItems)];
+      } else if (filterDef.sources.length === 1) {
+        constraints = [where('source', '==', filterDef.sources[0]), orderBy('timestamp', 'desc'), limit(maxItems)];
+      } else {
+        // Multiple sources (e.g. fitness = benchpressonly + rowcrew)
+        constraints = [where('source', 'in', filterDef.sources), orderBy('timestamp', 'desc'), limit(maxItems)];
+      }
       const q = query(activityRef, ...constraints);
 
       unsubscribe = onSnapshot(q, (snapshot) => {

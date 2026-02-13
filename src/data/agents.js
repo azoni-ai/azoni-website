@@ -271,7 +271,7 @@ const AGENTS = {
   },
 };
 
-const AGENT_ORDER = ['orchestrator', 'chat', 'rag', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'errors'];
+const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'errors'];
 
 /* ─── Homepage-specific data (status, links, short descriptions) ─── */
 const AGENT_HOME_DATA = {
@@ -281,14 +281,9 @@ const AGENT_HOME_DATA = {
     links: [{ label: 'Activity →', url: '/activity' }],
   },
   chat: {
-    shortDesc: "RAG chatbot with intent detection across 12+ types. Self-improves by generating new knowledge when stumped.",
+    shortDesc: "RAG chatbot with intent detection across 12+ types. Backed by a Firestore knowledge base it shares with the blog agent and orchestrator — and self-improves by generating new chunks when stumped.",
     status: 'Active', statusType: 'live',
     links: [{ label: 'Try it →', url: '/chat' }],
-  },
-  rag: {
-    shortDesc: "Firestore-backed knowledge base with 20+ chunks. Chat reads, Blog writes, Orchestrator maintains.",
-    status: 'Active', statusType: 'live',
-    links: [],
   },
   blog: {
     shortDesc: "Reads yesterday's GitHub commits via GraphQL and writes a narrative technical blog post with auto-generated SVG covers.",
