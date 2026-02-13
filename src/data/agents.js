@@ -142,11 +142,11 @@ const AGENTS = {
     borderColor: "#a78bfa30",
     quote: "Runs every 3 hours. Gathers state from all systems, picks 1-3 actions, executes them, logs everything.",
     whatItIs: "A Netlify scheduled function that runs every 3 hours. Gathers state from 11 sources across the entire ecosystem, feeds it all into GPT-4o-mini as a single massive prompt, and executes whatever actions the LLM decides on. Sub-actions like knowledge generation and self-assessments use GPT-4o for higher quality.",
-    whyUnique: "Most portfolio sites are static. This one has a brain that wakes up every 3 hours, reviews everything that happened, and makes autonomous decisions — writing blog posts, filling knowledge gaps, reorganizing the RAG database, reviewing error logs, and running self-assessments.",
+    whyUnique: "Most portfolio sites are static. This one has a brain that wakes up every 3 hours, reviews everything that happened, and makes autonomous decisions — writing blog posts, filling knowledge gaps, reorganizing the RAG database, and running self-assessments. It also owns the error pipeline: all 5 apps report errors to a centralized Firestore collection, and the orchestrator reviews patterns, summarizes severity, and marks issues resolved each cycle.",
     tech: ["Netlify Cron", "GPT-4o-mini (decisions)", "GPT-4o (sub-actions)", "Firestore", "OpenRouter"],
-    data: ["agent_activity — reads recent events", "blog_posts — checks for gaps", "error_logs — reviews and resolves", "rag_knowledge_base — fills gaps, reorganizes", "GitHub API — commit counts"],
-    cycle: ["Cron fires every 3 hours", "Parallel fetch: activity, blogs, commits, errors, RAG health, chat stats", "Build state prompt (~2000 tokens)", "Send to GPT-4o-mini: 'Given this state, pick 1-3 actions'", "Parse JSON response, execute each action", "Log all steps to agent_activity", "Sleep until next cycle"],
-    code: `// State sent to GPT-4o every cycle:\n{\n  activity: [...last24h],\n  blogs: [...last48h],\n  github: { totalCommits: 12 },\n  knowledgeGaps: ["AI philosophy", ...],\n  ragHealth: { total: 24, autoGen: 8 },\n  recentErrors: { total: 3, bySeverity: {...} }\n}`,
+    data: ["agent_activity — reads recent events", "blog_posts — checks for gaps", "error_logs — reviews, summarizes, and resolves", "rag_knowledge_base — fills gaps, reorganizes", "GitHub API — commit counts"],
+    cycle: ["Cron fires every 3 hours", "Parallel fetch: activity, blogs, commits, errors, RAG health, chat stats", "Build state prompt (~2000 tokens)", "Send to GPT-4o-mini: 'Given this state, pick 1-3 actions'", "Parse JSON response, execute each action", "If review_errors: summarize patterns, mark resolved", "Log all steps to agent_activity", "Sleep until next cycle"],
+    code: `// State sent to GPT-4o-mini every cycle:\n{\n  activity: [...last24h],\n  blogs: [...last48h],\n  github: { totalCommits: 12 },\n  knowledgeGaps: ["AI philosophy", ...],\n  ragHealth: { total: 24, autoGen: 8 },\n  recentErrors: {\n    total: 3, unresolved: 2,\n    bySeverity: { medium: 2, high: 1 },\n    bySource: { "spell-brigade": 2 }\n  }\n}`,
     starters: ["What are you doing right now?", "How do you decide what to do?", "Who's your favorite agent?", "What's the hardest part of your job?"],
   },
   chat: {
@@ -271,12 +271,12 @@ const AGENTS = {
   },
 };
 
-const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'errors'];
+const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways'];
 
 /* ─── Homepage-specific data (status, links, short descriptions) ─── */
 const AGENT_HOME_DATA = {
   orchestrator: {
-    shortDesc: "Runs every 3 hours. Gathers state from 10+ sources, decides what needs doing, and executes autonomously.",
+    shortDesc: "Runs every 3 hours. Gathers state from 11 sources, decides what needs doing, and executes autonomously. Also owns the error pipeline — all apps report errors here, and it reviews patterns each cycle.",
     status: 'Active', statusType: 'live',
     links: [{ label: 'Activity →', url: '/activity' }],
   },
@@ -307,11 +307,6 @@ const AGENT_HOME_DATA = {
     shortDesc: "Autonomous social presence on Moltbook. The orchestrator decides when and what to post based on activity gaps.",
     status: 'Autonomous', statusType: 'live',
     links: [{ label: 'View Profile →', url: 'https://www.moltbook.com/u/Azoni-AI', external: true }],
-  },
-  errors: {
-    shortDesc: "Centralized error logging across 5 applications. The orchestrator reviews patterns and resolves issues each cycle.",
-    status: 'Watching', statusType: 'live',
-    links: [{ label: 'Activity →', url: '/activity' }],
   },
   oldways: {
     shortDesc: "Standalone product: AI-powered platform helping families find non-toxic, traditional alternatives. Same RAG + blog architecture as azoni.ai.",
