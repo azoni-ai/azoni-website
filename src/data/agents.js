@@ -117,6 +117,19 @@ const avatars = {
       <circle cx="41" cy="25.5" r="1.5" fill="white"/><circle cx="61" cy="25.5" r="1.5" fill="white"/>
     </svg>
   ),
+  oldways: (s) => (
+    <svg viewBox="0 0 100 100" width={s} height={s}>
+      <circle cx="50" cy="50" r="38" fill="#fef3c7" stroke="#d97706" strokeWidth="2.5"/>
+      <path d="M50 20 C55 28 60 35 50 50 C40 35 45 28 50 20Z" fill="#16a34a" stroke="#15803d" strokeWidth="1.5"/>
+      <path d="M50 50 C50 60 45 70 40 78" fill="none" stroke="#92400e" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M50 50 C50 58 55 68 58 75" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M35 60 Q42 55 50 58 Q58 55 65 60" fill="#bbf7d0" stroke="#16a34a" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M32 68 Q41 63 50 66 Q59 63 68 68" fill="#dcfce7" stroke="#16a34a" strokeWidth="1" strokeLinejoin="round" opacity="0.7"/>
+      <circle cx="40" cy="42" r="3" fill="#78350f"/><circle cx="60" cy="42" r="3" fill="#78350f"/>
+      <circle cx="41" cy="41.5" r="1.2" fill="white"/><circle cx="61" cy="41.5" r="1.2" fill="white"/>
+      <path d="M45 47 Q50 50 55 47" fill="none" stroke="#78350f" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
 };
 
 /* ─── Agent Data ─── */
@@ -241,9 +254,24 @@ const AGENTS = {
     code: `// Any app reports errors:\nfetch('/log-error', {\n  method: 'POST',\n  body: JSON.stringify({\n    source: 'spell-brigade',\n    error: 'Socket disconnect in combat',\n    severity: 'medium',\n    context: { function: 'handleCombat' }\n  })\n})`,
     starters: ["Any errors right now?", "What's the worst error you've seen?", "Are you always this paranoid?", "How do you feel about bugs?"],
   },
+  oldways: {
+    name: "Old Ways Today",
+    role: "Product Agent",
+    color: "#d97706",
+    bg: "#d9770615",
+    borderColor: "#d9770630",
+    quote: "AI-powered platform helping families discover non-toxic, traditional product alternatives. RAG chatbot + auto-generated blog content.",
+    whatItIs: "A standalone product site at oldwaystoday.com. AI-powered RAG chatbot answers questions about traditional, non-toxic alternatives to modern products. Automated blog pipeline generates research-backed articles on ingredients, remedies, and lifestyle practices.",
+    whyUnique: "First full product built on top of the same agent architecture powering azoni.ai. Reuses the RAG pattern, blog generation pipeline, and orchestrator integration — proving the system is portable beyond a portfolio site.",
+    tech: ["React SPA", "Netlify Functions", "Firestore RAG", "OpenRouter", "Auto-blog pipeline", "EmbedRoute"],
+    data: ["rag_knowledge_base — product/ingredient chunks", "blogPosts — auto-generated articles", "chatLogs — user conversations", "agent_activity — blog + RAG events"],
+    cycle: ["User asks about a product or ingredient", "Intent detection classifies the query", "RAG retrieves relevant knowledge chunks", "If no chunk exists, real-time generation fills the gap", "Auto-blog pipeline publishes articles on schedule", "Orchestrator monitors health alongside other agents"],
+    code: `// Same RAG pattern as azoni.ai:\nconst chunks = await getKnowledgeChunks();\nconst scored = scoreChunks(chunks, query);\nconst context = scored.slice(0, 5);\n// Augment prompt with retrieved knowledge\nconst response = await callLLM({\n  system: buildPrompt(context),\n  messages: history\n});`,
+    starters: ["What does Old Ways Today do?", "How is it connected to the agent system?", "What kind of products do you cover?", "When is it launching?"],
+  },
 };
 
-const AGENT_ORDER = ['orchestrator', 'chat', 'rag', 'blog', 'fitness', 'gaming', 'social', 'errors'];
+const AGENT_ORDER = ['orchestrator', 'chat', 'rag', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'errors'];
 
 /* ─── Homepage-specific data (status, links, short descriptions) ─── */
 const AGENT_HOME_DATA = {
@@ -289,6 +317,11 @@ const AGENT_HOME_DATA = {
     shortDesc: "Centralized error logging across 5 applications. The orchestrator reviews patterns and resolves issues each cycle.",
     status: 'Watching', statusType: 'live',
     links: [{ label: 'Activity →', url: '/activity' }],
+  },
+  oldways: {
+    shortDesc: "Standalone product: AI-powered platform helping families find non-toxic, traditional alternatives. Same RAG + blog architecture as azoni.ai.",
+    status: 'Coming Soon', statusType: 'scheduled',
+    links: [{ label: 'Visit Site →', url: 'https://oldwaystoday.com', external: true }],
   },
 };
 
