@@ -11021,6 +11021,10 @@ export default function SpellBrigade() {
           }
         }
 
+        // Body type (used for aura, shadow, and body rendering)
+        const bodyType = player.customBodyStyle || 
+          (isBrute ? 'hulk' : isSwordsman ? 'warrior' : isShadowArcher ? 'archer' : 'wizard');
+
         // Custom AI Wizard special aura - themed glow + orbiting sparkles
         if ((bodyType === 'elemental' || bodyType === 'creature' || isCustomWizard) && !isVoidlord && !isShadowArcher && !isBrute && !isSwordsman && !skin?.aura) {
           const cwColor = player.customColor || classColor;
@@ -11070,8 +11074,6 @@ export default function SpellBrigade() {
 
         // Body (Uses bodyStyle from class config for all classes)
         const cwColor = player.customColor || classColor;
-        const bodyType = player.customBodyStyle || 
-          (isBrute ? 'hulk' : isSwordsman ? 'warrior' : isShadowArcher ? 'archer' : 'wizard');
         
         ctx.fillStyle = isVoidlord ? '#1a0a2e' : isShadowArcher ? '#0f172a' : isBrute ? '#d4a574' : 
           isSwordsman ? '#64748b' : cwColor || classColor;
