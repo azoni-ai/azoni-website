@@ -2275,7 +2275,7 @@ export default function SpellBrigade() {
 
     // Class passive proc notifications
     socket.on('passiveProc', (data) => {
-      const me = meRef.current;
+      const me = playerDataRef.current;
       if (me) {
         effectsRef.current.push({
           type: 'castText',
@@ -6317,7 +6317,7 @@ export default function SpellBrigade() {
           ctx.fillText(s.emoji, sx, sy + bob);
           
           // Name (only when close)
-          const distToPlayer = Math.sqrt((s.x - (meRef.current?.x || 0)) ** 2 + (s.y - (meRef.current?.y || 0)) ** 2);
+          const distToPlayer = Math.sqrt((s.x - (playerDataRef.current?.x || 0)) ** 2 + (s.y - (playerDataRef.current?.y || 0)) ** 2);
           if (distToPlayer < 200) {
             ctx.font = 'bold 10px Arial';
             ctx.fillStyle = s.color;
