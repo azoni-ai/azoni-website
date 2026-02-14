@@ -156,33 +156,7 @@ export default function SpellBrigade() {
   const [bossDeathBanner, setBossDeathBanner] = useState(null);
   
   // Quest log
-  const [questLog, setQuestLog] = useState({
-    allBosses: { 
-      id: 'allBosses',
-      name: 'Champion of the Realm', 
-      description: 'Defeat all 6 zone bosses to prove your worth.',
-      active: true, 
-      progress: {}, 
-      completed: false,
-      reward: { xp: 5000, title: 'Champion' },
-      bosses: ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'],
-    },
-    dragonSlayer: { 
-      id: 'dragonSlayer',
-      name: 'Dragon Slayer', 
-      description: 'Enter the Dragon\'s Gauntlet and slay the Infernal Dragon.',
-      active: true, 
-      completed: false,
-      reward: { xp: 10000, title: 'Dragon Slayer' },
-    },
-    // Zone-specific quests (always active - defeat zone bosses for rewards)
-    meadow_quest: { id: 'meadow_quest', name: 'Cleanse the Meadow', description: 'Defeat the Blossom Behemoth corrupting the meadow flowers.', zone: 'meadow', bossName: 'Blossom Behemoth', active: true, completed: false, reward: { xp: 500 } },
-    forest_quest: { id: 'forest_quest', name: 'Fell the Ancient Treant', description: 'Track and destroy the Ancient Treant terrorizing the forest.', zone: 'forest', bossName: 'Ancient Treant', active: true, completed: false, reward: { xp: 1000 } },
-    volcanic_quest: { id: 'volcanic_quest', name: 'Quench the Magma Titan', description: 'Defeat the Magma Titan in the volcanic wastes.', zone: 'volcanic', bossName: 'Magma Titan', active: true, completed: false, reward: { xp: 2000 } },
-    frozen_quest: { id: 'frozen_quest', name: 'Slay the Frost Wyrm', description: 'Hunt down the Frost Wyrm in the frozen expanse.', zone: 'frozen', bossName: 'Frost Wyrm', active: true, completed: false, reward: { xp: 3000 } },
-    crystal_quest: { id: 'crystal_quest', name: 'Shatter the Crystal Golem', description: 'Destroy the Crystal Golem deep in the crystal caves.', zone: 'crystal_caves', bossName: 'Crystal Golem', active: true, completed: false, reward: { xp: 2500 } },
-    abyss_quest: { id: 'abyss_quest', name: 'Banish the Void Overlord', description: 'Confront and banish the Void Overlord from the abyss.', zone: 'abyss', bossName: 'Void Overlord', active: true, completed: false, reward: { xp: 4000 } },
-  });
+  const [questLog, setQuestLog] = useState({});
   const [showQuestLog, setShowQuestLog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [storyIntro, setStoryIntro] = useState(null); // { npcName, npcColor, lines, isNew }
@@ -844,10 +818,6 @@ export default function SpellBrigade() {
                 if (data.user?.settings) {
                   setSettings(prev => ({ ...prev, ...data.user.settings }));
                 }
-                // Restore quest progress
-                if (data.user?.quests) {
-                  setQuestLog(prev => ({ ...prev, ...data.user.quests }));
-                }
                 // Check for saved character
                 if (data.user?.characters?.length > 0) {
                   setCharacters(data.user.characters);
@@ -1009,37 +979,6 @@ export default function SpellBrigade() {
       // Reset input state on join to prevent stuck movement
       inputRef.current = { up: false, down: false, left: false, right: false };
       socket.emit('input', inputRef.current);
-      
-      // Sync quest state from server
-      if (data.player.bossKills || data.player.questActive || data.player.questComplete) {
-        const bossProgress = {};
-        if (data.player.bossKills) {
-          for (const zone of Object.keys(data.player.bossKills)) {
-            bossProgress[zone] = true;
-          }
-        }
-        setQuestLog(prev => {
-          const updated = { ...prev };
-          updated.allBosses = {
-            ...prev.allBosses,
-            active: data.player.questActive || data.player.questComplete || Object.keys(bossProgress).length > 0,
-            progress: bossProgress,
-            completed: data.player.questComplete || false,
-          };
-          // Restore zone quest completion from saved bossKills
-          const zoneQuestMap = {
-            meadow: 'meadow_quest', forest: 'forest_quest', volcanic: 'volcanic_quest',
-            frozen: 'frozen_quest', crystal_caves: 'crystal_quest', abyss: 'abyss_quest',
-          };
-          for (const zone of Object.keys(bossProgress)) {
-            const qid = zoneQuestMap[zone];
-            if (qid && updated[qid]) {
-              updated[qid] = { ...updated[qid], active: true, completed: true };
-            }
-          }
-          return updated;
-        });
-      }
       
       // Link character to account if logged in
       const savedSession = localStorage.getItem('spellBrigadeSession');
@@ -1682,28 +1621,6 @@ export default function SpellBrigade() {
       // Auto-hide after 5 seconds
       setTimeout(() => setBossDeathBanner(null), 5000);
       
-      // Update quest progress
-      if (data.zone && data.bossType) {
-        setQuestLog(prev => {
-          const updated = { ...prev };
-          if (updated.allBosses && !updated.allBosses.completed) {
-            updated.allBosses = {
-              ...updated.allBosses,
-              progress: {
-                ...updated.allBosses.progress,
-                [data.zone]: true,
-              },
-            };
-            // Check if all bosses defeated
-            const defeatedCount = Object.keys(updated.allBosses.progress).length;
-            if (defeatedCount >= 6) {
-              updated.allBosses.completed = true;
-            }
-          }
-          return updated;
-        });
-      }
-      
       // Epic boss death animation
       if (data.x !== undefined && data.y !== undefined) {
         // Main explosion
@@ -1736,10 +1653,6 @@ export default function SpellBrigade() {
     socket.on('questComplete', (data) => {
       console.log(`🏆 Quest complete: ${data.quest}! Reward: ${data.reward}`);
       setQuestComplete(data);
-      setQuestLog(prev => ({
-        ...prev,
-        allBosses: { ...prev.allBosses, completed: true },
-      }));
       playSound('levelUp');
       setTimeout(() => playSound('levelUp'), 200);
       setTimeout(() => playSound('levelUp'), 400);
@@ -1747,84 +1660,16 @@ export default function SpellBrigade() {
       setTimeout(() => setQuestComplete(null), 8000);
     });
 
-    socket.on('questAccepted', (data) => {
-      console.log(`📜 Quest accepted: ${data.name}`);
-      const bossProgress = {};
-      if (data.bossKills) {
-        for (const zone of Object.keys(data.bossKills)) {
-          bossProgress[zone] = true;
-        }
-      }
-      setQuestLog(prev => {
-        const updated = { ...prev };
-        // Activate main quest
-        updated.allBosses = { ...prev.allBosses, active: true, progress: bossProgress };
-        // Also activate all zone quests
-        if (data.activateZoneQuests) {
-          const zoneQuests = ['meadow_quest', 'forest_quest', 'volcanic_quest', 'frozen_quest', 'crystal_quest', 'abyss_quest'];
-          for (const qid of zoneQuests) {
-            if (updated[qid]) {
-              updated[qid] = { ...updated[qid], active: true, completed: bossProgress[updated[qid].zone] || false };
-            }
-          }
-        }
-        // Activate dragon slayer quest too
-        updated.dragonSlayer = { ...prev.dragonSlayer, active: true };
-        return updated;
-      });
-    });
-
     socket.on('questProgress', (data) => {
-      console.log(`📜 Quest progress: boss killed in ${data.zone}`);
-      setQuestLog(prev => {
-        const updated = { ...prev };
-        // Update main Champion quest
-        if (updated.allBosses && !updated.allBosses.completed) {
-          const newProgress = { ...updated.allBosses.progress };
-          if (data.bossKills) {
-            for (const zone of Object.keys(data.bossKills)) {
-              newProgress[zone] = true;
-            }
-          }
-          updated.allBosses = { ...updated.allBosses, progress: newProgress };
-          if (Object.keys(newProgress).length >= 6) {
-            updated.allBosses.completed = true;
-          }
-        }
-        // Complete zone-specific quests
-        if (data.zone) {
-          const zoneQuestMap = {
-            meadow: 'meadow_quest',
-            forest: 'forest_quest', 
-            volcanic: 'volcanic_quest',
-            frozen: 'frozen_quest',
-            crystal_caves: 'crystal_quest',
-            abyss: 'abyss_quest',
-          };
-          const questId = zoneQuestMap[data.zone];
-          if (questId && updated[questId] && updated[questId].active && !updated[questId].completed) {
-            updated[questId] = { ...updated[questId], completed: true };
-          }
-        }
-        return updated;
-      });
+      // Boss zone quest progress — show notification
+      if (data.zone) {
+        setQuestNotification({ text: `Boss defeated in ${data.zone}!`, color: '#22c55e' });
+        setTimeout(() => setQuestNotification(null), 3000);
+      }
     });
 
     socket.on('zoneQuestReward', (data) => {
-      console.log(`🎉 Zone quest reward: +${data.xp} XP for defeating ${data.bossName}`);
-      // Update quest log - mark this zone quest as completed
-      const zoneQuestMap = {
-        meadow: 'meadow_quest', forest: 'forest_quest', volcanic: 'volcanic_quest',
-        frozen: 'frozen_quest', crystal_caves: 'crystal_quest', abyss: 'abyss_quest',
-      };
-      const qid = zoneQuestMap[data.zone];
-      if (qid) {
-        setQuestLog(prev => ({
-          ...prev,
-          [qid]: { ...prev[qid], active: true, completed: true },
-        }));
-      }
-      // Show floating notification
+      // Show floating notification for zone boss reward
       setQuestComplete({
         quest: data.zone + '_quest',
         title: `${data.bossName} Defeated!`,
@@ -2623,20 +2468,22 @@ export default function SpellBrigade() {
               const dy = me.y - qnpc.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
               if (dist < 100) {
-                // Open dialogue client-side with quest acceptance
-                const zoneQuestId = qnpc.targetZone.replace('crystal_caves', 'crystal') + '_quest';
+                // Open dialogue client-side with zone info
+                const bossQId = 'boss_' + (qnpc.targetZone === 'crystal_caves' ? 'crystal' : qnpc.targetZone);
+                const hasBossQuest = activeNpcQuestsRef.current?.some(q => q.id === bossQId);
+                const doneBossQuest = completedNpcQuestsRef.current?.includes(bossQId);
+                const statusLine = doneBossQuest ? `The ${qnpc.targetBoss} has been vanquished!`
+                  : hasBossQuest ? `You're hunting the ${qnpc.targetBoss}. Good luck!`
+                  : `Speak to Grimjaw at the Sanctuary to take on this hunt.`;
                 setNpcDialogue({
                   npcType: 'quest_giver',
                   npcName: qnpc.name,
                   emoji: qnpc.icon,
                   dialogue: qnpc.lore,
-                  followUp: [qnpc.questPrompt, `Recommended: Level ${qnpc.recommendedLevel}+`, `Target: ${qnpc.targetBoss} in ${qnpc.targetZone === 'crystal_caves' ? 'Crystal Caves' : qnpc.targetZone}`],
+                  followUp: [statusLine, `Recommended: Level ${qnpc.recommendedLevel}+`],
                   questGiverColor: qnpc.color,
                   hasChoice: true,
-                  prompt: qnpc.questPrompt,
-                  questId: zoneQuestId,
-                  targetZone: qnpc.targetZone,
-                  targetBoss: qnpc.targetBoss,
+                  prompt: statusLine,
                 });
                 return;
               }
@@ -3084,6 +2931,8 @@ export default function SpellBrigade() {
     const lerp = (a, b, t) => a + (b - a) * t;
 
     const render = () => {
+      // Helper: ensure hex color is #rrggbb (strip alpha if present)
+      const hexBase = (c) => c && c.length > 7 ? c.slice(0, 7) : (c || '#ffffff');
       const { world, players, enemies, projectiles, xpOrbs, collectibles, particles, damageNumbers } = gameStateRef.current;
       
       const me = players?.find(p => p.id === playerIdRef.current);
@@ -5454,23 +5303,23 @@ export default function SpellBrigade() {
           ctx.restore();
         }
         
-        // Quest indicator - state-aware
-        const zoneQuestId = qnpc.targetZone.replace('crystal_caves', 'crystal') + '_quest';
-        const bossQuest = questLogRef.current?.[zoneQuestId];
-        const questCompleted = bossQuest?.completed;
-        const questActive = bossQuest?.active;
+        // Quest indicator - state-aware (check active NPC quests for boss quests in this zone)
+        const zoneId = qnpc.targetZone;
+        const bossQuestId = 'boss_' + (zoneId === 'crystal_caves' ? 'crystal' : zoneId);
+        const bossQuestActive = activeNpcQuestsRef.current?.some(q => q.id === bossQuestId);
+        const bossQuestDone = completedNpcQuestsRef.current?.includes(bossQuestId);
         
         const exBob = Math.sin(qtime * 4) * 3;
         ctx.font = 'bold 18px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
         
-        if (questCompleted) {
+        if (bossQuestDone) {
           // Green check - quest done
           ctx.fillStyle = '#4ade80';
           ctx.shadowColor = 'rgba(74,222,128,0.5)'; ctx.shadowBlur = 8;
           ctx.fillText('✓', qx, qy - 36 + bob + exBob);
-        } else if (questActive) {
+        } else if (bossQuestActive) {
           // Gray ? - quest in progress
           ctx.fillStyle = '#888';
           ctx.shadowColor = 'rgba(136,136,136,0.3)'; ctx.shadowBlur = 4;
@@ -11032,8 +10881,8 @@ export default function SpellBrigade() {
           
           // Themed aura glow
           const cwGrad = ctx.createRadialGradient(px, py, 0, px, py, pulseSize);
-          cwGrad.addColorStop(0, cwColor + '35');
-          cwGrad.addColorStop(0.5, cwColor + '18');
+          cwGrad.addColorStop(0, hexBase(cwColor) + '35');
+          cwGrad.addColorStop(0.5, hexBase(cwColor) + '18');
           cwGrad.addColorStop(1, 'transparent');
           ctx.beginPath();
           ctx.arc(px, py, pulseSize, 0, Math.PI * 2);
@@ -11068,7 +10917,7 @@ export default function SpellBrigade() {
         ctx.beginPath();
         ctx.ellipse(px, py + 12, (bodyType === 'hulk' || bodyType === 'warrior' || bodyType === 'creature') ? 20 : 16, (bodyType === 'hulk' || bodyType === 'warrior') ? 10 : 8, 0, 0, Math.PI * 2);
         const shadowColor = isVoidlord ? 'rgba(255,0,255,0.4)' : isShadowArcher ? 'rgba(220,38,38,0.35)' : isBrute ? 'rgba(180,83,9,0.4)' : 
-          (player.customColor) ? (player.customColor + '40') : 'rgba(0,0,0,0.3)';
+          (player.customColor) ? (hexBase(player.customColor) + '40') : 'rgba(0,0,0,0.3)';
         ctx.fillStyle = shadowColor;
         ctx.fill();
 
@@ -11089,7 +10938,7 @@ export default function SpellBrigade() {
           ctx.closePath();
           ctx.fill();
           // Chest definition
-          ctx.strokeStyle = isBrute ? '#c49560' : cwColor + '80';
+          ctx.strokeStyle = isBrute ? '#c49560' : hexBase(cwColor) + '80';
           ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(px, py - 12 - bob); ctx.lineTo(px, py + 8); ctx.stroke();
           ctx.beginPath(); ctx.arc(px - 6, py - 6 - bob, 5, 0, Math.PI * 2); ctx.stroke();
@@ -11143,7 +10992,7 @@ export default function SpellBrigade() {
           ctx.closePath();
           ctx.fill();
           // Armor highlights
-          ctx.strokeStyle = isSwordsman ? '#94a3b8' : cwColor + 'aa';
+          ctx.strokeStyle = isSwordsman ? '#94a3b8' : hexBase(cwColor) + 'aa';
           ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(px - 12, py - 6 - bob); ctx.lineTo(px + 12, py - 6 - bob); ctx.stroke();
           ctx.beginPath(); ctx.moveTo(px - 10, py + 2); ctx.lineTo(px + 10, py + 2); ctx.stroke();
@@ -11213,7 +11062,7 @@ export default function SpellBrigade() {
           ctx.lineTo(px + 13 - wave2, py + 12);
           ctx.quadraticCurveTo(px + 16 - wave1, py - 2, px, py - 14 - bob);
           ctx.closePath();
-          ctx.fillStyle = cwColor + 'cc';
+          ctx.fillStyle = hexBase(cwColor) + 'cc';
           ctx.fill();
           // Inner glow core
           ctx.beginPath();
@@ -11276,7 +11125,7 @@ export default function SpellBrigade() {
         ctx.arc(px, py - 18 - bob, headSize, 0, Math.PI * 2);
         ctx.fillStyle = isVoidlord ? '#2d1b4e' : isShadowArcher ? '#1e293b' : isBrute ? '#d4a574' : 
           isSwordsman ? '#fcd5ce' : (bodyType === 'beast' || bodyType === 'creature') ? cwColor : 
-          bodyType === 'elemental' ? (cwColor + 'dd') : '#fcd5ce';
+          bodyType === 'elemental' ? (hexBase(cwColor) + 'dd') : '#fcd5ce';
         ctx.fill();
 
         // Hat/Hood/Hair/Headgear
@@ -11604,12 +11453,12 @@ export default function SpellBrigade() {
           ctx.rotate(tTime * 2);
           ctx.beginPath();
           ctx.arc(0, 0, 35, 0, Math.PI * 1.2);
-          ctx.strokeStyle = tColor + 'aa';
+          ctx.strokeStyle = hexBase(tColor) + 'aa';
           ctx.lineWidth = 3;
           ctx.stroke();
           ctx.beginPath();
           ctx.arc(0, 0, 35, Math.PI, Math.PI * 2.2);
-          ctx.strokeStyle = tColor + '60';
+          ctx.strokeStyle = hexBase(tColor) + '60';
           ctx.lineWidth = 2;
           ctx.stroke();
           ctx.restore();
@@ -11620,7 +11469,7 @@ export default function SpellBrigade() {
             const tpy = py - tpOff * 30;
             ctx.beginPath();
             ctx.arc(tpx, tpy, 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = tColor + Math.floor((1 - tpOff / 2) * 200).toString(16).padStart(2, '0');
+            ctx.fillStyle = hexBase(tColor) + Math.floor((1 - tpOff / 2) * 200).toString(16).padStart(2, '0');
             ctx.fill();
           }
         }
@@ -11743,7 +11592,7 @@ export default function SpellBrigade() {
 
         ctx.beginPath();
         ctx.arc(ppx, ppy, (p.radius || 3) * (p.alpha || 1), 0, Math.PI * 2);
-        ctx.fillStyle = p.color + Math.floor((p.alpha || 1) * 255).toString(16).padStart(2, '0');
+        ctx.fillStyle = hexBase(p.color) + Math.floor((p.alpha || 1) * 255).toString(16).padStart(2, '0');
         ctx.fill();
       }
 
@@ -11808,8 +11657,8 @@ export default function SpellBrigade() {
           ctx.beginPath();
           ctx.arc(ex, ey, cr, 0, Math.PI * 2);
           const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, cr);
-          gr.addColorStop(0, ef.color + Math.floor(alpha * 200).toString(16).padStart(2, '0'));
-          gr.addColorStop(0.5, ef.color + Math.floor(alpha * 100).toString(16).padStart(2, '0'));
+          gr.addColorStop(0, hexBase(ef.color) + Math.floor(alpha * 200).toString(16).padStart(2, '0'));
+          gr.addColorStop(0.5, hexBase(ef.color) + Math.floor(alpha * 100).toString(16).padStart(2, '0'));
           gr.addColorStop(1, 'transparent');
           ctx.fillStyle = gr;
           ctx.fill();
@@ -11947,7 +11796,7 @@ export default function SpellBrigade() {
           ctx.beginPath();
           ctx.moveTo(ef.startX - cx, ef.startY - cy);
           ctx.lineTo(ef.endX - cx, ef.endY - cy);
-          ctx.strokeStyle = ef.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+          ctx.strokeStyle = hexBase(ef.color) + Math.floor(alpha * 255).toString(16).padStart(2, '0');
           ctx.lineWidth = 20 * alpha;
           ctx.lineCap = 'round';
           ctx.stroke();
@@ -12015,7 +11864,7 @@ export default function SpellBrigade() {
             const flashSize = 80 * (1 - flashProgress * 0.5);
             const flashGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, flashSize);
             flashGrad.addColorStop(0, `rgba(255,255,255,${(1 - flashProgress) * 0.9})`);
-            flashGrad.addColorStop(0.3, colors[0] + Math.floor((1 - flashProgress) * 200).toString(16).padStart(2, '0'));
+            flashGrad.addColorStop(0.3, hexBase(colors[0]) + Math.floor((1 - flashProgress) * 200).toString(16).padStart(2, '0'));
             flashGrad.addColorStop(1, 'transparent');
             ctx.beginPath();
             ctx.arc(ex, ey, flashSize, 0, Math.PI * 2);
@@ -12407,7 +12256,7 @@ export default function SpellBrigade() {
           // Expanding shockwave ring
           ctx.beginPath();
           ctx.arc(bx, by, pulseSize, 0, Math.PI * 2);
-          ctx.strokeStyle = ef.color + Math.floor(ringAlpha * 255).toString(16).padStart(2, '0');
+          ctx.strokeStyle = hexBase(ef.color) + Math.floor(ringAlpha * 255).toString(16).padStart(2, '0');
           ctx.lineWidth = 6 * (1 - progress);
           ctx.stroke();
           
@@ -12437,11 +12286,11 @@ export default function SpellBrigade() {
             ctx.arc(ax, ay, ringSize, 0, Math.PI * 2);
             const ringGrad = ctx.createRadialGradient(ax, ay, ringSize * 0.8, ax, ay, ringSize);
             ringGrad.addColorStop(0, 'transparent');
-            ringGrad.addColorStop(0.7, ef.color + Math.floor(alpha * 80).toString(16).padStart(2, '0'));
-            ringGrad.addColorStop(1, ef.color + Math.floor(alpha * 180).toString(16).padStart(2, '0'));
+            ringGrad.addColorStop(0.7, hexBase(ef.color) + Math.floor(alpha * 80).toString(16).padStart(2, '0'));
+            ringGrad.addColorStop(1, hexBase(ef.color) + Math.floor(alpha * 180).toString(16).padStart(2, '0'));
             ctx.fillStyle = ringGrad;
             ctx.fill();
-            ctx.strokeStyle = ef.color + Math.floor(alpha * 200).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(alpha * 200).toString(16).padStart(2, '0');
             ctx.lineWidth = 3 * alpha;
             ctx.stroke();
           }
@@ -12469,17 +12318,17 @@ export default function SpellBrigade() {
             ctx.beginPath();
             ctx.arc(ax, ay, currentOuter, 0, Math.PI * 2);
             ctx.arc(ax, ay, currentInner, 0, Math.PI * 2, true);
-            ctx.fillStyle = ef.color + Math.floor(alpha * 60).toString(16).padStart(2, '0');
+            ctx.fillStyle = hexBase(ef.color) + Math.floor(alpha * 60).toString(16).padStart(2, '0');
             ctx.fill();
             // Ring edges
             ctx.beginPath();
             ctx.arc(ax, ay, currentOuter, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(alpha * 180).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(alpha * 180).toString(16).padStart(2, '0');
             ctx.lineWidth = 3;
             ctx.stroke();
             ctx.beginPath();
             ctx.arc(ax, ay, currentInner, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(alpha * 120).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(alpha * 120).toString(16).padStart(2, '0');
             ctx.lineWidth = 2;
             ctx.stroke();
           }
@@ -13072,7 +12921,7 @@ export default function SpellBrigade() {
             const shrink = 1 - progress * 0.3;
             ctx.beginPath();
             ctx.arc(ex, ey, ef.radius * shrink, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(pulse * 180).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(pulse * 180).toString(16).padStart(2, '0');
             ctx.lineWidth = 3;
             ctx.setLineDash([8, 4]);
             ctx.stroke();
@@ -13080,7 +12929,7 @@ export default function SpellBrigade() {
             // Fill warning zone
             ctx.beginPath();
             ctx.arc(ex, ey, ef.radius * shrink, 0, Math.PI * 2);
-            ctx.fillStyle = ef.color + Math.floor(pulse * 30).toString(16).padStart(2, '0');
+            ctx.fillStyle = hexBase(ef.color) + Math.floor(pulse * 30).toString(16).padStart(2, '0');
             ctx.fill();
             // Converging particles
             for (let i = 0; i < 6; i++) {
@@ -13098,15 +12947,15 @@ export default function SpellBrigade() {
             const ringRadius = ef.radius * Math.min(1, progress * 4);
             ctx.beginPath();
             ctx.arc(ex, ey, ringRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
             ctx.lineWidth = 6 * fadeAlpha;
             ctx.stroke();
             // Inner flash
             if (progress < 0.3) {
               const flashAlpha = (1 - progress / 0.3);
               const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, ringRadius * 0.8);
-              gr.addColorStop(0, ef.color + Math.floor(flashAlpha * 160).toString(16).padStart(2, '0'));
-              gr.addColorStop(0.6, ef.color + Math.floor(flashAlpha * 60).toString(16).padStart(2, '0'));
+              gr.addColorStop(0, hexBase(ef.color) + Math.floor(flashAlpha * 160).toString(16).padStart(2, '0'));
+              gr.addColorStop(0.6, hexBase(ef.color) + Math.floor(flashAlpha * 60).toString(16).padStart(2, '0'));
               gr.addColorStop(1, 'transparent');
               ctx.fillStyle = gr;
               ctx.beginPath();
@@ -13121,7 +12970,7 @@ export default function SpellBrigade() {
               const py2 = ey + Math.sin(a) * d;
               ctx.beginPath();
               ctx.arc(px2, py2, 3 * fadeAlpha, 0, Math.PI * 2);
-              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
               ctx.fill();
             }
           } else if (style === 'sustained') {
@@ -13131,13 +12980,13 @@ export default function SpellBrigade() {
             // Outer ring
             ctx.beginPath();
             ctx.arc(ex, ey, baseRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * pulse * 180).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * pulse * 180).toString(16).padStart(2, '0');
             ctx.lineWidth = 2;
             ctx.stroke();
             // Pulsing fill
             const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, baseRadius);
-            gr.addColorStop(0, ef.color + Math.floor(fadeAlpha * pulse * 50).toString(16).padStart(2, '0'));
-            gr.addColorStop(0.7, ef.color + Math.floor(fadeAlpha * pulse * 25).toString(16).padStart(2, '0'));
+            gr.addColorStop(0, hexBase(ef.color) + Math.floor(fadeAlpha * pulse * 50).toString(16).padStart(2, '0'));
+            gr.addColorStop(0.7, hexBase(ef.color) + Math.floor(fadeAlpha * pulse * 25).toString(16).padStart(2, '0'));
             gr.addColorStop(1, 'transparent');
             ctx.fillStyle = gr;
             ctx.beginPath();
@@ -13150,7 +12999,7 @@ export default function SpellBrigade() {
               const arcEnd = arcAngle + 0.8;
               ctx.beginPath();
               ctx.arc(ex, ey, baseRadius * 0.6, arcStart, arcEnd);
-              ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+              ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
               ctx.lineWidth = 3;
               ctx.stroke();
             }
@@ -13162,7 +13011,7 @@ export default function SpellBrigade() {
               const py2 = ey + Math.sin(a) * d;
               ctx.beginPath();
               ctx.arc(px2, py2, 2, 0, Math.PI * 2);
-              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
               ctx.fill();
             }
           } else if (style === 'buff') {
@@ -13176,20 +13025,20 @@ export default function SpellBrigade() {
               const px2 = ex + Math.cos(a) * r;
               ctx.beginPath();
               ctx.arc(px2, y2, 3 * fadeAlpha * (1 - t), 0, Math.PI * 2);
-              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * (1 - t) * 250).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor(fadeAlpha * (1 - t) * 250).toString(16).padStart(2, '0');
               ctx.fill();
             }
             // Base glow ring
             ctx.beginPath();
             ctx.arc(ex, ey, 30, 0, Math.PI * 2);
             const buffGr = ctx.createRadialGradient(ex, ey, 0, ex, ey, 30);
-            buffGr.addColorStop(0, ef.color + Math.floor(fadeAlpha * 60).toString(16).padStart(2, '0'));
+            buffGr.addColorStop(0, hexBase(ef.color) + Math.floor(fadeAlpha * 60).toString(16).padStart(2, '0'));
             buffGr.addColorStop(1, 'transparent');
             ctx.fillStyle = buffGr;
             ctx.fill();
             // Up arrows
             if (progress < 0.5) {
-              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
               ctx.font = 'bold 14px sans-serif';
               ctx.textAlign = 'center';
               ctx.fillText('▲ BUFF ▲', ex, ey - 55);
@@ -13215,9 +13064,9 @@ export default function SpellBrigade() {
                 j === 0 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
               }
               ctx.closePath();
-              ctx.fillStyle = ef.color + Math.floor(shieldAlpha * 60).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor(shieldAlpha * 60).toString(16).padStart(2, '0');
               ctx.fill();
-              ctx.strokeStyle = ef.color + Math.floor(shieldAlpha * 200).toString(16).padStart(2, '0');
+              ctx.strokeStyle = hexBase(ef.color) + Math.floor(shieldAlpha * 200).toString(16).padStart(2, '0');
               ctx.lineWidth = 1.5;
               ctx.stroke();
             }
@@ -13225,7 +13074,7 @@ export default function SpellBrigade() {
             // Outer ring
             ctx.beginPath();
             ctx.arc(ex, ey, shieldRadius + 12, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(shieldAlpha * 120).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(shieldAlpha * 120).toString(16).padStart(2, '0');
             ctx.lineWidth = 2;
             ctx.stroke();
           } else if (style === 'summon') {
@@ -13238,7 +13087,7 @@ export default function SpellBrigade() {
             ctx.rotate(elapsed / 500);
             ctx.beginPath();
             ctx.arc(0, 0, ringR, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 180).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 180).toString(16).padStart(2, '0');
             ctx.lineWidth = 2;
             ctx.stroke();
             // Inner pentagram
@@ -13248,7 +13097,7 @@ export default function SpellBrigade() {
               ctx.beginPath();
               ctx.moveTo(Math.cos(a1) * ringR * 0.8, Math.sin(a1) * ringR * 0.8);
               ctx.lineTo(Math.cos(a2) * ringR * 0.8, Math.sin(a2) * ringR * 0.8);
-              ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 120).toString(16).padStart(2, '0');
+              ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 120).toString(16).padStart(2, '0');
               ctx.lineWidth = 1.5;
               ctx.stroke();
             }
@@ -13260,7 +13109,7 @@ export default function SpellBrigade() {
               const sy = ey - t2 * 60;
               ctx.beginPath();
               ctx.arc(sx, sy, 2 * (1 - t2), 0, Math.PI * 2);
-              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * (1 - t2) * 255).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor(fadeAlpha * (1 - t2) * 255).toString(16).padStart(2, '0');
               ctx.fill();
             }
           } else if (style === 'transform') {
@@ -13270,8 +13119,8 @@ export default function SpellBrigade() {
             // Pulsing aura
             const pulse = 0.6 + 0.4 * Math.sin(elapsed * 0.01);
             const aurGr = ctx.createRadialGradient(ex, ey, 0, ex, ey, auraR);
-            aurGr.addColorStop(0, ef.color + Math.floor(fadeAlpha * pulse * 80).toString(16).padStart(2, '0'));
-            aurGr.addColorStop(0.5, ef.color + Math.floor(fadeAlpha * pulse * 40).toString(16).padStart(2, '0'));
+            aurGr.addColorStop(0, hexBase(ef.color) + Math.floor(fadeAlpha * pulse * 80).toString(16).padStart(2, '0'));
+            aurGr.addColorStop(0.5, hexBase(ef.color) + Math.floor(fadeAlpha * pulse * 40).toString(16).padStart(2, '0'));
             aurGr.addColorStop(1, 'transparent');
             ctx.fillStyle = aurGr;
             ctx.beginPath();
@@ -13286,14 +13135,14 @@ export default function SpellBrigade() {
               ctx.beginPath();
               ctx.moveTo(0, 0);
               ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
-              ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 150).toString(16).padStart(2, '0');
+              ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 150).toString(16).padStart(2, '0');
               ctx.lineWidth = 2;
               ctx.stroke();
             }
             ctx.restore();
             // Flash at start
             if (progress < 0.15) {
-              ctx.fillStyle = ef.color + Math.floor((0.15 - progress) * 6 * 60).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor((0.15 - progress) * 6 * 60).toString(16).padStart(2, '0');
               ctx.fillRect(0, 0, width, height);
             }
           } else {
@@ -13301,15 +13150,15 @@ export default function SpellBrigade() {
             const ringRadius = ef.radius * Math.min(1, progress * 4);
             ctx.beginPath();
             ctx.arc(ex, ey, ringRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
+            ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
             ctx.lineWidth = 4 * fadeAlpha;
             ctx.stroke();
             // Bright flash at start
             if (progress < 0.3) {
               const flashAlpha = (1 - progress / 0.3);
               const gr = ctx.createRadialGradient(ex, ey, 0, ex, ey, ringRadius);
-              gr.addColorStop(0, ef.color + Math.floor(flashAlpha * 120).toString(16).padStart(2, '0'));
-              gr.addColorStop(0.5, ef.color + Math.floor(flashAlpha * 40).toString(16).padStart(2, '0'));
+              gr.addColorStop(0, hexBase(ef.color) + Math.floor(flashAlpha * 120).toString(16).padStart(2, '0'));
+              gr.addColorStop(0.5, hexBase(ef.color) + Math.floor(flashAlpha * 40).toString(16).padStart(2, '0'));
               gr.addColorStop(1, 'transparent');
               ctx.fillStyle = gr;
               ctx.beginPath();
@@ -13324,7 +13173,7 @@ export default function SpellBrigade() {
               const py2 = ey + Math.sin(a) * d;
               ctx.beginPath();
               ctx.arc(px2, py2, 3 * fadeAlpha, 0, Math.PI * 2);
-              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
+              ctx.fillStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 255).toString(16).padStart(2, '0');
               ctx.fill();
             }
           }
@@ -13340,7 +13189,7 @@ export default function SpellBrigade() {
           // Warning ring
           ctx.beginPath();
           ctx.arc(ex, ey, ef.radius, 0, Math.PI * 2);
-          ctx.strokeStyle = ef.color + Math.floor(alpha * 160).toString(16).padStart(2, '0');
+          ctx.strokeStyle = hexBase(ef.color) + Math.floor(alpha * 160).toString(16).padStart(2, '0');
           ctx.lineWidth = 2;
           ctx.setLineDash([8, 4]);
           ctx.stroke();
@@ -13349,11 +13198,11 @@ export default function SpellBrigade() {
           // Fill with translucent color
           ctx.beginPath();
           ctx.arc(ex, ey, ef.radius, 0, Math.PI * 2);
-          ctx.fillStyle = ef.color + Math.floor(alpha * 30).toString(16).padStart(2, '0');
+          ctx.fillStyle = hexBase(ef.color) + Math.floor(alpha * 30).toString(16).padStart(2, '0');
           ctx.fill();
           
           // Ability name above
-          ctx.fillStyle = ef.color + Math.floor(alpha * 200).toString(16).padStart(2, '0');
+          ctx.fillStyle = hexBase(ef.color) + Math.floor(alpha * 200).toString(16).padStart(2, '0');
           ctx.font = 'bold 11px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(ef.name || 'Ultimate', ex, ey - ef.radius - 8);
@@ -13369,7 +13218,7 @@ export default function SpellBrigade() {
           // Shockwave ring
           ctx.beginPath();
           ctx.arc(ex, ey, expandRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
+          ctx.strokeStyle = hexBase(ef.color) + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
           ctx.lineWidth = 4 * fadeAlpha;
           ctx.stroke();
           
@@ -13377,8 +13226,8 @@ export default function SpellBrigade() {
           if (progress < 0.3) {
             const flashAlpha = (0.3 - progress) / 0.3;
             const flashGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, ef.radius);
-            flashGrad.addColorStop(0, ef.color + Math.floor(flashAlpha * 150).toString(16).padStart(2, '0'));
-            flashGrad.addColorStop(0.5, ef.color + Math.floor(flashAlpha * 60).toString(16).padStart(2, '0'));
+            flashGrad.addColorStop(0, hexBase(ef.color) + Math.floor(flashAlpha * 150).toString(16).padStart(2, '0'));
+            flashGrad.addColorStop(0.5, hexBase(ef.color) + Math.floor(flashAlpha * 60).toString(16).padStart(2, '0'));
             flashGrad.addColorStop(1, 'transparent');
             ctx.fillStyle = flashGrad;
             ctx.beginPath();
@@ -14316,7 +14165,7 @@ export default function SpellBrigade() {
                   </button>
                 )}
 
-                {/* Quest Progress - Compact */}
+                {/* Quest Tracker - Shows active quests */}
                 <div 
                   style={{
                     marginTop: 10,
@@ -14326,25 +14175,30 @@ export default function SpellBrigade() {
                   }}
                   onClick={() => setShowQuestLog(true)}
                 >
-                  {(() => {
-                    const bossKills = playerInfo.bossKills || {};
-                    const zones = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'];
-                    const defeated = zones.filter(z => bossKills[z]).length;
-                    const allDone = defeated === 6;
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: '#ffd93d', fontSize: '0.65rem' }}>📜</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ color: '#ffd93d', fontSize: '0.6rem', fontWeight: 600, marginBottom: 3 }}>
-                            {allDone ? '🐉 Dragon Slayer' : `⭐ ${defeated}/6 Bosses`}
-                          </div>
-                          <div style={{ height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${(defeated / 6) * 100}%`, background: allDone ? '#22c55e' : '#ffd93d', borderRadius: 1 }} />
-                          </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ color: '#ffd93d', fontSize: '0.65rem', fontWeight: 700 }}>📜 QUESTS ({activeNpcQuests.length})</span>
+                    <span style={{ color: '#666', fontSize: '0.55rem' }}>click to manage</span>
+                  </div>
+                  {activeNpcQuests.length === 0 ? (
+                    <div style={{ color: '#555', fontSize: '0.6rem', fontStyle: 'italic' }}>Talk to NPCs for quests</div>
+                  ) : (
+                    activeNpcQuests.slice(0, 3).map(q => (
+                      <div key={q.id} style={{ marginBottom: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: q.progress >= q.required ? '#4ade80' : '#ccc', fontSize: '0.6rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+                            {q.progress >= q.required ? '✅ ' : ''}{q.name}
+                          </span>
+                          <span style={{ color: q.progress >= q.required ? '#4ade80' : '#888', fontSize: '0.55rem' }}>{q.progress}/{q.required}</span>
+                        </div>
+                        <div style={{ height: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 1, marginTop: 2 }}>
+                          <div style={{ height: '100%', width: `${Math.min(100, (q.progress / q.required) * 100)}%`, background: q.progress >= q.required ? '#4ade80' : '#fbbf24', borderRadius: 1 }} />
                         </div>
                       </div>
-                    );
-                  })()}
+                    ))
+                  )}
+                  {activeNpcQuests.length > 3 && (
+                    <div style={{ color: '#888', fontSize: '0.5rem', textAlign: 'center', marginTop: 2 }}>+{activeNpcQuests.length - 3} more</div>
+                  )}
                 </div>
 
                 {/* Action buttons row - Settings & Leaderboard */}
@@ -14777,7 +14631,7 @@ export default function SpellBrigade() {
                   </div>
                 </div>
 
-                {/* Quest Progress - Mobile Compact */}
+                {/* Quest Tracker - Mobile */}
                 <div 
                   style={{
                     marginBottom: 8,
@@ -14787,25 +14641,27 @@ export default function SpellBrigade() {
                   }}
                   onClick={() => setShowQuestLog(true)}
                 >
-                  {(() => {
-                    const bossKills = playerInfo.bossKills || {};
-                    const zones = ['meadow', 'forest', 'volcanic', 'frozen', 'crystal_caves', 'abyss'];
-                    const defeated = zones.filter(z => bossKills[z]).length;
-                    const allDone = defeated === 6;
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ color: '#ffd93d', fontSize: '0.6rem' }}>📜</span>
-                        <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ color: '#ffd93d', fontSize: '0.6rem' }}>📜</span>
+                    <div style={{ flex: 1 }}>
+                      {activeNpcQuests.length === 0 ? (
+                        <div style={{ color: '#555', fontSize: '0.55rem' }}>No quests — talk to NPCs</div>
+                      ) : (
+                        <>
                           <div style={{ color: '#ffd93d', fontSize: '0.55rem', fontWeight: 600, marginBottom: 2 }}>
-                            {allDone ? '🐉 Dragon!' : `⭐ ${defeated}/6`}
+                            {activeNpcQuests.length} quest{activeNpcQuests.length !== 1 ? 's' : ''} active
                           </div>
-                          <div style={{ height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${(defeated / 6) * 100}%`, background: allDone ? '#22c55e' : '#ffd93d', borderRadius: 1 }} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                          {activeNpcQuests.slice(0, 2).map(q => (
+                            <div key={q.id} style={{ marginBottom: 2 }}>
+                              <div style={{ color: q.progress >= q.required ? '#4ade80' : '#aaa', fontSize: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {q.progress >= q.required ? '✅' : `${q.progress}/${q.required}`} {q.name}
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Settings + Leaderboard row - removed from nameplate, settings accessible via ESC key */}
@@ -15271,6 +15127,9 @@ export default function SpellBrigade() {
         setCharacters={setCharacters}
         setAdminKey={setAdminKey}
         setAuthState={setAuthState}
+        activeNpcQuests={activeNpcQuests}
+        setActiveNpcQuests={setActiveNpcQuests}
+        completedNpcQuests={completedNpcQuests}
       />
 
       {/* Story Intro - Cinematic NPC Dialogue */}
@@ -15516,37 +15375,6 @@ export default function SpellBrigade() {
       )}
 
       {/* Active Quest Tracker */}
-      {activeNpcQuests.length > 0 && screen === 'game' && !showQuestLog && (
-        <div style={{
-          position: 'fixed', top: isMobile ? 55 : 12, right: 12,
-          background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 10, padding: '8px 12px', zIndex: 900,
-          maxWidth: 200, pointerEvents: 'none',
-        }}>
-          <div style={{ color: '#ffd93d', fontSize: '0.7rem', fontWeight: 700, marginBottom: 4 }}>📜 QUESTS</div>
-          {activeNpcQuests.slice(0, 3).map(q => (
-            <div key={q.id} style={{ marginBottom: 4 }}>
-              <div style={{ 
-                color: q.progress >= q.required ? '#4ade80' : '#ccc', 
-                fontSize: '0.7rem', fontWeight: 600,
-              }}>
-                {q.name} {q.progress >= q.required && '✅'}
-              </div>
-              <div style={{
-                height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginTop: 2,
-              }}>
-                <div style={{
-                  height: '100%', borderRadius: 2,
-                  width: `${Math.min(100, (q.progress / q.required) * 100)}%`,
-                  background: q.progress >= q.required ? '#4ade80' : '#fbbf24',
-                }} />
-              </div>
-              <div style={{ color: '#888', fontSize: '0.6rem' }}>{q.progress}/{q.required}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Boss Death Banner - Subtle notification */}
       {bossDeathBanner && screen === 'game' && (
         <div style={{

@@ -77,6 +77,9 @@ export default function GameModals({
   setCharacters,
   setAdminKey,
   setAuthState,
+  activeNpcQuests,
+  setActiveNpcQuests,
+  completedNpcQuests,
 }) {
   if (screen !== 'game') return null;
 
@@ -249,8 +252,6 @@ export default function GameModals({
           styles={styles}
           npcDialogue={npcDialogue}
           playerInfo={playerInfo}
-          questLog={questLog}
-          setQuestLog={setQuestLog}
           classes={classes}
           socketRef={socketRef}
           playSound={playSound}
@@ -266,7 +267,10 @@ export default function GameModals({
       {showQuestLog && (
         <QuestLogContent
           styles={styles}
-          questLog={questLog}
+          activeNpcQuests={activeNpcQuests}
+          setActiveNpcQuests={setActiveNpcQuests}
+          completedNpcQuests={completedNpcQuests}
+          socketRef={socketRef}
           onClose={() => setShowQuestLog(false)}
         />
       )}
@@ -906,8 +910,6 @@ function NPCDialogueContent({
   styles, 
   npcDialogue, 
   playerInfo, 
-  questLog, 
-  setQuestLog,
   classes, 
   socketRef, 
   playSound,
@@ -1031,82 +1033,28 @@ function NPCDialogueContent({
               {npcDialogue.prompt}
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button
-                onClick={() => {
-                  socketRef.current?.emit('acceptQuest', { questId: 'conquer_realm' });
-                  setQuestLog?.(prev => ({
-                    ...prev,
-                    allBosses: { ...prev?.allBosses, active: true },
-                  }));
-                  onClose();
-                  playSound?.('levelUp');
-                }}
-                style={{
-                  padding: '12px 25px',
-                  background: 'linear-gradient(135deg, #ffd93d, #f97316)',
-                  border: 'none', borderRadius: 8, color: '#000', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
-                }}
-              >
-                Accept Quest
-              </button>
               <button onClick={onClose} style={{
-                padding: '12px 25px', background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+                padding: '12px 25px', background: 'linear-gradient(135deg, #ffd93d, #f97316)',
+                border: 'none', borderRadius: 8, color: '#000', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
               }}>
-                Maybe later
+                Understood
               </button>
             </div>
           </div>
         )}
         
-        {/* Knight - Dragon Dungeon */}
+        {/* Zone quest giver - now handled by Grimjaw */}
         {npcDialogue.npcType === 'quest_giver' && npcDialogue.hasChoice && npcDialogue.prompt && (
           <div style={{ marginTop: 20 }}>
-            {(() => {
-              const qid = npcDialogue.questId;
-              const quest = questLog?.[qid];
-              const isActive = quest?.active;
-              const isComplete = quest?.completed;
-              
-              if (isComplete) {
-                return <p style={{ color: '#4ade80', textAlign: 'center', fontWeight: 600 }}>✅ Quest Complete! The {npcDialogue.targetBoss} has been vanquished.</p>;
-              }
-              if (isActive) {
-                return <p style={{ color: '#fbbf24', textAlign: 'center', fontWeight: 600 }}>📜 Quest Active — Defeat the {npcDialogue.targetBoss}!</p>;
-              }
-              return (
-                <>
-                  <p style={{ color: '#fff', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
-                    {npcDialogue.prompt}
-                  </p>
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                    <button
-                      onClick={() => {
-                        setQuestLog?.(prev => ({
-                          ...prev,
-                          [qid]: { ...prev?.[qid], active: true },
-                        }));
-                        onClose();
-                        playSound?.('levelUp');
-                      }}
-                      style={{
-                        padding: '12px 25px',
-                        background: `linear-gradient(135deg, ${npcDialogue.questGiverColor || '#4ade80'}, ${npcDialogue.questGiverColor || '#4ade80'}88)`,
-                        border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
-                      }}
-                    >
-                      Accept Quest
-                    </button>
-                    <button onClick={onClose} style={{
-                      padding: '12px 25px', background: 'rgba(255,255,255,0.1)',
-                      border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
-                    }}>
-                      Maybe later
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
+            <p style={{ color: '#fff', textAlign: 'center', marginBottom: 15, fontWeight: 600 }}>
+              {npcDialogue.prompt}
+            </p>
+            <button onClick={onClose} style={{
+              display: 'block', margin: '0 auto', padding: '12px 25px', background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: '0.9rem',
+            }}>
+              Got it
+            </button>
           </div>
         )}
         
@@ -1120,10 +1068,6 @@ function NPCDialogueContent({
               <button
                 onClick={() => {
                   socketRef.current?.emit('enterDungeon');
-                  setQuestLog?.(prev => ({
-                    ...prev,
-                    dragonSlayer: { ...prev?.dragonSlayer, active: true },
-                  }));
                   onClose();
                 }}
                 style={{
@@ -1346,62 +1290,172 @@ function NPCDialogueContent({
   );
 }
 
-function QuestLogContent({ styles, questLog, onClose }) {
-  // questLog may be an object {allBosses: {...}, dragonSlayer: {...}} — convert to array
-  const quests = Array.isArray(questLog) ? questLog : Object.values(questLog || {});
+function QuestLogContent({ styles, activeNpcQuests, setActiveNpcQuests, completedNpcQuests, socketRef, onClose }) {
+  const [tab, setTab] = React.useState('active'); // 'active' | 'completed'
+  const active = activeNpcQuests || [];
+  const completed = completedNpcQuests || [];
+  const ready = active.filter(q => q.progress >= q.required);
+  const inProgress = active.filter(q => q.progress < q.required);
+
+  const handleAbandon = (questId) => {
+    socketRef.current?.emit('abandonQuest', { questId });
+    setActiveNpcQuests(prev => prev.filter(q => q.id !== questId));
+  };
+
   return (
     <>
       <div style={styles.modalBackdrop} onClick={onClose} />
-      <div style={{ ...styles.modal, maxWidth: 400 }}>
+      <div style={{ ...styles.modal, maxWidth: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
         <button style={styles.modalClose} onClick={onClose}>×</button>
-        <h3 style={{ ...styles.modalTitle, color: '#ffd93d' }}>
+        <h3 style={{ ...styles.modalTitle, color: '#ffd93d', marginBottom: 12 }}>
           📜 Quest Log
         </h3>
-        {(!quests || quests.length === 0) ? (
-          <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>No active quests. Talk to NPCs to find quests!</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {quests.filter(q => q && q.active).map(q => (
-              <div key={q.id} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${q.completed ? '#22c55e' : '#ffd93d'}30`, borderRadius: 10, padding: 14 }}>
-                <div style={{ color: q.completed ? '#22c55e' : '#ffd93d', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6 }}>
-                  {q.completed ? '✓ ' : ''}{q.name || q.title}
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          {[
+            { id: 'active', label: `Active (${active.length})` },
+            { id: 'completed', label: `Completed (${completed.length})` },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                flex: 1, padding: '8px 0', border: 'none', cursor: 'pointer',
+                background: tab === t.id ? 'rgba(255,215,0,0.1)' : 'transparent',
+                color: tab === t.id ? '#ffd93d' : '#666',
+                fontWeight: tab === t.id ? 700 : 400,
+                fontSize: '0.8rem',
+                borderBottom: tab === t.id ? '2px solid #ffd93d' : '2px solid transparent',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+          {tab === 'active' && (
+            <>
+              {active.length === 0 ? (
+                <div style={{ color: '#555', textAlign: 'center', padding: '30px 20px' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>📜</div>
+                  <div style={{ fontSize: '0.85rem', marginBottom: 4 }}>No active quests</div>
+                  <div style={{ fontSize: '0.7rem', color: '#444' }}>Talk to Grimjaw or Willow in the Sanctuary to pick up quests.</div>
                 </div>
-                <p style={{ color: '#888', fontSize: '0.8rem', margin: 0 }}>{q.description}</p>
-                {q.reward && (
-                  <div style={{ marginTop: 6, color: q.completed ? '#22c55e88' : '#3b82f6', fontSize: '0.7rem', fontWeight: 600 }}>
-                    Reward: {q.reward.xp ? `+${q.reward.xp} XP` : ''}{q.reward.title ? ` • "${q.reward.title}"` : ''}
-                  </div>
-                )}
-                {q.bosses && !q.completed && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {q.bosses.map(b => {
-                        const done = q.progress?.[b];
-                        return (
-                          <span key={b} style={{
-                            padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', fontWeight: 600,
-                            background: done ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
-                            border: `1px solid ${done ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                            color: done ? '#22c55e' : '#666',
-                          }}>
-                            {done ? '✓' : '○'} {b}
-                          </span>
-                        );
-                      })}
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {/* Ready to turn in */}
+                  {ready.length > 0 && (
+                    <div style={{ color: '#4ade80', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: -4 }}>Ready to turn in</div>
+                  )}
+                  {ready.map(q => (
+                    <QuestCard key={q.id} quest={q} onAbandon={handleAbandon} isReady />
+                  ))}
+                  {/* In progress */}
+                  {inProgress.length > 0 && ready.length > 0 && (
+                    <div style={{ color: '#888', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4, marginBottom: -4 }}>In Progress</div>
+                  )}
+                  {inProgress.map(q => (
+                    <QuestCard key={q.id} quest={q} onAbandon={handleAbandon} />
+                  ))}
+                </div>
+              )}
+              <div style={{ color: '#444', fontSize: '0.6rem', textAlign: 'center', marginTop: 12 }}>
+                {active.length}/10 quest slots used
+              </div>
+            </>
+          )}
+
+          {tab === 'completed' && (
+            <>
+              {completed.length === 0 ? (
+                <div style={{ color: '#555', textAlign: 'center', padding: '30px 20px' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</div>
+                  <div style={{ fontSize: '0.85rem' }}>No completed quests yet</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {completed.map((qid, i) => (
+                    <div key={qid + i} style={{
+                      background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.15)',
+                      borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8,
+                    }}>
+                      <span style={{ color: '#22c55e', fontSize: '0.8rem' }}>✓</span>
+                      <span style={{ color: '#888', fontSize: '0.75rem' }}>{qid}</span>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
-            {quests.filter(q => q && !q.active).length > 0 && (
-              <div style={{ color: '#555', fontSize: '0.75rem', textAlign: 'center', marginTop: 8 }}>
-                Talk to NPCs to discover more quests
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </>
+  );
+}
+
+function QuestCard({ quest, onAbandon, isReady }) {
+  const [confirmAbandon, setConfirmAbandon] = React.useState(false);
+  const pct = Math.min(100, (quest.progress / quest.required) * 100);
+  return (
+    <div style={{
+      background: isReady ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${isReady ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.06)'}`,
+      borderRadius: 10, padding: '10px 12px',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: isReady ? '#4ade80' : '#ddd', fontWeight: 600, fontSize: '0.85rem' }}>
+            {isReady ? '✅ ' : ''}{quest.name}
+          </div>
+          {quest.zone && (
+            <span style={{ color: '#666', fontSize: '0.6rem', textTransform: 'capitalize' }}>{quest.zone.replace('_', ' ')}</span>
+          )}
+        </div>
+      </div>
+      {quest.description && (
+        <p style={{ color: '#777', fontSize: '0.7rem', margin: '4px 0 8px', lineHeight: 1.3 }}>{quest.description}</p>
+      )}
+      {/* Progress bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: isReady ? '#4ade80' : '#fbbf24', borderRadius: 2, transition: 'width 0.3s' }} />
+        </div>
+        <span style={{ color: isReady ? '#4ade80' : '#aaa', fontSize: '0.65rem', fontWeight: 600, minWidth: 35, textAlign: 'right' }}>
+          {quest.progress}/{quest.required}
+        </span>
+      </div>
+      {/* Reward + Abandon row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {quest.rewardText && (
+          <span style={{ color: '#3b82f6', fontSize: '0.65rem', fontWeight: 600 }}>
+            Reward: {quest.rewardText}
+          </span>
+        )}
+        {isReady ? (
+          <span style={{ color: '#4ade80', fontSize: '0.6rem', fontStyle: 'italic' }}>Return to NPC</span>
+        ) : confirmAbandon ? (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ color: '#ef4444', fontSize: '0.6rem' }}>Abandon?</span>
+            <button onClick={() => { onAbandon(quest.id); setConfirmAbandon(false); }}
+              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 4, color: '#ef4444', fontSize: '0.6rem', padding: '2px 8px', cursor: 'pointer' }}>
+              Yes
+            </button>
+            <button onClick={() => setConfirmAbandon(false)}
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, color: '#888', fontSize: '0.6rem', padding: '2px 8px', cursor: 'pointer' }}>
+              No
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmAbandon(true)}
+            style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.6rem', cursor: 'pointer', padding: '2px 4px' }}>
+            ✕ Abandon
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
