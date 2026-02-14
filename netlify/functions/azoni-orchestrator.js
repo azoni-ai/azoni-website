@@ -13,6 +13,7 @@
  * - Log fitness milestones or streaks worth highlighting
  * - Flag system health issues (agent down, no activity, etc.)
  * - Summarize daily portfolio activity
+ * - Health check all services (azoni.ai, MCP, Moltbook, OWT) with latency tracking
  * 
  * Required env vars:
  * - FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
@@ -181,6 +182,87 @@ async function getMoltbookAgentStatus() {
   } catch (err) {
     return { online: false, error: err.message };
   }
+}
+
+// ============ SERVICE HEALTH CHECKS ============
+const SERVICES = [
+  { name: 'azoni.ai', url: `${SITE_URL}`, type: 'frontend' },
+  { name: 'MCP Server', url: `${MCP_BASE_URL}/health`, type: 'api' },
+  { name: 'Moltbook Agent', url: `${MOLTBOOK_AGENT_URL}/status`, type: 'agent' },
+  { name: 'OWT Backend', url: 'https://oldwaystoday-backend.onrender.com/health', type: 'api' },
+  { name: 'oldwaystoday.com', url: 'https://oldwaystoday.com', type: 'frontend' },
+];
+
+async function checkServiceHealth() {
+  const results = [];
+
+  for (const service of SERVICES) {
+    const start = Date.now();
+    try {
+      const res = await fetch(service.url, {
+        method: 'GET',
+        signal: AbortSignal.timeout(10000),
+        headers: { 'Accept': 'application/json, text/html' }
+      });
+      const latency = Date.now() - start;
+      results.push({
+        name: service.name,
+        url: service.url,
+        type: service.type,
+        status: res.ok ? 'healthy' : 'degraded',
+        httpStatus: res.status,
+        latencyMs: latency,
+        error: res.ok ? null : `HTTP ${res.status}`
+      });
+    } catch (err) {
+      const latency = Date.now() - start;
+      results.push({
+        name: service.name,
+        url: service.url,
+        type: service.type,
+        status: 'down',
+        httpStatus: null,
+        latencyMs: latency,
+        error: err.message
+      });
+    }
+  }
+
+  // Save to Firestore
+  try {
+    await db.collection('health_checks').add({
+      services: results,
+      summary: {
+        total: results.length,
+        healthy: results.filter(r => r.status === 'healthy').length,
+        degraded: results.filter(r => r.status === 'degraded').length,
+        down: results.filter(r => r.status === 'down').length,
+        avgLatencyMs: Math.round(results.reduce((sum, r) => sum + r.latencyMs, 0) / results.length),
+      },
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (err) {
+    console.error('[orchestrator] Failed to save health check:', err.message);
+  }
+
+  // Log any down services to activity feed
+  const downServices = results.filter(r => r.status === 'down');
+  if (downServices.length > 0) {
+    await db.collection('agent_activity').add({
+      type: 'health_alert',
+      title: `⚠️ ${downServices.length} service${downServices.length > 1 ? 's' : ''} down: ${downServices.map(s => s.name).join(', ')}`,
+      description: downServices.map(s => `${s.name}: ${s.error}`).join('\n'),
+      reasoning: 'Health check detected unreachable services during orchestration cycle.',
+      source: 'azoni-ai',
+      metadata: {
+        services: downServices.map(s => ({ name: s.name, error: s.error })),
+        orchestrator: true
+      },
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error('[orchestrator] Failed to log health alert:', err.message));
+  }
+
+  return results;
 }
 
 async function getFitnessSummary() {
@@ -742,6 +824,9 @@ ${(state.recentErrors.recent || []).map(e => `- [${e.severity.toUpperCase()}] ${
 ## Last Orchestrator Run
 ${state.lastRun ? state.lastRun.toISOString() : 'First run'}
 
+## Service Health Checks
+${state.healthChecks && state.healthChecks.length > 0 ? state.healthChecks.map(h => `- ${h.name}: ${h.status.toUpperCase()} (${h.latencyMs}ms)${h.error ? ' — ' + h.error : ''}`).join('\n') : 'Health checks unavailable'}
+
 Analyze this state and decide what actions to take. Return JSON only.`;
 
   try {
@@ -806,11 +891,11 @@ exports.handler = async (event, context) => {
     await logStep(
       'agent_observing',
       'Scanning all systems',
-      'Checking GitHub, agents, fitness data, and recent activity',
+      'Checking GitHub, agents, fitness data, recent activity, and service health',
       'Starting orchestration cycle — need to understand current state before making decisions'
     );
 
-    const [activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors] = await Promise.all([
+    const [activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors, healthChecks] = await Promise.all([
       getRecentActivity(24),
       getRecentBlogPosts(48),
       getTodayCommitCount(),
@@ -821,10 +906,11 @@ exports.handler = async (event, context) => {
       getChatStats(72),
       getRagHealth(),
       getLastSelfAssessment(),
-      getRecentErrors(24)
+      getRecentErrors(24),
+      checkServiceHealth()
     ]);
 
-    const state = { activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors };
+    const state = { activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors, healthChecks };
 
     console.log('[orchestrator] State gathered:', {
       activityCount: activity.length,
@@ -835,14 +921,16 @@ exports.handler = async (event, context) => {
       knowledgeGaps: knowledgeGaps.length,
       chatCount: chatStats?.totalChats || 0,
       ragChunks: ragHealth?.totalChunks || 0,
-      errors: recentErrors?.total || 0
+      errors: recentErrors?.total || 0,
+      servicesHealthy: healthChecks?.filter(h => h.status === 'healthy').length || 0,
+      servicesDown: healthChecks?.filter(h => h.status === 'down').length || 0
     });
 
     // 2. Decide — send state to LLM for analysis
     await logStep(
       'agent_deciding',
       `Analyzing ${activity.length} events`,
-      `${github?.totalCommits || 0} commits today, ${blogs.length} blog posts, social agent ${moltbook.online ? 'online' : 'offline'}`,
+      `${github?.totalCommits || 0} commits today, ${blogs.length} blog posts, social agent ${moltbook.online ? 'online' : 'offline'}, ${healthChecks?.filter(h => h.status === 'healthy').length || 0}/${healthChecks?.length || 0} services healthy`,
       'Sending system state to LLM for analysis and action planning'
     );
 
@@ -1071,7 +1159,7 @@ exports.handler = async (event, context) => {
       'agent_observing',
       summaryTitle,
       decision.reasoning,
-      `Orchestration cycle complete. Analyzed ${activity.length} recent events, ${github?.totalCommits || 0} commits, ${blogs.length} blog posts. Cost: $${decision.cost?.toFixed(6) || '0'}`,
+      `Orchestration cycle complete. Analyzed ${activity.length} recent events, ${github?.totalCommits || 0} commits, ${blogs.length} blog posts. Services: ${healthChecks?.filter(h => h.status === 'healthy').length || 0}/${healthChecks?.length || 0} healthy. Cost: $${decision.cost?.toFixed(6) || '0'}`,
       {
         actionsExecuted: actionsTaken.length,
         totalEvents: activity.length,
@@ -1096,7 +1184,13 @@ exports.handler = async (event, context) => {
           moltbookOnline: moltbook.online,
           knowledgeGaps: knowledgeGaps.length,
           chatConversations: chatStats?.totalChats || 0,
-          ragChunks: ragHealth?.totalChunks || 0
+          ragChunks: ragHealth?.totalChunks || 0,
+          serviceHealth: {
+            total: healthChecks?.length || 0,
+            healthy: healthChecks?.filter(h => h.status === 'healthy').length || 0,
+            down: healthChecks?.filter(h => h.status === 'down').length || 0,
+            services: healthChecks?.map(h => ({ name: h.name, status: h.status, latencyMs: h.latencyMs })) || []
+          }
         }
       })
     };

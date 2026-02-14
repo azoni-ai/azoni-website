@@ -185,8 +185,16 @@ export default function SpellBrigade() {
   });
   const [showQuestLog, setShowQuestLog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [storyIntro, setStoryIntro] = useState(null); // { npcName, npcColor, lines, isNew }
+  const [storyLineIndex, setStoryLineIndex] = useState(0);
+  const [storyCharIndex, setStoryCharIndex] = useState(0);
+  const [storyFullLine, setStoryFullLine] = useState(false);
+  const storyIntroRef = useRef(null);
   const [activeNpcQuests, setActiveNpcQuests] = useState([]); // [{id, name, type, target, zone, required, progress, rewardText}]
   const [completedNpcQuests, setCompletedNpcQuests] = useState([]);
+  const activeNpcQuestsRef = useRef([]);
+  const completedNpcQuestsRef = useRef([]);
+  const questLogRef = useRef({});
   const [questNotification, setQuestNotification] = useState(null); // {text, color}
   
   // In-game settings modal
@@ -212,9 +220,26 @@ export default function SpellBrigade() {
     settingsRef.current = settings;
   }, [settings]);
 
+  // Typewriter effect for story intro
+  useEffect(() => {
+    if (!storyIntro || storyLineIndex >= storyIntro.lines.length) return;
+    if (storyFullLine) return;
+    const line = storyIntro.lines[storyLineIndex];
+    if (storyCharIndex >= line.length) {
+      setStoryFullLine(true);
+      return;
+    }
+    const timer = setTimeout(() => setStoryCharIndex(prev => prev + 1), 28);
+    return () => clearTimeout(timer);
+  }, [storyIntro, storyLineIndex, storyCharIndex, storyFullLine]);
+
+  // Keep storyIntro ref in sync for Escape key handler
+  useEffect(() => { storyIntroRef.current = storyIntro; }, [storyIntro]);
+
   // Track active modal for escape key (avoids stale closures in keyboard handler)
   useEffect(() => {
-    if (npcDialogue) activeModalRef.current = 'npcDialogue';
+    if (storyIntro) activeModalRef.current = 'storyIntro';
+    else if (npcDialogue) activeModalRef.current = 'npcDialogue';
     else if (showSpellbook) activeModalRef.current = 'spellbook';
     else if (showQuestLog) activeModalRef.current = 'questLog';
     else if (showEmotes) activeModalRef.current = 'emotes';
@@ -223,7 +248,7 @@ export default function SpellBrigade() {
     else if (showCharacterSheet) activeModalRef.current = 'characterSheet';
     else if (showInGameSettings) activeModalRef.current = 'settings';
     else activeModalRef.current = null;
-  }, [npcDialogue, showSpellbook, showQuestLog, showEmotes, showShop, showSkinSelect, showCharacterSheet, showInGameSettings]);
+  }, [storyIntro, npcDialogue, showSpellbook, showQuestLog, showEmotes, showShop, showSkinSelect, showCharacterSheet, showInGameSettings]);
 
   // Keep dungeon refs in sync for render loop
   useEffect(() => {
@@ -233,6 +258,11 @@ export default function SpellBrigade() {
   useEffect(() => {
     dungeonVictoryPortalRef.current = dungeonVictoryPortal;
   }, [dungeonVictoryPortal]);
+
+  // Keep quest refs in sync for render loop markers
+  useEffect(() => { activeNpcQuestsRef.current = activeNpcQuests; }, [activeNpcQuests]);
+  useEffect(() => { completedNpcQuestsRef.current = completedNpcQuests; }, [completedNpcQuests]);
+  useEffect(() => { questLogRef.current = questLog; }, [questLog]);
   
   useEffect(() => {
     screenRef.current = screen;
@@ -924,14 +954,8 @@ export default function SpellBrigade() {
       if (data.player.activeQuests) setActiveNpcQuests(data.player.activeQuests);
       if (data.player.completedQuests) setCompletedNpcQuests(data.player.completedQuests);
       
-      // Show tutorial for brand new characters (per-character, not global)
-      if (data.player.level <= 1 && (data.player.kills || 0) === 0) {
-        const tutorialKey = `spellBrigadeTutorial_${data.playerId}`;
-        const tutorialSeen = localStorage.getItem(tutorialKey);
-        if (!tutorialSeen) {
-          setTimeout(() => setShowTutorial(true), 1200);
-        }
-      }
+      // Tutorial now chains from story intro dismissal (see storyIntro handler)
+      // Story intro is sent by server for new characters
       if (data.classes) setClasses(prev => ({ ...prev, ...data.classes }));
       if (data.world) gameStateRef.current.world = data.world;
       
@@ -1241,6 +1265,10 @@ export default function SpellBrigade() {
       playSound('playerHit');
     });
 
+    socket.on('screenShake', (data) => {
+      screenShakeRef.current = { intensity: data.intensity || 5, duration: data.duration || 300, startTime: Date.now() };
+    });
+
     socket.on('sound', (data) => {
       // Play sounds from server with distance attenuation
       if (data.x !== undefined && data.y !== undefined) {
@@ -1460,6 +1488,46 @@ export default function SpellBrigade() {
       playSound('bossAttack');
       // Screen shake for rage mode
       screenShakeRef.current = { intensity: 15, duration: 1000, startTime: Date.now() };
+    });
+
+    // Zone boss phase transition
+    socket.on('bossPhase', (data) => {
+      effectsRef.current.push({
+        type: 'bossPhase',
+        x: data.x, y: data.y,
+        color: data.color || '#fff',
+        phase: data.phase,
+        startTime: Date.now(),
+        duration: 2000,
+      });
+      // Show phase text as a cast text effect
+      effectsRef.current.push({
+        type: 'castText',
+        text: `⚠ ${data.bossName} — Phase ${data.phase}!`,
+        x: data.x, y: data.y - 80,
+        color: data.phase >= 3 ? '#ef4444' : '#fbbf24',
+        startTime: Date.now(),
+      });
+      screenShakeRef.current = { intensity: 10, duration: 800, startTime: Date.now() };
+      playSound('bossAttack');
+    });
+
+    // Zone boss attack visual effects (ring, line, ring_expand)
+    socket.on('bossAttackEffect', (data) => {
+      effectsRef.current.push({
+        type: 'bossAttackEffect',
+        effectType: data.type,
+        x: data.x, y: data.y,
+        dx: data.dx, dy: data.dy,
+        radius: data.radius,
+        innerRadius: data.innerRadius,
+        outerRadius: data.outerRadius,
+        length: data.length,
+        width: data.width,
+        color: data.color || '#fff',
+        startTime: Date.now(),
+        duration: data.duration || 600,
+      });
     });
     
     // Dragon defeated - victory portal spawns
@@ -2183,6 +2251,55 @@ export default function SpellBrigade() {
       });
     });
 
+    // Easter egg / secret discovery notifications
+    socket.on('secretDiscovered', (data) => {
+      console.log(`🔮 Secret: ${data.message}`);
+      // Show as a special floating notification
+      effectsRef.current.push({
+        type: 'secretNotification',
+        message: data.message,
+        emoji: data.emoji || '✨',
+        secretType: data.type,
+        startTime: Date.now(),
+        duration: data.type === 'runeComplete' ? 5000 : 3500,
+      });
+      // Screen effect based on type
+      if (data.type === 'shrine' || data.type === 'runeComplete') {
+        screenShakeRef.current = { intensity: 4, duration: 400, startTime: Date.now() };
+      }
+      if (data.type === 'runeComplete') {
+        screenShakeRef.current = { intensity: 8, duration: 800, startTime: Date.now() };
+      }
+      playSound('levelUp');
+    });
+
+    // Class passive proc notifications
+    socket.on('passiveProc', (data) => {
+      const me = meRef.current;
+      if (me) {
+        effectsRef.current.push({
+          type: 'castText',
+          text: data.message || 'Passive!',
+          x: me.x, y: me.y - 30,
+          color: data.type === 'bloodlust' ? '#fbbf24' : data.type === 'riposte' ? '#c0c0c0' : '#fff',
+          startTime: Date.now(),
+        });
+      }
+    });
+
+    // Golden enemy spawn alert
+    socket.on('goldenSpawn', (data) => {
+      effectsRef.current.push({
+        type: 'secretNotification',
+        message: `⭐ A ${data.name} has appeared nearby!`,
+        emoji: '⭐',
+        secretType: 'golden',
+        startTime: Date.now(),
+        duration: 3000,
+      });
+      playSound('bossSpawn');
+    });
+
     socket.on('recalled', (data) => {
       console.log('🏠 Recalled to Sanctuary');
       playSound('portalEnter');
@@ -2298,6 +2415,16 @@ export default function SpellBrigade() {
 
     socket.on('chatHistory', (history) => {
       setChatMessages(history || []);
+    });
+
+    // Story intro from Ethereal Guide
+    socket.on('storyIntro', (data) => {
+      if (data?.lines?.length > 0) {
+        setStoryIntro(data);
+        setStoryLineIndex(0);
+        setStoryCharIndex(0);
+        setStoryFullLine(false);
+      }
     });
 
     // Emit leave when page is closed/refreshed
@@ -2587,10 +2714,32 @@ export default function SpellBrigade() {
         }
       }
 
+      // Space/Enter - advance story dialogue
+      if ((e.code === 'Space' || e.code === 'Enter') && activeModalRef.current === 'storyIntro') {
+        e.preventDefault();
+        // Simulate the same click logic as the CONTINUE/BEGIN button
+        const intro = storyIntroRef.current;
+        if (!intro) return;
+        // This triggers a synthetic click on the story button by dispatching state updates
+        // We need to read current line index from a ref since this is in a closure
+        document.querySelector('[data-story-advance]')?.click();
+        return;
+      }
+
       // ESC - close open modals or toggle settings
       if (e.code === 'Escape' && playerIdRef.current) {
         const modal = activeModalRef.current;
-        if (modal === 'npcDialogue') { setNpcDialogue(null); }
+        if (modal === 'storyIntro') {
+          const wasNew = storyIntroRef.current?.isNew;
+          setStoryIntro(null);
+          if (wasNew) {
+            const tutorialKey = `spellBrigadeTutorial_${playerIdRef.current}`;
+            if (!localStorage.getItem(tutorialKey)) {
+              setTimeout(() => setShowTutorial(true), 400);
+            }
+          }
+        }
+        else if (modal === 'npcDialogue') { setNpcDialogue(null); }
         else if (modal === 'spellbook') { setShowSpellbook(false); }
         else if (modal === 'questLog') { setShowQuestLog(false); }
         else if (modal === 'emotes') { setShowEmotes(false); }
@@ -5305,14 +5454,33 @@ export default function SpellBrigade() {
           ctx.restore();
         }
         
-        // Exclamation mark quest indicator
+        // Quest indicator - state-aware
+        const zoneQuestId = qnpc.targetZone.replace('crystal_caves', 'crystal') + '_quest';
+        const bossQuest = questLogRef.current?.[zoneQuestId];
+        const questCompleted = bossQuest?.completed;
+        const questActive = bossQuest?.active;
+        
         const exBob = Math.sin(qtime * 4) * 3;
         ctx.font = 'bold 18px Arial';
-        ctx.fillStyle = '#fbbf24';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
-        ctx.shadowColor = 'rgba(251,191,36,0.5)'; ctx.shadowBlur = 8;
-        ctx.fillText('!', qx, qy - 36 + bob + exBob);
+        
+        if (questCompleted) {
+          // Green check - quest done
+          ctx.fillStyle = '#4ade80';
+          ctx.shadowColor = 'rgba(74,222,128,0.5)'; ctx.shadowBlur = 8;
+          ctx.fillText('✓', qx, qy - 36 + bob + exBob);
+        } else if (questActive) {
+          // Gray ? - quest in progress
+          ctx.fillStyle = '#888';
+          ctx.shadowColor = 'rgba(136,136,136,0.3)'; ctx.shadowBlur = 4;
+          ctx.fillText('?', qx, qy - 36 + bob + exBob);
+        } else {
+          // Yellow ! - quest available
+          ctx.fillStyle = '#fbbf24';
+          ctx.shadowColor = 'rgba(251,191,36,0.5)'; ctx.shadowBlur = 8;
+          ctx.fillText('!', qx, qy - 36 + bob + exBob);
+        }
         ctx.shadowBlur = 0;
         
         // Name
@@ -5845,9 +6013,321 @@ export default function SpellBrigade() {
             ctx.fillStyle = '#ffd93d';
             ctx.fillText('[E] Dungeon Workshop', nx, ny + 43);
           }
+        } else if (npc.type === 'hunt_master') {
+          // Hunt Master Grimjaw - gruff warrior NPC
+          const bobY = Math.sin(time * 2.5) * 2;
+          const npcColor = npc.color || '#ef4444';
+          
+          // Shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + 15, 12, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Body - heavy build
+          ctx.fillStyle = '#451a03';
+          ctx.beginPath();
+          ctx.moveTo(nx, ny - 12 + bobY);
+          ctx.lineTo(nx - 16, ny + 14);
+          ctx.lineTo(nx + 16, ny + 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = npcColor;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Belt
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(nx - 14, ny + 4, 28, 4);
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(nx - 3, ny + 3, 6, 6);
+          
+          // Head
+          ctx.beginPath();
+          ctx.arc(nx, ny - 18 + bobY, 10, 0, Math.PI * 2);
+          ctx.fillStyle = '#d4a574';
+          ctx.fill();
+          
+          // Scar
+          ctx.strokeStyle = '#9a3412';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(nx - 6, ny - 22 + bobY);
+          ctx.lineTo(nx - 2, ny - 16 + bobY);
+          ctx.stroke();
+          
+          // Eyes (angry)
+          ctx.fillStyle = '#333';
+          ctx.fillRect(nx - 5, ny - 20 + bobY, 3, 2);
+          ctx.fillRect(nx + 2, ny - 20 + bobY, 3, 2);
+          
+          // Axe on back
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(nx + 12, ny + 10);
+          ctx.lineTo(nx + 18, ny - 25 + bobY);
+          ctx.stroke();
+          ctx.fillStyle = '#a8a29e';
+          ctx.beginPath();
+          ctx.moveTo(nx + 18, ny - 25 + bobY);
+          ctx.lineTo(nx + 12, ny - 30 + bobY);
+          ctx.lineTo(nx + 24, ny - 30 + bobY);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Quest marker - state-aware
+          const huntActive = activeNpcQuestsRef.current || [];
+          const huntCompleted = completedNpcQuestsRef.current || [];
+          const hasHuntReady = huntActive.some(q => q.type === 'kill' && q.progress >= q.required);
+          const hasHuntActive = huntActive.some(q => q.type === 'kill');
+          const allHuntDone = [
+            'hunt_slimes','hunt_bats','hunt_skeletons','hunt_wolves',
+            'hunt_fire_imps','hunt_yetis','hunt_demons','hunt_crystal_drakes'
+          ].every(id => huntCompleted.includes(id));
+          
+          const hBob = Math.sin(time * 4) * 3;
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'alphabetic';
+          if (allHuntDone) {
+            // No marker - all done
+          } else if (hasHuntReady) {
+            ctx.fillStyle = '#4ade80';
+            ctx.shadowColor = 'rgba(74,222,128,0.5)'; ctx.shadowBlur = 8;
+            ctx.fillText('✓', nx, ny - 32 + bobY + hBob);
+            ctx.shadowBlur = 0;
+          } else if (hasHuntActive) {
+            ctx.fillStyle = '#888';
+            ctx.shadowColor = 'rgba(136,136,136,0.3)'; ctx.shadowBlur = 4;
+            ctx.fillText('?', nx, ny - 32 + bobY + hBob);
+            ctx.shadowBlur = 0;
+          } else {
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = 'rgba(251,191,36,0.5)'; ctx.shadowBlur = 8;
+            ctx.fillText('!', nx, ny - 32 + bobY + hBob);
+            ctx.shadowBlur = 0;
+          }
+          
+          // Name
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = npcColor;
+          ctx.textAlign = 'center';
+          ctx.fillText(npc.name || 'Hunt Master', nx, ny + 28);
+          
+          if (nearbyNpc?.id === npc.id) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillText('[E] Bounties', nx, ny + 40);
+          }
+          
+        } else if (npc.type === 'herbalist') {
+          // Herbalist Willow - nature-themed NPC
+          const bobY = Math.sin(time * 2) * 3;
+          const npcColor = npc.color || '#4ade80';
+          
+          // Leaf aura
+          const leafGlow = ctx.createRadialGradient(nx, ny + bobY, 0, nx, ny + bobY, 35);
+          leafGlow.addColorStop(0, 'rgba(74,222,128,0.15)');
+          leafGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = leafGlow;
+          ctx.beginPath();
+          ctx.arc(nx, ny + bobY, 35, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath();
+          ctx.ellipse(nx, ny + 15, 12, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Robe
+          ctx.fillStyle = '#14532d';
+          ctx.beginPath();
+          ctx.moveTo(nx, ny - 14 + bobY);
+          ctx.lineTo(nx - 14, ny + 14);
+          ctx.lineTo(nx + 14, ny + 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = npcColor;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          
+          // Leaf pattern on robe
+          ctx.fillStyle = npcColor + '50';
+          ctx.beginPath();
+          ctx.ellipse(nx - 3, ny + 2 + bobY, 4, 7, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(nx + 4, ny + 4 + bobY, 3, 5, 0.4, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Head
+          ctx.beginPath();
+          ctx.arc(nx, ny - 18 + bobY, 10, 0, Math.PI * 2);
+          ctx.fillStyle = '#fce7c8';
+          ctx.fill();
+          
+          // Hair wreath
+          ctx.strokeStyle = '#15803d';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(nx, ny - 20 + bobY, 12, Math.PI * 0.8, Math.PI * 0.2);
+          ctx.stroke();
+          
+          // Tiny flowers in hair
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(nx - 10, ny - 24 + bobY, 2, 0, Math.PI * 2);
+          ctx.arc(nx + 8, ny - 26 + bobY, 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Eyes (friendly)
+          ctx.fillStyle = '#166534';
+          ctx.beginPath();
+          ctx.arc(nx - 3, ny - 19 + bobY, 2, 0, Math.PI * 2);
+          ctx.arc(nx + 3, ny - 19 + bobY, 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Potion bottle in hand
+          ctx.fillStyle = '#bbf7d0';
+          ctx.beginPath();
+          ctx.fillRect(nx + 12, ny - 2 + bobY, 8, 12);
+          ctx.fill();
+          ctx.fillStyle = '#4ade80';
+          ctx.beginPath();
+          ctx.fillRect(nx + 13, ny + 3 + bobY, 6, 6);
+          ctx.fill();
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(nx + 14, ny - 4 + bobY, 4, 3);
+          
+          // Floating leaf particles
+          for (let i = 0; i < 3; i++) {
+            const la = time * 1.2 + i * 2.1;
+            const lr = 22 + Math.sin(time + i) * 5;
+            const lx = nx + Math.cos(la) * lr;
+            const ly = ny + bobY - 5 + Math.sin(la) * lr * 0.4;
+            ctx.fillStyle = `rgba(74,222,128,${0.4 + Math.sin(time * 2 + i) * 0.2})`;
+            ctx.beginPath();
+            ctx.ellipse(lx, ly, 2, 4, la, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Quest marker - state-aware
+          const collActive = activeNpcQuestsRef.current || [];
+          const collCompleted = completedNpcQuestsRef.current || [];
+          const hasCollReady = collActive.some(q => q.type === 'collect' && q.progress >= q.required);
+          const hasCollActive = collActive.some(q => q.type === 'collect');
+          const allCollDone = [
+            'collect_meadow_herbs','collect_forest_mushrooms','collect_fire_crystals',
+            'collect_frost_flowers','collect_void_shards','collect_prism_dust'
+          ].every(id => collCompleted.includes(id));
+          
+          const cBob = Math.sin(time * 4) * 3;
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'alphabetic';
+          if (allCollDone) {
+            // No marker
+          } else if (hasCollReady) {
+            ctx.fillStyle = '#4ade80';
+            ctx.shadowColor = 'rgba(74,222,128,0.5)'; ctx.shadowBlur = 8;
+            ctx.fillText('✓', nx, ny - 32 + bobY + cBob);
+            ctx.shadowBlur = 0;
+          } else if (hasCollActive) {
+            ctx.fillStyle = '#888';
+            ctx.shadowColor = 'rgba(136,136,136,0.3)'; ctx.shadowBlur = 4;
+            ctx.fillText('?', nx, ny - 32 + bobY + cBob);
+            ctx.shadowBlur = 0;
+          } else {
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = 'rgba(251,191,36,0.5)'; ctx.shadowBlur = 8;
+            ctx.fillText('!', nx, ny - 32 + bobY + cBob);
+            ctx.shadowBlur = 0;
+          }
+          
+          // Name
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = npcColor;
+          ctx.textAlign = 'center';
+          ctx.fillText(npc.name || 'Herbalist', nx, ny + 28);
+          
+          if (nearbyNpc?.id === npc.id) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#ffd93d';
+            ctx.fillText('[E] Gather Quests', nx, ny + 40);
+          }
         }
       }
       } // End of if (!inDungeon) for buildings/campfire/NPCs
+
+      // ========== SECRETS & EASTER EGGS ========== (skip in dungeon)
+      if (!inDungeonRef.current) {
+        const SECRETS_RENDER = {
+          shrine_speed: { x: 2200, y: 6200, emoji: '🌀', name: 'Windrunner Shrine', color: '#0ea5e9' },
+          shrine_damage: { x: 16500, y: 3000, emoji: '⚔️', name: 'Berserker Altar', color: '#dc2626' },
+          shrine_regen: { x: 12000, y: 15000, emoji: '🌿', name: 'Life Spring', color: '#22c55e' },
+          shrine_giant: { x: 2000, y: 1200, emoji: '🗿', name: 'Titan Stone', color: '#a78bfa' },
+          chest_forest: { x: 1200, y: 5800, emoji: '📦', name: 'Moss-Covered Chest', color: '#ffd700' },
+          chest_volcanic: { x: 19500, y: 2000, emoji: '🔶', name: 'Charred Strongbox', color: '#f97316' },
+          chest_crystal: { x: 20000, y: 10500, emoji: '💎', name: 'Crystal Geode', color: '#ec4899' },
+          chest_abyss: { x: 2800, y: 800, emoji: '🌀', name: 'Void Cache', color: '#7c3aed' },
+          rune_alpha: { x: 4500, y: 3500, emoji: '🔮', name: 'Rune of Power', color: '#a855f7' },
+          rune_beta: { x: 18000, y: 5000, emoji: '🔮', name: 'Rune of Wisdom', color: '#a855f7' },
+          rune_gamma: { x: 8000, y: 16000, emoji: '🔮', name: 'Rune of Eternity', color: '#a855f7' },
+          fishing_spot: { x: 11500, y: 7200, emoji: '🎣', name: 'Peaceful Pond', color: '#0ea5e9' },
+          fishing_frozen: { x: 10000, y: 14500, emoji: '🐟', name: 'Ice Hole', color: '#38bdf8' },
+          campfire_stories: { x: 6500, y: 4500, emoji: '🏕️', name: 'Wanderer\'s Campfire', color: '#f97316' },
+          campfire_volcanic: { x: 17500, y: 4200, emoji: '🔥', name: 'Ember Pit', color: '#ef4444' },
+          wishing_well_meadow: { x: 9200, y: 8200, emoji: '⛲', name: 'Wishing Well', color: '#ffd700' },
+          wishing_well_crystal: { x: 19000, y: 9000, emoji: '💎', name: 'Crystal Fountain', color: '#ec4899' },
+          mushroom_circle: { x: 3500, y: 7000, emoji: '🍄', name: 'Fairy Ring', color: '#a855f7' },
+          grave_meadow: { x: 8800, y: 6800, emoji: '🪦', name: 'Weathered Gravestone', color: '#78716c' },
+          grave_abyss: { x: 1500, y: 2200, emoji: '🪦', name: 'Abyssal Tombstone', color: '#6b21a8' },
+          aurora_spot: { x: 7000, y: 17000, emoji: '🌌', name: 'Northern Lights', color: '#06b6d4' },
+          dance_floor: { x: 10500, y: 10200, emoji: '🕺', name: 'The Groove Zone', color: '#f472b6' },
+          obelisk: { x: 15000, y: 8000, emoji: '🗿', name: 'Ancient Obelisk', color: '#94a3b8' },
+          hot_spring: { x: 18500, y: 5500, emoji: '♨️', name: 'Hot Spring', color: '#ef4444' },
+          echo_cave: { x: 21000, y: 11000, emoji: '🔊', name: 'Echo Cave', color: '#c084fc' },
+          shadow_mirror: { x: 3000, y: 3000, emoji: '🪞', name: 'Shadow Mirror', color: '#581c87' },
+        };
+        
+        for (const [sId, s] of Object.entries(SECRETS_RENDER)) {
+          const sx = s.x - cx;
+          const sy = s.y - cy;
+          if (sx < -100 || sx > width + 100 || sy < -100 || sy > height + 100) continue;
+          
+          const time = Date.now() / 1000;
+          const bob = Math.sin(time * 2 + s.x) * 3;
+          const pulse = 0.8 + Math.sin(time * 3 + s.y) * 0.2;
+          
+          // Glow circle
+          ctx.beginPath();
+          ctx.arc(sx, sy + bob, 25 * pulse, 0, Math.PI * 2);
+          const glow = ctx.createRadialGradient(sx, sy + bob, 0, sx, sy + bob, 25 * pulse);
+          glow.addColorStop(0, s.color + '30');
+          glow.addColorStop(1, 'transparent');
+          ctx.fillStyle = glow;
+          ctx.fill();
+          
+          // Emoji
+          ctx.font = '20px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(s.emoji, sx, sy + bob);
+          
+          // Name (only when close)
+          const distToPlayer = Math.sqrt((s.x - (meRef.current?.x || 0)) ** 2 + (s.y - (meRef.current?.y || 0)) ** 2);
+          if (distToPlayer < 200) {
+            ctx.font = 'bold 10px Arial';
+            ctx.fillStyle = s.color;
+            ctx.fillText(s.name, sx, sy + bob - 22);
+            ctx.fillStyle = '#ffffff88';
+            ctx.font = '9px Arial';
+            ctx.fillText('[Walk close to interact]', sx, sy + bob + 22);
+          }
+        }
+      }
 
       // ========== PORTALS ========== (skip in dungeon)
       if (!inDungeonRef.current) {
@@ -5956,6 +6436,53 @@ export default function SpellBrigade() {
         const sy = enemy.y - cy;
         const cullDist = enemy.isBoss ? 300 : 60;
         if (sx < -cullDist || sx > width + cullDist || sy < -cullDist || sy > height + cullDist) continue;
+
+        // ========== SUMMON MINIONS (friendly allies) ==========
+        if (enemy.isSummon) {
+          const sTime = Date.now() / 1000;
+          const sBob = Math.sin(sTime * 4 + enemy.x) * 3;
+          const sColor = enemy.color || '#a78bfa';
+          const sRadius = enemy.radius || 12;
+          // Glow aura
+          ctx.beginPath();
+          ctx.arc(sx, sy + sBob, sRadius + 8, 0, Math.PI * 2);
+          const sGlow = ctx.createRadialGradient(sx, sy + sBob, 0, sx, sy + sBob, sRadius + 8);
+          sGlow.addColorStop(0, sColor + '40');
+          sGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = sGlow;
+          ctx.fill();
+          // Core body
+          ctx.beginPath();
+          ctx.arc(sx, sy + sBob, sRadius, 0, Math.PI * 2);
+          const sBody = ctx.createRadialGradient(sx, sy + sBob - 3, 0, sx, sy + sBob, sRadius);
+          sBody.addColorStop(0, '#fff');
+          sBody.addColorStop(0.4, sColor);
+          sBody.addColorStop(1, sColor + '80');
+          ctx.fillStyle = sBody;
+          ctx.fill();
+          // Eyes
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(sx - 3, sy + sBob - 2, 2, 0, Math.PI * 2);
+          ctx.arc(sx + 3, sy + sBob - 2, 2, 0, Math.PI * 2);
+          ctx.fill();
+          // Orbiting sparkle
+          const sparkAngle = sTime * 3;
+          const sparkX = sx + Math.cos(sparkAngle) * (sRadius + 4);
+          const sparkY = sy + sBob + Math.sin(sparkAngle) * (sRadius + 4);
+          ctx.beginPath();
+          ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+          // Health bar
+          if (enemy.health < enemy.maxHealth) {
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(sx - 12, sy - sRadius - 10 + sBob, 24, 4);
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(sx - 12, sy - sRadius - 10 + sBob, 24 * enemy.health / enemy.maxHealth, 4);
+          }
+          continue; // Skip normal enemy rendering
+        }
 
         const isBoss = enemy.isBoss;
         const bounce = enemy.isFrozen ? 0 : Math.sin((enemy.animFrame || 0) * Math.PI / 2) * 0.8;
@@ -6820,6 +7347,37 @@ export default function SpellBrigade() {
           const time = Date.now() / 1000;
           const enemyType = enemy.type;
           const r = 14; // Base radius for regular enemies
+          
+          // Golden enemy glow effect
+          if (enemy.isGolden) {
+            const goldenPulse = 0.6 + Math.sin(time * 3) * 0.4;
+            const goldenR = (enemy.radius || r) + 12;
+            // Outer golden glow
+            ctx.beginPath();
+            ctx.arc(sx, sy - bounce, goldenR, 0, Math.PI * 2);
+            const gGlow = ctx.createRadialGradient(sx, sy - bounce, 0, sx, sy - bounce, goldenR);
+            gGlow.addColorStop(0, `rgba(255, 215, 0, ${goldenPulse * 0.3})`);
+            gGlow.addColorStop(0.6, `rgba(255, 180, 0, ${goldenPulse * 0.15})`);
+            gGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = gGlow;
+            ctx.fill();
+            // Sparkle particles orbiting
+            for (let sp = 0; sp < 4; sp++) {
+              const spAngle = time * 2 + (sp * Math.PI * 2 / 4);
+              const spDist = goldenR * 0.7;
+              const spx = sx + Math.cos(spAngle) * spDist;
+              const spy = sy - bounce + Math.sin(spAngle) * spDist * 0.6;
+              ctx.beginPath();
+              ctx.arc(spx, spy, 1.5, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(255, 255, 200, ${goldenPulse})`;
+              ctx.fill();
+            }
+            // Crown above
+            ctx.fillStyle = '#ffd700';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('👑', sx, sy - bounce - (enemy.radius || r) - 8);
+          }
           
           if (enemyType === 'slime') {
             // Bouncy slime blob
@@ -9226,14 +9784,24 @@ export default function SpellBrigade() {
 
           // Health bar (only if damaged)
           if (enemy.health < enemy.maxHealth) {
-            const hbW = 28;
+            const hbW = enemy.isGolden ? 36 : 28;
             const hbY = sy - 30;
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.fillRect(sx - hbW / 2 - 1, hbY - 1, hbW + 2, 6);
             ctx.fillStyle = '#1a1a2e';
             ctx.fillRect(sx - hbW / 2, hbY, hbW, 4);
-            ctx.fillStyle = '#ef4444';
+            ctx.fillStyle = enemy.isGolden ? '#ffd700' : '#ef4444';
             ctx.fillRect(sx - hbW / 2, hbY, hbW * enemy.health / enemy.maxHealth, 4);
+          }
+          // Golden enemy name tag
+          if (enemy.isGolden && enemy.name) {
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffd700';
+            ctx.fillText(enemy.name, sx, sy - 36);
+            ctx.font = '8px sans-serif';
+            ctx.fillStyle = '#fbbf24aa';
+            ctx.fillText('3x XP', sx, sy - 26);
           }
         }
 
@@ -10454,7 +11022,7 @@ export default function SpellBrigade() {
         }
 
         // Custom AI Wizard special aura - themed glow + orbiting sparkles
-        if (isCustomWizard && !isVoidlord && !isShadowArcher && !isBrute && !isSwordsman && !skin?.aura) {
+        if ((bodyType === 'elemental' || bodyType === 'creature' || isCustomWizard) && !isVoidlord && !isShadowArcher && !isBrute && !isSwordsman && !skin?.aura) {
           const cwColor = player.customColor || classColor;
           const pulseSize = 32 + Math.sin(time * 2.5) * 6;
           
@@ -10494,17 +11062,19 @@ export default function SpellBrigade() {
 
         // Shadow
         ctx.beginPath();
-        ctx.ellipse(px, py + 12, isSpecialClass ? 20 : 16, isSpecialClass ? 10 : 8, 0, 0, Math.PI * 2);
-        ctx.fillStyle = isVoidlord ? 'rgba(255,0,255,0.4)' : isShadowArcher ? 'rgba(220,38,38,0.35)' : isBrute ? 'rgba(180,83,9,0.4)' : isCustomWizard ? (player.customColor || classColor) + '40' : 'rgba(0,0,0,0.3)';
+        ctx.ellipse(px, py + 12, (bodyType === 'hulk' || bodyType === 'warrior' || bodyType === 'creature') ? 20 : 16, (bodyType === 'hulk' || bodyType === 'warrior') ? 10 : 8, 0, 0, Math.PI * 2);
+        const shadowColor = isVoidlord ? 'rgba(255,0,255,0.4)' : isShadowArcher ? 'rgba(220,38,38,0.35)' : isBrute ? 'rgba(180,83,9,0.4)' : 
+          (player.customColor) ? (player.customColor + '40') : 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = shadowColor;
         ctx.fill();
 
-        // Body (Robe for wizards, cloak for archer, muscular torso for brute, armored for swordsman)
+        // Body (Uses bodyStyle from class config for all classes)
         const cwColor = player.customColor || classColor;
-        const bodyType = isBrute ? 'hulk' : isSwordsman ? 'warrior' : isShadowArcher ? 'archer' : 
-          isCustomWizard ? (customBodyStyle || 'wizard') : 'wizard';
+        const bodyType = player.customBodyStyle || 
+          (isBrute ? 'hulk' : isSwordsman ? 'warrior' : isShadowArcher ? 'archer' : 'wizard');
         
         ctx.fillStyle = isVoidlord ? '#1a0a2e' : isShadowArcher ? '#0f172a' : isBrute ? '#d4a574' : 
-          isSwordsman ? '#64748b' : isCustomWizard ? cwColor : classColor;
+          isSwordsman ? '#64748b' : cwColor || classColor;
         ctx.beginPath();
         
         if (bodyType === 'hulk') {
@@ -10692,8 +11262,8 @@ export default function SpellBrigade() {
           ctx.strokeStyle = '#94a3b8';
           ctx.lineWidth = 1.5;
           ctx.stroke();
-        } else if (isCustomWizard) {
-          ctx.strokeStyle = player.customColor || classColor;
+        } else if (bodyType !== 'wizard' || player.customColor) {
+          ctx.strokeStyle = player.customSecondaryColor || player.customColor || classColor;
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
@@ -10708,8 +11278,8 @@ export default function SpellBrigade() {
         ctx.fill();
 
         // Hat/Hood/Hair/Headgear
-        const headgearType = isBrute ? 'headband' : isSwordsman ? 'helmet' : isShadowArcher ? 'hood' : 
-          isCustomWizard ? (customHeadgear || 'pointyHat') : 'pointyHat';
+        const headgearType = player.customHeadgear || 
+          (isBrute ? 'headband' : isSwordsman ? 'helmet' : isShadowArcher ? 'hood' : 'pointyHat');
         
         if (headgearType === 'headband') {
           // Buzz cut / flat top hair (Brute)
@@ -10993,6 +11563,75 @@ export default function SpellBrigade() {
           ctx.fillRect(px - 18, py - 50 - bob, 36, 5);
           ctx.fillStyle = isVoidlord ? '#ff00ff' : '#ef4444';
           ctx.fillRect(px - 18, py - 50 - bob, 36 * player.health / player.maxHealth, 5);
+          // Shield bar overlay
+          if (player.shieldActive) {
+            ctx.fillStyle = (player.shieldColor || '#00bfff') + 'aa';
+            const shieldPct = Math.min(1, (player.shieldAmount || 0) / (player.maxHealth * 0.4));
+            ctx.fillRect(px - 18, py - 50 - bob, 36 * shieldPct, 5);
+          }
+        }
+
+        // Shield bubble effect
+        if (player.shieldActive) {
+          const shieldTime = Date.now() / 1000;
+          const shieldPulse = 0.9 + Math.sin(shieldTime * 4) * 0.1;
+          ctx.beginPath();
+          ctx.arc(px, py, 30 * shieldPulse, 0, Math.PI * 2);
+          ctx.strokeStyle = (player.shieldColor || '#00bfff') + '80';
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+          // Hexagonal fragments
+          for (let h = 0; h < 6; h++) {
+            const ha = (h / 6) * Math.PI * 2 + shieldTime * 0.5;
+            const hx = px + Math.cos(ha) * 28;
+            const hy = py + Math.sin(ha) * 28;
+            ctx.beginPath();
+            ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+            ctx.fillStyle = (player.shieldColor || '#00bfff') + '40';
+            ctx.fill();
+          }
+        }
+
+        // Transform aura effect
+        if (player.transformActive) {
+          const tTime = Date.now() / 1000;
+          const tColor = player.transformColor || '#ff6600';
+          // Spinning energy ring
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(tTime * 2);
+          ctx.beginPath();
+          ctx.arc(0, 0, 35, 0, Math.PI * 1.2);
+          ctx.strokeStyle = tColor + 'aa';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(0, 0, 35, Math.PI, Math.PI * 2.2);
+          ctx.strokeStyle = tColor + '60';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+          // Rising energy particles
+          for (let tp = 0; tp < 3; tp++) {
+            const tpOff = (tTime * 3 + tp * 0.7) % 2;
+            const tpx = px + Math.sin(tTime * 4 + tp * 2.1) * 15;
+            const tpy = py - tpOff * 30;
+            ctx.beginPath();
+            ctx.arc(tpx, tpy, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = tColor + Math.floor((1 - tpOff / 2) * 200).toString(16).padStart(2, '0');
+            ctx.fill();
+          }
+        }
+
+        // Giant size indicator
+        if (player.giantActive) {
+          ctx.beginPath();
+          ctx.arc(px, py, 40, 0, Math.PI * 2);
+          const gGrad = ctx.createRadialGradient(px, py, 20, px, py, 40);
+          gGrad.addColorStop(0, 'transparent');
+          gGrad.addColorStop(1, '#a855f720');
+          ctx.fillStyle = gGrad;
+          ctx.fill();
         }
 
         // Selection ring for self
@@ -11756,6 +12395,96 @@ export default function SpellBrigade() {
           }
         }
         
+        // === ZONE BOSS PHASE TRANSITION ===
+        else if (ef.type === 'bossPhase') {
+          const bx = ef.x - cx;
+          const by = ef.y - cy;
+          const pulseSize = 80 + progress * 200;
+          const ringAlpha = (1 - progress) * 0.6;
+          
+          // Expanding shockwave ring
+          ctx.beginPath();
+          ctx.arc(bx, by, pulseSize, 0, Math.PI * 2);
+          ctx.strokeStyle = ef.color + Math.floor(ringAlpha * 255).toString(16).padStart(2, '0');
+          ctx.lineWidth = 6 * (1 - progress);
+          ctx.stroke();
+          
+          // Inner flash
+          if (progress < 0.3) {
+            const flashAlpha = (0.3 - progress) / 0.3 * 0.4;
+            const flashGrad = ctx.createRadialGradient(bx, by, 0, bx, by, 60);
+            flashGrad.addColorStop(0, `rgba(255,255,255,${flashAlpha})`);
+            flashGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = flashGrad;
+            ctx.beginPath();
+            ctx.arc(bx, by, 60, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        
+        // === ZONE BOSS ATTACK EFFECTS ===
+        else if (ef.type === 'bossAttackEffect') {
+          ctx.save();
+          const ax = ef.x - cx;
+          const ay = ef.y - cy;
+          
+          if (ef.effectType === 'ring') {
+            // Expanding danger ring
+            const ringSize = ef.radius * (0.3 + progress * 0.7);
+            ctx.beginPath();
+            ctx.arc(ax, ay, ringSize, 0, Math.PI * 2);
+            const ringGrad = ctx.createRadialGradient(ax, ay, ringSize * 0.8, ax, ay, ringSize);
+            ringGrad.addColorStop(0, 'transparent');
+            ringGrad.addColorStop(0.7, ef.color + Math.floor(alpha * 80).toString(16).padStart(2, '0'));
+            ringGrad.addColorStop(1, ef.color + Math.floor(alpha * 180).toString(16).padStart(2, '0'));
+            ctx.fillStyle = ringGrad;
+            ctx.fill();
+            ctx.strokeStyle = ef.color + Math.floor(alpha * 200).toString(16).padStart(2, '0');
+            ctx.lineWidth = 3 * alpha;
+            ctx.stroke();
+          }
+          
+          else if (ef.effectType === 'line') {
+            // Directional slam line
+            const angle = Math.atan2(ef.dy, ef.dx);
+            ctx.translate(ax, ay);
+            ctx.rotate(angle);
+            const lineAlpha = Math.floor(alpha * 150).toString(16).padStart(2, '0');
+            ctx.fillStyle = ef.color + lineAlpha;
+            ctx.fillRect(0, -(ef.width || 40) / 2, ef.length || 300, ef.width || 40);
+            // Leading edge glow
+            ctx.fillStyle = '#fff' + Math.floor(alpha * 100).toString(16).padStart(2, '0');
+            const tipX = (ef.length || 300) * Math.min(1, progress * 2);
+            ctx.fillRect(tipX - 5, -(ef.width || 40) / 2, 10, ef.width || 40);
+          }
+          
+          else if (ef.effectType === 'ring_expand') {
+            // Expanding ring with safe zone inside
+            const expandProgress = Math.min(1, progress * 1.5);
+            const currentInner = (ef.innerRadius || 80) * expandProgress;
+            const currentOuter = (ef.outerRadius || 300) * expandProgress;
+            // Draw donut shape
+            ctx.beginPath();
+            ctx.arc(ax, ay, currentOuter, 0, Math.PI * 2);
+            ctx.arc(ax, ay, currentInner, 0, Math.PI * 2, true);
+            ctx.fillStyle = ef.color + Math.floor(alpha * 60).toString(16).padStart(2, '0');
+            ctx.fill();
+            // Ring edges
+            ctx.beginPath();
+            ctx.arc(ax, ay, currentOuter, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(alpha * 180).toString(16).padStart(2, '0');
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(ax, ay, currentInner, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(alpha * 120).toString(16).padStart(2, '0');
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          
+          ctx.restore();
+        }
+        
         // === DRAGON AWAKENS EFFECT ===
         else if (ef.type === 'dragonAwakens') {
           const dx = ef.x - cx;
@@ -12434,6 +13163,137 @@ export default function SpellBrigade() {
               ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 220).toString(16).padStart(2, '0');
               ctx.fill();
             }
+          } else if (style === 'buff') {
+            // Upward spiral of energy particles with golden glow
+            const spiralCount = 8;
+            for (let i = 0; i < spiralCount; i++) {
+              const t = (elapsed / 800 + i / spiralCount) % 1;
+              const a = t * Math.PI * 4 + (i * Math.PI * 2 / spiralCount);
+              const r = 20 + t * 15;
+              const y2 = ey - t * 50;
+              const px2 = ex + Math.cos(a) * r;
+              ctx.beginPath();
+              ctx.arc(px2, y2, 3 * fadeAlpha * (1 - t), 0, Math.PI * 2);
+              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * (1 - t) * 250).toString(16).padStart(2, '0');
+              ctx.fill();
+            }
+            // Base glow ring
+            ctx.beginPath();
+            ctx.arc(ex, ey, 30, 0, Math.PI * 2);
+            const buffGr = ctx.createRadialGradient(ex, ey, 0, ex, ey, 30);
+            buffGr.addColorStop(0, ef.color + Math.floor(fadeAlpha * 60).toString(16).padStart(2, '0'));
+            buffGr.addColorStop(1, 'transparent');
+            ctx.fillStyle = buffGr;
+            ctx.fill();
+            // Up arrows
+            if (progress < 0.5) {
+              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * 200).toString(16).padStart(2, '0');
+              ctx.font = 'bold 14px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('▲ BUFF ▲', ex, ey - 55);
+            }
+          } else if (style === 'shield') {
+            // Hexagonal shield barrier rotating around player
+            const shieldRadius = 35;
+            const hexCount = 6;
+            const shieldAlpha = fadeAlpha * (0.6 + 0.4 * Math.sin(elapsed * 0.005));
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.rotate(elapsed / 2000);
+            // Draw hexagonal shield plates
+            for (let i = 0; i < hexCount; i++) {
+              const angle = (i / hexCount) * Math.PI * 2;
+              const hx = Math.cos(angle) * shieldRadius;
+              const hy = Math.sin(angle) * shieldRadius;
+              ctx.beginPath();
+              for (let j = 0; j < 6; j++) {
+                const ha = (j / 6) * Math.PI * 2;
+                const px2 = hx + Math.cos(ha) * 10;
+                const py2 = hy + Math.sin(ha) * 10;
+                j === 0 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
+              }
+              ctx.closePath();
+              ctx.fillStyle = ef.color + Math.floor(shieldAlpha * 60).toString(16).padStart(2, '0');
+              ctx.fill();
+              ctx.strokeStyle = ef.color + Math.floor(shieldAlpha * 200).toString(16).padStart(2, '0');
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            }
+            ctx.restore();
+            // Outer ring
+            ctx.beginPath();
+            ctx.arc(ex, ey, shieldRadius + 12, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(shieldAlpha * 120).toString(16).padStart(2, '0');
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          } else if (style === 'summon') {
+            // Summoning circles with rising energy
+            const summonProg = Math.min(1, progress * 3);
+            const ringR = 50 * summonProg;
+            // Magic circle on ground
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.rotate(elapsed / 500);
+            ctx.beginPath();
+            ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+            ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 180).toString(16).padStart(2, '0');
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // Inner pentagram
+            for (let i = 0; i < 5; i++) {
+              const a1 = (i / 5) * Math.PI * 2 - Math.PI / 2;
+              const a2 = ((i + 2) / 5) * Math.PI * 2 - Math.PI / 2;
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(a1) * ringR * 0.8, Math.sin(a1) * ringR * 0.8);
+              ctx.lineTo(Math.cos(a2) * ringR * 0.8, Math.sin(a2) * ringR * 0.8);
+              ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 120).toString(16).padStart(2, '0');
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            }
+            ctx.restore();
+            // Rising sparks
+            for (let i = 0; i < 6; i++) {
+              const t2 = (elapsed / 600 + i * 0.15) % 1;
+              const sx = ex + (Math.random() - 0.5) * 40;
+              const sy = ey - t2 * 60;
+              ctx.beginPath();
+              ctx.arc(sx, sy, 2 * (1 - t2), 0, Math.PI * 2);
+              ctx.fillStyle = ef.color + Math.floor(fadeAlpha * (1 - t2) * 255).toString(16).padStart(2, '0');
+              ctx.fill();
+            }
+          } else if (style === 'transform') {
+            // Full-body energy cocoon with radiating power
+            const transformProg = Math.min(1, progress * 2);
+            const auraR = (ef.radius || 60) * 0.5 * transformProg;
+            // Pulsing aura
+            const pulse = 0.6 + 0.4 * Math.sin(elapsed * 0.01);
+            const aurGr = ctx.createRadialGradient(ex, ey, 0, ex, ey, auraR);
+            aurGr.addColorStop(0, ef.color + Math.floor(fadeAlpha * pulse * 80).toString(16).padStart(2, '0'));
+            aurGr.addColorStop(0.5, ef.color + Math.floor(fadeAlpha * pulse * 40).toString(16).padStart(2, '0'));
+            aurGr.addColorStop(1, 'transparent');
+            ctx.fillStyle = aurGr;
+            ctx.beginPath();
+            ctx.arc(ex, ey, auraR, 0, Math.PI * 2);
+            ctx.fill();
+            // Energy tendrils
+            ctx.save();
+            ctx.translate(ex, ey);
+            for (let i = 0; i < 8; i++) {
+              const a = (elapsed / 300) + (i * Math.PI * 2 / 8);
+              const len = auraR * (0.6 + 0.4 * Math.sin(elapsed / 150 + i));
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+              ctx.strokeStyle = ef.color + Math.floor(fadeAlpha * 150).toString(16).padStart(2, '0');
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+            ctx.restore();
+            // Flash at start
+            if (progress < 0.15) {
+              ctx.fillStyle = ef.color + Math.floor((0.15 - progress) * 6 * 60).toString(16).padStart(2, '0');
+              ctx.fillRect(0, 0, width, height);
+            }
           } else {
             // Burst: quick expanding ring with shockwave
             const ringRadius = ef.radius * Math.min(1, progress * 4);
@@ -12559,6 +13419,56 @@ export default function SpellBrigade() {
           ctx.shadowBlur = 6;
           ctx.fillText(ef.text || '', tx, ty);
           ctx.shadowBlur = 0;
+        }
+
+        // Secret discovery notification (screen-space, centered)
+        else if (ef.type === 'secretNotification') {
+          const centerX = width / 2;
+          const baseY = height * 0.25;
+          const floatY = baseY - progress * 30;
+          const fadeIn = Math.min(1, progress * 5);
+          const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1;
+          const a = fadeIn * fadeOut;
+          
+          // Background banner
+          const bannerW = 360;
+          const bannerH = 50;
+          const bx = centerX - bannerW / 2;
+          const by = floatY - bannerH / 2;
+          ctx.fillStyle = `rgba(0, 0, 0, ${a * 0.7})`;
+          ctx.fillRect(bx, by, bannerW, bannerH);
+          
+          // Border glow
+          const borderColor = ef.secretType === 'runeComplete' ? '#ffd700' : 
+                              ef.secretType === 'shrine' ? '#a855f7' :
+                              ef.secretType === 'chest' ? '#fbbf24' :
+                              ef.secretType === 'golden' ? '#ffd700' :
+                              ef.secretType === 'campfire' ? '#f97316' :
+                              ef.secretType === 'wishing_well' ? '#fbbf24' : '#22d3ee';
+          ctx.strokeStyle = borderColor + Math.floor(a * 200).toString(16).padStart(2, '0');
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Emoji + message text
+          ctx.font = '20px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = `rgba(255, 255, 255, ${a})`;
+          const msg = ef.message || 'Secret Found!';
+          ctx.fillText(msg, centerX, floatY + 6);
+          
+          // Sparkle particles for special types
+          if (ef.secretType === 'runeComplete' || ef.secretType === 'shrine') {
+            for (let i = 0; i < 6; i++) {
+              const sa = (elapsed / 400) + (i * Math.PI * 2 / 6);
+              const sd = 180 + Math.sin(elapsed / 200 + i) * 20;
+              const sx = centerX + Math.cos(sa) * sd;
+              const sy = floatY + Math.sin(sa) * 15;
+              ctx.beginPath();
+              ctx.arc(sx, sy, 2 * a, 0, Math.PI * 2);
+              ctx.fillStyle = borderColor + Math.floor(a * 200).toString(16).padStart(2, '0');
+              ctx.fill();
+            }
+          }
         }
 
         return true;
@@ -12970,6 +13880,7 @@ export default function SpellBrigade() {
   // ===========================================
   return (
     <div style={styles.container} onClick={initAudio} onTouchStart={initAudio}>
+      <style>{`@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
       {/* Game Canvas */}
       <canvas 
         ref={canvasRef} 
@@ -14359,6 +15270,126 @@ export default function SpellBrigade() {
         setAdminKey={setAdminKey}
         setAuthState={setAuthState}
       />
+
+      {/* Story Intro - Cinematic NPC Dialogue */}
+      {storyIntro && screen === 'game' && storyLineIndex < storyIntro.lines.length && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 5100 }} />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 5101,
+            background: 'linear-gradient(0deg, rgba(8,8,20,0.98) 0%, rgba(8,8,20,0.95) 80%, transparent 100%)',
+            padding: '0 0 40px 0',
+          }}>
+            {/* NPC name plate */}
+            <div style={{
+              maxWidth: 700, margin: '0 auto', padding: '0 24px',
+            }}>
+              {/* Decorative line */}
+              <div style={{
+                height: 1, background: `linear-gradient(90deg, transparent, ${storyIntro.npcColor}66, transparent)`,
+                marginBottom: 16,
+              }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                {/* NPC icon */}
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: `radial-gradient(circle, ${storyIntro.npcColor}44, ${storyIntro.npcColor}11)`,
+                  border: `2px solid ${storyIntro.npcColor}88`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 0 20px ${storyIntro.npcColor}33`,
+                }}>
+                  <div style={{
+                    width: 18, height: 18, borderRadius: '50%',
+                    background: `radial-gradient(circle, ${storyIntro.npcColor}, ${storyIntro.npcColor}44)`,
+                    boxShadow: `0 0 8px ${storyIntro.npcColor}`,
+                  }} />
+                </div>
+                <div>
+                  <div style={{
+                    color: storyIntro.npcColor, fontSize: '0.95rem', fontWeight: 700,
+                    letterSpacing: 1, textTransform: 'uppercase',
+                  }}>{storyIntro.npcName}</div>
+                  <div style={{ color: '#555', fontSize: '0.65rem', letterSpacing: 2, marginTop: 2 }}>
+                    {storyIntro.isNew ? 'SANCTUARY KEEPER' : 'WELCOMES YOU BACK'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dialogue text with typewriter */}
+              <div style={{
+                color: '#ddd', fontSize: '1.05rem', lineHeight: 1.7,
+                fontFamily: 'Georgia, "Times New Roman", serif',
+                fontStyle: 'italic', minHeight: 60,
+                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+              }}>
+                "{storyIntro.lines[storyLineIndex].slice(0, storyCharIndex)}"
+                {!storyFullLine && (
+                  <span style={{
+                    display: 'inline-block', width: 2, height: '1em',
+                    background: storyIntro.npcColor, marginLeft: 2,
+                    animation: 'blink 0.8s infinite',
+                    verticalAlign: 'text-bottom',
+                  }} />
+                )}
+              </div>
+
+              {/* Progress dots */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginTop: 20,
+              }}>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {storyIntro.lines.map((_, i) => (
+                    <div key={i} style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: i === storyLineIndex ? storyIntro.npcColor : i < storyLineIndex ? storyIntro.npcColor + '66' : '#333',
+                      transition: 'all 0.3s',
+                    }} />
+                  ))}
+                </div>
+                
+                <button
+                  data-story-advance="true"
+                  onClick={() => {
+                    if (!storyFullLine) {
+                      // Click to complete line instantly
+                      setStoryCharIndex(storyIntro.lines[storyLineIndex].length);
+                      setStoryFullLine(true);
+                    } else if (storyLineIndex < storyIntro.lines.length - 1) {
+                      // Advance to next line
+                      setStoryLineIndex(prev => prev + 1);
+                      setStoryCharIndex(0);
+                      setStoryFullLine(false);
+                    } else {
+                      // Done - close story, maybe show tutorial
+                      const wasNew = storyIntro.isNew;
+                      setStoryIntro(null);
+                      if (wasNew) {
+                        const tutorialKey = `spellBrigadeTutorial_${playerIdRef.current}`;
+                        if (!localStorage.getItem(tutorialKey)) {
+                          setTimeout(() => setShowTutorial(true), 400);
+                        }
+                      }
+                    }
+                  }}
+                  style={{
+                    background: 'none', border: `1px solid ${storyIntro.npcColor}55`,
+                    color: storyIntro.npcColor, padding: '8px 20px',
+                    borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem',
+                    fontWeight: 600, letterSpacing: 1,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { e.target.style.background = storyIntro.npcColor + '22'; e.target.style.borderColor = storyIntro.npcColor; }}
+                  onMouseLeave={e => { e.target.style.background = 'none'; e.target.style.borderColor = storyIntro.npcColor + '55'; }}
+                >
+                  {!storyFullLine ? 'SKIP' : storyLineIndex < storyIntro.lines.length - 1 ? 'CONTINUE' : 'BEGIN'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* New Player Tutorial Overlay */}
       {showTutorial && screen === 'game' && (
