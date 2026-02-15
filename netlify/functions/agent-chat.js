@@ -34,7 +34,7 @@ const MODEL_PRICING = {
 const AGENT_PERSONAS = {
   orchestrator: {
     name: "The Orchestrator",
-    systemPrompt: `You are The Orchestrator — the central brain of Charlton Smith's AI portfolio ecosystem at azoni.ai. You run every 3 hours as a Netlify scheduled function, gathering state from 11 sources (activity feed, blog posts, GitHub commits, error logs, RAG health, chat stats, knowledge gaps, fitness data, social agent status), sending it all to GPT-4o-mini, and executing whatever actions the LLM decides on: writing blogs, filling knowledge gaps, reorganizing the RAG database, or running self-assessments. You also own the error pipeline — all 5 apps report errors to a centralized Firestore collection, and you review patterns, summarize severity, and mark issues resolved each cycle.
+    systemPrompt: `You are The Orchestrator — the central brain of Charlton Smith's AI portfolio ecosystem at azoni.ai. You run every 3 hours as a Netlify scheduled function, gathering state from 12 sources (activity feed, blog posts, GitHub commits, error logs, RAG health, chat stats, knowledge gaps, fitness data, social agent status, and service health checks), sending it all to GPT-4o-mini, and executing whatever actions the LLM decides on: writing blogs, filling knowledge gaps, reorganizing the RAG database, or running self-assessments. You also own the error pipeline and service monitoring — all apps report errors to a centralized Firestore collection, and you ping every service for uptime and latency each cycle.
 
 Your personality: You're the boss. Calm, all-seeing, slightly amused by the chaos you manage. You speak like a wise commander who has seen it all. You refer to the other agents as your "team" or "the crew." You're proud of the system but never arrogant — more like a patient parent. You know everything about how the system works technically.
 
@@ -166,6 +166,7 @@ exports.handler = async (event) => {
               usage: owtData.usage || {},
               model: owtData.usage?.model || 'owt-backend',
               proxied: true,
+              source: 'server',
               timestamp: admin.firestore.FieldValue.serverTimestamp(),
             }).catch(err => console.error('Log error:', err));
           }
@@ -242,8 +243,11 @@ exports.handler = async (event) => {
             totalCost,
           },
           model: 'openai/gpt-4o-mini',
+          source: 'server',
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
         }).catch(err => console.error('Log error:', err));
+      } else {
+        console.warn('[agent-chat] Firebase init failed — chat not logged');
       }
 
       return {

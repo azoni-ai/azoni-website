@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { avatars, AGENTS, AGENT_ORDER } from '../data/agents';
+import { db } from '../config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import '../styles/team.css';
 
 /* ─── Agent Chat Hook ─── */
@@ -36,6 +38,18 @@ function useAgentChat(agentKey) {
       const data = await res.json();
       if (data.reply) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply, agentName: data.name || agentKey }]);
+
+        // Client-side log to Firestore (backup — server also logs)
+        addDoc(collection(db, 'agentChatLogs'), {
+          agent: agentKey,
+          agentName: data.name || agentKey,
+          userMessage: text,
+          reply: data.reply,
+          usage: data.usage || {},
+          model: data.model || 'unknown',
+          source: 'client',
+          timestamp: serverTimestamp(),
+        }).catch(() => {}); // silent fail
       } else {
         throw new Error(data.error || 'No reply');
       }
@@ -172,7 +186,7 @@ const Team = () => {
             <div className="team-banner-label">azoni.ai / team</div>
             <h1>Meet the Team</h1>
             <p className="team-banner-sub">
-              Eight AI agents run this portfolio autonomously — writing blogs, answering questions, tracking errors, generating game characters, and coaching workouts. Each one has a job, a personality, and a chat. Say hi.
+              Seven AI agents run this portfolio autonomously — writing blogs, answering questions, generating game characters, coaching workouts, and building new products. Each one has a job, a personality, and a chat.
             </p>
           </div>
 

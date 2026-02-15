@@ -6,6 +6,7 @@ import {
   collection, 
   query, 
   orderBy, 
+  limit,
   onSnapshot, 
   doc, 
   updateDoc, 
@@ -151,8 +152,7 @@ const AGENT_COLORS = {
   fitness: '#4ade80',
   gaming: '#c084fc',
   social: '#fb923c',
-  rag: '#34d399',
-  errors: '#f87171',
+  oldways: '#d97706',
 };
 
 const AGENT_NAMES = {
@@ -162,8 +162,7 @@ const AGENT_NAMES = {
   fitness: 'Coach',
   gaming: 'The Wizard',
   social: 'The Hype Man',
-  rag: 'The Library',
-  errors: 'The Watchdog',
+  oldways: 'Old Ways Today',
 };
 
 const AgentsTab = () => {
@@ -181,7 +180,8 @@ const AgentsTab = () => {
     // Agent chat logs
     const q1 = query(
       collection(db, 'agentChatLogs'),
-      orderBy('timestamp', 'desc')
+      orderBy('timestamp', 'desc'),
+      limit(200)
     );
     unsubscribes.push(onSnapshot(q1, (snap) => {
       setAgentChats(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -190,7 +190,8 @@ const AgentsTab = () => {
     // Agent activity
     const q2 = query(
       collection(db, 'agent_activity'),
-      orderBy('timestamp', 'desc')
+      orderBy('timestamp', 'desc'),
+      limit(500)
     );
     unsubscribes.push(onSnapshot(q2, (snap) => {
       setActivities(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -199,7 +200,8 @@ const AgentsTab = () => {
     // Error logs
     const q3 = query(
       collection(db, 'error_logs'),
-      orderBy('timestamp', 'desc')
+      orderBy('timestamp', 'desc'),
+      limit(200)
     );
     unsubscribes.push(onSnapshot(q3, (snap) => {
       setErrorLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));

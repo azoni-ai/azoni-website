@@ -8,3 +8,6 @@
 
 [functions."daily-blog"]
   schedule = "0 17 * * *"
+
+[functions."azoni-orchestrator"]
+  schedule = "0 */3 * * *"
