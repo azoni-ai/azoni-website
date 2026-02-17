@@ -189,17 +189,32 @@ const Home = () => {
 
         {/* ===== CTA ROW ===== */}
         <div className="cta-row">
-          <Link to="/resume" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-            Resume
+          <Link to="/resume" className="cta-card">
+            <div className="cta-card-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff7a5c" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            </div>
+            <div className="cta-card-text">
+              <span className="cta-card-title">Resume</span>
+              <span className="cta-card-sub">7+ years · T-Mobile, Capital One</span>
+            </div>
           </Link>
-          <Link to="/projects" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            Projects
+          <Link to="/projects" className="cta-card">
+            <div className="cta-card-icon" style={{ background: 'rgba(251,191,36,0.12)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <div className="cta-card-text">
+              <span className="cta-card-title">Projects</span>
+              <span className="cta-card-sub">{Object.keys(REPO_TO_SITE).length} live apps</span>
+            </div>
           </Link>
-          <Link to="/chat" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            Chat with my AI
+          <Link to="/chat" className="cta-card cta-card-highlight">
+            <div className="cta-card-icon" style={{ background: 'rgba(96,165,250,0.15)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <div className="cta-card-text">
+              <span className="cta-card-title">Chat with my AI</span>
+              <span className="cta-card-sub">RAG chatbot · Job fit analysis</span>
+            </div>
           </Link>
         </div>
 
@@ -240,6 +255,12 @@ const Home = () => {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     <span className="showcase-flow-step">Execute</span>
                   </div>
+                  {agentActivityCount > 0 && (
+                    <div className="showcase-preview">
+                      <span className="showcase-preview-label">24h</span>
+                      <span className="showcase-preview-title">{agentActivityCount} agent events</span>
+                    </div>
+                  )}
                   <div className="showcase-tech">
                     <span>GPT-4o-mini</span>
                     <span>GitHub API</span>
@@ -320,6 +341,10 @@ const Home = () => {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     <span className="showcase-flow-step">Response</span>
                   </div>
+                  <div className="showcase-preview">
+                    <span className="showcase-preview-label">Try</span>
+                    <span className="showcase-preview-title">Paste a job description for AI fit analysis</span>
+                  </div>
                   <div className="showcase-tech">
                     <span>OpenRouter</span>
                     <span>Embeddings</span>
@@ -351,21 +376,22 @@ const Home = () => {
                     </div>
                     <div>
                       <div className="showcase-title-row">
-                        <h3>BenchPressOnly</h3>
+                        <h3>BenchPressOnly + RowCrew</h3>
                         <span className="showcase-status showcase-status-green">Live</span>
                       </div>
-                      <span className="showcase-tagline">AI-powered workout tracking</span>
+                      <span className="showcase-tagline">AI fitness platform</span>
                     </div>
                   </div>
                   <p className="showcase-desc">
-                    Real fitness app with real users. AI generates personalized workout plans based on history,
-                    tracks PRs, analyzes progress trends, and feeds live data back to the agent ecosystem.
+                    Two fitness apps with real users. AI generates personalized workouts, provides real-time form
+                    correction, tracks PRs, and analyzes progress trends. RowCrew extends the same platform to rowing.
+                    Live data feeds back to the agent ecosystem.
                   </p>
                   <div className="showcase-tech">
                     <span>React Native</span>
+                    <span>AI Form Correction</span>
                     <span>AI Workouts</span>
                     <span>Firebase</span>
-                    <span>Capacitor</span>
                   </div>
                 </div>
               </a>
@@ -386,8 +412,8 @@ const Home = () => {
                     </div>
                   </div>
                   <p className="showcase-desc">
-                    Real-time multiplayer wizard combat. AI generates unique characters with custom abilities
-                    and backstories. Enemy AI runs dungeon encounters. Server refactored from 6.7k-line monolith to 16 modules.
+                    Real-time multiplayer wizard combat built with Three.js. AI generates unique characters with
+                    custom abilities and backstories. Fight through dungeons with AI-driven enemies. Playable now.
                   </p>
                   <div className="showcase-tech">
                     <span>Three.js</span>
@@ -398,7 +424,7 @@ const Home = () => {
                 </div>
               </Link>
 
-              <a href="https://www.moltbook.com/u/Azoni-AI" target="_blank" rel="noopener noreferrer" className="showcase-card">
+              <Link to="/moltbook" className="showcase-card">
                 <div className="showcase-card-accent" style={{ background: '#fb923c' }} />
                 <div className="showcase-card-body">
                   <div className="showcase-card-header">
@@ -424,7 +450,7 @@ const Home = () => {
                     <span>REST API</span>
                   </div>
                 </div>
-              </a>
+              </Link>
 
               <a href="https://oldwaystoday.com" target="_blank" rel="noopener noreferrer" className="showcase-card">
                 <div className="showcase-card-accent" style={{ background: '#d97706' }} />
