@@ -503,11 +503,24 @@
 }
 
 /* ===== HOMEPAGE MEET THE TEAM ===== */
+.home-team-group-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+  padding-left: 2px;
+}
+
+.home-team-group-label-products {
+  margin-top: var(--space-lg);
+}
+
 .home-team-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 @media (max-width: 700px) {

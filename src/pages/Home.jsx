@@ -6,7 +6,7 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import CollapsibleSection from '../components/CollapsibleSection';
-import { avatars, AGENTS, AGENT_ORDER, AGENT_HOME_DATA } from '../data/agents';
+import { avatars, AGENTS, AGENT_ORDER, SITE_AGENTS, PRODUCT_AGENTS, AGENT_HOME_DATA } from '../data/agents';
 import '../styles/bento.css';
 import '../styles/team.css';
 
@@ -40,24 +40,31 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
     return stats;
   };
 
+  const renderCard = (key) => {
+    const a = AGENTS[key];
+    const tryable = key === 'fitness' || key === 'gaming' || key === 'chat' || key === 'oldways';
+    return (
+      <div key={key} className={`home-team-card ${selected === key ? 'active' : ''}`}
+        onClick={() => setSelected(selected === key ? null : key)}
+        style={selected === key ? { borderColor: `${a.color}50` } : {}}>
+        <div className="ht-dot" style={{ background: a.color }}/>
+        {tryable && <span className="ht-try-badge" style={{ color: a.color, borderColor: `${a.color}50` }}>{key === 'gaming' ? 'Play' : 'Try it'}</span>}
+        <div className="ht-avatar">{avatars[key](48)}</div>
+        <div className="ht-name">{a.name}</div>
+        <div className="ht-role" style={{ color: a.color }}>{a.role}</div>
+      </div>
+    );
+  };
+
   return (
     <div>
+      <div className="home-team-group-label">Running this site</div>
       <div className="home-team-grid">
-        {AGENT_ORDER.map(key => {
-          const a = AGENTS[key];
-          const tryable = key === 'fitness' || key === 'gaming' || key === 'chat' || key === 'oldways';
-          return (
-            <div key={key} className={`home-team-card ${selected === key ? 'active' : ''}`}
-              onClick={() => setSelected(selected === key ? null : key)}
-              style={selected === key ? { borderColor: `${a.color}50` } : {}}>
-              <div className="ht-dot" style={{ background: a.color }}/>
-              {tryable && <span className="ht-try-badge" style={{ color: a.color, borderColor: `${a.color}50` }}>{key === 'gaming' ? 'Play' : 'Try it'}</span>}
-              <div className="ht-avatar">{avatars[key](48)}</div>
-              <div className="ht-name">{a.name}</div>
-              <div className="ht-role" style={{ color: a.color }}>{a.role}</div>
-            </div>
-          );
-        })}
+        {SITE_AGENTS.map(renderCard)}
+      </div>
+      <div className="home-team-group-label home-team-group-label-products">AI in my products</div>
+      <div className="home-team-grid">
+        {PRODUCT_AGENTS.map(renderCard)}
       </div>
 
       {sel && homeData && (
@@ -284,7 +291,7 @@ const Home = () => {
                 <div className="ai-badge-glow"></div>
                 <div className="ai-badge-content">
                   <span className="ai-badge-dot"></span>
-                  <span className="ai-badge-text">7 Agents Live</span>
+                  <span className="ai-badge-text">3 Agents Live</span>
                 </div>
                 <p className="ai-badge-subtext">Autonomous decisions every 3 hours</p>
               </div>
@@ -293,18 +300,12 @@ const Home = () => {
             {/* Hero Stats */}
             <div className="hero-stats">
               <div className="hero-stat">
-                <span className="hero-stat-value">7</span>
+                <span className="hero-stat-value">3</span>
                 <span className="hero-stat-label">AI Agents</span>
               </div>
               <div className="hero-stat">
                 <span className="hero-stat-value">{githubStats?.last30Days || '–'}</span>
                 <span className="hero-stat-label">Commits / Mo</span>
-              </div>
-              <div className="hero-stat">
-                <span className="hero-stat-value">
-                  {appStats ? (appStats.benchpressonly?.users || 0) + (appStats.spellbrigade?.users || 0) + (appStats.rowcrew?.users || 0) || '–' : '–'}
-                </span>
-                <span className="hero-stat-label">Users</span>
               </div>
               <div className="hero-stat">
                 <span className="hero-stat-value">{Object.keys(REPO_TO_SITE).length}</span>
@@ -318,10 +319,10 @@ const Home = () => {
         <section className="narrative-section">
           <div className="container">
             <p className="narrative-text">
-              Seven autonomous AI agents run this portfolio — writing blog posts, coaching workouts,
-              generating game characters, and filling their own knowledge gaps. I've spent 7+ years
-              shipping production software at places like T-Mobile and Capital One. Now I build the
-              AI systems that ship alongside me.
+              Three autonomous AI agents run this portfolio — an orchestrator that wakes up every 3 hours
+              to make decisions, a blog writer that turns commits into posts, and a RAG chatbot that
+              teaches itself new topics when stumped. I've spent 7+ years shipping production software at
+              places like T-Mobile and Capital One. Now I build the AI systems that ship alongside me.
             </p>
           </div>
         </section>
@@ -521,13 +522,9 @@ const Home = () => {
 
         <CollapsibleSection
           title="The Agents"
-          subtitle="Seven autonomous systems running this portfolio — click any agent to see what it does and where it lives"
-          badge="7 agents"
+          subtitle="3 autonomous agents run this site, plus AI-powered features across every product — click any to see how it works"
+          badge="3 agents"
           badgeType="count"
-          stats={appStats ? [
-            { value: appStats.benchpressonly?.users || '–', label: 'lifters' },
-            { value: appStats.spellbrigade?.users || '–', label: 'players' },
-          ].filter(s => s.value !== '–' && s.value !== 0) : []}
           defaultOpen={true}
           forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
