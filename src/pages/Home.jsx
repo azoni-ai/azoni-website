@@ -199,14 +199,45 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ===== NARRATIVE STATEMENT ===== */}
-        <section className="narrative-section">
+        {/* ===== COMPACT ACTIVITY ===== */}
+        <section className="showcase-section activity-hero-section">
           <div className="container">
-            <p className="narrative-text">
-              Autonomous AI agents run this portfolio — an orchestrator that wakes up every 3 hours
-              to make decisions, a blog writer that turns commits into posts, and a RAG chatbot that
-              teaches itself new topics when stumped. Now I build the AI systems that ship alongside me.
-            </p>
+            <div className="activity-compact">
+              <div className="activity-compact-header">
+                <span className="showcase-section-label">Recent Activity</span>
+                <div className="activity-compact-stats">
+                  <span className="activity-compact-stat"><strong>{githubStats?.today || 0}</strong> today</span>
+                  <span className="activity-compact-stat"><strong>{githubStats?.last7Days || 0}</strong> this week</span>
+                </div>
+              </div>
+              <div className="commits-list">
+                {githubStats?.recentCommits?.slice(0, 5).map((commit, i) => (
+                  <div key={`${commit.sha}-${i}`} className="commit-row">
+                    <span className="commit-msg">{commit.message}</span>
+                    <div className="commit-meta">
+                      {commit.isPrivate ? (
+                        <span className="commit-repo">{commit.repo}</span>
+                      ) : (
+                        <a href={commit.repoUrl} target="_blank" rel="noopener noreferrer" className="commit-repo">
+                          {commit.repo}
+                        </a>
+                      )}
+                      {REPO_TO_SITE[commit.repo] && (
+                        <a href={REPO_TO_SITE[commit.repo]} target="_blank" rel="noopener noreferrer" className="commit-live">↗</a>
+                      )}
+                      {commit.claudeCode && (
+                        <span className="commit-claude">Claude Code</span>
+                      )}
+                      <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="activity-compact-links">
+                <Link to="/commits" className="activity-compact-link">View all commits →</Link>
+                <Link to="/activity" className="activity-compact-link">View activity log →</Link>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -463,8 +494,10 @@ const Home = () => {
                     <div>
                       <div className="showcase-title-row">
                         <h3>Moltbook</h3>
-                        {healthStatus?.moltbook === 'down' ? (
+                        {healthStatus?.moltbook === 'down' || healthStatus?.moltbook === 'degraded' ? (
                           <span className="showcase-status showcase-status-red">Offline</span>
+                        ) : healthStatus?.moltbook === 'healthy' ? (
+                          <span className="showcase-status showcase-status-orange">Autonomous</span>
                         ) : (
                           <span className="showcase-status showcase-status-orange">Autonomous</span>
                         )}
@@ -519,48 +552,6 @@ const Home = () => {
                 </div>
               </div>
 
-            </div>
-          </div>
-        </section>
-
-        {/* ===== COMPACT ACTIVITY ===== */}
-        <section className="showcase-section">
-          <div className="container">
-            <div className="activity-compact">
-              <div className="activity-compact-header">
-                <span className="showcase-section-label">Recent Activity</span>
-                <div className="activity-compact-stats">
-                  <span className="activity-compact-stat"><strong>{githubStats?.today || 0}</strong> today</span>
-                  <span className="activity-compact-stat"><strong>{githubStats?.last7Days || 0}</strong> this week</span>
-                </div>
-              </div>
-              <div className="commits-list">
-                {githubStats?.recentCommits?.slice(0, 5).map((commit, i) => (
-                  <div key={`${commit.sha}-${i}`} className="commit-row">
-                    <span className="commit-msg">{commit.message}</span>
-                    <div className="commit-meta">
-                      {commit.isPrivate ? (
-                        <span className="commit-repo">{commit.repo}</span>
-                      ) : (
-                        <a href={commit.repoUrl} target="_blank" rel="noopener noreferrer" className="commit-repo">
-                          {commit.repo}
-                        </a>
-                      )}
-                      {REPO_TO_SITE[commit.repo] && (
-                        <a href={REPO_TO_SITE[commit.repo]} target="_blank" rel="noopener noreferrer" className="commit-live">↗</a>
-                      )}
-                      {commit.claudeCode && (
-                        <span className="commit-claude">Claude Code</span>
-                      )}
-                      <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="activity-compact-links">
-                <Link to="/commits" className="activity-compact-link">View all commits →</Link>
-                <Link to="/activity" className="activity-compact-link">View activity log →</Link>
-              </div>
             </div>
           </div>
         </section>
