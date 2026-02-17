@@ -456,11 +456,82 @@ const Home = () => {
         <div className="collapsible-wrapper">
 
         <CollapsibleSection
+          title="Activity"
+          subtitle="Live GitHub commits and AI agent actions across all systems"
+          badge="Live"
+          badgeType="live"
+          stats={[
+            { value: githubStats?.today || '–', label: 'today' },
+            { value: githubStats?.last7Days || '–', label: 'this week' },
+            { value: agentActivityCount || '–', label: 'agent events' },
+          ]}
+          defaultOpen={true}
+        >
+        {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
+        <section className="activity-section">
+          <div className="container">
+            <div className="activity-row">
+              {/* GitHub Commits */}
+              <div className="activity-card activity-half">
+                <div className="activity-header">
+                  <div className="activity-stats">
+                    <div className="stat">
+                      <span className="stat-num">{githubStats?.today || 0}</span>
+                      <span className="stat-label">today</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-num">{githubStats?.last7Days || 0}</span>
+                      <span className="stat-label">this week</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-num">{githubStats?.last30Days || 0}</span>
+                      <span className="stat-label">this month</span>
+                    </div>
+                  </div>
+                  <span className="activity-label">commits</span>
+                </div>
+
+                <div className="commits-list">
+                  {githubStats?.recentCommits?.slice(0, 6).map((commit, i) => (
+                    <div key={`${commit.sha}-${i}`} className="commit-row">
+                      <span className="commit-msg">{commit.message}</span>
+                      <div className="commit-meta">
+                        {commit.isPrivate ? (
+                          <span className="commit-repo">{commit.repo}</span>
+                        ) : (
+                          <a href={commit.repoUrl} target="_blank" rel="noopener noreferrer" className="commit-repo">
+                            {commit.repo}
+                          </a>
+                        )}
+                        {REPO_TO_SITE[commit.repo] && (
+                          <a href={REPO_TO_SITE[commit.repo]} target="_blank" rel="noopener noreferrer" className="commit-live">↗</a>
+                        )}
+                        {commit.claudeCode && (
+                          <span className="commit-claude">Claude Code</span>
+                        )}
+                        <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Link to="/commits" className="activity-view-all">View all commits →</Link>
+              </div>
+
+              {/* Agent Activity */}
+              <div className="activity-card activity-half agent-activity-card">
+                <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
+              </div>
+            </div>
+          </div>
+        </section>
+        </CollapsibleSection>
+
+        <CollapsibleSection
           title="Experience"
           subtitle="7+ years shipping production software at T-Mobile, Capital One, and startups"
           badge="7+ yrs"
           badgeType="count"
-          defaultOpen={true}
+          defaultOpen={false}
         >
         <section className="experience-section">
           <div className="container">
@@ -561,77 +632,6 @@ const Home = () => {
                 </div>
               </div>
 
-            </div>
-          </div>
-        </section>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Activity"
-          subtitle="Live GitHub commits and AI agent actions across all systems"
-          badge="Live"
-          badgeType="live"
-          stats={[
-            { value: githubStats?.today || '–', label: 'today' },
-            { value: githubStats?.last7Days || '–', label: 'this week' },
-            { value: agentActivityCount || '–', label: 'agent events' },
-          ]}
-          defaultOpen={true}
-        >
-        {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
-        <section className="activity-section">
-          <div className="container">
-            <div className="activity-row">
-              {/* GitHub Commits */}
-              <div className="activity-card activity-half">
-                <div className="activity-header">
-                  <div className="activity-stats">
-                    <div className="stat">
-                      <span className="stat-num">{githubStats?.today || 0}</span>
-                      <span className="stat-label">today</span>
-                    </div>
-                    <div className="stat">
-                      <span className="stat-num">{githubStats?.last7Days || 0}</span>
-                      <span className="stat-label">this week</span>
-                    </div>
-                    <div className="stat">
-                      <span className="stat-num">{githubStats?.last30Days || 0}</span>
-                      <span className="stat-label">this month</span>
-                    </div>
-                  </div>
-                  <span className="activity-label">commits</span>
-                </div>
-
-                <div className="commits-list">
-                  {githubStats?.recentCommits?.slice(0, 6).map((commit, i) => (
-                    <div key={`${commit.sha}-${i}`} className="commit-row">
-                      <span className="commit-msg">{commit.message}</span>
-                      <div className="commit-meta">
-                        {commit.isPrivate ? (
-                          <span className="commit-repo">{commit.repo}</span>
-                        ) : (
-                          <a href={commit.repoUrl} target="_blank" rel="noopener noreferrer" className="commit-repo">
-                            {commit.repo}
-                          </a>
-                        )}
-                        {REPO_TO_SITE[commit.repo] && (
-                          <a href={REPO_TO_SITE[commit.repo]} target="_blank" rel="noopener noreferrer" className="commit-live">↗</a>
-                        )}
-                        {commit.claudeCode && (
-                          <span className="commit-claude">Claude Code</span>
-                        )}
-                        <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Link to="/commits" className="activity-view-all">View all commits →</Link>
-              </div>
-
-              {/* Agent Activity */}
-              <div className="activity-card activity-half agent-activity-card">
-                <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
-              </div>
             </div>
           </div>
         </section>
