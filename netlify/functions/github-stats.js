@@ -187,7 +187,11 @@ exports.handler = async (event, context) => {
       const commits = repo.defaultBranchRef?.target?.history?.nodes || [];
       for (const commit of commits) {
         // Only include commits by this user
-        if (commit.author?.user?.login !== username) continue;
+        // Check login match, or if GitHub couldn't resolve the email, accept commits from owned repos
+        const authorLogin = commit.author?.user?.login;
+        const isOwnedRepo = repo.owner?.login === username;
+        if (authorLogin && authorLogin !== username) continue;
+        if (!authorLogin && !isOwnedRepo) continue;
         
         // Skip duplicates and merge commits
         if (seenCommits.has(commit.oid)) continue;
