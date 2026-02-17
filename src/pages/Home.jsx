@@ -181,21 +181,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Hero Stats */}
-            <div className="hero-stats">
-              <div className="hero-stat">
-                <span className="hero-stat-value">{githubStats?.last30Days || '–'}</span>
-                <span className="hero-stat-label">Commits / Mo</span>
-              </div>
-              <div className="hero-stat">
-                <span className="hero-stat-value">{Object.keys(REPO_TO_SITE).length}</span>
-                <span className="hero-stat-label">Live Apps</span>
-              </div>
-              <div className="hero-stat">
-                <span className="hero-stat-value">{githubStats?.today || '–'}</span>
-                <span className="hero-stat-label">Today</span>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -208,6 +193,7 @@ const Home = () => {
                 <div className="activity-compact-stats">
                   <span className="activity-compact-stat"><strong>{githubStats?.today || 0}</strong> today</span>
                   <span className="activity-compact-stat"><strong>{githubStats?.last7Days || 0}</strong> this week</span>
+                  <span className="activity-compact-stat"><strong>{githubStats?.last30Days || 0}</strong> this month</span>
                 </div>
               </div>
               <div className="commits-list">
@@ -235,7 +221,7 @@ const Home = () => {
               </div>
               <div className="activity-compact-links">
                 <Link to="/commits" className="activity-compact-link">View all commits →</Link>
-                <Link to="/activity" className="activity-compact-link">View activity log →</Link>
+                <Link to="/activity" className="activity-compact-link">View agent activity log →</Link>
               </div>
             </div>
           </div>
@@ -243,6 +229,15 @@ const Home = () => {
 
         {/* ===== CTA ROW ===== */}
         <div className="cta-row">
+          <Link to="/about" className="cta-card">
+            <div className="cta-card-icon" style={{ background: 'rgba(192,132,252,0.12)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div className="cta-card-text">
+              <span className="cta-card-title">About</span>
+              <span className="cta-card-sub">Background &amp; approach</span>
+            </div>
+          </Link>
           <Link to="/resume" className="cta-card">
             <div className="cta-card-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff7a5c" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
@@ -259,15 +254,6 @@ const Home = () => {
             <div className="cta-card-text">
               <span className="cta-card-title">Projects</span>
               <span className="cta-card-sub">{Object.keys(REPO_TO_SITE).length} live apps</span>
-            </div>
-          </Link>
-          <Link to="/about" className="cta-card">
-            <div className="cta-card-icon" style={{ background: 'rgba(192,132,252,0.12)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <div className="cta-card-text">
-              <span className="cta-card-title">About</span>
-              <span className="cta-card-sub">Background &amp; approach</span>
             </div>
           </Link>
         </div>
