@@ -255,6 +255,11 @@
   gap: var(--space-md);
 }
 
+.showcase-grid-2x2 {
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
 .showcase-grid-3 .showcase-card-body {
   padding: var(--space-md);
 }
@@ -350,6 +355,16 @@
   color: #fbbf24;
 }
 
+.showcase-status-green {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.showcase-status-amber {
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+}
+
 .showcase-tagline {
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -431,6 +446,12 @@
 
 @media (max-width: 900px) {
   .showcase-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .showcase-grid-2x2 {
     grid-template-columns: 1fr;
   }
 }

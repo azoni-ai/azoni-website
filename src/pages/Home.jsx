@@ -6,9 +6,9 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import CollapsibleSection from '../components/CollapsibleSection';
-import { avatars, AGENTS, PRODUCT_AGENTS, AGENT_HOME_DATA } from '../data/agents';
+
 import '../styles/bento.css';
-import '../styles/team.css';
+
 
 // Map repo names to live sites
 const REPO_TO_SITE = {
@@ -22,123 +22,13 @@ const REPO_TO_SITE = {
   'embedroute': 'https://www.embedroute.com',
 };
 
-/* ─── Home Team Section (merged with live data) ─── */
-function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) {
-  const [selected, setSelected] = useState(null);
-  const sel = selected ? AGENTS[selected] : null;
-  const homeData = selected ? AGENT_HOME_DATA[selected] : null;
-
-  const getAgentStats = (key) => {
-    const stats = [];
-    if (key === 'fitness') {
-      if (appStats?.benchpressonly?.users) stats.push({ value: appStats.benchpressonly.users, label: 'lifters' });
-      if (appStats?.rowcrew?.users) stats.push({ value: appStats.rowcrew.users, label: 'rowers' });
-    }
-    if (key === 'gaming' && appStats?.spellbrigade?.users) stats.push({ value: appStats.spellbrigade.users, label: 'players' });
-    if (key === 'social' && moltbookStatus?.posts_today) stats.push({ value: moltbookStatus.posts_today, label: 'posts today' });
-    if (key === 'blog' && githubStats?.today) stats.push({ value: githubStats.today, label: 'commits today' });
-    return stats;
-  };
-
-  return (
-    <div>
-      <div className="home-products-list">
-        {PRODUCT_AGENTS.map((key) => {
-          const a = AGENTS[key];
-          const hd = AGENT_HOME_DATA[key];
-          const link = hd?.links?.[0];
-          return (
-            <div key={key} className={`home-product-row ${selected === key ? 'active' : ''}`}
-              onClick={() => setSelected(selected === key ? null : key)}
-              style={selected === key ? { borderColor: `${a.color}40` } : {}}>
-              <div className="home-product-dot" style={{ background: a.color }} />
-              <span className="home-product-name">{a.name}</span>
-              <span className="home-product-desc">{a.role}</span>
-              {link && (
-                link.external ? (
-                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="home-product-link" style={{ color: a.color }} onClick={(e) => e.stopPropagation()}>{link.label}</a>
-                ) : (
-                  <Link to={link.url} className="home-product-link" style={{ color: a.color }} onClick={(e) => e.stopPropagation()}>{link.label}</Link>
-                )
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {sel && homeData && (
-        <div className="home-team-expanded" style={{ borderColor: `${sel.color}40` }}>
-          <div className="home-team-expanded-header">
-            <div style={{ flexShrink: 0 }}>{avatars[selected](72)}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="home-team-name-row">
-                <h3>{sel.name}</h3>
-                <span className="home-team-expanded-role" style={{ color: sel.color, background: sel.bg, border: `1px solid ${sel.borderColor}` }}>{sel.role}</span>
-                <span className={`home-team-status home-team-status-${homeData.statusType}`}>{homeData.status}</span>
-              </div>
-              <p className="home-team-expanded-desc">{homeData.shortDesc}</p>
-              <p className="home-team-expanded-why">{sel.whyUnique}</p>
-            </div>
-          </div>
-
-          <div className="home-team-expanded-meta">
-            <div className="home-team-expanded-tags">
-              {sel.tech.map((t, i) => (
-                <span key={i} className="team-tag" style={{ color: sel.color, borderColor: sel.borderColor }}>{t}</span>
-              ))}
-            </div>
-            {getAgentStats(selected).length > 0 && (
-              <div className="home-team-live-stats">
-                {getAgentStats(selected).map((s, i) => (
-                  <span key={i} className="home-team-live-stat">
-                    <strong style={{ color: sel.color }}>{s.value}</strong> {s.label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Data it touches */}
-          <div className="home-team-data-row">
-            {sel.data.slice(0, 3).map((d, i) => (
-              <span key={i} className="home-team-data-item">
-                <span style={{ color: sel.color, opacity: 0.6 }}>{'// '}</span>{d.split(' — ')[0]}
-              </span>
-            ))}
-          </div>
-
-          <div className="home-team-expanded-footer">
-            <div className="home-team-links">
-              {homeData.links.map((link, i) => (
-                link.external ? (
-                  <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="home-team-action-link" style={{ color: sel.color, borderColor: `${sel.color}40` }}>{link.label}</a>
-                ) : (
-                  <Link key={i} to={link.url} className="home-team-action-link" style={{ color: sel.color, borderColor: `${sel.color}40` }}>{link.label}</Link>
-                )
-              ))}
-              <Link to="/chat" className="home-team-full-link">Chat with Azoni AI →</Link>
-            </div>
-          </div>
-
-          {selected === 'blog' && latestBlog && (
-            <Link to={`/blog/${latestBlog.slug || latestBlog.id}`} className="home-team-blog-preview">
-              <span className="home-team-blog-label">Latest post</span>
-              <span className="home-team-blog-title">{latestBlog.title}</span>
-            </Link>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 const Home = () => {
   const [githubStats, setGithubStats] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [moltbookStatus, setMoltbookStatus] = useState(null);
+
   const [latestBlog, setLatestBlog] = useState(null);
   const [agentActivityCount, setAgentActivityCount] = useState(0);
-  const [appStats, setAppStats] = useState(null);
+
   const heroRef = useRef(null);
 
   // Fetch latest blog post
@@ -197,24 +87,6 @@ const Home = () => {
     fetchActivityCount();
   }, []);
 
-  // Fetch Moltbook agent status
-  useEffect(() => {
-    const fetchMoltbookStatus = async () => {
-      try {
-        const AGENT_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
-        const res = await fetch(`${AGENT_URL}/status`);
-        if (res.ok) {
-          const data = await res.json();
-          setMoltbookStatus(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch Moltbook status:', err);
-      }
-    };
-    fetchMoltbookStatus();
-  }, []);
-
-
   // Fetch GitHub stats
   useEffect(() => {
     fetch('/.netlify/functions/github-stats')
@@ -223,16 +95,6 @@ const Home = () => {
         if (!data.error) setGithubStats(data);
       })
       .catch(err => console.error('Failed to fetch GitHub stats:', err));
-  }, []);
-
-  // Fetch app user/player counts
-  useEffect(() => {
-    fetch('/.netlify/functions/app-stats')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error) setAppStats(data);
-      })
-      .catch(err => console.error('Failed to fetch app stats:', err));
   }, []);
 
   // Mouse tracking for hero glow effect — uses ref to avoid re-rendering whole page
@@ -324,6 +186,22 @@ const Home = () => {
             </p>
           </div>
         </section>
+
+        {/* ===== CTA ROW ===== */}
+        <div className="cta-row">
+          <Link to="/resume" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            Resume
+          </Link>
+          <Link to="/projects" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Projects
+          </Link>
+          <Link to="/chat" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Chat with my AI
+          </Link>
+        </div>
 
         {/* ===== THE 3 AGENTS ===== */}
         <section className="showcase-section">
@@ -455,21 +333,130 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ===== CTA ROW ===== */}
-        <div className="cta-row">
-          <Link to="/resume" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-            Resume
-          </Link>
-          <Link to="/projects" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            Projects
-          </Link>
-          <Link to="/chat" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            Chat with my AI
-          </Link>
-        </div>
+        {/* ===== AI PRODUCTS ===== */}
+        <section className="showcase-section">
+          <div className="container">
+            <div className="showcase-section-header">
+              <span className="showcase-section-label">AI Products</span>
+              <span className="showcase-section-sub">Shipping AI in fitness, gaming, social, and wellness apps</span>
+            </div>
+            <div className="showcase-grid showcase-grid-2x2">
+
+              <a href="https://benchpressonly.com" target="_blank" rel="noopener noreferrer" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#4ade80' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(74,222,128,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"><path d="M6.5 6.5h11M6.5 17.5h11M4 10h2.5v4H4zM17.5 10H20v4h-2.5zM6.5 11h11v2h-11z"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>BenchPressOnly</h3>
+                        <span className="showcase-status showcase-status-green">Live</span>
+                      </div>
+                      <span className="showcase-tagline">AI-powered workout tracking</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Real fitness app with real users. AI generates personalized workout plans based on history,
+                    tracks PRs, analyzes progress trends, and feeds live data back to the agent ecosystem.
+                  </p>
+                  <div className="showcase-tech">
+                    <span>React Native</span>
+                    <span>AI Workouts</span>
+                    <span>Firebase</span>
+                    <span>Capacitor</span>
+                  </div>
+                </div>
+              </a>
+
+              <Link to="/game" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#c084fc' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(192,132,252,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>Spell Brigade</h3>
+                        <span className="showcase-status showcase-status-purple">Playable</span>
+                      </div>
+                      <span className="showcase-tagline">AI wizard combat game</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Real-time multiplayer wizard combat. AI generates unique characters with custom abilities
+                    and backstories. Enemy AI runs dungeon encounters. Server refactored from 6.7k-line monolith to 16 modules.
+                  </p>
+                  <div className="showcase-tech">
+                    <span>Three.js</span>
+                    <span>Socket.io</span>
+                    <span>GPT-4o-mini</span>
+                    <span>Node.js</span>
+                  </div>
+                </div>
+              </Link>
+
+              <a href="https://www.moltbook.com/u/Azoni-AI" target="_blank" rel="noopener noreferrer" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#fb923c' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(251,146,60,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>Moltbook</h3>
+                        <span className="showcase-status showcase-status-orange">Autonomous</span>
+                      </div>
+                      <span className="showcase-tagline">AI social presence</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    The orchestrator decides when to post based on activity gaps and new content. LLM generates
+                    posts, comments, and engagement — all triggered autonomously, not on a fixed schedule.
+                  </p>
+                  <div className="showcase-tech">
+                    <span>Render</span>
+                    <span>Orchestrator</span>
+                    <span>LLM Content</span>
+                    <span>REST API</span>
+                  </div>
+                </div>
+              </a>
+
+              <a href="https://oldwaystoday.com" target="_blank" rel="noopener noreferrer" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#d97706' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(217,119,6,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round"><path d="M12 2C13 7 17 10 12 17C7 10 11 7 12 2Z"/><path d="M12 17v5"/><path d="M8 21h8"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>Old Ways Today</h3>
+                        <span className="showcase-status showcase-status-amber">Live</span>
+                      </div>
+                      <span className="showcase-tagline">AI wellness platform</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Standalone product helping families find non-toxic, traditional alternatives. Same RAG + blog
+                    architecture as azoni.ai — proving the agent system is portable beyond a portfolio site.
+                  </p>
+                  <div className="showcase-tech">
+                    <span>React</span>
+                    <span>RAG</span>
+                    <span>Auto-blog</span>
+                    <span>EmbedRoute</span>
+                  </div>
+                </div>
+              </a>
+
+            </div>
+          </div>
+        </section>
 
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
@@ -540,131 +527,6 @@ const Home = () => {
               <div className="activity-card activity-half agent-activity-card">
                 <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
               </div>
-            </div>
-          </div>
-        </section>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="AI Products"
-          subtitle="Shipping AI in fitness, gaming, social, and wellness apps"
-          badge={`${PRODUCT_AGENTS.length} apps`}
-          badgeType="count"
-          defaultOpen={false}
-        >
-        <section style={{ padding: '0 0 var(--space-lg)' }}>
-          <div className="container">
-            <HomeTeamSection appStats={appStats} moltbookStatus={moltbookStatus} latestBlog={latestBlog} githubStats={githubStats} />
-          </div>
-        </section>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Experience"
-          subtitle="7+ years shipping production software at T-Mobile, Capital One, and startups"
-          badge="7+ yrs"
-          badgeType="count"
-          defaultOpen={false}
-        >
-        <section className="experience-section">
-          <div className="container">
-            <div className="section-header"><h2>Experience</h2></div>
-            <div className="earlier-work-grid">
-
-              <div className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#e20074' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <div className="experience-icon" style={{ background: '#e20074' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-                    </div>
-                    <div>
-                      <h3>T-Mobile</h3>
-                      <span className="earlier-card-tagline">Software Engineer II · June 2018 – April 2022</span>
-                    </div>
-                  </div>
-                  <p className="earlier-card-desc">
-                    Built an internal automation platform that consolidated 4–5 separate tools into a single interface,
-                    reducing manual work for network operations teams by over 80%. Migrated the frontend from Django
-                    templates to Angular with reusable components and contributed to the org-wide migration from Jenkins
-                    to GitLab CI/CD. Worked across cross-functional teams in a large enterprise environment.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg> Reduced manual work by 80%</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Consolidated 4–5 tools into one</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e20074" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Cross-functional enterprise teams</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">4 yr</span>
-                      <span className="earlier-stat-label">Tenure</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">80%</span>
-                      <span className="earlier-stat-label">Work reduced</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">4–5</span>
-                      <span className="earlier-stat-label">Tools unified</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>Python</span>
-                    <span>Django</span>
-                    <span>Angular</span>
-                    <span>PostgreSQL</span>
-                    <span>GitLab CI/CD</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#004977' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <div className="experience-icon" style={{ background: '#004977' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    </div>
-                    <div>
-                      <h3>Capital One</h3>
-                      <span className="earlier-card-tagline">Senior Software Engineer · Nov 2022 – Nov 2023</span>
-                    </div>
-                  </div>
-                  <p className="earlier-card-desc">
-                    Maintained and extended automated testing infrastructure for customer email notifications across the
-                    financial services platform. Designed a JSON schema system so new test cases could be added without
-                    code changes — test definitions stored in S3, executed via Lambda, results piped to CloudWatch.
-                    Mentored a summer intern from project scoping through to production deployment.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Zero-code test authoring via JSON schema</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Mentored intern to production deployment</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#004977" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Regulated financial services environment</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">Sr.</span>
-                      <span className="earlier-stat-label">Level</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">AWS</span>
-                      <span className="earlier-stat-label">Platform</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">0-code</span>
-                      <span className="earlier-stat-label">Test schema</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>AWS Lambda</span>
-                    <span>S3</span>
-                    <span>CloudWatch</span>
-                    <span>Python</span>
-                    <span>JSON Schema</span>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         </section>
@@ -743,6 +605,117 @@ const Home = () => {
                   </div>
                 </div>
               </a>
+            </div>
+          </div>
+        </section>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Experience"
+          subtitle="7+ years shipping production software at T-Mobile, Capital One, and startups"
+          badge="7+ yrs"
+          badgeType="count"
+          defaultOpen={false}
+        >
+        <section className="experience-section">
+          <div className="container">
+            <div className="section-header"><h2>Experience</h2></div>
+            <div className="earlier-work-grid">
+
+              <div className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#e20074' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <div className="experience-icon" style={{ background: '#e20074' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                    </div>
+                    <div>
+                      <h3>T-Mobile</h3>
+                      <span className="earlier-card-tagline">Software Engineer II · June 2018 – April 2022</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Built an internal automation platform that consolidated 4-5 separate tools into a single interface,
+                    reducing manual work for network operations teams by over 80%. Migrated the frontend from Django
+                    templates to Angular with reusable components and contributed to the org-wide migration from Jenkins
+                    to GitLab CI/CD.
+                  </p>
+                  <div className="earlier-card-highlights">
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg> Reduced manual work by 80%</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Consolidated 4-5 tools into one</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e20074" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Cross-functional enterprise teams</span>
+                  </div>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">4 yr</span>
+                      <span className="earlier-stat-label">Tenure</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">80%</span>
+                      <span className="earlier-stat-label">Work reduced</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">4-5</span>
+                      <span className="earlier-stat-label">Tools unified</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>Python</span>
+                    <span>Django</span>
+                    <span>Angular</span>
+                    <span>PostgreSQL</span>
+                    <span>GitLab CI/CD</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#004977' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <div className="experience-icon" style={{ background: '#004977' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div>
+                      <h3>Capital One</h3>
+                      <span className="earlier-card-tagline">Senior Software Engineer · Nov 2022 – Nov 2023</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Maintained and extended automated testing infrastructure for customer email notifications across the
+                    financial services platform. Designed a JSON schema system so new test cases could be added without
+                    code changes — test definitions stored in S3, executed via Lambda, results piped to CloudWatch.
+                    Mentored a summer intern from project scoping through to production deployment.
+                  </p>
+                  <div className="earlier-card-highlights">
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Zero-code test authoring via JSON schema</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Mentored intern to production deployment</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#004977" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Regulated financial services environment</span>
+                  </div>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">Sr.</span>
+                      <span className="earlier-stat-label">Level</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">AWS</span>
+                      <span className="earlier-stat-label">Platform</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">0-code</span>
+                      <span className="earlier-stat-label">Test schema</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>AWS Lambda</span>
+                    <span>S3</span>
+                    <span>CloudWatch</span>
+                    <span>Python</span>
+                    <span>JSON Schema</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
