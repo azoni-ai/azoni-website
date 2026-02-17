@@ -368,7 +368,7 @@ const AgentsTab = () => {
               </div>
             ))}
             {Object.keys(chatStats.byAgent).length === 0 && (
-              <p style={{ color: 'var(--text-muted)', gridColumn: '1/-1' }}>No agent chats logged yet. Visit the Team page and chat with an agent.</p>
+              <p style={{ color: 'var(--text-muted)', gridColumn: '1/-1' }}>No agent chats logged yet. Visit the Chat page and talk to Azoni AI.</p>
             )}
           </div>
 

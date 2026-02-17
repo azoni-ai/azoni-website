@@ -19,7 +19,6 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
 const Activity = lazy(() => import("./pages/Activity"));
 const Commits = lazy(() => import("./pages/Commits"));
-const Team = lazy(() => import("./pages/Team"));
 
 const App = () => {
   return (
@@ -44,8 +43,6 @@ const App = () => {
               <Route path="/aboutme" element={<About />} />
               <Route path="/activity" element={<Activity />} />
               <Route path="/commits" element={<Commits />} />
-              <Route path="/team" element={<Team />} />
-              
               {/* 404 catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>

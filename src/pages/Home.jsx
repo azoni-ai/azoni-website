@@ -116,7 +116,7 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
                   <Link key={i} to={link.url} className="home-team-action-link" style={{ color: sel.color, borderColor: `${sel.color}40` }}>{link.label}</Link>
                 )
               ))}
-              <Link to={`/team?agent=${selected}`} className="home-team-full-link">Full profile + chat →</Link>
+              <Link to="/chat" className="home-team-full-link">Chat with Azoni AI →</Link>
             </div>
           </div>
 

@@ -14,7 +14,6 @@ const Navbar = () => {
     { path: '/chat', label: 'Chat' },
     { path: '/commits', label: 'Commits' },
     { path: '/activity', label: 'Activity' },
-    { path: '/team', label: 'Team' },
     { path: '/resume', label: 'Resume' },
   ];
 
