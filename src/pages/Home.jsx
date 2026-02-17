@@ -58,13 +58,32 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
 
   return (
     <div>
-      <div className="home-team-group-label">Running this site</div>
       <div className="home-team-grid">
         {SITE_AGENTS.map(renderCard)}
       </div>
-      <div className="home-team-group-label home-team-group-label-products">AI in my products</div>
-      <div className="home-team-grid">
-        {PRODUCT_AGENTS.map(renderCard)}
+      <div className="home-team-group-label home-team-group-label-products">Also shipping AI in</div>
+      <div className="home-products-list">
+        {PRODUCT_AGENTS.map((key) => {
+          const a = AGENTS[key];
+          const hd = AGENT_HOME_DATA[key];
+          const link = hd?.links?.[0];
+          return (
+            <div key={key} className={`home-product-row ${selected === key ? 'active' : ''}`}
+              onClick={() => setSelected(selected === key ? null : key)}
+              style={selected === key ? { borderColor: `${a.color}40` } : {}}>
+              <div className="home-product-dot" style={{ background: a.color }} />
+              <span className="home-product-name">{a.name}</span>
+              <span className="home-product-desc">{a.role}</span>
+              {link && (
+                link.external ? (
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="home-product-link" style={{ color: a.color }} onClick={(e) => e.stopPropagation()}>{link.label}</a>
+                ) : (
+                  <Link to={link.url} className="home-product-link" style={{ color: a.color }} onClick={(e) => e.stopPropagation()}>{link.label}</Link>
+                )
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {sel && homeData && (
@@ -619,8 +638,8 @@ const Home = () => {
         </CollapsibleSection>
 
         <CollapsibleSection
-          title="The Agents"
-          subtitle="3 autonomous agents run this site, plus AI-powered features across every product — click any to see how it works"
+          title="AI System"
+          subtitle="3 autonomous agents run this site — click any to see how it works"
           badge="3 agents"
           badgeType="count"
           defaultOpen={false}

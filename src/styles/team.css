@@ -518,14 +518,14 @@
 
 .home-team-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   margin-bottom: var(--space-md);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 500px) {
   .home-team-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 }
 
@@ -870,6 +870,80 @@
   color: var(--text-primary);
   background: var(--bg-elevated);
   border-color: var(--text-muted);
+}
+
+/* ===== COMPACT PRODUCT ROWS ===== */
+.home-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-md);
+}
+
+.home-product-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.home-product-row:hover {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+}
+
+.home-product-row.active {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+.home-product-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.home-product-name {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.home-product-desc {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+}
+
+.home-product-link {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-decoration: none;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.home-product-link:hover {
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .home-product-desc {
+    display: none;
+  }
 }
 
 /* ===== TRY-IT BADGE ON CARDS ===== */
