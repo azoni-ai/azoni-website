@@ -4,7 +4,6 @@ import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from '
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
-import AgentActivityFeed from '../components/AgentActivityFeed';
 import CollapsibleSection from '../components/CollapsibleSection';
 
 import '../styles/bento.css';
@@ -28,6 +27,7 @@ const Home = () => {
 
   const [latestBlog, setLatestBlog] = useState(null);
   const [agentActivityCount, setAgentActivityCount] = useState(0);
+  const [healthStatus, setHealthStatus] = useState(null);
 
   const heroRef = useRef(null);
 
@@ -97,6 +97,30 @@ const Home = () => {
       .catch(err => console.error('Failed to fetch GitHub stats:', err));
   }, []);
 
+  // Fetch latest health check from orchestrator
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const healthRef = collection(db, 'health_checks');
+        const q = query(healthRef, orderBy('timestamp', 'desc'), limit(1));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data();
+          const status = {};
+          (data.services || []).forEach(s => {
+            if (s.name === 'Moltbook Agent') status.moltbook = s.status;
+            if (s.name === 'OWT Backend' || s.name === 'oldwaystoday.com') status.oldways = s.status;
+            if (s.name === 'MCP Server') status.mcp = s.status;
+          });
+          setHealthStatus(status);
+        }
+      } catch (err) {
+        console.error('Failed to fetch health status:', err);
+      }
+    };
+    fetchHealth();
+  }, []);
+
   // Mouse tracking for hero glow effect — uses ref to avoid re-rendering whole page
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -160,16 +184,16 @@ const Home = () => {
             {/* Hero Stats */}
             <div className="hero-stats">
               <div className="hero-stat">
-                <span className="hero-stat-value">3</span>
-                <span className="hero-stat-label">AI Agents</span>
-              </div>
-              <div className="hero-stat">
                 <span className="hero-stat-value">{githubStats?.last30Days || '–'}</span>
                 <span className="hero-stat-label">Commits / Mo</span>
               </div>
               <div className="hero-stat">
                 <span className="hero-stat-value">{Object.keys(REPO_TO_SITE).length}</span>
                 <span className="hero-stat-label">Live Apps</span>
+              </div>
+              <div className="hero-stat">
+                <span className="hero-stat-value">{githubStats?.today || '–'}</span>
+                <span className="hero-stat-label">Today</span>
               </div>
             </div>
           </div>
@@ -179,10 +203,9 @@ const Home = () => {
         <section className="narrative-section">
           <div className="container">
             <p className="narrative-text">
-              Three autonomous AI agents run this portfolio — an orchestrator that wakes up every 3 hours
+              Autonomous AI agents run this portfolio — an orchestrator that wakes up every 3 hours
               to make decisions, a blog writer that turns commits into posts, and a RAG chatbot that
-              teaches itself new topics when stumped. I've spent 7+ years shipping production software at
-              places like T-Mobile and Capital One. Now I build the AI systems that ship alongside me.
+              teaches itself new topics when stumped. Now I build the AI systems that ship alongside me.
             </p>
           </div>
         </section>
@@ -207,13 +230,13 @@ const Home = () => {
               <span className="cta-card-sub">{Object.keys(REPO_TO_SITE).length} live apps</span>
             </div>
           </Link>
-          <Link to="/chat" className="cta-card cta-card-highlight">
-            <div className="cta-card-icon" style={{ background: 'rgba(96,165,250,0.15)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <Link to="/about" className="cta-card">
+            <div className="cta-card-icon" style={{ background: 'rgba(192,132,252,0.12)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
             <div className="cta-card-text">
-              <span className="cta-card-title">Chat with my AI</span>
-              <span className="cta-card-sub">RAG chatbot · Job fit analysis</span>
+              <span className="cta-card-title">About</span>
+              <span className="cta-card-sub">Background &amp; approach</span>
             </div>
           </Link>
         </div>
@@ -223,7 +246,7 @@ const Home = () => {
           <div className="container">
             <div className="showcase-section-header">
               <span className="showcase-section-label">The Agents</span>
-              <span className="showcase-section-sub">3 autonomous systems running this site right now</span>
+              <span className="showcase-section-sub">Autonomous systems running this site right now</span>
             </div>
             <div className="showcase-grid showcase-grid-3">
 
@@ -367,7 +390,7 @@ const Home = () => {
             </div>
             <div className="showcase-grid showcase-grid-2x2">
 
-              <a href="https://benchpressonly.com" target="_blank" rel="noopener noreferrer" className="showcase-card">
+              <div className="showcase-card">
                 <div className="showcase-card-accent" style={{ background: '#4ade80' }} />
                 <div className="showcase-card-body">
                   <div className="showcase-card-header">
@@ -385,7 +408,6 @@ const Home = () => {
                   <p className="showcase-desc">
                     Two fitness apps with real users. AI generates personalized workouts, provides real-time form
                     correction, tracks PRs, and analyzes progress trends. RowCrew extends the same platform to rowing.
-                    Live data feeds back to the agent ecosystem.
                   </p>
                   <div className="showcase-tech">
                     <span>React Native</span>
@@ -393,10 +415,14 @@ const Home = () => {
                     <span>AI Workouts</span>
                     <span>Firebase</span>
                   </div>
+                  <div className="showcase-actions">
+                    <a href="https://benchpressonly.com" target="_blank" rel="noopener noreferrer" className="showcase-action">BenchPressOnly ↗</a>
+                    <a href="https://rowcrew.netlify.app" target="_blank" rel="noopener noreferrer" className="showcase-action">RowCrew ↗</a>
+                  </div>
                 </div>
-              </a>
+              </div>
 
-              <Link to="/game" className="showcase-card">
+              <div className="showcase-card">
                 <div className="showcase-card-accent" style={{ background: '#c084fc' }} />
                 <div className="showcase-card-body">
                   <div className="showcase-card-header">
@@ -412,19 +438,22 @@ const Home = () => {
                     </div>
                   </div>
                   <p className="showcase-desc">
-                    Real-time multiplayer wizard combat built with Three.js. AI generates unique characters with
-                    custom abilities and backstories. Fight through dungeons with AI-driven enemies. Playable now.
+                    Real-time multiplayer wizard combat. AI generates unique characters with custom abilities
+                    and backstories. Fight through dungeons with AI-driven enemies.
                   </p>
                   <div className="showcase-tech">
-                    <span>Three.js</span>
+                    <span>Canvas 2D</span>
                     <span>Socket.io</span>
                     <span>GPT-4o-mini</span>
                     <span>Node.js</span>
                   </div>
+                  <div className="showcase-actions">
+                    <Link to="/game" className="showcase-action showcase-action-primary">Play Now</Link>
+                  </div>
                 </div>
-              </Link>
+              </div>
 
-              <Link to="/moltbook" className="showcase-card">
+              <div className="showcase-card">
                 <div className="showcase-card-accent" style={{ background: '#fb923c' }} />
                 <div className="showcase-card-body">
                   <div className="showcase-card-header">
@@ -434,7 +463,11 @@ const Home = () => {
                     <div>
                       <div className="showcase-title-row">
                         <h3>Moltbook</h3>
-                        <span className="showcase-status showcase-status-orange">Autonomous</span>
+                        {healthStatus?.moltbook === 'down' ? (
+                          <span className="showcase-status showcase-status-red">Offline</span>
+                        ) : (
+                          <span className="showcase-status showcase-status-orange">Autonomous</span>
+                        )}
                       </div>
                       <span className="showcase-tagline">AI social presence</span>
                     </div>
@@ -449,10 +482,13 @@ const Home = () => {
                     <span>LLM Content</span>
                     <span>REST API</span>
                   </div>
+                  <div className="showcase-actions">
+                    <Link to="/moltbook" className="showcase-action">View Agent</Link>
+                  </div>
                 </div>
-              </Link>
+              </div>
 
-              <a href="https://oldwaystoday.com" target="_blank" rel="noopener noreferrer" className="showcase-card">
+              <div className="showcase-card">
                 <div className="showcase-card-accent" style={{ background: '#d97706' }} />
                 <div className="showcase-card-body">
                   <div className="showcase-card-header">
@@ -477,86 +513,60 @@ const Home = () => {
                     <span>Auto-blog</span>
                     <span>EmbedRoute</span>
                   </div>
+                  <div className="showcase-actions">
+                    <a href="https://oldwaystoday.com" target="_blank" rel="noopener noreferrer" className="showcase-action">Visit Site ↗</a>
+                  </div>
                 </div>
-              </a>
+              </div>
 
+            </div>
+          </div>
+        </section>
+
+        {/* ===== COMPACT ACTIVITY ===== */}
+        <section className="showcase-section">
+          <div className="container">
+            <div className="activity-compact">
+              <div className="activity-compact-header">
+                <span className="showcase-section-label">Recent Activity</span>
+                <div className="activity-compact-stats">
+                  <span className="activity-compact-stat"><strong>{githubStats?.today || 0}</strong> today</span>
+                  <span className="activity-compact-stat"><strong>{githubStats?.last7Days || 0}</strong> this week</span>
+                </div>
+              </div>
+              <div className="commits-list">
+                {githubStats?.recentCommits?.slice(0, 5).map((commit, i) => (
+                  <div key={`${commit.sha}-${i}`} className="commit-row">
+                    <span className="commit-msg">{commit.message}</span>
+                    <div className="commit-meta">
+                      {commit.isPrivate ? (
+                        <span className="commit-repo">{commit.repo}</span>
+                      ) : (
+                        <a href={commit.repoUrl} target="_blank" rel="noopener noreferrer" className="commit-repo">
+                          {commit.repo}
+                        </a>
+                      )}
+                      {REPO_TO_SITE[commit.repo] && (
+                        <a href={REPO_TO_SITE[commit.repo]} target="_blank" rel="noopener noreferrer" className="commit-live">↗</a>
+                      )}
+                      {commit.claudeCode && (
+                        <span className="commit-claude">Claude Code</span>
+                      )}
+                      <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="activity-compact-links">
+                <Link to="/commits" className="activity-compact-link">View all commits →</Link>
+                <Link to="/activity" className="activity-compact-link">View activity log →</Link>
+              </div>
             </div>
           </div>
         </section>
 
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
-
-        <CollapsibleSection
-          title="Activity"
-          subtitle="Live GitHub commits and AI agent actions across all systems"
-          badge="Live"
-          badgeType="live"
-          stats={[
-            { value: githubStats?.today || '–', label: 'today' },
-            { value: githubStats?.last7Days || '–', label: 'this week' },
-            { value: agentActivityCount || '–', label: 'agent events' },
-          ]}
-          defaultOpen={true}
-        >
-        {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
-        <section className="activity-section">
-          <div className="container">
-            <div className="activity-row">
-              {/* GitHub Commits */}
-              <div className="activity-card activity-half">
-                <div className="activity-header">
-                  <div className="activity-stats">
-                    <div className="stat">
-                      <span className="stat-num">{githubStats?.today || 0}</span>
-                      <span className="stat-label">today</span>
-                    </div>
-                    <div className="stat">
-                      <span className="stat-num">{githubStats?.last7Days || 0}</span>
-                      <span className="stat-label">this week</span>
-                    </div>
-                    <div className="stat">
-                      <span className="stat-num">{githubStats?.last30Days || 0}</span>
-                      <span className="stat-label">this month</span>
-                    </div>
-                  </div>
-                  <span className="activity-label">commits</span>
-                </div>
-
-                <div className="commits-list">
-                  {githubStats?.recentCommits?.slice(0, 6).map((commit, i) => (
-                    <div key={`${commit.sha}-${i}`} className="commit-row">
-                      <span className="commit-msg">{commit.message}</span>
-                      <div className="commit-meta">
-                        {commit.isPrivate ? (
-                          <span className="commit-repo">{commit.repo}</span>
-                        ) : (
-                          <a href={commit.repoUrl} target="_blank" rel="noopener noreferrer" className="commit-repo">
-                            {commit.repo}
-                          </a>
-                        )}
-                        {REPO_TO_SITE[commit.repo] && (
-                          <a href={REPO_TO_SITE[commit.repo]} target="_blank" rel="noopener noreferrer" className="commit-live">↗</a>
-                        )}
-                        {commit.claudeCode && (
-                          <span className="commit-claude">Claude Code</span>
-                        )}
-                        <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Link to="/commits" className="activity-view-all">View all commits →</Link>
-              </div>
-
-              {/* Agent Activity */}
-              <div className="activity-card activity-half agent-activity-card">
-                <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
-              </div>
-            </div>
-          </div>
-        </section>
-        </CollapsibleSection>
 
         <CollapsibleSection
           title="Tools & Services"
