@@ -5,7 +5,7 @@ export const profile = {
   location: "Seattle, WA",
   email: "charltonuw@gmail.com",
   phone: "(360) 349-1661",
-  tagline: "Building intelligent systems at scale",
+  tagline: "Senior Software Engineer · AI Systems in Production",
   bio: `Full-stack engineer with 7+ years building production systems and AI-powered applications. 
 Currently focused on LLM agents and prediction markets. Background includes startup co-founder 
 (published ACM research), senior engineer at Capital One, and multiple hackathon wins.`,

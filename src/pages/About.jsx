@@ -21,7 +21,7 @@ const About = () => {
             </div>
             <div className="about-intro">
               <h1>Charlton Smith</h1>
-              <p className="about-role">Software Engineer · Seattle, WA</p>
+              <p className="about-role">Senior Software Engineer · AI Systems · Seattle, WA</p>
               <p className="about-summary">
                 I build apps that people actually use, ship updates constantly, and 
                 let AI handle the parts that should be automated. Currently building an 

@@ -269,7 +269,7 @@ const Home = () => {
             <div className="hero-top">
               <div className="hero-intro">
                 <h1 className="hero-name">{profile?.name || 'Charlton Smith'}</h1>
-                <p className="hero-title">{profile?.tagline || 'Senior Software Engineer · 7+ Years Experience'}</p>
+                <p className="hero-title">{profile?.tagline || 'Senior Software Engineer · AI Systems in Production'}</p>
                 
                 <div className="hero-meta">
                   <span className="meta-item">M.S. Software Engineering</span>
@@ -284,9 +284,31 @@ const Home = () => {
                 <div className="ai-badge-glow"></div>
                 <div className="ai-badge-content">
                   <span className="ai-badge-dot"></span>
-                  <span className="ai-badge-text">Powered by AI</span>
+                  <span className="ai-badge-text">7 Agents Live</span>
                 </div>
-                <p className="ai-badge-subtext">This site runs itself</p>
+                <p className="ai-badge-subtext">Autonomous decisions every 3 hours</p>
+              </div>
+            </div>
+
+            {/* Hero Stats */}
+            <div className="hero-stats">
+              <div className="hero-stat">
+                <span className="hero-stat-value">7</span>
+                <span className="hero-stat-label">AI Agents</span>
+              </div>
+              <div className="hero-stat">
+                <span className="hero-stat-value">{githubStats?.last30Days || '–'}</span>
+                <span className="hero-stat-label">Commits / Mo</span>
+              </div>
+              <div className="hero-stat">
+                <span className="hero-stat-value">
+                  {appStats ? (appStats.benchpressonly?.users || 0) + (appStats.spellbrigade?.users || 0) + (appStats.rowcrew?.users || 0) || '–' : '–'}
+                </span>
+                <span className="hero-stat-label">Users</span>
+              </div>
+              <div className="hero-stat">
+                <span className="hero-stat-value">{Object.keys(REPO_TO_SITE).length}</span>
+                <span className="hero-stat-label">Live Apps</span>
               </div>
             </div>
           </div>
@@ -296,8 +318,10 @@ const Home = () => {
         <section className="narrative-section">
           <div className="container">
             <p className="narrative-text">
-              I build apps that people actually use, take their feedback, and keep making things better. 
-              Everything here is live — real commits, real users, real agents working autonomously.
+              Seven autonomous AI agents run this portfolio — writing blog posts, coaching workouts,
+              generating game characters, and filling their own knowledge gaps. I've spent 7+ years
+              shipping production software at places like T-Mobile and Capital One. Now I build the
+              AI systems that ship alongside me.
             </p>
           </div>
         </section>
@@ -405,7 +429,7 @@ const Home = () => {
           </Link>
           <Link to="/chat" className="cta-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            Chat
+            Chat with my AI
           </Link>
         </div>
 
@@ -595,10 +619,10 @@ const Home = () => {
 
         <CollapsibleSection
           title="Experience"
-          subtitle="7+ years building internal tools, testing infrastructure, and AI-powered applications at scale"
+          subtitle="Enterprise platforms, autonomous trading systems, and AI-powered applications — 7+ years shipping production software"
           badge="7+ yrs"
           badgeType="count"
-          defaultOpen={false}
+          defaultOpen={true}
           forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         <section className="experience-section">

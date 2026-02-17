@@ -128,6 +128,35 @@
   margin: 0;
 }
 
+/* Hero Stats Row */
+.hero-stats {
+  display: flex;
+  gap: var(--space-xl);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hero-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+}
+
+.hero-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 /* Narrative Statement */
 .narrative-section {
   padding: var(--space-lg) 0 var(--space-xl);
@@ -881,6 +910,15 @@ a.commit-repo:hover {
   .hero-ai-badge {
     align-self: flex-start;
     padding: var(--space-md) 0;
+  }
+
+  .hero-stats {
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+  }
+
+  .hero-stat-value {
+    font-size: 1.25rem;
   }
   
   .hero-name {
