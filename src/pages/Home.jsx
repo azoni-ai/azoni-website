@@ -387,20 +387,20 @@ const Home = () => {
                         <h3>Azoni AI</h3>
                         <span className="showcase-status">Try it</span>
                       </div>
-                      <span className="showcase-tagline">RAG chatbot with live MCP data access</span>
+                      <span className="showcase-tagline">Vector search RAG with live MCP data access</span>
                     </div>
                   </div>
                   <p className="showcase-desc">
-                    Intent detection classifies your question, retrieves relevant chunks from a vector 
-                    knowledge base via EmbedRoute, and augments the prompt with live data from the MCP 
-                    server. Paste a job description and it analyzes how my skills match the role.
+                    Intent detection classifies your question, then OpenAI embeddings + cosine similarity
+                    find the most relevant knowledge chunks. Live data from the MCP server augments every
+                    response. Paste a job description and it analyzes how my skills match the role.
                   </p>
                   <div className="showcase-flow">
                     <span className="showcase-flow-step">Your Question</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     <span className="showcase-flow-step">Intent Detection</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">RAG + MCP</span>
+                    <span className="showcase-flow-step">Vector Search + MCP</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     <span className="showcase-flow-step">Response</span>
                   </div>

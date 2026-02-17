@@ -366,6 +366,9 @@ const RAGStats = ({ rag, usage }) => {
       >
         <span className="rag-stats-summary">
           <span className="rag-intent-pill">{rag.intent}</span>
+          {rag.retrievalMethod === 'vector' && (
+            <span className="rag-method-pill">vector</span>
+          )}
           <span className="rag-chunks-count">{rag.chunksRetrieved} chunks retrieved</span>
           {usage?.totalCost && (
             <span className="rag-cost">${usage.totalCost}</span>

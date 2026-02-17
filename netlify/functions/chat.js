@@ -13,6 +13,47 @@ const MODEL_PRICING = {
 
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 
+// ============ VECTOR SEARCH CONFIG ============
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const EMBEDDING_MODEL = 'text-embedding-3-small';
+
+function cosineSimilarity(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  let dotProduct = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+async function embedQuery(text) {
+  if (!OPENAI_API_KEY) return null;
+  try {
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: EMBEDDING_MODEL,
+        input: text.slice(0, 8000)
+      })
+    });
+    const data = await response.json();
+    if (data.error) {
+      console.error('[chat] Embedding error:', data.error.message);
+      return null;
+    }
+    return data.data[0].embedding;
+  } catch (err) {
+    console.error('[chat] Embedding failed:', err.message);
+    return null;
+  }
+}
+
 // ============ MCP SERVER CONFIG ============
 const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.com';
 
@@ -432,68 +473,81 @@ function detectIntent(query) {
   return { intent: 'general', confidence: 'LOW', reason: 'no_match' };
 }
 
-// ============ CHUNK RETRIEVAL ============
+// ============ CHUNK RETRIEVAL (Hybrid Vector + Keyword) ============
 async function retrieveChunks(query, intent, maxChunks = 5) {
   const q = query.toLowerCase();
-  const results = [];
-  
-  // Fetch chunks from Firestore
   const chunks = await getKnowledgeChunks();
-  
-  // If no chunks available, return fallback
+
   if (!chunks || chunks.length === 0) {
     console.warn('No chunks available, using fallback');
     return [{ ...FALLBACK_CHUNK, score: 1 }];
   }
-  
-  // Score each chunk
+
+  // Generate query embedding for vector similarity search
+  const queryEmbedding = await embedQuery(query);
+  const embeddedChunkCount = chunks.filter(c => c.embedding).length;
+  if (queryEmbedding) {
+    console.log(`[chat] Vector search active: ${embeddedChunkCount}/${chunks.length} chunks have embeddings`);
+  }
+
+  const results = [];
+
   for (const chunk of chunks) {
     let score = 0;
-    
-    // Category match bonus
-    if (intent.intent === 'experience' && chunk.category === 'experience') score += 30;
-    if (intent.intent === 'projects' && chunk.category === 'projects') score += 30;
-    if (intent.intent === 'skills' && chunk.category === 'skills') score += 30;
-    if (intent.intent === 'education' && chunk.category === 'education') score += 30;
-    if (intent.intent === 'contact' && chunk.category === 'personal') score += 30;
-    if (intent.intent === 'fitness' && (chunk.id === 'proj-benchpressonly' || chunk.category === 'fitness')) score += 30;
-    if (intent.intent === 'moltbook' && (chunk.category === 'moltbook' || chunk.id?.includes('moltbook'))) score += 30;
-    if (intent.intent === 'agents' && (chunk.category === 'agents' || chunk.category === 'moltbook')) score += 30;
-    if (intent.intent === 'services' && (chunk.category === 'services' || chunk.category === 'personal')) score += 30;
-    if (intent.intent === 'negotiation' && (chunk.category === 'negotiation' || chunk.category === 'experience' || chunk.category === 'bio')) score += 30;
-    if (intent.intent === 'general') score += 5; // Small bonus for all in general queries
-    
-    // Keyword matching (handle both 'keywords' array and 'metadata.keywords')
+    let vectorSimilarity = null;
+    const hasVector = queryEmbedding && chunk.embedding;
+
+    // === VECTOR SIMILARITY (primary signal when available) ===
+    if (hasVector) {
+      vectorSimilarity = cosineSimilarity(queryEmbedding, chunk.embedding);
+      score = vectorSimilarity * 100;
+    }
+
+    // === CATEGORY MATCH BONUS (reduced when vector is primary) ===
+    const catBonus = hasVector ? 15 : 30;
+    if (intent.intent === 'experience' && chunk.category === 'experience') score += catBonus;
+    if (intent.intent === 'projects' && chunk.category === 'projects') score += catBonus;
+    if (intent.intent === 'skills' && chunk.category === 'skills') score += catBonus;
+    if (intent.intent === 'education' && chunk.category === 'education') score += catBonus;
+    if (intent.intent === 'contact' && chunk.category === 'personal') score += catBonus;
+    if (intent.intent === 'fitness' && (chunk.id === 'proj-benchpressonly' || chunk.category === 'fitness')) score += catBonus;
+    if (intent.intent === 'moltbook' && (chunk.category === 'moltbook' || chunk.id?.includes('moltbook'))) score += catBonus;
+    if (intent.intent === 'agents' && (chunk.category === 'agents' || chunk.category === 'moltbook')) score += catBonus;
+    if (intent.intent === 'services' && (chunk.category === 'services' || chunk.category === 'personal')) score += catBonus;
+    if (intent.intent === 'negotiation' && (chunk.category === 'negotiation' || chunk.category === 'experience' || chunk.category === 'bio')) score += catBonus;
+    if (intent.intent === 'general') score += 5;
+
+    // === KEYWORD MATCHING (bonus on top of vector, or primary for non-embedded chunks) ===
+    const kwBonus = hasVector ? 10 : 15;
+    const kwLongBonus = hasVector ? 3 : 5;
     const keywords = chunk.keywords || chunk.metadata?.keywords || [];
     for (const keyword of keywords) {
       if (q.includes(keyword.toLowerCase())) {
-        score += 15;
-        // Extra boost for exact important matches
-        if (keyword.length > 5) score += 5;
+        score += kwBonus;
+        if (keyword.length > 5) score += kwLongBonus;
       }
     }
-    
-    // Title matching
+
+    // === TITLE MATCHING ===
     if (chunk.title && chunk.title.toLowerCase().split(' ').some(word => q.includes(word) && word.length > 3)) {
-      score += 20;
+      score += hasVector ? 10 : 20;
     }
-    
-    // Content snippet matching (check if query words appear in content)
-    const queryWords = q.split(/\s+/).filter(w => w.length > 3);
-    const contentLower = (chunk.content || '').toLowerCase();
-    for (const word of queryWords) {
-      if (contentLower.includes(word)) score += 3;
+
+    // === CONTENT SNIPPET MATCHING (only for keyword-scored chunks) ===
+    if (!hasVector) {
+      const queryWords = q.split(/\s+/).filter(w => w.length > 3);
+      const contentLower = (chunk.content || '').toLowerCase();
+      for (const word of queryWords) {
+        if (contentLower.includes(word)) score += 3;
+      }
     }
-    
+
     if (score > 0) {
-      results.push({ ...chunk, score });
+      results.push({ ...chunk, score, vectorSimilarity });
     }
   }
-  
-  // Sort by score descending
+
   results.sort((a, b) => b.score - a.score);
-  
-  // Return top chunks
   return results.slice(0, maxChunks);
 }
 
@@ -780,6 +834,9 @@ exports.handler = async (event, context) => {
     // If retrieval is weak and it's a substantive question, generate knowledge on the spot
     let realtimeChunk = null;
     const bestScore = retrievedChunks.length > 0 ? Math.max(...retrievedChunks.map(c => c.score)) : 0;
+    // Vector-scored chunks have higher baselines — adjust threshold accordingly
+    const hasVectorScores = retrievedChunks.some(c => c.vectorSimilarity !== null);
+    const generationThreshold = hasVectorScores ? 25 : 10;
     
     // Only generate for intents where we'd reasonably have knowledge
     const generatableIntents = ['general', 'experience', 'projects', 'skills', 'negotiation', 'education', 'agents', 'services', 'contact'];
@@ -810,7 +867,7 @@ exports.handler = async (event, context) => {
     
     // Rate limit: max 5 real-time generations per hour (check Firestore)
     let rateLimited = false;
-    if (!isBlocked && isGeneratableIntent && isSubstantive && bestScore < 10 && db) {
+    if (!isBlocked && isGeneratableIntent && isSubstantive && bestScore < generationThreshold && db) {
       try {
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         const recentGens = await db.collection('agent_activity')
@@ -827,8 +884,8 @@ exports.handler = async (event, context) => {
       }
     }
     
-    if (bestScore < 10 && isSubstantive && isGeneratableIntent && !isBlocked && !rateLimited && db) {
-      console.log(`[chat] Low retrieval score (${bestScore}) — generating knowledge on the fly`);
+    if (bestScore < generationThreshold && isSubstantive && isGeneratableIntent && !isBlocked && !rateLimited && db) {
+      console.log(`[chat] Low retrieval score (${bestScore}, threshold: ${generationThreshold}) — generating knowledge on the fly`);
       realtimeChunk = await generateKnowledgeOnTheFly(latestUserMessage, intent.intent);
       if (realtimeChunk) {
         retrievedChunks.unshift(realtimeChunk); // Add to front so it's highest priority
@@ -897,7 +954,10 @@ exports.handler = async (event, context) => {
       id: c.id,
       title: c.title,
       category: c.category,
-      similarity: Math.min(c.score / maxScore, 1.0).toFixed(2)
+      similarity: c.vectorSimilarity !== null
+        ? c.vectorSimilarity.toFixed(3)
+        : Math.min(c.score / maxScore, 1.0).toFixed(2),
+      method: c.vectorSimilarity !== null ? 'vector' : 'keyword'
     }));
 
     // ===== SELF-IMPROVEMENT: Log knowledge gaps + conversations =====
@@ -950,6 +1010,7 @@ exports.handler = async (event, context) => {
         // RAG debug info
         _rag: {
           enabled: true,
+          retrievalMethod: retrievedChunks.some(c => c.vectorSimilarity !== null) ? 'vector' : 'keyword',
           intent: intent.intent,
           intentConfidence: intent.confidence,
           reason: intent.reason,
