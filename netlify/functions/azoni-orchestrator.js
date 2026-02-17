@@ -60,6 +60,112 @@ const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.c
 const MOLTBOOK_AGENT_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 const SITE_URL = process.env.URL || 'https://azoni.ai';
 
+// ============ ACTION VALIDATION & RATE LIMITING ============
+
+const ACTION_SCHEMA = {
+  trigger_blog: { required: ['date'] },
+  share_blog: { required: ['blogTitle'] },
+  flag_health: { required: ['system', 'issue'] },
+  log_milestone: { required: ['title', 'description'] },
+  fill_knowledge_gap: { required: ['gapQuery', 'gapIntent'] },
+  self_assessment: {},
+  reorganize_knowledge: {},
+  review_errors: {},
+  none: {}
+};
+
+function validateActions(actions) {
+  if (!Array.isArray(actions)) {
+    console.log('[orchestrator] LLM returned non-array actions, rejecting');
+    return [];
+  }
+
+  const validated = [];
+  for (const action of actions) {
+    if (!action || typeof action.action !== 'string') {
+      console.log('[orchestrator] Skipped malformed action:', JSON.stringify(action));
+      continue;
+    }
+
+    const schema = ACTION_SCHEMA[action.action];
+    if (!schema) {
+      console.log(`[orchestrator] Rejected unknown action: "${action.action}"`);
+      continue;
+    }
+
+    if (schema.required) {
+      const missing = schema.required.filter(p => !action[p]);
+      if (missing.length > 0) {
+        console.log(`[orchestrator] Rejected "${action.action}": missing params [${missing.join(', ')}]`);
+        continue;
+      }
+    }
+
+    validated.push(action);
+  }
+  return validated;
+}
+
+function applyRateLimits(actions, recentActivity) {
+  const now = Date.now();
+  const checked = [];
+
+  for (const action of actions) {
+    switch (action.action) {
+      case 'trigger_blog': {
+        const recentBlog = recentActivity.find(a =>
+          (a.title?.includes('blog generation') || a.title?.includes('Published blog') || a.title?.includes('Blog skipped')) &&
+          (now - new Date(a.timestamp).getTime()) < 6 * 60 * 60 * 1000
+        );
+        if (recentBlog) {
+          console.log('[orchestrator] Rate-limited trigger_blog: already triggered in last 6h');
+          continue;
+        }
+        break;
+      }
+      case 'fill_knowledge_gap': {
+        const gapFills = checked.filter(a => a.action === 'fill_knowledge_gap').length;
+        if (gapFills >= 2) {
+          console.log('[orchestrator] Rate-limited fill_knowledge_gap: max 2 per cycle');
+          continue;
+        }
+        break;
+      }
+      case 'reorganize_knowledge': {
+        const recentReorg = recentActivity.find(a =>
+          a.title?.includes('Reorganized knowledge') &&
+          (now - new Date(a.timestamp).getTime()) < 24 * 60 * 60 * 1000
+        );
+        if (recentReorg) {
+          console.log('[orchestrator] Rate-limited reorganize_knowledge: done in last 24h');
+          continue;
+        }
+        break;
+      }
+      case 'self_assessment': {
+        // Only check within available activity window (24h). The LLM prompt
+        // already handles the 5-day check via lastAssessment state.
+        const recentAssess = recentActivity.find(a =>
+          a.type === 'self_assessment'
+        );
+        if (recentAssess) {
+          console.log('[orchestrator] Rate-limited self_assessment: already done in last 24h');
+          continue;
+        }
+        break;
+      }
+    }
+    checked.push(action);
+  }
+
+  // Hard cap: max 4 actions per cycle
+  if (checked.length > 4) {
+    console.log(`[orchestrator] Capping actions from ${checked.length} to 4`);
+    return checked.slice(0, 4);
+  }
+  return checked;
+}
+
 // ============ STATE GATHERING ============
 
 async function getRecentActivity(hoursBack = 24) {
@@ -451,9 +557,16 @@ async function triggerBlogGeneration(date) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date })
     });
-    return { success: res.ok, status: res.status };
+    const body = await res.json().catch(() => ({}));
+    const skipped = body.skipped || body.message?.includes('already exists') || body.message?.includes('No commits');
+    return {
+      success: res.ok && !skipped,
+      skipped: !!skipped,
+      status: res.status,
+      message: body.message || body.error || null
+    };
   } catch (err) {
-    return { success: false, error: err.message };
+    return { success: false, skipped: false, error: err.message };
   }
 }
 
@@ -564,9 +677,17 @@ Category must be one of: bio, experience, projects, skills, agents, services, bl
     // Check for duplicate titles
     const existing = await db.collection('rag_knowledge_base')
       .where('title', '==', chunk.title).get();
-    
+
     if (!existing.empty) {
       return { success: false, error: 'Chunk with this title already exists', cost };
+    }
+
+    // Check for duplicate source queries (same question asked before)
+    const existingByQuery = await db.collection('rag_knowledge_base')
+      .where('metadata.sourceQuery', '==', gapQuery.slice(0, 200)).get();
+
+    if (!existingByQuery.empty) {
+      return { success: false, error: 'Chunk for this query already exists', cost };
     }
 
     const ref = await db.collection('rag_knowledge_base').add(ragDoc);
@@ -886,6 +1007,15 @@ exports.handler = async (event, context) => {
 
   console.log('[orchestrator] Starting Azoni AI orchestration cycle');
 
+  if (!OPENROUTER_API_KEY) {
+    console.error('[orchestrator] OPENROUTER_API_KEY not set — cannot make decisions');
+    return {
+      statusCode: 503,
+      headers,
+      body: JSON.stringify({ error: 'OPENROUTER_API_KEY not configured' })
+    };
+  }
+
   try {
     // 1. Observe — gather state from all systems
     await logStep(
@@ -936,16 +1066,37 @@ exports.handler = async (event, context) => {
 
     const decision = await makeDecisions(state);
 
-    console.log('[orchestrator] LLM decision:', {
+    console.log('[orchestrator] LLM raw decision:', {
       reasoning: decision.reasoning,
       actionCount: decision.actions.length,
+      actions: decision.actions.map(a => a.action),
       cost: decision.cost
     });
+
+    // 2b. Validate — reject unknown/malformed actions
+    const validatedActions = validateActions(decision.actions);
+    const skippedCount = decision.actions.length - validatedActions.length;
+    if (skippedCount > 0) {
+      console.log(`[orchestrator] Validation removed ${skippedCount} invalid action(s)`);
+    }
+
+    // 2c. Rate-limit — prevent spam across cycles
+    const finalActions = applyRateLimits(validatedActions, activity);
+    const rateLimitedCount = validatedActions.length - finalActions.length;
+    if (rateLimitedCount > 0) {
+      console.log(`[orchestrator] Rate limiting removed ${rateLimitedCount} action(s)`);
+      await logStep(
+        'agent_deciding',
+        `Rate-limited ${rateLimitedCount} action(s)`,
+        `Validated ${validatedActions.length} actions, rate-limited ${rateLimitedCount}. Final: [${finalActions.map(a => a.action).join(', ')}]`,
+        'Preventing action spam — some actions were recently performed'
+      );
+    }
 
     // 3. Act — execute decided actions
     const results = [];
 
-    for (const action of decision.actions) {
+    for (const action of finalActions) {
       console.log(`[orchestrator] Executing action: ${action.action}`);
 
       switch (action.action) {
@@ -967,13 +1118,27 @@ exports.handler = async (event, context) => {
           }
           const blogResult = await triggerBlogGeneration(action.date);
           results.push({ action: 'trigger_blog', ...blogResult });
-          await logStep(
-            'agent_drafting',
-            `Triggered blog generation for ${action.date}`,
-            action.reason,
-            `Decided to generate a blog post because: ${action.reason}. Result: ${blogResult.success ? 'success' : 'failed'}`,
-            { date: action.date, result: blogResult }
-          );
+          if (blogResult.skipped) {
+            await logStep(
+              'agent_deciding',
+              `Blog skipped for ${action.date}`,
+              blogResult.message || 'Already exists or no commits',
+              action.reason,
+              { date: action.date, skipped: true }
+            );
+          } else {
+            await logStep(
+              blogResult.success ? 'blog_published' : 'agent_deciding',
+              blogResult.success
+                ? `Published blog for ${action.date}`
+                : `Blog generation failed for ${action.date}`,
+              blogResult.success
+                ? `Blog post generated and published for ${action.date}`
+                : `Error: ${blogResult.error || blogResult.message || 'unknown'}`,
+              action.reason,
+              { date: action.date, result: blogResult }
+            );
+          }
           break;
         }
 
@@ -1150,21 +1315,37 @@ exports.handler = async (event, context) => {
     }
 
     // 4. Final summary log
-    const actionsTaken = decision.actions.filter(a => a.action !== 'none');
-    const summaryTitle = actionsTaken.length > 0
-      ? `Took ${actionsTaken.length} action${actionsTaken.length > 1 ? 's' : ''}: ${actionsTaken.map(a => a.action).join(', ')}`
+    const executedActions = finalActions.filter(a => a.action !== 'none');
+    const healthyCount = healthChecks?.filter(h => h.status === 'healthy').length || 0;
+    const totalServices = healthChecks?.length || 0;
+
+    const summaryParts = [];
+    if (executedActions.length > 0) {
+      summaryParts.push(`Executed ${executedActions.length} action${executedActions.length > 1 ? 's' : ''}: ${executedActions.map(a => a.action).join(', ')}`);
+    }
+    if (skippedCount > 0) summaryParts.push(`${skippedCount} invalid rejected`);
+    if (rateLimitedCount > 0) summaryParts.push(`${rateLimitedCount} rate-limited`);
+    const summaryTitle = summaryParts.length > 0
+      ? summaryParts.join(' · ')
       : 'All systems nominal — no action needed';
 
     await logStep(
-      'agent_observing',
+      'orchestrator_summary',
       summaryTitle,
       decision.reasoning,
-      `Orchestration cycle complete. Analyzed ${activity.length} recent events, ${github?.totalCommits || 0} commits, ${blogs.length} blog posts. Services: ${healthChecks?.filter(h => h.status === 'healthy').length || 0}/${healthChecks?.length || 0} healthy. Cost: $${decision.cost?.toFixed(6) || '0'}`,
+      `Cycle complete. ${activity.length} events, ${github?.totalCommits || 0} commits, ${blogs.length} blogs. Services: ${healthyCount}/${totalServices} healthy. LLM proposed ${decision.actions.length} → validated ${validatedActions.length} → executed ${finalActions.length}. Cost: $${decision.cost?.toFixed(6) || '0'}`,
       {
-        actionsExecuted: actionsTaken.length,
+        proposed: decision.actions.length,
+        validated: validatedActions.length,
+        executed: finalActions.length,
+        skipped: skippedCount,
+        rateLimited: rateLimitedCount,
         totalEvents: activity.length,
         commits: github?.totalCommits || 0,
-        cost: decision.cost
+        servicesHealthy: healthyCount,
+        servicesTotal: totalServices,
+        cost: decision.cost,
+        model: decision.model
       }
     );
 
@@ -1174,7 +1355,8 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         reasoning: decision.reasoning,
-        actions: decision.actions,
+        actions: { proposed: decision.actions, executed: finalActions },
+        validation: { proposed: decision.actions.length, validated: validatedActions.length, executed: finalActions.length, skipped: skippedCount, rateLimited: rateLimitedCount },
         results,
         cost: decision.cost,
         state: {
