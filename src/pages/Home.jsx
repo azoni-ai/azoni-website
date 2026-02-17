@@ -6,7 +6,7 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import CollapsibleSection from '../components/CollapsibleSection';
-import { avatars, AGENTS, AGENT_ORDER, SITE_AGENTS, PRODUCT_AGENTS, AGENT_HOME_DATA } from '../data/agents';
+import { avatars, AGENTS, SITE_AGENTS, PRODUCT_AGENTS, AGENT_HOME_DATA } from '../data/agents';
 import '../styles/bento.css';
 import '../styles/team.css';
 
@@ -140,7 +140,6 @@ const Home = () => {
   const [latestBlog, setLatestBlog] = useState(null);
   const [agentActivityCount, setAgentActivityCount] = useState(0);
   const [appStats, setAppStats] = useState(null);
-  const [allExpanded, setAllExpanded] = useState(null);
   const heroRef = useRef(null);
 
   // Fetch latest blog post
@@ -327,6 +326,22 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== CTA ROW ===== */}
+        <div className="cta-row">
+          <Link to="/resume" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            Resume
+          </Link>
+          <Link to="/projects" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Projects
+          </Link>
+          <Link to="/chat" className="cta-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Chat with my AI
+          </Link>
+        </div>
+
         {/* ===== FEATURED: BLOG AGENT + CHAT AGENT ===== */}
         <section className="showcase-section">
           <div className="container">
@@ -418,35 +433,119 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ===== CTA ROW ===== */}
-        <div className="cta-row">
-          <Link to="/resume" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-            Resume
-          </Link>
-          <Link to="/projects" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            Projects
-          </Link>
-          <Link to="/chat" className="cta-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            Chat with my AI
-          </Link>
-        </div>
-
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 
-        <div className="expand-all-row">
-          <button className="expand-all-btn" onClick={() => {
-            const next = allExpanded === true ? false : true;
-            setAllExpanded(next);
-            // Reset after sections animate so individual toggles work again
-            setTimeout(() => setAllExpanded(null), 400);
-          }}>
-            {allExpanded === true ? 'Collapse all' : 'Expand all'}
-          </button>
-        </div>
+        <CollapsibleSection
+          title="Experience"
+          subtitle="7+ years shipping production software at T-Mobile, Capital One, and startups"
+          badge="7+ yrs"
+          badgeType="count"
+          defaultOpen={true}
+        >
+        <section className="experience-section">
+          <div className="container">
+            <div className="section-header"><h2>Experience</h2></div>
+            <div className="earlier-work-grid">
+
+              <div className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#e20074' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <div className="experience-icon" style={{ background: '#e20074' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                    </div>
+                    <div>
+                      <h3>T-Mobile</h3>
+                      <span className="earlier-card-tagline">Software Engineer II · June 2018 – April 2022</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Built an internal automation platform that consolidated 4–5 separate tools into a single interface,
+                    reducing manual work for network operations teams by over 80%. Migrated the frontend from Django
+                    templates to Angular with reusable components and contributed to the org-wide migration from Jenkins
+                    to GitLab CI/CD. Worked across cross-functional teams in a large enterprise environment.
+                  </p>
+                  <div className="earlier-card-highlights">
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg> Reduced manual work by 80%</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Consolidated 4–5 tools into one</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e20074" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Cross-functional enterprise teams</span>
+                  </div>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">4 yr</span>
+                      <span className="earlier-stat-label">Tenure</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">80%</span>
+                      <span className="earlier-stat-label">Work reduced</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">4–5</span>
+                      <span className="earlier-stat-label">Tools unified</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>Python</span>
+                    <span>Django</span>
+                    <span>Angular</span>
+                    <span>PostgreSQL</span>
+                    <span>GitLab CI/CD</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="earlier-card">
+                <div className="earlier-card-accent" style={{ background: '#004977' }} />
+                <div className="earlier-card-body">
+                  <div className="earlier-card-header">
+                    <div className="experience-icon" style={{ background: '#004977' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div>
+                      <h3>Capital One</h3>
+                      <span className="earlier-card-tagline">Senior Software Engineer · Nov 2022 – Nov 2023</span>
+                    </div>
+                  </div>
+                  <p className="earlier-card-desc">
+                    Maintained and extended automated testing infrastructure for customer email notifications across the
+                    financial services platform. Designed a JSON schema system so new test cases could be added without
+                    code changes — test definitions stored in S3, executed via Lambda, results piped to CloudWatch.
+                    Mentored a summer intern from project scoping through to production deployment.
+                  </p>
+                  <div className="earlier-card-highlights">
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Zero-code test authoring via JSON schema</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Mentored intern to production deployment</span>
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#004977" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Regulated financial services environment</span>
+                  </div>
+                  <div className="earlier-card-stats">
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">Sr.</span>
+                      <span className="earlier-stat-label">Level</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">AWS</span>
+                      <span className="earlier-stat-label">Platform</span>
+                    </div>
+                    <div className="earlier-stat">
+                      <span className="earlier-stat-value">0-code</span>
+                      <span className="earlier-stat-label">Test schema</span>
+                    </div>
+                  </div>
+                  <div className="earlier-card-tech">
+                    <span>AWS Lambda</span>
+                    <span>S3</span>
+                    <span>CloudWatch</span>
+                    <span>Python</span>
+                    <span>JSON Schema</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+        </CollapsibleSection>
 
         <CollapsibleSection
           title="Activity"
@@ -459,7 +558,6 @@ const Home = () => {
             { value: agentActivityCount || '–', label: 'agent events' },
           ]}
           defaultOpen={true}
-          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         {/* Activity Row - GitHub Commits + Agent Activity Side by Side */}
         <section className="activity-section">
@@ -484,7 +582,7 @@ const Home = () => {
                   </div>
                   <span className="activity-label">commits</span>
                 </div>
-                
+
                 <div className="commits-list">
                   {githubStats?.recentCommits?.slice(0, 6).map((commit, i) => (
                     <div key={`${commit.sha}-${i}`} className="commit-row">
@@ -525,8 +623,7 @@ const Home = () => {
           subtitle="3 autonomous agents run this site, plus AI-powered features across every product — click any to see how it works"
           badge="3 agents"
           badgeType="count"
-          defaultOpen={true}
-          forceOpen={allExpanded !== null ? allExpanded : undefined}
+          defaultOpen={false}
         >
         <section style={{ padding: '0 0 var(--space-lg)' }}>
           <div className="container">
@@ -541,7 +638,6 @@ const Home = () => {
           badge="3 Live"
           badgeType="live"
           defaultOpen={false}
-          forceOpen={allExpanded !== null ? allExpanded : undefined}
         >
         {/* Services */}
         <section className="services-section">
@@ -615,122 +711,10 @@ const Home = () => {
         </CollapsibleSection>
 
         <CollapsibleSection
-          title="Experience"
-          subtitle="Enterprise platforms, autonomous trading systems, and AI-powered applications — 7+ years shipping production software"
-          badge="7+ yrs"
-          badgeType="count"
-          defaultOpen={true}
-          forceOpen={allExpanded !== null ? allExpanded : undefined}
-        >
-        <section className="experience-section">
-          <div className="container">
-            <div className="section-header"><h2>Experience</h2></div>
-            <div className="earlier-work-grid">
-
-              <div className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#e20074' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <div className="experience-icon" style={{ background: '#e20074' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-                    </div>
-                    <div>
-                      <h3>T-Mobile</h3>
-                      <span className="earlier-card-tagline">Software Engineer II · June 2018 – April 2022</span>
-                    </div>
-                  </div>
-                  <p className="earlier-card-desc">
-                    Built an internal automation platform that consolidated 4–5 separate tools into a single interface, 
-                    reducing manual work for network operations teams by over 80%. Migrated the frontend from Django 
-                    templates to Angular with reusable components and contributed to the org-wide migration from Jenkins 
-                    to GitLab CI/CD. Worked across cross-functional teams in a large enterprise environment.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg> Reduced manual work by 80%</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Consolidated 4–5 tools into one</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e20074" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Cross-functional enterprise teams</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">4 yr</span>
-                      <span className="earlier-stat-label">Tenure</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">80%</span>
-                      <span className="earlier-stat-label">Work reduced</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">4–5</span>
-                      <span className="earlier-stat-label">Tools unified</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>Python</span>
-                    <span>Django</span>
-                    <span>Angular</span>
-                    <span>PostgreSQL</span>
-                    <span>GitLab CI/CD</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#004977' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <div className="experience-icon" style={{ background: '#004977' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    </div>
-                    <div>
-                      <h3>Capital One</h3>
-                      <span className="earlier-card-tagline">Senior Software Engineer · Nov 2022 – Nov 2023</span>
-                    </div>
-                  </div>
-                  <p className="earlier-card-desc">
-                    Maintained and extended automated testing infrastructure for customer email notifications across the 
-                    financial services platform. Designed a JSON schema system so new test cases could be added without 
-                    code changes — test definitions stored in S3, executed via Lambda, results piped to CloudWatch. 
-                    Mentored a summer intern from project scoping through to production deployment.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Zero-code test authoring via JSON schema</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Mentored intern to production deployment</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#004977" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Regulated financial services environment</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">Sr.</span>
-                      <span className="earlier-stat-label">Level</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">AWS</span>
-                      <span className="earlier-stat-label">Platform</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">0-code</span>
-                      <span className="earlier-stat-label">Test schema</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>AWS Lambda</span>
-                    <span>S3</span>
-                    <span>CloudWatch</span>
-                    <span>Python</span>
-                    <span>JSON Schema</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-        </CollapsibleSection>
-
-        <CollapsibleSection
           title="Earlier Work"
           subtitle="A 50-machine autonomous trading system and an ACM-published computer vision startup"
           defaultOpen={false}
-          forceOpen={allExpanded !== null ? allExpanded : undefined}
+
         >
         {/* Projects */}
         <section className="projects-section">
