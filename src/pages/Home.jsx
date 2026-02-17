@@ -6,7 +6,7 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import AgentActivityFeed from '../components/AgentActivityFeed';
 import CollapsibleSection from '../components/CollapsibleSection';
-import { avatars, AGENTS, SITE_AGENTS, PRODUCT_AGENTS, AGENT_HOME_DATA } from '../data/agents';
+import { avatars, AGENTS, PRODUCT_AGENTS, AGENT_HOME_DATA } from '../data/agents';
 import '../styles/bento.css';
 import '../styles/team.css';
 
@@ -40,28 +40,8 @@ function HomeTeamSection({ appStats, moltbookStatus, latestBlog, githubStats }) 
     return stats;
   };
 
-  const renderCard = (key) => {
-    const a = AGENTS[key];
-    const tryable = key === 'fitness' || key === 'gaming' || key === 'chat' || key === 'oldways';
-    return (
-      <div key={key} className={`home-team-card ${selected === key ? 'active' : ''}`}
-        onClick={() => setSelected(selected === key ? null : key)}
-        style={selected === key ? { borderColor: `${a.color}50` } : {}}>
-        <div className="ht-dot" style={{ background: a.color }}/>
-        {tryable && <span className="ht-try-badge" style={{ color: a.color, borderColor: `${a.color}50` }}>{key === 'gaming' ? 'Play' : 'Try it'}</span>}
-        <div className="ht-avatar">{avatars[key](48)}</div>
-        <div className="ht-name">{a.name}</div>
-        <div className="ht-role" style={{ color: a.color }}>{a.role}</div>
-      </div>
-    );
-  };
-
   return (
     <div>
-      <div className="home-team-grid">
-        {SITE_AGENTS.map(renderCard)}
-      </div>
-      <div className="home-team-group-label home-team-group-label-products">Also shipping AI in</div>
       <div className="home-products-list">
         {PRODUCT_AGENTS.map((key) => {
           const a = AGENTS[key];
@@ -345,6 +325,136 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== THE 3 AGENTS ===== */}
+        <section className="showcase-section">
+          <div className="container">
+            <div className="showcase-section-header">
+              <span className="showcase-section-label">The Agents</span>
+              <span className="showcase-section-sub">3 autonomous systems running this site right now</span>
+            </div>
+            <div className="showcase-grid showcase-grid-3">
+
+              <Link to="/activity" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#ff7a5c' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff7a5c" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>The Conductor</h3>
+                        <span className="showcase-status showcase-status-orange">Every 3h</span>
+                      </div>
+                      <span className="showcase-tagline">Central intelligence coordinating all agents</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Wakes up every 3 hours, gathers state from 11 data sources, sends it to an LLM for analysis,
+                    then validates and executes the decided actions. Rate-limited and action-whitelisted.
+                  </p>
+                  <div className="showcase-flow">
+                    <span className="showcase-flow-step">11 Sources</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">LLM Decides</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Validate</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Execute</span>
+                  </div>
+                  <div className="showcase-tech">
+                    <span>GPT-4o-mini</span>
+                    <span>GitHub API</span>
+                    <span>Firebase</span>
+                    <span>Cron</span>
+                  </div>
+                </div>
+              </Link>
+
+              <Link to="/blog" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#fbbf24' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(251,191,36,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>The Scribe</h3>
+                        <span className="showcase-status showcase-status-yellow">Daily</span>
+                      </div>
+                      <span className="showcase-tagline">Writes and publishes without human input</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Every day the orchestrator reviews GitHub commits, decides if there's something worth
+                    writing about, and generates a full blog post with code analysis. No prompts, no drafts.
+                  </p>
+                  <div className="showcase-flow">
+                    <span className="showcase-flow-step">Commits</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Orchestrator</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Claude Blog</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Published</span>
+                  </div>
+                  {latestBlog && (
+                    <div className="showcase-preview">
+                      <span className="showcase-preview-label">Latest</span>
+                      <span className="showcase-preview-title">{latestBlog.title}</span>
+                    </div>
+                  )}
+                  <div className="showcase-tech">
+                    <span>Claude Sonnet</span>
+                    <span>GitHub API</span>
+                    <span>Firestore</span>
+                    <span>SVG Covers</span>
+                  </div>
+                </div>
+              </Link>
+
+              <Link to="/chat" className="showcase-card">
+                <div className="showcase-card-accent" style={{ background: '#60a5fa' }} />
+                <div className="showcase-card-body">
+                  <div className="showcase-card-header">
+                    <div className="showcase-icon" style={{ background: 'rgba(96,165,250,0.12)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    </div>
+                    <div>
+                      <div className="showcase-title-row">
+                        <h3>Azoni AI</h3>
+                        <span className="showcase-status">Try it</span>
+                      </div>
+                      <span className="showcase-tagline">Self-improving RAG chatbot</span>
+                    </div>
+                  </div>
+                  <p className="showcase-desc">
+                    Vector search with OpenAI embeddings finds relevant knowledge. When stumped, generates
+                    new knowledge on the spot and saves it. Paste a job description for AI fit analysis.
+                  </p>
+                  <div className="showcase-flow">
+                    <span className="showcase-flow-step">Question</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Intent</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Vector + MCP</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span className="showcase-flow-step">Response</span>
+                  </div>
+                  <div className="showcase-tech">
+                    <span>OpenRouter</span>
+                    <span>Embeddings</span>
+                    <span>MCP</span>
+                    <span>Firestore RAG</span>
+                  </div>
+                </div>
+              </Link>
+
+            </div>
+          </div>
+        </section>
+
         {/* ===== CTA ROW ===== */}
         <div className="cta-row">
           <Link to="/resume" className="cta-link">
@@ -360,97 +470,6 @@ const Home = () => {
             Chat with my AI
           </Link>
         </div>
-
-        {/* ===== FEATURED: BLOG AGENT + CHAT AGENT ===== */}
-        <section className="showcase-section">
-          <div className="container">
-            <div className="showcase-grid">
-
-              <Link to="/blog" className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#9b5de5' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(155,93,229,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9b5de5" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>Blog Agent</h3>
-                        <span className="showcase-status showcase-status-purple">Autonomous</span>
-                      </div>
-                      <span className="showcase-tagline">Writes and publishes without human input</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    Every day the orchestrator reviews my GitHub commits, decides if there's something worth 
-                    writing about, generates a full blog post with code analysis, and publishes it. 
-                    No prompts, no approval step, no drafts to review.
-                  </p>
-                  <div className="showcase-flow">
-                    <span className="showcase-flow-step">GitHub Commits</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Orchestrator</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">GPT-4o Blog</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Published</span>
-                  </div>
-                  {latestBlog && (
-                    <div className="showcase-preview">
-                      <span className="showcase-preview-label">Latest</span>
-                      <span className="showcase-preview-title">{latestBlog.title}</span>
-                    </div>
-                  )}
-                  <div className="showcase-tech">
-                    <span>GPT-4o</span>
-                    <span>GitHub API</span>
-                    <span>Firestore</span>
-                    <span>Cron</span>
-                  </div>
-                </div>
-              </Link>
-
-              <Link to="/chat" className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#3b82f6' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(59,130,246,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>Azoni AI</h3>
-                        <span className="showcase-status">Try it</span>
-                      </div>
-                      <span className="showcase-tagline">Vector search RAG with live MCP data access</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    Intent detection classifies your question, then OpenAI embeddings + cosine similarity
-                    find the most relevant knowledge chunks. Live data from the MCP server augments every
-                    response. Paste a job description and it analyzes how my skills match the role.
-                  </p>
-                  <div className="showcase-flow">
-                    <span className="showcase-flow-step">Your Question</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Intent Detection</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Vector Search + MCP</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Response</span>
-                  </div>
-                  <div className="showcase-tech">
-                    <span>OpenRouter</span>
-                    <span>EmbedRoute</span>
-                    <span>MCP</span>
-                    <span>Firestore RAG</span>
-                  </div>
-                </div>
-              </Link>
-
-            </div>
-          </div>
-        </section>
 
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
@@ -522,6 +541,20 @@ const Home = () => {
                 <AgentActivityFeed maxItems={8} showReasoning={true} compact={true} />
               </div>
             </div>
+          </div>
+        </section>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="AI Products"
+          subtitle="Shipping AI in fitness, gaming, social, and wellness apps"
+          badge={`${PRODUCT_AGENTS.length} apps`}
+          badgeType="count"
+          defaultOpen={false}
+        >
+        <section style={{ padding: '0 0 var(--space-lg)' }}>
+          <div className="container">
+            <HomeTeamSection appStats={appStats} moltbookStatus={moltbookStatus} latestBlog={latestBlog} githubStats={githubStats} />
           </div>
         </section>
         </CollapsibleSection>
@@ -633,20 +666,6 @@ const Home = () => {
               </div>
 
             </div>
-          </div>
-        </section>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="AI System"
-          subtitle="3 autonomous agents run this site — click any to see how it works"
-          badge="3 agents"
-          badgeType="count"
-          defaultOpen={false}
-        >
-        <section style={{ padding: '0 0 var(--space-lg)' }}>
-          <div className="container">
-            <HomeTeamSection appStats={appStats} moltbookStatus={moltbookStatus} latestBlog={latestBlog} githubStats={githubStats} />
           </div>
         </section>
         </CollapsibleSection>
