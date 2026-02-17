@@ -227,37 +227,6 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ===== CTA ROW ===== */}
-        <div className="cta-row">
-          <Link to="/about" className="cta-card">
-            <div className="cta-card-icon" style={{ background: 'rgba(192,132,252,0.12)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <div className="cta-card-text">
-              <span className="cta-card-title">About</span>
-              <span className="cta-card-sub">Background &amp; approach</span>
-            </div>
-          </Link>
-          <Link to="/resume" className="cta-card">
-            <div className="cta-card-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff7a5c" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-            </div>
-            <div className="cta-card-text">
-              <span className="cta-card-title">Resume</span>
-              <span className="cta-card-sub">7+ years · T-Mobile, Capital One</span>
-            </div>
-          </Link>
-          <Link to="/projects" className="cta-card">
-            <div className="cta-card-icon" style={{ background: 'rgba(251,191,36,0.12)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            </div>
-            <div className="cta-card-text">
-              <span className="cta-card-title">Projects</span>
-              <span className="cta-card-sub">{Object.keys(REPO_TO_SITE).length} live apps</span>
-            </div>
-          </Link>
-        </div>
-
         {/* ===== THE 3 AGENTS ===== */}
         <section className="showcase-section">
           <div className="container">
