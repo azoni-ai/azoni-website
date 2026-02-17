@@ -223,6 +223,9 @@ const Commits = () => {
                                 Live
                               </a>
                             )}
+                            {commit.claudeCode && (
+                              <span className="commit-item-claude">Claude Code</span>
+                            )}
                             {commit.sha && (
                               <span className="commit-item-sha">{commit.sha.slice(0, 7)}</span>
                             )}

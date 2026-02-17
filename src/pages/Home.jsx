@@ -475,6 +475,9 @@ const Home = () => {
                         {REPO_TO_SITE[commit.repo] && (
                           <a href={REPO_TO_SITE[commit.repo]} target="_blank" rel="noopener noreferrer" className="commit-live">↗</a>
                         )}
+                        {commit.claudeCode && (
+                          <span className="commit-claude">Claude Code</span>
+                        )}
                         <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
                       </div>
                     </div>

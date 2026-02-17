@@ -358,6 +358,19 @@
   margin-left: auto;
 }
 
+.commit-item-claude {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #d4a574;
+  padding: 1px 6px;
+  background: rgba(212, 165, 116, 0.12);
+  border: 1px solid rgba(212, 165, 116, 0.2);
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
+}
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
   .commits-container {

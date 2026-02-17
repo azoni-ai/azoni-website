@@ -203,7 +203,8 @@ exports.handler = async (event, context) => {
           owner: repo.owner?.login,
           isPrivate: repo.isPrivate,
           timestamp: commit.committedDate,
-          url: commit.url
+          url: commit.url,
+          claudeCode: /co-authored-by:.*claude/i.test(commit.message),
         });
       }
     }
