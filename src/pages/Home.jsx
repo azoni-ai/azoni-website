@@ -228,13 +228,30 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== COLLAPSIBLE SECTIONS ===== */}
+        <div className="collapsible-wrapper">
+
+        {/* ===== LIVE SYSTEM MAP ===== */}
+        <CollapsibleSection
+          title="Live System Map"
+          subtitle="Real-time view of the agent ecosystem — all services connected through the MCP server"
+          badge="Live"
+          badgeType="live"
+          defaultOpen={true}
+        >
+          <AgentKitchen />
+        </CollapsibleSection>
+
         {/* ===== THE 3 AGENTS ===== */}
+        <CollapsibleSection
+          title="The Agents"
+          subtitle="Autonomous systems running this site right now"
+          badge="3 Live"
+          badgeType="live"
+          defaultOpen={false}
+        >
         <section className="showcase-section">
           <div className="container">
-            <div className="showcase-section-header">
-              <span className="showcase-section-label">The Agents</span>
-              <span className="showcase-section-sub">Autonomous systems running this site right now</span>
-            </div>
             <div className="showcase-grid showcase-grid-3">
 
               <Link to="/activity" className="showcase-card">
@@ -367,14 +384,18 @@ const Home = () => {
             </div>
           </div>
         </section>
+        </CollapsibleSection>
 
         {/* ===== AI PRODUCTS ===== */}
+        <CollapsibleSection
+          title="AI Products"
+          subtitle="Shipping AI in fitness, gaming, social, and wellness apps"
+          badge="4 Apps"
+          badgeType="count"
+          defaultOpen={false}
+        >
         <section className="showcase-section">
           <div className="container">
-            <div className="showcase-section-header">
-              <span className="showcase-section-label">AI Products</span>
-              <span className="showcase-section-sub">Shipping AI in fitness, gaming, social, and wellness apps</span>
-            </div>
             <div className="showcase-grid showcase-grid-2x2">
 
               <div className="showcase-card">
@@ -511,19 +532,6 @@ const Home = () => {
             </div>
           </div>
         </section>
-
-        {/* ===== COLLAPSIBLE SECTIONS ===== */}
-        <div className="collapsible-wrapper">
-
-        {/* ===== LIVE SYSTEM MAP ===== */}
-        <CollapsibleSection
-          title="Live System Map"
-          subtitle="Real-time view of the agent ecosystem — all services connected through the MCP server"
-          badge="Live"
-          badgeType="live"
-          defaultOpen={false}
-        >
-          <AgentKitchen />
         </CollapsibleSection>
 
         <CollapsibleSection
