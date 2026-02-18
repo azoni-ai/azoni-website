@@ -1,0 +1,71 @@
+.agent-kitchen-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #0a0a0f;
+}
+
+.agent-kitchen-canvas {
+  display: block;
+  width: 100%;
+  height: 500px;
+  cursor: default;
+}
+
+@media (max-width: 768px) {
+  .agent-kitchen-canvas {
+    height: 380px;
+  }
+}
+
+/* Tooltip overlay (React div, not canvas) */
+.agent-kitchen-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 10px 14px;
+  background: rgba(18, 18, 26, 0.95);
+  border: 1px solid rgba(255, 122, 92, 0.3);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  max-width: 220px;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  transform: translate(-50%, -100%);
+  margin-top: -12px;
+}
+
+.agent-kitchen-tooltip-name {
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+
+.agent-kitchen-tooltip-desc {
+  color: #a8a8a0;
+  font-size: 0.75rem;
+}
+
+.agent-kitchen-tooltip-tools {
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: #ff7a5c;
+}
+
+.agent-kitchen-tooltip-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 0.7rem;
+}
+
+.agent-kitchen-tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
