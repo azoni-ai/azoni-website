@@ -435,7 +435,6 @@ function AgentKitchen() {
       drawConnections(stations, now);
       drawPulses(now);
 
-      const hub = stations.find(s => s.isHub);
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
 
