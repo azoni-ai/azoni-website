@@ -228,9 +228,16 @@ function AgentKitchen() {
 
       // Status dot
       const { toolCounts, health } = mcpRef.current;
-      const domainId = DOMAIN_TO_STATION[s.id] ? s.id : null;
-      const isOnline = health?.domains?.includes(domainId) || s.isHub;
-      const dotColor = health ? (isOnline ? '#4ade80' : '#ffb347') : '#6b6b65';
+      const hasDomain = !!DOMAIN_TO_STATION[s.id];
+      const isOnline = health?.domains?.includes(s.id) || s.isHub;
+      let dotColor;
+      if (!health) {
+        dotColor = '#6b6b65'; // grey — still loading
+      } else if (hasDomain) {
+        dotColor = isOnline ? '#4ade80' : '#ff6b6b'; // green/red for MCP services
+      } else {
+        dotColor = '#60a5fa'; // blue for agent/function stations
+      }
 
       ctx.beginPath();
       ctx.arc(s.px + r * 0.7, s.py - r * 0.7, 4, 0, Math.PI * 2);
@@ -467,16 +474,42 @@ function AgentKitchen() {
         const { toolCounts, health } = mcpRef.current;
         const domainId = hovered.id;
         const count = hovered.isHub ? mcpRef.current.tools?.totalTools : (toolCounts[domainId] || 0);
+        const hasMCPDomain = !!DOMAIN_TO_STATION[domainId];
         const isOnline = health?.domains?.includes(domainId) || hovered.isHub;
 
+        // Determine status: MCP-proxied stations check health, agents/functions show "agent"
+        let status, statusColor;
+        if (!health) {
+          status = 'checking...';
+          statusColor = '#6b6b65';
+        } else if (hovered.isHub) {
+          status = 'online';
+          statusColor = '#4ade80';
+        } else if (hasMCPDomain) {
+          status = isOnline ? 'connected' : 'offline';
+          statusColor = isOnline ? '#4ade80' : '#ff6b6b';
+        } else {
+          // Agents/functions not proxied through MCP (chatbot, blog, orchestrator)
+          status = 'agent';
+          statusColor = '#60a5fa';
+        }
+
+        // Edge-aware positioning: show below if near top, clamp horizontally
+        const showBelow = hovered.py < 100;
+        const tooltipX = Math.max(120, Math.min(w - 120, hovered.px));
+        const tooltipY = showBelow
+          ? hovered.py + hovered.radius + 16
+          : hovered.py - hovered.radius - 8;
+
         setTooltip({
-          x: hovered.px,
-          y: hovered.py - hovered.radius - 8,
+          x: tooltipX,
+          y: tooltipY,
+          showBelow,
           name: hovered.label,
           desc: hovered.desc,
           tools: count > 0 ? `${count} tools` : null,
-          status: health ? (isOnline ? 'connected' : 'unreachable') : 'checking...',
-          statusColor: health ? (isOnline ? '#4ade80' : '#ffb347') : '#6b6b65',
+          status,
+          statusColor,
         });
       } else {
         setTooltip(null);
@@ -506,7 +539,12 @@ function AgentKitchen() {
       {tooltip && (
         <div
           className="agent-kitchen-tooltip"
-          style={{ left: tooltip.x, top: tooltip.y }}
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: tooltip.showBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+            marginTop: tooltip.showBelow ? 0 : -12,
+          }}
         >
           <div className="agent-kitchen-tooltip-name">{tooltip.name}</div>
           <div className="agent-kitchen-tooltip-desc">{tooltip.desc}</div>
