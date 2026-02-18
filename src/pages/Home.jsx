@@ -512,6 +512,9 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== COLLAPSIBLE SECTIONS ===== */}
+        <div className="collapsible-wrapper">
+
         {/* ===== LIVE SYSTEM MAP ===== */}
         <CollapsibleSection
           title="Live System Map"
@@ -522,9 +525,6 @@ const Home = () => {
         >
           <AgentKitchen />
         </CollapsibleSection>
-
-        {/* ===== COLLAPSIBLE SECTIONS ===== */}
-        <div className="collapsible-wrapper">
 
         <CollapsibleSection
           title="Tools & Services"
