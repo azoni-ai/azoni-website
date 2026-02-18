@@ -219,16 +219,20 @@ exports.handler = async (event, context) => {
     recentCommits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const topCommits = recentCommits.slice(0, 100);
 
-    // Build repo list — only repos pushed within the last 6 months (active, not ancient)
-    const sixMonthsAgo = new Date(now);
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    // Build repo list — only repos with user/Claude commits in last 3 months
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const activeRepoNames = new Set(
+      recentCommits
+        .filter(c => new Date(c.timestamp) >= threeMonthsAgo)
+        .map(c => c.repo)
+    );
     const seenRepos = new Set();
     const repoList = [];
     for (const repo of allRepos) {
       if (seenRepos.has(repo.name)) continue;
       seenRepos.add(repo.name);
-      const pushed = repo.pushedAt ? new Date(repo.pushedAt) : null;
-      if (!pushed || pushed < sixMonthsAgo) continue;
+      if (!activeRepoNames.has(repo.name)) continue;
       repoList.push({
         name: repo.name,
         url: repo.url,
