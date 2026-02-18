@@ -191,7 +191,8 @@ exports.handler = async (event, context) => {
         // Only include commits by this user
         // Check login match, or if GitHub couldn't resolve the email, accept commits from owned repos
         const authorLogin = commit.author?.user?.login;
-        const isOwnedRepo = repo.owner?.login === username;
+        const ownerLogin = repo.owner?.login;
+        const isOwnedRepo = ownerLogin === username || ownerLogin === 'azoni-ai';
         if (authorLogin && authorLogin !== username) continue;
         if (!authorLogin && !isOwnedRepo) continue;
         
