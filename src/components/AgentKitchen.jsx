@@ -11,6 +11,7 @@ const SOURCE_TO_STATION = {
   'spell-brigade': 'spellbrigade',
   'moltbook-agent': 'moltbook',
   'rowcrew': 'rowcrew',
+  'oldwaystoday': 'oldwaystoday',
 };
 
 const TYPE_TO_STATION = {
@@ -33,6 +34,8 @@ const TYPE_TO_STATION = {
   'moltbook_post': 'moltbook',
   'moltbook_comment': 'moltbook',
   'moltbook_upvote': 'moltbook',
+  'owt_chat': 'oldwaystoday',
+  'owt_blog': 'oldwaystoday',
 };
 
 function mapSourceToStation(source, type) {
@@ -87,7 +90,7 @@ const STATION_DEFS = [
     dataLabel: 'social content',
   },
   {
-    id: 'oldwaystoday', label: 'Old Ways Today', x: 0.10, y: 0.30, color: '#d97706', icon: 'leaf',
+    id: 'oldwaystoday', label: 'Old Ways Today', x: 0.10, y: 0.30, color: '#d97706', agent: 'wellness', icon: 'leaf',
     desc: 'AI wellness platform helping families find non-toxic, traditional alternatives. Same RAG + auto-blog architecture as azoni.ai.',
     actions: ['Curating remedies', 'Auto-blogging', 'RAG retrieval'],
     dataLabel: 'recipes',
@@ -819,6 +822,7 @@ function AgentKitchen() {
       const colors = {
         chat: '#60a5fa', blog: '#fbbf24', orchestrator: '#a78bfa',
         social: '#fb923c', fitness: '#4ade80', gaming: '#c084fc',
+        wellness: '#d97706',
       };
 
       let ax, ay;
@@ -1036,8 +1040,29 @@ function AgentKitchen() {
         }
       }
 
+      if (station.agent === 'wellness' && isAtStation && isRecentlyActive) {
+        // Wellness: floating leaf particles
+        for (let i = 0; i < 3; i++) {
+          const leafT = ((now / 2500 + i * 0.33) % 1);
+          const leafX = ax + 8 + i * 5 + Math.sin(now / 400 + i) * 4;
+          const leafY = ay - 5 + bob - leafT * 25;
+          const leafAlpha = leafT < 0.7 ? 1 : (1 - leafT) / 0.3;
+          ctx.save();
+          ctx.globalAlpha = leafAlpha * 0.4 * activityFade;
+          ctx.fillStyle = '#d97706';
+          ctx.translate(leafX, leafY);
+          ctx.rotate(now / 600 + i * 2);
+          ctx.beginPath();
+          ctx.moveTo(0, -3);
+          ctx.quadraticCurveTo(3, 0, 0, 3);
+          ctx.quadraticCurveTo(-3, 0, 0, -3);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
       // Generic working sparkles for agents without specific animation (only when recently active)
-      if (!['blog', 'chat', 'social', 'fitness', 'gaming'].includes(station.agent)) {
+      if (!['blog', 'chat', 'social', 'fitness', 'gaming', 'wellness'].includes(station.agent)) {
         if (isAtStation && isRecentlyActive) {
           for (let i = 0; i < 3; i++) {
             const sa = now / 300 + i * 2.1;
