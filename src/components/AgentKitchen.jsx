@@ -256,6 +256,18 @@ function AgentKitchen() {
   const mcpRef = useRef({ health: null, tools: null, toolCounts: {} });
   const mouseRef = useRef({ x: -1, y: -1 });
   const orchestratorRef = useRef({ targetIdx: 0, progress: 0, paused: 0 });
+  // Agent trip state: each non-roaming agent periodically walks to MCP hub and back
+  const agentTripsRef = useRef(
+    STATION_DEFS.filter(s => s.agent && !s.roams).reduce((acc, s, i) => {
+      acc[s.id] = {
+        state: 'idle', // idle → toHub → atHub → toStation → idle
+        progress: 0,
+        nextTrip: 4000 + i * 2500 + Math.random() * 5000, // stagger starts
+        waitUntil: 0,
+      };
+      return acc;
+    }, {})
+  );
   const [tooltip, setTooltip] = useState(null);
 
   // Fetch MCP data on mount
@@ -683,6 +695,8 @@ function AgentKitchen() {
       }
     };
 
+    const easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
     const drawAgent = (station, now) => {
       if (!station.agent) return;
 
@@ -692,8 +706,10 @@ function AgentKitchen() {
       };
 
       let ax, ay;
+      let isAtStation = true; // whether agent is at its home station (for role animations)
 
       if (station.roams) {
+        isAtStation = false;
         const orc = orchestratorRef.current;
         const patrolTargets = [0, 4, 1, 5, 2, 6, 3, 7, 8, 9];
         const target = stationsRef.current[patrolTargets[orc.targetIdx]];
@@ -701,6 +717,7 @@ function AgentKitchen() {
         if (target) {
           if (orc.paused > 0) {
             orc.paused -= 16;
+            isAtStation = true; // paused = inspecting a station
           } else {
             orc.progress += 0.003;
             if (orc.progress >= 1) {
@@ -711,7 +728,7 @@ function AgentKitchen() {
           }
 
           const t = orc.progress;
-          const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease in-out
+          const eased = easeInOut(t);
           const prevTarget = stationsRef.current[patrolTargets[(orc.targetIdx - 1 + patrolTargets.length) % patrolTargets.length]] || station;
           ax = prevTarget.px + (target.px - prevTarget.px) * eased;
           ay = prevTarget.py + (target.py - prevTarget.py) * eased;
@@ -720,8 +737,31 @@ function AgentKitchen() {
           ay = station.py;
         }
       } else {
-        ax = station.px;
-        ay = station.py - station.radius - 18;
+        // Non-roaming agents: check trip state
+        const trip = agentTripsRef.current[station.id];
+        const homeX = station.px;
+        const homeY = station.py - station.radius - 18;
+        const hub = stationsRef.current.find(s => s.isHub);
+        const hubX = hub ? hub.px : homeX;
+        const hubY = hub ? hub.py - hub.radius - 18 : homeY;
+
+        if (trip && trip.state !== 'idle') {
+          isAtStation = false;
+          const eased = easeInOut(trip.progress);
+          if (trip.state === 'toHub') {
+            ax = homeX + (hubX - homeX) * eased;
+            ay = homeY + (hubY - homeY) * eased;
+          } else if (trip.state === 'atHub') {
+            ax = hubX;
+            ay = hubY;
+          } else { // toStation
+            ax = hubX + (homeX - hubX) * eased;
+            ay = hubY + (homeY - hubY) * eased;
+          }
+        } else {
+          ax = homeX;
+          ay = homeY;
+        }
       }
 
       const bob = Math.sin(now / 400 + (station.x || 0) * 20) * 2.5;
@@ -769,9 +809,37 @@ function AgentKitchen() {
       ctx.arc(ax + 3 + lookDx * 1.2, ay - 5 + bob + lookDy * 1.2, 1, 0, Math.PI * 2);
       ctx.fill();
 
-      // ─── Role-specific animations ───
+      // ─── Carrying data visual (when walking to/from hub) ───
+      if (!isAtStation && !station.roams) {
+        const trip = agentTripsRef.current[station.id];
+        if (trip && (trip.state === 'toHub' || trip.state === 'toStation')) {
+          // Glowing data orb above head
+          const orbColor = trip.state === 'toHub' ? station.color : '#ff7a5c';
+          const orbPulse = Math.sin(now / 200) * 2;
+          ctx.beginPath();
+          ctx.arc(ax, ay - 16 + bob + orbPulse, 4, 0, Math.PI * 2);
+          ctx.fillStyle = orbColor;
+          ctx.globalAlpha = 0.5;
+          ctx.shadowColor = orbColor;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
 
-      if (station.agent === 'blog' && (!station.roams || orchestratorRef.current.paused > 0)) {
+          // Tiny label
+          ctx.save();
+          ctx.globalAlpha = 0.4;
+          ctx.font = '7px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = orbColor;
+          ctx.fillText(trip.state === 'toHub' ? station.dataLabel || 'data' : 'response', ax, ay - 24 + bob + orbPulse);
+          ctx.restore();
+        }
+      }
+
+      // ─── Role-specific animations (only when at station) ───
+
+      if (station.agent === 'blog' && isAtStation) {
         // Scribe: writing animation — pen strokes
         const penPhase = (now / 200) % (Math.PI * 2);
         const penX = ax + 12 + Math.sin(penPhase) * 4;
@@ -791,7 +859,7 @@ function AgentKitchen() {
         }
       }
 
-      if (station.agent === 'chat' && (!station.roams || orchestratorRef.current.paused > 0)) {
+      if (station.agent === 'chat' && isAtStation) {
         // Chatbot: speech bubbles floating up
         for (let i = 0; i < 2; i++) {
           const bubbleT = ((now / 2000 + i * 0.5) % 1);
@@ -808,7 +876,7 @@ function AgentKitchen() {
         }
       }
 
-      if (station.agent === 'social' && (!station.roams || orchestratorRef.current.paused > 0)) {
+      if (station.agent === 'social' && isAtStation) {
         // Moltbook: broadcast waves
         for (let i = 0; i < 3; i++) {
           const waveT = ((now / 1500 + i * 0.33) % 1);
@@ -823,7 +891,7 @@ function AgentKitchen() {
         }
       }
 
-      if (station.agent === 'fitness' && (!station.roams || orchestratorRef.current.paused > 0)) {
+      if (station.agent === 'fitness' && isAtStation) {
         // Fitness: lifting animation
         const liftPhase = Math.sin(now / 600);
         const liftY = ay - 14 + bob + liftPhase * 3;
@@ -842,7 +910,7 @@ function AgentKitchen() {
         ctx.globalAlpha = 1;
       }
 
-      if (station.agent === 'gaming' && (!station.roams || orchestratorRef.current.paused > 0)) {
+      if (station.agent === 'gaming' && isAtStation) {
         // Gaming: sparkle/magic effect
         for (let i = 0; i < 5; i++) {
           const sa = now / 250 + i * 1.26;
@@ -870,7 +938,7 @@ function AgentKitchen() {
 
       // Generic working sparkles for agents without specific animation
       if (!['blog', 'chat', 'social', 'fitness', 'gaming'].includes(station.agent)) {
-        if (!station.roams || orchestratorRef.current.paused > 0) {
+        if (isAtStation) {
           for (let i = 0; i < 3; i++) {
             const sa = now / 300 + i * 2.1;
             const sr = 12 + Math.sin(now / 200 + i) * 4;
@@ -969,6 +1037,45 @@ function AgentKitchen() {
         const dy = my - s.py;
         if (Math.sqrt(dx * dx + dy * dy) < s.radius + 12) {
           hovered = s;
+        }
+      });
+
+      // ─── Update agent trips ───
+      stations.forEach(s => {
+        if (!s.agent || s.roams) return;
+        const trip = agentTripsRef.current[s.id];
+        if (!trip) return;
+
+        switch (trip.state) {
+          case 'idle':
+            if (now > trip.nextTrip) {
+              trip.state = 'toHub';
+              trip.progress = 0;
+            }
+            break;
+          case 'toHub':
+            trip.progress += 0.004;
+            if (trip.progress >= 1) {
+              trip.state = 'atHub';
+              trip.progress = 1;
+              trip.waitUntil = now + 1200;
+            }
+            break;
+          case 'atHub':
+            if (now > trip.waitUntil) {
+              trip.state = 'toStation';
+              trip.progress = 0;
+            }
+            break;
+          case 'toStation':
+            trip.progress += 0.004;
+            if (trip.progress >= 1) {
+              trip.state = 'idle';
+              trip.progress = 0;
+              trip.nextTrip = now + 10000 + Math.random() * 10000;
+            }
+            break;
+          default: break;
         }
       });
 

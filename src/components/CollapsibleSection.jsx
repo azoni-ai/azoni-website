@@ -31,6 +31,7 @@ const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', sta
     if (open) {
       const el = contentRef.current;
       if (el) {
+        el.style.overflow = 'hidden';
         el.style.height = 'auto';
         const fullHeight = el.scrollHeight;
         el.style.height = '0px';
@@ -39,6 +40,7 @@ const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', sta
         const timer = setTimeout(() => {
           if (contentRef.current) {
             setHeight('auto');
+            contentRef.current.style.overflow = 'visible';
           }
         }, 350);
         return () => clearTimeout(timer);
@@ -46,6 +48,7 @@ const CollapsibleSection = ({ title, subtitle, badge, badgeType = 'default', sta
     } else {
       const el = contentRef.current;
       if (el) {
+        el.style.overflow = 'hidden';
         const fullHeight = el.scrollHeight;
         setHeight(`${fullHeight}px`);
         el.offsetHeight; // eslint-disable-line no-unused-expressions
