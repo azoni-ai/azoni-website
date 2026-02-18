@@ -218,7 +218,7 @@ exports.handler = async (event, context) => {
 
     // Sort by date
     recentCommits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const topCommits = recentCommits.slice(0, 100);
+    const topCommits = recentCommits.slice(0, 300);
 
     // Build repo list — only repos that have visible commits in the returned list
     const activeRepoNames = new Set(topCommits.map(c => c.repo));
