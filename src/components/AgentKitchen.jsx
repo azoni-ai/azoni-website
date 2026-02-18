@@ -56,66 +56,66 @@ function formatTimeAgo(ms) {
 const STATION_DEFS = [
   {
     id: 'mcp', label: 'MCP Server', x: 0.50, y: 0.40, color: '#ff7a5c', isHub: true,
-    desc: 'Central data hub — routes requests between all agents and services via REST API.',
+    desc: 'Tool registry and data gateway — exposes 33 tools across 9 domains. Agents query MCP to read data from services. Activity events flow through Firebase.',
     actions: ['Routing requests', 'Serving 33 tools', 'Health monitoring'],
   },
   {
     id: 'chatbot', label: 'Azoni AI', x: 0.20, y: 0.16, color: '#60a5fa', agent: 'chat', icon: 'chat',
-    desc: 'RAG chatbot with vector search. Finds relevant knowledge or generates it on the fly. Paste a job description for AI fit analysis.',
+    desc: 'RAG chatbot — queries Firestore knowledge base, generates missing knowledge on the fly. Logs every chat to agent_activity directly.',
     actions: ['Answering queries', 'Vector searching', 'Building context'],
     dataLabel: 'queries',
   },
   {
     id: 'blog', label: 'The Scribe', x: 0.80, y: 0.16, color: '#fbbf24', agent: 'blog', icon: 'pen',
-    desc: 'Every day, reviews GitHub commits and autonomously writes + publishes a blog post with code analysis. No human input needed.',
+    desc: 'Daily autonomous blog agent — reads GitHub commits, writes analysis posts via LLM, publishes to Firestore. Logs each post to agent_activity.',
     actions: ['Analyzing commits', 'Writing article', 'Publishing post'],
     dataLabel: 'blog content',
   },
   {
     id: 'orchestrator', label: 'The Conductor', x: 0.50, y: 0.82, color: '#a78bfa', agent: 'orchestrator', icon: 'gear', roams: true,
-    desc: 'Central brain. Wakes every 3 hours, gathers state from 11 sources, sends to LLM for decisions, validates, then executes. Rate-limited and action-whitelisted.',
+    desc: 'Central brain. Wakes every 3 hours, reads state from MCP + Firebase, sends to LLM for decisions, validates, then executes. Logs decisions to agent_activity.',
     actions: ['Gathering 11 sources', 'LLM deciding', 'Executing actions'],
     dataLabel: 'health + state',
   },
   {
     id: 'spellbrigade', label: 'Spell Brigade', x: 0.10, y: 0.52, color: '#c084fc', agent: 'gaming', icon: 'wand',
-    desc: 'Real-time multiplayer wizard combat game. AI generates unique characters with custom abilities and backstories.',
+    desc: 'Multiplayer wizard combat game. AI generates characters with unique abilities. Logs wizard/dungeon creation to agent_activity via webhook.',
     actions: ['Generating wizards', 'Running battles', 'AI enemies active'],
     dataLabel: 'game data',
   },
   {
     id: 'moltbook', label: 'Moltbook', x: 0.90, y: 0.52, color: '#fb923c', agent: 'social', icon: 'megaphone',
-    desc: 'Autonomous social media agent. The orchestrator decides when to post — LLM generates content, comments, and engagement.',
+    desc: 'Autonomous social platform. The orchestrator triggers posts via MCP tools — LLM generates content, comments, and engagement. Logs via webhook.',
     actions: ['Crafting posts', 'Scheduling content', 'Engaging users'],
     dataLabel: 'social content',
   },
   {
     id: 'oldwaystoday', label: 'Old Ways Today', x: 0.10, y: 0.30, color: '#d97706', agent: 'wellness', icon: 'leaf',
-    desc: 'AI wellness platform helping families find non-toxic, traditional alternatives. Same RAG + auto-blog architecture as azoni.ai.',
+    desc: 'AI wellness platform — RAG chatbot + auto-blog. Separate backend on Render. Logs chat events to agent_activity via webhook.',
     actions: ['Curating remedies', 'Auto-blogging', 'RAG retrieval'],
     dataLabel: 'recipes',
   },
   {
     id: 'benchpressonly', label: 'BenchPress', x: 0.30, y: 0.68, color: '#4ade80', agent: 'fitness', icon: 'dumbbell',
-    desc: 'AI fitness app with real users. Generates personalized workouts, real-time form correction, tracks PRs and progress trends.',
+    desc: 'AI fitness app with real users. Generates personalized workouts, tracks PRs. Logs AI activity via webhook. MCP reads its 12 Firestore collections.',
     actions: ['Tracking workouts', 'AI coaching', 'Analyzing PRs'],
     dataLabel: 'fitness data',
   },
   {
     id: 'embedroute', label: 'EmbedRoute', x: 0.90, y: 0.30, color: '#20d9d2', icon: 'nodes',
-    desc: 'Unified embedding API — one endpoint routes to OpenAI, Cohere, Voyage, and more. Powers RAG and semantic search across all apps.',
+    desc: 'Standalone embedding API — one endpoint routes to OpenAI, Cohere, Voyage, and more. MCP exposes it as tools; other services call it directly.',
     actions: ['Routing embeddings', 'Multi-provider', 'Serving vectors'],
-    dataLabel: 'vectors',
+    dataLabel: 'embeddings',
   },
   {
     id: 'rowcrew', label: 'RowCrew', x: 0.68, y: 0.68, color: '#34d399', icon: 'waves',
-    desc: 'Rowing fitness tracker extending the BenchPressOnly platform to rowing. Stroke analysis and progress tracking.',
+    desc: 'Rowing fitness tracker sharing Firebase with BenchPress. Claude Vision verifies workout photos. MCP reads its session data.',
     actions: ['Logging sessions', 'Stroke analysis', 'Progress tracking'],
     dataLabel: 'rowing data',
   },
   {
     id: 'activity', label: 'Activity Feed', x: 0.35, y: 0.28, color: '#f87171', icon: 'pulse',
-    desc: 'Cross-app AI activity log. Every agent action is logged here — blog posts, social posts, health checks, orchestrator decisions.',
+    desc: 'Firestore collection (agent_activity) — the single source of truth. All services write here directly or via webhook. This visualization watches it in real time.',
     actions: ['Logging events', 'Cross-app tracking', 'Agent monitoring'],
     dataLabel: 'event logs',
   },
@@ -795,21 +795,21 @@ function AgentKitchen() {
       ctx.textBaseline = 'top';
       ctx.fillText('MCP Server', hub.px, hub.py + r + 8);
 
-      // Hub activity — show total event count from ticker
-      const tickerCount = tickerRef.current.length;
-      if (tickerCount > 0) {
+      // Hub activity — show MCP status + tool count
+      const totalTools = mcpRef.current.tools?.totalTools;
+      if (totalTools) {
         ctx.save();
         ctx.globalAlpha = 0.4;
         ctx.fillStyle = '#ff7a5c';
         ctx.font = '9px "JetBrains Mono", monospace';
-        ctx.fillText(`${tickerCount} recent events`, hub.px, hub.py + r + 22);
+        ctx.fillText(`${totalTools} tools · 9 domains`, hub.px, hub.py + r + 22);
         ctx.restore();
       } else {
         ctx.save();
         ctx.globalAlpha = 0.2;
         ctx.fillStyle = '#ff7a5c';
         ctx.font = '9px "JetBrains Mono", monospace';
-        ctx.fillText('Awaiting events...', hub.px, hub.py + r + 22);
+        ctx.fillText('Connecting...', hub.px, hub.py + r + 22);
         ctx.restore();
       }
     };
