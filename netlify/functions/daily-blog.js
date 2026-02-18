@@ -18,6 +18,7 @@
  */
 
 const admin = require('firebase-admin');
+const { embedAndStore } = require('./embed-util');
 
 // Initialize Firebase Admin (shared across functions)
 if (!admin.apps.length) {
@@ -408,6 +409,12 @@ ${content.slice(0, 2000)}`;
     if (existingRag.empty) {
       const ragRef = await db.collection('rag_knowledge_base').add(ragDoc);
       console.log(`[daily-blog] Auto-created RAG chunk for blog: ${ragRef.id}`);
+
+      // Embed the chunk inline so vector search works immediately
+      const embedResult = await embedAndStore(db, admin, ragRef.id, ragContent);
+      if (embedResult.success) {
+        console.log(`[daily-blog] Embedded RAG chunk ${ragRef.id}`);
+      }
     }
   } catch (ragErr) {
     console.error('[daily-blog] Failed to create RAG chunk (non-fatal):', ragErr.message);
@@ -447,6 +454,18 @@ exports.handler = async (event, context) => {
 
   console.log(`[daily-blog] Generating blog for ${targetDate}`);
 
+  // Set agent state for orchestrator visibility
+  async function setAgentState(state) {
+    try {
+      await db.collection('agent_state').doc('blog').set({
+        ...state,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (err) {
+      console.error('[daily-blog] Failed to set agent state:', err.message);
+    }
+  }
+
   // Helper to log activity steps
   async function logStep(type, title, description, reasoning, metadata = {}) {
     try {
@@ -465,6 +484,9 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Set blog agent state to running
+    await setAgentState({ status: 'running', currentTask: `blog_${targetDate}`, lastRun: new Date().toISOString() });
+
     // 1. Check required env vars
     if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN not configured');
     if (!OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY not configured');
@@ -508,13 +530,14 @@ exports.handler = async (event, context) => {
         'Checked GitHub but found no commits for this date. Will skip blog generation.',
         { date: targetDate }
       );
+      await setAgentState({ status: 'idle', currentTask: null, lastResult: 'skipped_no_commits' });
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ 
-          skipped: true, 
-          reason: 'no commits', 
-          date: targetDate 
+        body: JSON.stringify({
+          skipped: true,
+          reason: 'no commits',
+          date: targetDate
         })
       };
     }
@@ -596,6 +619,8 @@ exports.handler = async (event, context) => {
       console.log('[daily-blog] Logged activity to agent_activity');
     }
 
+    await setAgentState({ status: 'idle', currentTask: null, lastResult: 'success' });
+
     return {
       statusCode: 200,
       headers,
@@ -610,6 +635,7 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error(`[daily-blog] Error:`, error);
+    await setAgentState({ status: 'error', currentTask: null, lastResult: `error: ${error.message}` });
     await logError('daily-blog', error.message, 'high', { function: 'main-handler', date: targetDate });
     return {
       statusCode: 500,

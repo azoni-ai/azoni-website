@@ -24,6 +24,7 @@
  */
 
 const admin = require('firebase-admin');
+const { embedAndStore } = require('./embed-util');
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -71,6 +72,7 @@ const ACTION_SCHEMA = {
   self_assessment: {},
   reorganize_knowledge: {},
   review_errors: {},
+  request_data: { required: ['endpoint', 'reason'] },
   none: {}
 };
 
@@ -580,23 +582,86 @@ async function triggerBlogGeneration(date) {
 }
 
 async function nudgeSocialAgent(message, context) {
-  // The social agent runs autonomously, but we can log a recommendation
-  // that it picks up on its next cycle, or hit its trigger endpoint if available
+  // Hit the social agent's /run endpoint to trigger a post
   try {
-    const res = await fetch(`${MOLTBOOK_AGENT_URL}/trigger`, {
+    const adminKey = process.env.MOLTBOOK_ADMIN_KEY;
+    if (!adminKey) {
+      return { sent: false, note: 'MOLTBOOK_ADMIN_KEY not configured' };
+    }
+
+    const res = await fetch(`${MOLTBOOK_AGENT_URL}/run`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        message, 
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminKey
+      },
+      body: JSON.stringify({
+        message,
         context,
-        source: 'azoni-orchestrator' 
+        source: 'azoni-orchestrator'
       }),
       signal: AbortSignal.timeout(5000)
     });
     return { sent: res.ok, status: res.status };
   } catch (err) {
-    // Agent may not have a trigger endpoint — that's fine, just log the recommendation
-    return { sent: false, note: 'No trigger endpoint, logged recommendation only' };
+    return { sent: false, note: `Social agent unreachable: ${err.message}` };
+  }
+}
+
+// ============ AGENT STATE ============
+
+async function setAgentState(agentName, state) {
+  try {
+    await db.collection('agent_state').doc(agentName).set({
+      ...state,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (err) {
+    console.error(`[orchestrator] Failed to set agent state for ${agentName}:`, err.message);
+  }
+}
+
+async function getAgentStates() {
+  try {
+    const snapshot = await db.collection('agent_state').get();
+    const states = {};
+    snapshot.docs.forEach(doc => {
+      states[doc.id] = doc.data();
+    });
+    return states;
+  } catch (err) {
+    console.error('[orchestrator] Failed to get agent states:', err.message);
+    return {};
+  }
+}
+
+// ============ REQUEST DATA (TOOL-CALLING) ============
+
+const ALLOWED_DATA_ENDPOINTS = [
+  '/api/github/repos',
+  '/api/github/activity',
+  '/api/firebase/activity',
+  '/api/firebase/errors',
+  '/api/fitness/summary',
+  '/api/rag/stats',
+];
+
+async function fetchRequestedData(endpoint) {
+  if (!ALLOWED_DATA_ENDPOINTS.includes(endpoint)) {
+    return { success: false, error: `Endpoint not allowed: ${endpoint}` };
+  }
+
+  try {
+    const res = await fetch(`${MCP_BASE_URL}${endpoint}`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) {
+      return { success: false, error: `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
@@ -702,10 +767,16 @@ Category must be one of: bio, experience, projects, skills, agents, services, bl
     const ref = await db.collection('rag_knowledge_base').add(ragDoc);
     console.log(`[orchestrator] Created RAG chunk: ${chunk.title} (${ref.id})`);
 
-    return { 
-      success: true, 
-      chunkId: ref.id, 
-      title: chunk.title, 
+    // Embed the chunk inline so vector search works immediately
+    const embedResult = await embedAndStore(db, admin, ref.id, chunk.content);
+    if (embedResult.success) {
+      console.log(`[orchestrator] Embedded RAG chunk ${ref.id}`);
+    }
+
+    return {
+      success: true,
+      chunkId: ref.id,
+      title: chunk.title,
       category: chunk.category,
       cost,
       tokens: { prompt: usage.prompt_tokens, completion: usage.completion_tokens }
@@ -896,6 +967,7 @@ Available actions (respond with a JSON array of actions):
 - { "action": "self_assessment", "reason": "..." } — Generate a weekly self-assessment of system health, chatbot performance, and recommendations. Only do this once per week.
 - { "action": "reorganize_knowledge", "reason": "..." } — Review and clean up the RAG knowledge base. Merge duplicate auto-generated chunks, remove low-quality ones. Run when auto-generated chunks exceed 30 or weekly.
 - { "action": "review_errors", "reason": "..." } — Acknowledge and summarize error patterns. Flag recurring issues or critical failures. Mark errors as reviewed.
+- { "action": "request_data", "endpoint": "...", "reason": "..." } — Dynamically fetch data from the MCP server before making a decision. Allowed endpoints: /api/github/repos, /api/github/activity, /api/firebase/activity, /api/firebase/errors, /api/fitness/summary, /api/rag/stats. Max 2 per cycle.
 - { "action": "none", "reason": "..." } — No action needed, explain why
 
 Rules:
@@ -957,7 +1029,10 @@ ${state.lastRun ? state.lastRun.toISOString() : 'First run'}
 ## Service Health Checks
 ${state.healthChecks && state.healthChecks.length > 0 ? state.healthChecks.map(h => `- ${h.name}: ${h.status.toUpperCase()} (${h.latencyMs}ms)${h.error ? ' — ' + h.error : ''}`).join('\n') : 'Health checks unavailable'}
 
-Analyze this state and decide what actions to take. Return JSON only.`;
+## Agent States
+${Object.keys(state.agentStates || {}).length > 0 ? Object.entries(state.agentStates).map(([name, s]) => `- ${name}: ${s.status || 'unknown'}${s.currentTask ? ` (${s.currentTask})` : ''}${s.lastResult ? ` — last: ${s.lastResult}` : ''}`).join('\n') : 'No agent states tracked yet'}
+
+Analyze this state and decide what actions to take. Do NOT trigger an agent if its state shows "running". You can use request_data to pull more info from the MCP server before deciding. Return JSON only.`;
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -1001,6 +1076,90 @@ Analyze this state and decide what actions to take. Return JSON only.`;
   }
 }
 
+// ============ REACTIVE HANDLER ============
+
+async function handleReactiveEvent(event) {
+  // Mini orchestrator cycle triggered by critical errors via the event router
+  // Rate limit: max 1 reactive trigger per 10 minutes
+  try {
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const recentReactive = await db.collection('agent_activity')
+      .where('type', '==', 'reactive_trigger')
+      .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(tenMinAgo))
+      .limit(1)
+      .get();
+
+    if (!recentReactive.empty) {
+      console.log('[orchestrator] Reactive trigger rate-limited (already triggered within 10 min)');
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skipped: true, reason: 'Rate limited — recent reactive trigger exists' })
+      };
+    }
+
+    console.log(`[orchestrator] Reactive trigger for: ${event.type} — ${event.title}`);
+
+    await logStep(
+      'reactive_trigger',
+      `Reactive: ${event.title?.slice(0, 60) || event.type}`,
+      `Triggered by event: ${event.type} from ${event.source || 'unknown'}`,
+      'Critical event detected — running mini decision cycle'
+    );
+
+    // Mini decision: just ask LLM what to do about this specific event
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://azoni.ai',
+        'X-Title': 'Azoni AI Reactive'
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-4o-mini',
+        messages: [
+          { role: 'system', content: `You are Azoni AI responding to a critical event. Analyze the event and decide on ONE action to take.
+Available actions:
+- { "action": "flag_health", "system": "...", "issue": "...", "reason": "..." }
+- { "action": "none", "reason": "..." }
+Be conservative. Only act if this is genuinely critical. Respond with JSON: { "reasoning": "...", "action": {...} }` },
+          { role: 'user', content: `CRITICAL EVENT:\nType: ${event.type}\nTitle: ${event.title}\nSource: ${event.source}\nDescription: ${event.description || 'none'}\nSeverity: ${event.metadata?.severity || 'unknown'}` }
+        ],
+        temperature: 0.2,
+        max_tokens: 300,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    const data = await res.json();
+    const content = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+
+    if (content.action && content.action.action === 'flag_health') {
+      await logStep(
+        'agent_deciding',
+        `Reactive health alert: ${content.action.system}`,
+        content.action.issue,
+        content.reasoning,
+        { reactive: true, triggerEvent: event.type }
+      );
+    }
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ success: true, reasoning: content.reasoning, action: content.action })
+    };
+  } catch (err) {
+    console.error('[orchestrator] Reactive handler failed:', err.message);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+}
+
 // ============ MAIN HANDLER ============
 
 const headers = {
@@ -1012,6 +1171,18 @@ const headers = {
 exports.handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
+  }
+
+  // Check for reactive trigger (from event router)
+  if (event.httpMethod === 'POST') {
+    try {
+      const body = JSON.parse(event.body || '{}');
+      if (body.reactive && body.event) {
+        return await handleReactiveEvent(body.event);
+      }
+    } catch (e) {
+      // Not a reactive trigger, continue with normal cycle
+    }
   }
 
   console.log('[orchestrator] Starting Azoni AI orchestration cycle');
@@ -1034,7 +1205,10 @@ exports.handler = async (event, context) => {
       'Starting orchestration cycle — need to understand current state before making decisions'
     );
 
-    const [activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors, healthChecks] = await Promise.all([
+    // Set orchestrator state to running
+    await setAgentState('orchestrator', { status: 'running', currentTask: 'orchestration_cycle', lastRun: new Date().toISOString() });
+
+    const [activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors, healthChecks, agentStates] = await Promise.all([
       getRecentActivity(24),
       getRecentBlogPosts(48),
       getTodayCommitCount(),
@@ -1046,10 +1220,11 @@ exports.handler = async (event, context) => {
       getRagHealth(),
       getLastSelfAssessment(),
       getRecentErrors(24),
-      checkServiceHealth()
+      checkServiceHealth(),
+      getAgentStates()
     ]);
 
-    const state = { activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors, healthChecks };
+    const state = { activity, blogs, github, moltbook, fitness, lastRun, knowledgeGaps, chatStats, ragHealth, lastAssessment, recentErrors, healthChecks, agentStates };
 
     console.log('[orchestrator] State gathered:', {
       activityCount: activity.length,
@@ -1283,7 +1458,7 @@ exports.handler = async (event, context) => {
               .where('resolved', '==', false)
               .limit(30)
               .get();
-            
+
             const batch = db.batch();
             let resolved = 0;
             unresolvedSnapshot.docs.forEach(doc => {
@@ -1318,6 +1493,29 @@ exports.handler = async (event, context) => {
           } else {
             results.push({ action: 'review_errors', resolved: 0, note: 'No errors to review' });
           }
+          break;
+        }
+
+        case 'request_data': {
+          // Dynamically fetch data from MCP server
+          const dataResult = await fetchRequestedData(action.endpoint);
+          results.push({ action: 'request_data', endpoint: action.endpoint, ...dataResult });
+
+          if (dataResult.success) {
+            // Append the data to the state context and re-prompt the LLM
+            // (handled after the switch by checking if any request_data actions succeeded)
+            console.log(`[orchestrator] Fetched data from ${action.endpoint}`);
+          }
+
+          await logStep(
+            'agent_observing',
+            `Requested data: ${action.endpoint}`,
+            dataResult.success
+              ? `Fetched ${JSON.stringify(dataResult.data).length} bytes from ${action.endpoint}`
+              : `Failed: ${dataResult.error}`,
+            action.reason,
+            { endpoint: action.endpoint, success: dataResult.success }
+          );
           break;
         }
       }
@@ -1358,6 +1556,9 @@ exports.handler = async (event, context) => {
       }
     );
 
+    // Set orchestrator state to idle after successful cycle
+    await setAgentState('orchestrator', { status: 'idle', currentTask: null, lastResult: 'success' });
+
     return {
       statusCode: 200,
       headers,
@@ -1389,6 +1590,7 @@ exports.handler = async (event, context) => {
   } catch (error) {
     console.error('[orchestrator] Error:', error);
     await logError('orchestrator', error.message, 'high', { function: 'main-handler' });
+    await setAgentState('orchestrator', { status: 'error', currentTask: null, lastResult: `error: ${error.message}` });
 
     await logStep(
       'agent_deciding',

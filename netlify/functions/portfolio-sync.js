@@ -246,7 +246,7 @@ async function updateRagChunk(chunkTitle, recentUpdates) {
   
   try {
     // Find the chunk by title
-    const snapshot = await db.collection('knowledgeBase')
+    const snapshot = await db.collection('rag_knowledge_base')
       .where('title', '==', chunkTitle)
       .limit(1)
       .get();
@@ -306,7 +306,7 @@ async function updateProfile(summary) {
 async function updateCurrentWorkChunk(summary) {
   // Update or create a "Current Work" RAG chunk
   try {
-    const snapshot = await db.collection('knowledgeBase')
+    const snapshot = await db.collection('rag_knowledge_base')
       .where('title', '==', 'Current Work and Projects')
       .limit(1)
       .get();
@@ -322,7 +322,7 @@ Check the GitHub activity card on azoni.ai homepage for real-time commits.`;
 
     if (snapshot.empty) {
       // Create new chunk
-      await db.collection('knowledgeBase').add({
+      await db.collection('rag_knowledge_base').add({
         category: 'bio',
         title: 'Current Work and Projects',
         content,

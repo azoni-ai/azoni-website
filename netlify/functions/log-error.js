@@ -72,20 +72,27 @@ exports.handler = async (event) => {
 
     const ref = await db.collection('error_logs').add(doc);
 
-    // For critical errors, also log to agent_activity so it shows in the feed immediately
+    // For critical/high errors, route through log-agent-activity so the event router
+    // can trigger downstream actions (e.g., reactive orchestrator for critical errors)
     if (doc.severity === 'critical' || doc.severity === 'high') {
-      await db.collection('agent_activity').add({
-        type: 'error_logged',
-        title: `${doc.severity === 'critical' ? '🚨' : '⚠️'} ${doc.source}: ${doc.error.slice(0, 100)}`,
-        description: `${doc.severity.toUpperCase()} error in ${doc.source}${doc.context?.function ? ` (${doc.context.function})` : ''}`,
-        source: doc.source,
-        metadata: {
-          errorId: ref.id,
-          severity: doc.severity,
-          context: doc.context
-        },
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
-      });
+      const SITE_URL = process.env.URL || 'https://azoni.ai';
+      fetch(`${SITE_URL}/.netlify/functions/log-agent-activity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'error_logged',
+          title: `${doc.severity === 'critical' ? '🚨' : '⚠️'} ${doc.source}: ${doc.error.slice(0, 100)}`,
+          description: `${doc.severity.toUpperCase()} error in ${doc.source}${doc.context?.function ? ` (${doc.context.function})` : ''}`,
+          source: doc.source,
+          metadata: {
+            errorId: ref.id,
+            severity: doc.severity,
+            context: doc.context
+          },
+          secret: process.env.AGENT_WEBHOOK_SECRET
+        }),
+        signal: AbortSignal.timeout(5000)
+      }).catch(err => console.log('[log-error] Event router notify failed:', err.message));
     }
 
     console.log(`[log-error] ${doc.severity} error from ${doc.source}: ${doc.error.slice(0, 100)}`);
