@@ -44,8 +44,10 @@ const Commits = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // Get unique repos from commits
+  // Get repo list from API (includes all repos, even those without recent commits)
   const repos = useMemo(() => {
+    if (githubStats?.repos) return githubStats.repos.map(r => r.name);
+    // Fallback: derive from commits
     if (!githubStats?.recentCommits) return [];
     const repoSet = new Set(githubStats.recentCommits.map(c => c.repo));
     return Array.from(repoSet).sort();
@@ -181,7 +183,15 @@ const Commits = () => {
             </div>
           ) : filteredCommits.length === 0 ? (
             <div className="commits-empty">
-              <p>No commits found{repoFilter !== 'all' ? ` for ${repoFilter}` : ''}{searchQuery ? ` matching "${searchQuery}"` : ''}</p>
+              <p>No recent commits{repoFilter !== 'all' ? ` for ${repoFilter}` : ''}{searchQuery ? ` matching "${searchQuery}"` : ''}</p>
+              {repoFilter !== 'all' && githubStats?.repos && (() => {
+                const repoInfo = githubStats.repos.find(r => r.name === repoFilter);
+                return repoInfo?.pushedAt ? (
+                  <p style={{ opacity: 0.5, fontSize: '0.85em', marginTop: '0.5rem' }}>
+                    Last pushed: {new Date(repoInfo.pushedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                ) : null;
+              })()}
             </div>
           ) : (
             <div className="commits-timeline">

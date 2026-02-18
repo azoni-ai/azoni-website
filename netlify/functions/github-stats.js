@@ -46,6 +46,7 @@ exports.handler = async (event, context) => {
               name
               url
               isPrivate
+              pushedAt
               owner {
                 login
               }
@@ -75,6 +76,7 @@ exports.handler = async (event, context) => {
               name
               url
               isPrivate
+              pushedAt
               owner {
                 login
               }
@@ -217,6 +219,22 @@ exports.handler = async (event, context) => {
     recentCommits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const topCommits = recentCommits.slice(0, 100);
 
+    // Build full repo list (deduplicated) so the UI can show all repos even without recent commits
+    const seenRepos = new Set();
+    const repoList = [];
+    for (const repo of allRepos) {
+      if (seenRepos.has(repo.name)) continue;
+      seenRepos.add(repo.name);
+      repoList.push({
+        name: repo.name,
+        url: repo.url,
+        isPrivate: repo.isPrivate,
+        owner: repo.owner?.login,
+        pushedAt: repo.pushedAt || null,
+      });
+    }
+    repoList.sort((a, b) => new Date(b.pushedAt || 0) - new Date(a.pushedAt || 0));
+
     return {
       statusCode: 200,
       headers,
@@ -225,6 +243,7 @@ exports.handler = async (event, context) => {
         last7Days,
         last30Days,
         recentCommits: topCommits,
+        repos: repoList,
         updatedAt: now.toISOString()
       })
     };
