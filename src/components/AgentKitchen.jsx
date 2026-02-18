@@ -1,7 +1,53 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import '../styles/agent-kitchen.css';
 
 const MCP_URL = 'https://azoni-mcp.onrender.com';
+
+// ─── Source / Type → Station mapping ───
+const SOURCE_TO_STATION = {
+  'benchpressonly': 'benchpressonly',
+  'spell-brigade': 'spellbrigade',
+  'moltbook-agent': 'moltbook',
+  'rowcrew': 'rowcrew',
+};
+
+const TYPE_TO_STATION = {
+  'agent_observing': 'orchestrator',
+  'agent_deciding': 'orchestrator',
+  'agent_drafting': 'orchestrator',
+  'orchestrator_summary': 'orchestrator',
+  'self_assessment': 'orchestrator',
+  'error_reviewed': 'orchestrator',
+  'project_updated': 'orchestrator',
+  'health_alert': 'activity',
+  'blog_published': 'blog',
+  'knowledge_generated': 'chatbot',
+  'wizard_created': 'spellbrigade',
+  'dungeon_created': 'spellbrigade',
+  'workout_generated': 'benchpressonly',
+  'workout_autofilled': 'benchpressonly',
+  'progress_analyzed': 'benchpressonly',
+  'assistant_chat': 'chatbot',
+  'moltbook_post': 'moltbook',
+  'moltbook_comment': 'moltbook',
+  'moltbook_upvote': 'moltbook',
+};
+
+function mapSourceToStation(source, type) {
+  if (TYPE_TO_STATION[type]) return TYPE_TO_STATION[type];
+  if (SOURCE_TO_STATION[source]) return SOURCE_TO_STATION[source];
+  return null;
+}
+
+function formatTimeAgo(ms) {
+  const diff = Date.now() - ms;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
 
 // ─── Station definitions ───
 const STATION_DEFS = [
@@ -255,36 +301,115 @@ function AgentKitchen() {
   const pulsesRef = useRef([]);
   const mcpRef = useRef({ health: null, tools: null, toolCounts: {} });
   const mouseRef = useRef({ x: -1, y: -1 });
-  const orchestratorRef = useRef({ targetIdx: 0, progress: 0, paused: 0 });
-  // Agent trip state: each non-roaming agent periodically walks to MCP hub and back
+  // Agent trip state: each agent walks to MCP hub when a real event arrives (including orchestrator)
   const agentTripsRef = useRef(
-    STATION_DEFS.filter(s => s.agent && !s.roams).reduce((acc, s, i) => {
+    STATION_DEFS.filter(s => s.agent).reduce((acc, s) => {
       acc[s.id] = {
         state: 'idle', // idle → toHub → atHub → toStation → idle
         progress: 0,
-        nextTrip: 4000 + i * 2500 + Math.random() * 5000, // stagger starts
         waitUntil: 0,
       };
       return acc;
     }, {})
   );
+  // Real-time event data
+  const stationEventsRef = useRef({});  // last event per station { [stationId]: { title, type, source, timestamp, receivedAt } }
+  const tickerRef = useRef([]);         // last 5 events for bottom ticker
+  const isFirstLoadRef = useRef(true);  // gate initial snapshot vs new events
   const [tooltip, setTooltip] = useState(null);
 
-  // Fetch MCP data on mount
-  useEffect(() => {
-    Promise.all([
-      fetch(`${MCP_URL}/health`).then(r => r.json()).catch(() => null),
-      fetch(`${MCP_URL}/tools`).then(r => r.json()).catch(() => null),
-    ]).then(([health, tools]) => {
-      const toolCounts = {};
-      if (tools?.tools) {
-        tools.tools.forEach(t => {
-          toolCounts[t.domain] = (toolCounts[t.domain] || 0) + 1;
-        });
-      }
-      mcpRef.current = { health, tools, toolCounts };
+  // Event-driven pulse spawning (called from onSnapshot)
+  const spawnEventPulse = useCallback((stationId, eventData) => {
+    const stations = stationsRef.current;
+    const hub = stations.find(s => s.isHub);
+    const src = stations.find(s => s.id === stationId);
+    if (!hub || !src) return;
+
+    pulsesRef.current.push({
+      sx: src.px, sy: src.py,
+      ex: hub.px, ey: hub.py,
+      progress: 0,
+      speed: 0.006,
+      color: src.color,
+      label: (eventData.title || '').slice(0, 25) || src.dataLabel || '',
+      showLabel: true,
     });
+    // Cap pulses to prevent memory issues
+    if (pulsesRef.current.length > 30) {
+      pulsesRef.current = pulsesRef.current.slice(-20);
+    }
   }, []);
+
+  // Event-driven agent trip (called from onSnapshot)
+  const triggerAgentTrip = useCallback((stationId) => {
+    const trip = agentTripsRef.current[stationId];
+    if (!trip) return;
+    if (trip.state === 'idle') {
+      trip.state = 'toHub';
+      trip.progress = 0;
+    }
+  }, []);
+
+  // Fetch MCP data every 30s
+  useEffect(() => {
+    const fetchMCP = () => {
+      Promise.all([
+        fetch(`${MCP_URL}/health`).then(r => r.json()).catch(() => null),
+        fetch(`${MCP_URL}/tools`).then(r => r.json()).catch(() => null),
+      ]).then(([health, tools]) => {
+        const toolCounts = {};
+        if (tools?.tools) {
+          tools.tools.forEach(t => {
+            toolCounts[t.domain] = (toolCounts[t.domain] || 0) + 1;
+          });
+        }
+        mcpRef.current = { health, tools, toolCounts };
+      });
+    };
+    fetchMCP();
+    const interval = setInterval(fetchMCP, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Firebase real-time listener for agent_activity
+  useEffect(() => {
+    const q = query(
+      collection(db, 'agent_activity'),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      if (isFirstLoadRef.current) {
+        // Initial load — seed station events and ticker, but no pulses/trips
+        const docs = snapshot.docs.map(d => d.data());
+        docs.forEach(data => {
+          const sid = mapSourceToStation(data.source, data.type);
+          if (sid && !stationEventsRef.current[sid]) {
+            const ts = data.timestamp;
+            const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+            stationEventsRef.current[sid] = { ...data, receivedAt: ms || Date.now() };
+          }
+        });
+        tickerRef.current = docs.slice(0, 5);
+        isFirstLoadRef.current = false;
+        return;
+      }
+      // New events only
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          const stationId = mapSourceToStation(data.source, data.type);
+          if (stationId) {
+            spawnEventPulse(stationId, data);
+            triggerAgentTrip(stationId);
+            stationEventsRef.current[stationId] = { ...data, receivedAt: Date.now() };
+            tickerRef.current = [data, ...tickerRef.current].slice(0, 5);
+          }
+        }
+      });
+    });
+    return () => unsub();
+  }, [spawnEventPulse, triggerAgentTrip]);
 
   const computeStations = useCallback((w, h) => {
     return STATION_DEFS.map(def => ({
@@ -319,35 +444,6 @@ function AgentKitchen() {
       mouseRef.current = { x: -1, y: -1 };
       setTooltip(null);
     };
-
-    // ─── Pulse spawner ───
-    const spawnPulse = () => {
-      const stations = stationsRef.current;
-      const hub = stations.find(s => s.isHub);
-      if (!hub) return;
-
-      const others = stations.filter(s => !s.isHub);
-      const src = others[Math.floor(Math.random() * others.length)];
-      const toHub = Math.random() > 0.3;
-
-      pulsesRef.current.push({
-        sx: toHub ? src.px : hub.px,
-        sy: toHub ? src.py : hub.py,
-        ex: toHub ? hub.px : src.px,
-        ey: toHub ? hub.py : src.py,
-        progress: 0,
-        speed: 0.006 + Math.random() * 0.005,
-        color: src.color,
-        label: src.dataLabel || '',
-        showLabel: Math.random() > 0.6, // 40% of pulses show label
-      });
-
-      if (pulsesRef.current.length > 35) {
-        pulsesRef.current = pulsesRef.current.slice(-28);
-      }
-    };
-
-    let pulseTimer = setInterval(spawnPulse, 350);
 
     // ─── Drawing functions ───
 
@@ -556,22 +652,40 @@ function AgentKitchen() {
       ctx.textBaseline = 'top';
       ctx.fillText(s.label, s.px, s.py + r + 6 + pulse);
 
-      // Cycling activity text
-      if (s.actions) {
-        const actionIdx = Math.floor(now / 3000) % s.actions.length;
-        const actionProgress = (now % 3000) / 3000;
-        // Fade in/out at boundaries
-        let actionAlpha = 1;
-        if (actionProgress < 0.1) actionAlpha = actionProgress / 0.1;
-        else if (actionProgress > 0.85) actionAlpha = (1 - actionProgress) / 0.15;
-
+      // Real event activity text
+      const lastEvent = stationEventsRef.current[s.id];
+      if (lastEvent) {
+        const text = (lastEvent.title || lastEvent.type || '').slice(0, 30);
         ctx.save();
-        ctx.globalAlpha = (hovered ? 0.7 : 0.35) * actionAlpha;
+        ctx.globalAlpha = hovered ? 0.7 : 0.35;
         ctx.fillStyle = s.color;
         ctx.font = '9px "JetBrains Mono", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText(s.actions[actionIdx], s.px, s.py + r + 20 + pulse);
+        ctx.fillText(text, s.px, s.py + r + 20 + pulse);
+        ctx.restore();
+
+        // Time ago
+        const ts = lastEvent.timestamp;
+        const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+        if (ms) {
+          ctx.save();
+          ctx.globalAlpha = 0.2;
+          ctx.fillStyle = '#a8a8a0';
+          ctx.font = '7px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(formatTimeAgo(ms), s.px, s.py + r + 32 + pulse);
+          ctx.restore();
+        }
+      } else {
+        ctx.save();
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = s.color;
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Listening...', s.px, s.py + r + 20 + pulse);
         ctx.restore();
       }
     };
@@ -678,19 +792,21 @@ function AgentKitchen() {
       ctx.textBaseline = 'top';
       ctx.fillText('MCP Server', hub.px, hub.py + r + 8);
 
-      // Activity text
-      const hubActions = hub.actions;
-      if (hubActions) {
-        const idx = Math.floor(now / 3000) % hubActions.length;
-        const prog = (now % 3000) / 3000;
-        let alpha = 1;
-        if (prog < 0.1) alpha = prog / 0.1;
-        else if (prog > 0.85) alpha = (1 - prog) / 0.15;
+      // Hub activity — show total event count from ticker
+      const tickerCount = tickerRef.current.length;
+      if (tickerCount > 0) {
         ctx.save();
-        ctx.globalAlpha = 0.4 * alpha;
+        ctx.globalAlpha = 0.4;
         ctx.fillStyle = '#ff7a5c';
         ctx.font = '9px "JetBrains Mono", monospace';
-        ctx.fillText(hubActions[idx], hub.px, hub.py + r + 22);
+        ctx.fillText(`${tickerCount} recent events`, hub.px, hub.py + r + 22);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = '#ff7a5c';
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.fillText('Awaiting events...', hub.px, hub.py + r + 22);
         ctx.restore();
       }
     };
@@ -708,36 +824,8 @@ function AgentKitchen() {
       let ax, ay;
       let isAtStation = true; // whether agent is at its home station (for role animations)
 
-      if (station.roams) {
-        isAtStation = false;
-        const orc = orchestratorRef.current;
-        const patrolTargets = [0, 4, 1, 5, 2, 6, 3, 7, 8, 9];
-        const target = stationsRef.current[patrolTargets[orc.targetIdx]];
-
-        if (target) {
-          if (orc.paused > 0) {
-            orc.paused -= 16;
-            isAtStation = true; // paused = inspecting a station
-          } else {
-            orc.progress += 0.003;
-            if (orc.progress >= 1) {
-              orc.progress = 0;
-              orc.paused = 2000;
-              orc.targetIdx = (orc.targetIdx + 1) % patrolTargets.length;
-            }
-          }
-
-          const t = orc.progress;
-          const eased = easeInOut(t);
-          const prevTarget = stationsRef.current[patrolTargets[(orc.targetIdx - 1 + patrolTargets.length) % patrolTargets.length]] || station;
-          ax = prevTarget.px + (target.px - prevTarget.px) * eased;
-          ay = prevTarget.py + (target.py - prevTarget.py) * eased;
-        } else {
-          ax = station.px;
-          ay = station.py;
-        }
-      } else {
-        // Non-roaming agents: check trip state
+      {
+        // All agents (including orchestrator): event-driven trips to hub
         const trip = agentTripsRef.current[station.id];
         const homeX = station.px;
         const homeY = station.py - station.radius - 18;
@@ -810,7 +898,7 @@ function AgentKitchen() {
       ctx.fill();
 
       // ─── Carrying data visual (when walking to/from hub) ───
-      if (!isAtStation && !station.roams) {
+      if (!isAtStation) {
         const trip = agentTripsRef.current[station.id];
         if (trip && (trip.state === 'toHub' || trip.state === 'toStation')) {
           // Glowing data orb above head
@@ -826,21 +914,32 @@ function AgentKitchen() {
           ctx.shadowBlur = 0;
           ctx.globalAlpha = 1;
 
-          // Tiny label
+          // Tiny label — show real event title when carrying to hub
+          const tripEvent = stationEventsRef.current[station.id];
+          const orbLabel = trip.state === 'toHub'
+            ? (tripEvent?.title || station.dataLabel || 'data').slice(0, 20)
+            : 'response';
           ctx.save();
           ctx.globalAlpha = 0.4;
           ctx.font = '7px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
           ctx.fillStyle = orbColor;
-          ctx.fillText(trip.state === 'toHub' ? station.dataLabel || 'data' : 'response', ax, ay - 24 + bob + orbPulse);
+          ctx.fillText(orbLabel, ax, ay - 24 + bob + orbPulse);
           ctx.restore();
         }
       }
 
-      // ─── Role-specific animations (only when at station) ───
+      // ─── Role-specific animations (only when at station AND recent event within 10s) ───
+      const stationEvent = stationEventsRef.current[station.id];
+      const eventAge = stationEvent?.receivedAt ? (Date.now() - stationEvent.receivedAt) : Infinity;
+      const isRecentlyActive = eventAge < 10000;
+      // Fade out animation over last 3 seconds of the 10s window
+      const activityFade = isRecentlyActive ? (eventAge > 7000 ? (10000 - eventAge) / 3000 : 1) : 0;
 
-      if (station.agent === 'blog' && isAtStation) {
+      if (station.agent === 'blog' && isAtStation && isRecentlyActive) {
         // Scribe: writing animation — pen strokes
+        ctx.save();
+        ctx.globalAlpha = activityFade;
         const penPhase = (now / 200) % (Math.PI * 2);
         const penX = ax + 12 + Math.sin(penPhase) * 4;
         const penY = ay + bob + Math.cos(penPhase * 2) * 2;
@@ -850,16 +949,16 @@ function AgentKitchen() {
         ctx.strokeStyle = '#fbbf24';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-        // Ink dots
         if (Math.sin(penPhase * 3) > 0.5) {
           ctx.beginPath();
           ctx.arc(penX + Math.random() * 3, penY + 2, 0.8, 0, Math.PI * 2);
           ctx.fillStyle = '#fbbf2480';
           ctx.fill();
         }
+        ctx.restore();
       }
 
-      if (station.agent === 'chat' && isAtStation) {
+      if (station.agent === 'chat' && isAtStation && isRecentlyActive) {
         // Chatbot: speech bubbles floating up
         for (let i = 0; i < 2; i++) {
           const bubbleT = ((now / 2000 + i * 0.5) % 1);
@@ -870,13 +969,13 @@ function AgentKitchen() {
           ctx.beginPath();
           ctx.arc(bx, by, br, 0, Math.PI * 2);
           ctx.fillStyle = '#60a5fa';
-          ctx.globalAlpha = bubbleAlpha * 0.25;
+          ctx.globalAlpha = bubbleAlpha * 0.25 * activityFade;
           ctx.fill();
           ctx.globalAlpha = 1;
         }
       }
 
-      if (station.agent === 'social' && isAtStation) {
+      if (station.agent === 'social' && isAtStation && isRecentlyActive) {
         // Moltbook: broadcast waves
         for (let i = 0; i < 3; i++) {
           const waveT = ((now / 1500 + i * 0.33) % 1);
@@ -885,14 +984,16 @@ function AgentKitchen() {
           ctx.arc(ax + 10, ay + bob, waveR, -0.6, 0.6);
           ctx.strokeStyle = '#fb923c';
           ctx.lineWidth = 1;
-          ctx.globalAlpha = (1 - waveT) * 0.3;
+          ctx.globalAlpha = (1 - waveT) * 0.3 * activityFade;
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
       }
 
-      if (station.agent === 'fitness' && isAtStation) {
+      if (station.agent === 'fitness' && isAtStation && isRecentlyActive) {
         // Fitness: lifting animation
+        ctx.save();
+        ctx.globalAlpha = activityFade;
         const liftPhase = Math.sin(now / 600);
         const liftY = ay - 14 + bob + liftPhase * 3;
         ctx.beginPath();
@@ -905,21 +1006,20 @@ function AgentKitchen() {
         ctx.arc(ax - 8, liftY, 2.5, 0, Math.PI * 2);
         ctx.arc(ax + 8, liftY, 2.5, 0, Math.PI * 2);
         ctx.fillStyle = '#4ade80';
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = 0.6 * activityFade;
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.restore();
       }
 
-      if (station.agent === 'gaming' && isAtStation) {
+      if (station.agent === 'gaming' && isAtStation && isRecentlyActive) {
         // Gaming: sparkle/magic effect
         for (let i = 0; i < 5; i++) {
           const sa = now / 250 + i * 1.26;
           const sr = 14 + Math.sin(now / 200 + i) * 5;
           const sx = ax + Math.cos(sa) * sr;
           const sy = ay - 4 + bob + Math.sin(sa) * sr;
-          const sparkAlpha = 0.3 + Math.sin(now / 120 + i * 1.5) * 0.3;
+          const sparkAlpha = (0.3 + Math.sin(now / 120 + i * 1.5) * 0.3) * activityFade;
           ctx.beginPath();
-          // Draw tiny star shape
           ctx.moveTo(sx, sy - 2);
           ctx.lineTo(sx + 0.7, sy - 0.7);
           ctx.lineTo(sx + 2, sy);
@@ -936,9 +1036,9 @@ function AgentKitchen() {
         }
       }
 
-      // Generic working sparkles for agents without specific animation
+      // Generic working sparkles for agents without specific animation (only when recently active)
       if (!['blog', 'chat', 'social', 'fitness', 'gaming'].includes(station.agent)) {
-        if (isAtStation) {
+        if (isAtStation && isRecentlyActive) {
           for (let i = 0; i < 3; i++) {
             const sa = now / 300 + i * 2.1;
             const sr = 12 + Math.sin(now / 200 + i) * 4;
@@ -947,69 +1047,109 @@ function AgentKitchen() {
             ctx.beginPath();
             ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
             ctx.fillStyle = color;
-            ctx.globalAlpha = 0.3 + Math.sin(now / 150 + i * 1.5) * 0.3;
+            ctx.globalAlpha = (0.3 + Math.sin(now / 150 + i * 1.5) * 0.3) * activityFade;
             ctx.fill();
             ctx.globalAlpha = 1;
           }
         }
       }
 
-      // Orchestrator: inspection beam when paused at station
-      if (station.roams && orchestratorRef.current.paused > 500) {
-        const beamAlpha = Math.min(1, (orchestratorRef.current.paused - 500) / 500) * 0.15;
-        ctx.beginPath();
-        ctx.moveTo(ax, ay + 17);
-        ctx.lineTo(ax - 8, ay + 30);
-        ctx.lineTo(ax + 8, ay + 30);
-        ctx.closePath();
-        ctx.fillStyle = '#a78bfa';
-        ctx.globalAlpha = beamAlpha;
-        ctx.fill();
-        ctx.globalAlpha = 1;
+      // Orchestrator: gear sparkles when recently active
+      if (station.agent === 'orchestrator' && isAtStation && isRecentlyActive) {
+        for (let i = 0; i < 4; i++) {
+          const ga = now / 350 + i * 1.57;
+          const gr = 14 + Math.sin(now / 200 + i) * 4;
+          const gx = ax + Math.cos(ga) * gr;
+          const gy = ay - 4 + bob + Math.sin(ga) * gr;
+          ctx.beginPath();
+          ctx.arc(gx, gy, 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#a78bfa';
+          ctx.globalAlpha = (0.3 + Math.sin(now / 150 + i * 1.5) * 0.3) * activityFade;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
       }
     };
 
-    const drawLegend = (now) => {
-      const legendY = h - 28;
-      const centerX = w / 2;
+    const drawTicker = (now) => {
+      const events = tickerRef.current;
+      const tickerY = h - 28;
 
       ctx.save();
-      ctx.globalAlpha = 0.5;
-      ctx.font = '9px "JetBrains Mono", monospace';
-      ctx.textBaseline = 'middle';
 
-      // Legend items
-      const items = [
-        { color: '#4ade80', label: 'MCP Connected' },
-        { color: '#60a5fa', label: 'Agent / Function' },
-        { color: '#ff6b6b', label: 'Offline' },
-      ];
+      // Semi-transparent background bar
+      ctx.fillStyle = 'rgba(8, 8, 13, 0.85)';
+      ctx.fillRect(0, tickerY - 12, w, 28);
+      ctx.strokeStyle = 'rgba(255, 122, 92, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, tickerY - 12);
+      ctx.lineTo(w, tickerY - 12);
+      ctx.stroke();
 
-      const totalWidth = items.reduce((sum, item) => sum + ctx.measureText(item.label).width + 22, 0) + (items.length - 1) * 16;
-      let lx = centerX - totalWidth / 2;
-
-      items.forEach((item, i) => {
-        // Dot
-        ctx.beginPath();
-        ctx.arc(lx + 4, legendY, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = item.color;
-        ctx.fill();
-
-        // Label
+      if (!events.length) {
+        // No events yet
+        ctx.globalAlpha = 0.3;
+        ctx.font = '8px "JetBrains Mono", monospace';
         ctx.fillStyle = '#6b6b65';
-        ctx.textAlign = 'left';
-        ctx.fillText(item.label, lx + 12, legendY);
-        lx += ctx.measureText(item.label).width + 28;
-      });
-
-      // Ecosystem stats on the right
-      const { health, tools } = mcpRef.current;
-      if (tools?.totalTools) {
-        const statsText = `${tools.totalTools} tools · ${health?.domains?.length || '?'} domains · ${STATION_DEFS.length - 1} stations`;
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#4a4a45';
-        ctx.fillText(statsText, w - 16, legendY);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Listening for real-time events...', w / 2, tickerY + 2);
+        ctx.restore();
+        return;
       }
+
+      // "LIVE" indicator with pulsing dot
+      const livePulse = 0.5 + Math.sin(now / 500) * 0.5;
+      ctx.beginPath();
+      ctx.arc(14, tickerY + 2, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#4ade80';
+      ctx.globalAlpha = 0.5 + livePulse * 0.5;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.font = 'bold 8px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#4ade80';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('LIVE', 22, tickerY + 2);
+
+      // Event entries
+      let textX = 56;
+      events.forEach((evt, i) => {
+        if (textX > w - 20) return;
+        const source = evt.source || '?';
+        const title = evt.title || evt.type || '';
+        const stationId = mapSourceToStation(source, evt.type);
+        const station = STATION_DEFS.find(s => s.id === stationId);
+        const color = station?.color || '#a8a8a0';
+
+        // Source tag
+        ctx.font = 'bold 8px "JetBrains Mono", monospace';
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.7;
+        ctx.fillText(station?.label || source, textX, tickerY + 2);
+        textX += ctx.measureText(station?.label || source).width + 6;
+
+        // Event title
+        ctx.font = '8px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#a8a8a0';
+        ctx.globalAlpha = 0.5;
+        const shortTitle = title.slice(0, 30);
+        ctx.fillText(shortTitle, textX, tickerY + 2);
+        textX += ctx.measureText(shortTitle).width + 20;
+
+        // Separator dot
+        if (i < events.length - 1 && textX < w - 20) {
+          ctx.fillStyle = 'rgba(255, 122, 92, 0.3)';
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          ctx.arc(textX - 10, tickerY + 2, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+      });
 
       ctx.restore();
     };
@@ -1040,18 +1180,15 @@ function AgentKitchen() {
         }
       });
 
-      // ─── Update agent trips ───
+      // ─── Update agent trips (event-driven, no random timers) ───
       stations.forEach(s => {
-        if (!s.agent || s.roams) return;
+        if (!s.agent) return;
         const trip = agentTripsRef.current[s.id];
         if (!trip) return;
 
         switch (trip.state) {
           case 'idle':
-            if (now > trip.nextTrip) {
-              trip.state = 'toHub';
-              trip.progress = 0;
-            }
+            // Trips are triggered by triggerAgentTrip() from Firebase events
             break;
           case 'toHub':
             trip.progress += 0.004;
@@ -1072,7 +1209,6 @@ function AgentKitchen() {
             if (trip.progress >= 1) {
               trip.state = 'idle';
               trip.progress = 0;
-              trip.nextTrip = now + 10000 + Math.random() * 10000;
             }
             break;
           default: break;
@@ -1093,8 +1229,8 @@ function AgentKitchen() {
         if (s.agent) drawAgent(s, now);
       });
 
-      // Draw legend
-      drawLegend(now);
+      // Draw live event ticker
+      drawTicker(now);
 
       // Update tooltip
       if (hovered) {
@@ -1125,6 +1261,12 @@ function AgentKitchen() {
           ? hovered.py + hovered.radius + 20
           : hovered.py - hovered.radius - 10;
 
+        // Show last real event in tooltip
+        const lastEvt = stationEventsRef.current[hovered.id];
+        const lastEventText = lastEvt ? (lastEvt.title || lastEvt.type) : null;
+        const lastEventTime = lastEvt?.timestamp;
+        const lastEventMs = lastEventTime?.toMillis ? lastEventTime.toMillis() : lastEventTime?.seconds ? lastEventTime.seconds * 1000 : 0;
+
         setTooltip({
           x: tooltipX,
           y: tooltipY,
@@ -1133,6 +1275,8 @@ function AgentKitchen() {
           desc: hovered.desc,
           tools: count > 0 ? `${count} tools registered` : null,
           dataLabel: hovered.dataLabel ? `Data: ${hovered.dataLabel}` : null,
+          lastEvent: lastEventText,
+          lastEventAgo: lastEventMs ? formatTimeAgo(lastEventMs) : null,
           status,
           statusColor,
         });
@@ -1154,7 +1298,6 @@ function AgentKitchen() {
       canvas.removeEventListener('mousemove', handleMouse);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       cancelAnimationFrame(animRef.current);
-      clearInterval(pulseTimer);
     };
   }, [computeStations]);
 
@@ -1178,6 +1321,11 @@ function AgentKitchen() {
           )}
           {tooltip.dataLabel && (
             <div className="agent-kitchen-tooltip-data">{tooltip.dataLabel}</div>
+          )}
+          {tooltip.lastEvent && (
+            <div className="agent-kitchen-tooltip-data" style={{ color: '#8a8a85', marginTop: 6 }}>
+              Last: {tooltip.lastEvent} {tooltip.lastEventAgo && <span style={{ opacity: 0.6 }}>({tooltip.lastEventAgo})</span>}
+            </div>
           )}
           <div className="agent-kitchen-tooltip-status">
             <span className="agent-kitchen-tooltip-dot" style={{ background: tooltip.statusColor }} />
