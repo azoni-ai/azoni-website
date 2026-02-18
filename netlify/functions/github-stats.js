@@ -41,7 +41,7 @@ exports.handler = async (event, context) => {
               }
             }
           }
-          repositories(first: 20, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
+          repositories(first: 30, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
             nodes {
               name
               url
@@ -52,7 +52,7 @@ exports.handler = async (event, context) => {
               defaultBranchRef {
                 target {
                   ... on Commit {
-                    history(first: 5, author: {id: null}) {
+                    history(first: 30) {
                       nodes {
                         message
                         committedDate
@@ -81,7 +81,7 @@ exports.handler = async (event, context) => {
               defaultBranchRef {
                 target {
                   ... on Commit {
-                    history(first: 10) {
+                    history(first: 30) {
                       nodes {
                         message
                         committedDate
@@ -213,9 +213,9 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Sort by date and take top 20
+    // Sort by date
     recentCommits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const topCommits = recentCommits.slice(0, 20);
+    const topCommits = recentCommits.slice(0, 100);
 
     return {
       statusCode: 200,

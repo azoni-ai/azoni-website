@@ -140,6 +140,22 @@ const ACTIVITY_ICONS = {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 10l2 2 4-4"/>
     </svg>
+  ),
+  health_alert: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/>
+    </svg>
+  ),
+  owt_chat: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <path d="M8 10h.01M12 10h.01M16 10h.01"/>
+    </svg>
+  ),
+  owt_blog: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+    </svg>
   )
 };
 
@@ -171,7 +187,10 @@ const ACTIVITY_COLORS = {
   error_logged: '#ef4444',
   error_reviewed: '#f97316',
   orchestrator_summary: '#ff7a5c',
-  blog_published: '#fbbf24'
+  blog_published: '#fbbf24',
+  health_alert: '#ef4444',
+  owt_chat: '#d97706',
+  owt_blog: '#d97706'
 };
 
 const ACTIVITY_LABELS = {
@@ -202,25 +221,28 @@ const ACTIVITY_LABELS = {
   error_logged: 'Error Detected',
   error_reviewed: 'Errors Reviewed',
   orchestrator_summary: 'Cycle Summary',
-  blog_published: 'Blog Published'
+  blog_published: 'Blog Published',
+  health_alert: 'Health Alert',
+  owt_chat: 'OWT Chat',
+  owt_blog: 'OWT Blog'
 };
 
 // Source filter config with brand colors
 const SOURCE_FILTERS = [
   { value: 'all', label: 'All Agents', color: '#888', sources: null },
-  { value: 'azoni-ai', label: 'Azoni AI', color: '#3b82f6', sources: ['azoni-ai'] },
+  { value: 'orchestrator', label: 'Orchestrator', color: '#a78bfa', sources: ['orchestrator'] },
+  { value: 'azoni-ai', label: 'Chatbot', color: '#60a5fa', sources: ['azoni-ai'] },
   { value: 'daily-blog', label: 'Blog Writer', color: '#f59e0b', sources: ['daily-blog'] },
-  { value: 'moltbook-agent', label: 'Social Agent', color: '#ff6b35', sources: ['moltbook-agent'] },
+  { value: 'moltbook-agent', label: 'Social Agent', color: '#fb923c', sources: ['moltbook-agent'] },
   { value: 'fitness', label: 'Fitness', color: '#4ade80', sources: ['benchpressonly', 'rowcrew'] },
   { value: 'spell-brigade', label: 'Spell Brigade', color: '#c084fc', sources: ['spell-brigade'] },
-  { value: 'old-ways-today', label: 'Old Ways Today', color: '#d97706', sources: ['old-ways-today'] },
+  { value: 'old-ways-today', label: 'Old Ways Today', color: '#d97706', sources: ['old-ways-today', 'oldwaystoday'] },
 ];
 
 const Activity = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sourceFilter, setSourceFilter] = useState('azoni-ai');
-  const [isLive, ] = useState(true);
+  const [sourceFilter, setSourceFilter] = useState('all');
   const feedRef = useRef(null);
   const [newActivityCount, setNewActivityCount] = useState(0);
   const lastCountRef = useRef(0);
@@ -364,7 +386,7 @@ const Activity = () => {
                 ))}
               </div>
               
-              <div className={`live-indicator ${isLive ? 'active' : ''}`}>
+              <div className="live-indicator active">
                 <span className="live-dot"></span>
                 Live
               </div>

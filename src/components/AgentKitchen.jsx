@@ -12,6 +12,10 @@ const SOURCE_TO_STATION = {
   'moltbook-agent': 'moltbook',
   'rowcrew': 'rowcrew',
   'oldwaystoday': 'oldwaystoday',
+  'old-ways-today': 'oldwaystoday',
+  'orchestrator': 'orchestrator',
+  'daily-blog': 'blog',
+  'azoni-ai': 'chatbot',
 };
 
 const TYPE_TO_STATION = {
@@ -24,6 +28,7 @@ const TYPE_TO_STATION = {
   'project_updated': 'orchestrator',
   'health_alert': 'activity',
   'blog_published': 'blog',
+  'blog_generated': 'blog',
   'knowledge_generated': 'chatbot',
   'wizard_created': 'spellbrigade',
   'dungeon_created': 'spellbrigade',

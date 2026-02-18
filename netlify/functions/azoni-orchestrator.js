@@ -365,7 +365,7 @@ async function checkServiceHealth() {
       title: `⚠️ ${downServices.length} service${downServices.length > 1 ? 's' : ''} down: ${downServices.map(s => s.name).join(', ')}`,
       description: downServices.map(s => `${s.name}: ${s.error}`).join('\n'),
       reasoning: 'Health check detected unreachable services during orchestration cycle.',
-      source: 'azoni-ai',
+      source: 'orchestrator',
       metadata: {
         services: downServices.map(s => ({ name: s.name, error: s.error })),
         orchestrator: true
@@ -675,7 +675,7 @@ async function logStep(type, title, description, reasoning, metadata = {}) {
       description,
       reasoning,
       metadata: { ...metadata, orchestrator: true },
-      source: 'azoni-ai',
+      source: 'orchestrator',
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
   } catch (err) {

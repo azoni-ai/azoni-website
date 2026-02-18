@@ -176,16 +176,21 @@ const ACTIVITY_COLORS = {
   error_reviewed: '#f97316',
   // Orchestrator
   orchestrator_summary: '#ff7a5c',
-  blog_published: '#fbbf24'
+  blog_published: '#fbbf24',
+  health_alert: '#ef4444',
+  owt_chat: '#d97706',
+  owt_blog: '#d97706'
 };
 
 const SOURCE_FILTERS = [
-  { key: 'azoni-ai', label: 'Azoni AI', sources: ['azoni-ai'] },
-  { key: 'all', label: 'All Agents', sources: null },
-  { key: 'daily-blog', label: 'Blog Writer', sources: ['daily-blog'] },
-  { key: 'fitness', label: 'Fitness', sources: ['benchpressonly', 'rowcrew'] },
-  { key: 'spell-brigade', label: 'Gaming', sources: ['spell-brigade'] },
-  { key: 'old-ways-today', label: 'Old Ways Today', sources: ['old-ways-today'] },
+  { value: 'all', label: 'All Agents', sources: null },
+  { value: 'orchestrator', label: 'Orchestrator', sources: ['orchestrator'] },
+  { value: 'azoni-ai', label: 'Chatbot', sources: ['azoni-ai'] },
+  { value: 'daily-blog', label: 'Blog Writer', sources: ['daily-blog'] },
+  { value: 'moltbook-agent', label: 'Social Agent', sources: ['moltbook-agent'] },
+  { value: 'fitness', label: 'Fitness', sources: ['benchpressonly', 'rowcrew'] },
+  { value: 'spell-brigade', label: 'Spell Brigade', sources: ['spell-brigade'] },
+  { value: 'old-ways-today', label: 'Old Ways Today', sources: ['old-ways-today', 'oldwaystoday'] },
 ];
 
 const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false }) => {
@@ -193,14 +198,14 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [firstLoad, setFirstLoad] = useState(true);
-  const [sourceFilter, setSourceFilter] = useState('azoni-ai');
+  const [sourceFilter, setSourceFilter] = useState('all');
 
   useEffect(() => {
     // Real-time listener for agent activity
     const activityRef = collection(db, 'agent_activity');
     let unsubscribe;
     try {
-      const filterDef = SOURCE_FILTERS.find(f => f.key === sourceFilter);
+      const filterDef = SOURCE_FILTERS.find(f => f.value === sourceFilter);
       let constraints;
       if (!filterDef || !filterDef.sources) {
         // 'all' — no source filter
@@ -278,9 +283,9 @@ const AgentActivityFeed = ({ maxItems = 8, showReasoning = true, compact = false
       <div className="feed-filters">
         {SOURCE_FILTERS.map(f => (
           <button
-            key={f.key}
-            className={`feed-filter-btn${sourceFilter === f.key ? ' active' : ''}`}
-            onClick={() => { setSourceFilter(f.key); setLoading(true); setFirstLoad(true); }}
+            key={f.value}
+            className={`feed-filter-btn${sourceFilter === f.value ? ' active' : ''}`}
+            onClick={() => { setSourceFilter(f.value); setLoading(true); setFirstLoad(true); }}
           >
             {f.label}
           </button>
