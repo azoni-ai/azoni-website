@@ -2,70 +2,81 @@
   position: relative;
   width: 100%;
   border-radius: var(--radius-lg);
-  background: #0a0a0f;
+  background: #08080d;
 }
 
 .agent-kitchen-canvas {
   display: block;
   width: 100%;
-  height: 500px;
+  height: 600px;
   cursor: default;
   border-radius: var(--radius-lg);
 }
 
 @media (max-width: 768px) {
   .agent-kitchen-canvas {
-    height: 380px;
+    height: 440px;
   }
 }
 
-/* Tooltip overlay (React div, not canvas) */
+/* Tooltip overlay */
 .agent-kitchen-tooltip {
   position: absolute;
   pointer-events: none;
-  padding: 10px 14px;
-  background: rgba(18, 18, 26, 0.95);
-  border: 1px solid rgba(255, 122, 92, 0.3);
-  border-radius: 8px;
+  padding: 12px 16px;
+  background: rgba(12, 12, 18, 0.95);
+  border: 1px solid rgba(255, 122, 92, 0.25);
+  border-radius: 10px;
   color: #e0e0e0;
   font-size: 0.8rem;
-  line-height: 1.5;
-  max-width: 220px;
+  line-height: 1.55;
+  max-width: 260px;
   z-index: 10;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
   white-space: normal;
   word-wrap: break-word;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .agent-kitchen-tooltip-name {
   font-weight: 600;
   color: #fff;
-  font-size: 0.85rem;
-  margin-bottom: 2px;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
 }
 
 .agent-kitchen-tooltip-desc {
   color: #a8a8a0;
   font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .agent-kitchen-tooltip-tools {
-  margin-top: 6px;
+  margin-top: 8px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   color: #ff7a5c;
 }
 
+.agent-kitchen-tooltip-data {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: #ffb347;
+  margin-top: 2px;
+}
+
 .agent-kitchen-tooltip-status {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 4px;
+  gap: 6px;
+  margin-top: 8px;
   font-size: 0.7rem;
+  color: #8a8a85;
 }
 
 .agent-kitchen-tooltip-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
