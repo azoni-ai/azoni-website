@@ -219,14 +219,8 @@ exports.handler = async (event, context) => {
     recentCommits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const topCommits = recentCommits.slice(0, 100);
 
-    // Build repo list — only repos with user/Claude commits in last 3 months
-    const threeMonthsAgo = new Date(now);
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    const activeRepoNames = new Set(
-      recentCommits
-        .filter(c => new Date(c.timestamp) >= threeMonthsAgo)
-        .map(c => c.repo)
-    );
+    // Build repo list — only repos that have visible commits in the returned list
+    const activeRepoNames = new Set(topCommits.map(c => c.repo));
     const seenRepos = new Set();
     const repoList = [];
     for (const repo of allRepos) {
