@@ -59,7 +59,11 @@ const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.c
 
 async function callMCPTool(endpoint) {
   try {
-    const response = await fetch(`${MCP_BASE_URL}${endpoint}`);
+    const headers = {};
+    if (process.env.MCP_READ_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.MCP_READ_KEY}`;
+    }
+    const response = await fetch(`${MCP_BASE_URL}${endpoint}`, { headers });
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {

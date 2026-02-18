@@ -305,10 +305,14 @@ async function checkServiceHealth() {
   for (const service of SERVICES) {
     const start = Date.now();
     try {
+      const fetchHeaders = { 'Accept': 'application/json, text/html' };
+      if (service.url.includes(MCP_BASE_URL) && process.env.MCP_ADMIN_KEY) {
+        fetchHeaders['Authorization'] = `Bearer ${process.env.MCP_ADMIN_KEY}`;
+      }
       const res = await fetch(service.url, {
         method: 'GET',
         signal: AbortSignal.timeout(10000),
-        headers: { 'Accept': 'application/json, text/html' }
+        headers: fetchHeaders
       });
       const latency = Date.now() - start;
       results.push({
@@ -373,7 +377,12 @@ async function checkServiceHealth() {
 
 async function getFitnessSummary() {
   try {
+    const headers = { Accept: 'application/json' };
+    if (process.env.MCP_ADMIN_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.MCP_ADMIN_KEY}`;
+    }
     const res = await fetch(`${MCP_BASE_URL}/benchpressonly/coach/azoni`, {
+      headers,
       signal: AbortSignal.timeout(5000)
     });
     if (!res.ok) return null;
