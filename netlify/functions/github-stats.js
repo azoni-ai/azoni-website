@@ -219,21 +219,25 @@ exports.handler = async (event, context) => {
     recentCommits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const topCommits = recentCommits.slice(0, 100);
 
-    // Build full repo list (deduplicated) so the UI can show all repos even without recent commits
+    // Build repo list — only repos pushed within the last 6 months (active, not ancient)
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     const seenRepos = new Set();
     const repoList = [];
     for (const repo of allRepos) {
       if (seenRepos.has(repo.name)) continue;
       seenRepos.add(repo.name);
+      const pushed = repo.pushedAt ? new Date(repo.pushedAt) : null;
+      if (!pushed || pushed < sixMonthsAgo) continue;
       repoList.push({
         name: repo.name,
         url: repo.url,
         isPrivate: repo.isPrivate,
         owner: repo.owner?.login,
-        pushedAt: repo.pushedAt || null,
+        pushedAt: repo.pushedAt,
       });
     }
-    repoList.sort((a, b) => new Date(b.pushedAt || 0) - new Date(a.pushedAt || 0));
+    repoList.sort((a, b) => new Date(b.pushedAt) - new Date(a.pushedAt));
 
     return {
       statusCode: 200,
