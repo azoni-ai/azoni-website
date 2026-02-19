@@ -196,9 +196,10 @@ exports.handler = async (event, context) => {
         if (authorLogin && authorLogin !== username) continue;
         if (!authorLogin && !isOwnedRepo) continue;
         
-        // Skip duplicates and merge commits
+        // Skip duplicates, merge commits, and excluded repos
         if (seenCommits.has(commit.oid)) continue;
         if (commit.message?.startsWith('Merge')) continue;
+        if (repo.name === 'autoenhance') continue;
         
         seenCommits.add(commit.oid);
         
