@@ -1030,7 +1030,7 @@ When answering, reference specific implementation details. For example, mention 
       }
 
       // Log conversation for analysis (async, non-blocking)
-      db.collection('chat_logs').add({
+      db.collection('chatLogs').add({
         query: latestUserMessage.slice(0, 1000),
         response: assistantResponse.slice(0, 1000),
         intent: intent.intent,
