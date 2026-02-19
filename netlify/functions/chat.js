@@ -1039,6 +1039,7 @@ When answering, reference specific implementation details. For example, mention 
         chunksUsed: topChunks.length,
         model,
         cost: totalCost,
+        context: requestContext || 'azoni-ai',
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       }).catch(err => console.error('[chat] Failed to log conversation:', err.message));
 
@@ -1047,11 +1048,11 @@ When answering, reference specific implementation details. For example, mention 
         type: 'assistant_chat',
         title: `Chat: ${latestUserMessage.slice(0, 60)}`,
         description: assistantResponse.slice(0, 200),
-        source: 'azoni-ai',
+        source: requestContext === 'autoenhance-interview' ? 'autoenhance-interview' : 'azoni-ai',
         model,
         tokens: data.usage ? { prompt: data.usage.prompt_tokens, completion: data.usage.completion_tokens, total: data.usage.total_tokens } : {},
         cost: totalCost,
-        metadata: { intent: intent.intent, chunksUsed: topChunks.length },
+        metadata: { intent: intent.intent, chunksUsed: topChunks.length, context: requestContext || null },
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       }).catch(err => console.error('[chat] Failed to log chat activity:', err.message));
     } catch (gapErr) {
