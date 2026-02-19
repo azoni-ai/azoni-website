@@ -821,7 +821,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { messages, mode, model: requestedModel, context: requestContext } = JSON.parse(event.body);
+    const { messages, mode, model: requestedModel, context: requestContext, sessionId: requestSessionId } = JSON.parse(event.body);
     
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
@@ -1030,15 +1030,27 @@ When answering, reference specific implementation details. For example, mention 
       }
 
       // Log conversation for analysis (async, non-blocking)
+      // Field names match frontend useChat.js so admin panel displays them correctly
       db.collection('chatLogs').add({
-        query: latestUserMessage.slice(0, 1000),
-        response: assistantResponse.slice(0, 1000),
-        intent: intent.intent,
-        intentConfidence: intent.confidence,
-        bestRetrievalScore: bestScore,
-        chunksUsed: topChunks.length,
+        sessionId: requestSessionId || `server_${Date.now()}`,
+        userMessage: latestUserMessage.slice(0, 1000),
+        assistantMessage: assistantResponse.slice(0, 1000),
+        mode: mode || 'professional',
         model,
-        cost: totalCost,
+        modelName: pricing.name,
+        usage: data.usage ? {
+          prompt_tokens: data.usage.prompt_tokens,
+          completion_tokens: data.usage.completion_tokens,
+          total_tokens: data.usage.total_tokens,
+          totalCost: totalCost.toFixed(6)
+        } : null,
+        rag: {
+          enabled: true,
+          intent: intent.intent,
+          intentConfidence: intent.confidence,
+          chunksUsed: topChunks.length,
+          bestRetrievalScore: bestScore
+        },
         context: requestContext || 'azoni-ai',
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       }).catch(err => console.error('[chat] Failed to log conversation:', err.message));
