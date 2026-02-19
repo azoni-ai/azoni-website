@@ -805,13 +805,10 @@ SELF-IMPROVEMENT NOTE: You just generated new knowledge to answer this question 
 
 // ============ MAIN HANDLER ============
 exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
   };
 
@@ -819,8 +816,12 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers, body: 'Method Not Allowed' };
+  }
+
   try {
-    const { messages, mode, model: requestedModel } = JSON.parse(event.body);
+    const { messages, mode, model: requestedModel, context: requestContext } = JSON.parse(event.body);
     
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
@@ -915,7 +916,48 @@ exports.handler = async (event, context) => {
     }
     
     // Build system prompt with context
-    const systemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext, activityContext, !!realtimeChunk);
+    let finalSystemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext, activityContext, !!realtimeChunk);
+
+    // Inject interview-specific context when called from the Autoenhance batch downloader page
+    if (requestContext === 'autoenhance-interview') {
+      finalSystemPrompt += `
+
+INTERVIEW CONTEXT — AUTOENHANCE BATCH IMAGE DOWNLOADER:
+You are being accessed from Charlton's interview submission for Autoenhance.ai. The interviewer may ask about the batch endpoint, design decisions, or Charlton's background. Use these details to give specific, accurate answers:
+
+WHAT IT DOES:
+- A FastAPI service that downloads all enhanced images for a given Autoenhance order as a ZIP archive
+- Endpoint: GET /orders/{order_id}/images with query params: format (jpeg/png/webp), quality (1-90), preview (bool), dev_mode (bool)
+- Takes an order ID, fetches all images from the Autoenhance v3 API concurrently, bundles them into a ZIP
+- Deployed at https://autoenhance.onrender.com (auto-deploys from GitHub main branch via Render)
+
+DESIGN DECISIONS:
+- Concurrency: asyncio.gather with a semaphore (max 5 concurrent downloads) to balance speed vs API rate limits
+- Partial failure: if some images fail (still processing, timed out), the ZIP includes what succeeded plus a _download_report.txt. Only returns 422 if ALL images fail
+- ZIP format: chosen over multipart (poor client support) or base64 JSON (33% size overhead). Universal support, good compression
+- 60-second per-image timeout with httpx AsyncClient (follow_redirects=True because Autoenhance returns 302 -> asset server -> S3)
+- In-memory buffering — fine for typical orders (<50 images); would need streaming for larger
+- UUID validation on order_id via regex before any upstream call — rejects bad input immediately
+- Duplicate filename deduplication in the ZIP (appends _1, _2, etc.)
+- Response headers X-Total-Images, X-Downloaded, X-Failed for download stats without parsing the ZIP
+
+TECH STACK:
+- Python 3.11+ with FastAPI and httpx (async HTTP)
+- Sentry for error tracking (opt-in via SENTRY_DSN)
+- Single-file architecture (app.py) with inline HTML/CSS/JS for the UI
+- Deployed on Render with auto-deploys from main
+
+TESTING:
+- 13 unit tests using httpx MockTransport (no real API calls, no credits consumed)
+- Covers: UUID validation, SQL injection blocking, full success, partial failure, total failure, empty orders, duplicate name deduplication, health check, UI rendering
+- monkeypatch replaces httpx.AsyncClient per-test for full isolation
+
+PRODUCTION CONSIDERATIONS (documented on the Production tab):
+- Implemented: structured logging, Sentry error tracking, UUID input validation, 13-test unit suite, health check with UptimeRobot
+- Proposed next steps: circuit breaker pattern, response caching (images are immutable), rate limiting (slowapi), async job pattern for large orders, distributed tracing, API versioning
+
+When answering, reference specific implementation details. For example, mention asyncio.gather with semaphore for concurrency, _download_report.txt for partial failures, httpx MockTransport for testing, etc.`;
+    }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -928,7 +970,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: finalSystemPrompt },
           ...messages
         ],
         max_tokens: 1000,
