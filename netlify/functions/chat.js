@@ -821,7 +821,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { messages, mode, model: requestedModel, context: requestContext, sessionId: requestSessionId } = JSON.parse(event.body);
+    const { messages, mode, model: requestedModel, context: requestContext, sessionId: requestSessionId, liveStats } = JSON.parse(event.body);
     
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
@@ -934,9 +934,10 @@ WHAT IT DOES:
 DESIGN DECISIONS:
 - Concurrency: asyncio.gather with a semaphore (max 5 concurrent downloads) to balance speed vs API rate limits
 - Partial failure: if some images fail (still processing, timed out), the ZIP includes what succeeded plus a _download_report.txt. Only returns 422 if ALL images fail
-- ZIP format: chosen over multipart (poor client support) or base64 JSON (33% size overhead). Universal support, good compression
+- ZIP format: chosen over multipart (poor client support) or base64 JSON (33% size overhead). Universal support, ZIP_STORED (no compression) since JPEG/PNG/WebP are already compressed — saves CPU with no size penalty
 - 60-second per-image timeout with httpx AsyncClient (follow_redirects=True because Autoenhance returns 302 -> asset server -> S3)
-- In-memory buffering — fine for typical orders (<50 images); would need streaming for larger
+- Connection reuse: a shared httpx.AsyncClient is created once at startup via FastAPI lifespan, all requests reuse the same connection pool instead of creating a new client per request
+- Memory efficiency: image bytes are freed incrementally after writing to the ZIP (not held until the end). Orders capped at 100 images to bound peak memory usage
 - UUID validation on order_id via regex before any upstream call — rejects bad input immediately
 - Duplicate filename deduplication in the ZIP (appends _1, _2, etc.)
 - Response headers X-Total-Images, X-Downloaded, X-Failed for download stats without parsing the ZIP
@@ -956,7 +957,12 @@ PRODUCTION CONSIDERATIONS (documented on the Production tab):
 - Implemented: structured logging, Sentry error tracking, UUID input validation, 13-test unit suite, health check with UptimeRobot
 - Proposed next steps: circuit breaker pattern, response caching (images are immutable), rate limiting (slowapi), async job pattern for large orders, distributed tracing, API versioning
 
-When answering, reference specific implementation details. For example, mention asyncio.gather with semaphore for concurrency, _download_report.txt for partial failures, httpx MockTransport for testing, etc.`;
+When answering, reference specific implementation details. For example, mention asyncio.gather with semaphore for concurrency, _download_report.txt for partial failures, httpx MockTransport for testing, etc.
+
+The server also exposes a /api/stats endpoint with live runtime metrics (uptime, orders processed, images downloaded/failed, ZIPs served, recent errors). If the user asks about usage, stats, or "how many images have you processed", use the live stats data below to answer with real numbers. These stats reset when the server restarts.`;
+      if (liveStats) {
+        finalSystemPrompt += liveStats;
+      }
     }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
