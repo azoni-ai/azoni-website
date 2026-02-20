@@ -1043,7 +1043,8 @@ const UsageTab = () => {
         totalCost: 0,
         firstTimestamp: log.timestamp,
         mode: log.mode,
-        model: log.model
+        model: log.model,
+        context: log.context || 'azoni-ai'
       };
     }
     acc[sessionId].logs.push(log);
@@ -1129,6 +1130,9 @@ const UsageTab = () => {
               >
                 <div className="session-info">
                   <span className="session-date">{formatDate(session.firstTimestamp)}</span>
+                  <span className={`session-source ${session.context === 'autoenhance-interview' ? 'source-autoenhance' : 'source-portfolio'}`}>
+                    {session.context === 'autoenhance-interview' ? 'Autoenhance' : 'Portfolio'}
+                  </span>
                   <span className="session-model">{session.model || 'gpt-4'}</span>
                   <span className="session-mode">{session.mode || 'professional'}</span>
                   <span className="session-messages">{session.logs.length} msg</span>

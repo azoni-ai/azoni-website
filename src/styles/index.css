@@ -2355,6 +2355,23 @@ span.commit-message.private {
   text-transform: capitalize;
 }
 
+.session-source {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.source-portfolio {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.source-autoenhance {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
 .session-messages {
   color: var(--text-muted);
   font-size: 0.9rem;
