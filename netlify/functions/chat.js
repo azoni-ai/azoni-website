@@ -932,32 +932,35 @@ WHAT IT DOES:
 - Deployed at https://autoenhance.onrender.com (auto-deploys from GitHub main branch via Render)
 
 DESIGN DECISIONS:
-- Concurrency: asyncio.gather with a semaphore (max 5 concurrent downloads) to balance speed vs API rate limits
+- Streaming concurrency: asyncio.as_completed with a semaphore (max 5 concurrent downloads). Each image streams into the ZIP and is freed immediately — no waiting for the full batch. Peak memory bounded by concurrency (5 in-flight), not order size
+- Retry with backoff: 1 automatic retry on transient failures (5xx, timeout) with 1s backoff. No retry on 4xx (client errors are deterministic)
 - Partial failure: if some images fail (still processing, timed out), the ZIP includes what succeeded plus a _download_report.txt. Only returns 422 if ALL images fail
 - ZIP format: chosen over multipart (poor client support) or base64 JSON (33% size overhead). Universal support, ZIP_STORED (no compression) since JPEG/PNG/WebP are already compressed — saves CPU with no size penalty
 - 60-second per-image timeout with httpx AsyncClient (follow_redirects=True because Autoenhance returns 302 -> asset server -> S3)
-- Connection reuse: a shared httpx.AsyncClient is created once at startup via FastAPI lifespan, all requests reuse the same connection pool instead of creating a new client per request
-- Memory efficiency: image bytes are freed incrementally after writing to the ZIP (not held until the end). Orders capped at 100 images to bound peak memory usage
+- Connection reuse: a shared httpx.AsyncClient is created once at startup via FastAPI lifespan, all requests reuse the same connection pool
+- Memory: SpooledTemporaryFile for ZIP creation — ZIPs under 10 MB stay in memory, larger ones spill to disk. Orders capped at 100 images as safety limit
 - UUID validation on order_id via regex before any upstream call — rejects bad input immediately
 - Duplicate filename deduplication in the ZIP (appends _1, _2, etc.)
 - Response headers X-Total-Images, X-Downloaded, X-Failed for download stats without parsing the ZIP
 
 TECH STACK:
 - Python 3.11+ with FastAPI and httpx (async HTTP)
+- Multi-file package architecture: app/ with __init__.py (app factory, middleware, Sentry), config.py, state.py (Stats class, HTTP client), auth.py, and routes/ (batch.py, orders.py, monitoring.py, ui.py)
 - Sentry for error tracking (opt-in via SENTRY_DSN)
-- Single-file architecture (app.py) with inline HTML/CSS/JS for the UI
+- Thread-safe Stats class with encapsulated asyncio.Lock — mutation methods acquire the lock automatically, snapshot() returns clean dict for API responses
+- Security: admin auth via httponly cookie (hmac.compare_digest), security headers middleware (nosniff, DENY framing, referrer policy), CORS restricted to known origins
 - Deployed on Render with auto-deploys from main
 
 TESTING:
-- 13 unit tests using httpx MockTransport (no real API calls, no credits consumed)
-- Covers: UUID validation, SQL injection blocking, full success, partial failure, total failure, empty orders, duplicate name deduplication, health check, UI rendering
-- monkeypatch replaces httpx.AsyncClient per-test for full isolation
+- 20 unit tests using httpx MockTransport (no real API calls, no credits consumed)
+- Covers: UUID validation, SQL injection blocking, full success, partial failure, total failure, empty orders, duplicate name deduplication, query param passthrough, retry on 5xx (verifies attempt count), no retry on 4xx, network error -> 502, upstream 401 -> 401, upstream 500 -> 502, too many images -> 413, health check, UI rendering
+- monkeypatch replaces the shared _http_client per-test for full isolation
 
 PRODUCTION CONSIDERATIONS (documented on the Production tab):
-- Implemented: structured logging, Sentry error tracking, UUID input validation, 13-test unit suite, health check with UptimeRobot
+- Implemented: structured logging, Sentry error tracking, UUID input validation, 20-test unit suite, health check with UptimeRobot, admin auth, security headers, Stats class with locking, retry logic, streaming memory model
 - Proposed next steps: circuit breaker pattern, response caching (images are immutable), rate limiting (slowapi), async job pattern for large orders, distributed tracing, API versioning
 
-When answering, reference specific implementation details. For example, mention asyncio.gather with semaphore for concurrency, _download_report.txt for partial failures, httpx MockTransport for testing, etc.
+When answering, reference specific implementation details. For example, mention asyncio.as_completed with semaphore for streaming concurrency, _download_report.txt for partial failures, httpx MockTransport for testing, Stats class with encapsulated locking, retry with 1s backoff on 5xx, etc.
 
 The server also exposes a /api/stats endpoint with live runtime metrics (uptime, orders processed, images downloaded/failed, ZIPs served, recent errors). If the user asks about usage, stats, or "how many images have you processed", use the live stats data below to answer with real numbers. These stats reset when the server restarts.`;
       if (liveStats) {
