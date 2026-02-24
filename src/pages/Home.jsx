@@ -5,7 +5,7 @@ import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import CollapsibleSection from '../components/CollapsibleSection';
-import AgentDiagram from '../components/AgentDiagram';
+import AgentKitchen from '../components/AgentKitchen';
 
 import '../styles/bento.css';
 
@@ -231,17 +231,17 @@ const Home = () => {
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 
-        {/* ===== AGENT ECOSYSTEM ===== */}
+        {/* ===== LIVE SYSTEM MAP ===== */}
         <CollapsibleSection
-          title="Agent Ecosystem"
-          subtitle="Live architecture — real-time events, agent characters, destinations, and infrastructure"
+          title="Live System Map"
+          subtitle="Real-time agent activity — characters respond to live Firebase events"
           badge="Live"
           badgeType="live"
           defaultOpen={true}
         >
           <section className="showcase-section">
             <div className="container">
-              <AgentDiagram />
+              <AgentKitchen />
             </div>
           </section>
         </CollapsibleSection>
