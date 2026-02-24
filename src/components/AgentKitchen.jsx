@@ -341,7 +341,7 @@ function AgentKitchen() {
     const urls = [];
     Object.entries(agentToAvatar).forEach(([agentKey, avatarKey]) => {
       if (!avatars[avatarKey]) return;
-      const svgEl = avatars[avatarKey](128);
+      const svgEl = avatars[avatarKey](256);
       const svgString = renderToStaticMarkup(svgEl);
       const blob = new Blob([svgString], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(blob);
@@ -465,7 +465,7 @@ function AgentKitchen() {
       ...def,
       px: def.x * w,
       py: def.y * h,
-      radius: def.isHub ? 44 : 26,
+      radius: def.isHub ? 44 : 20,
     }));
   }, []);
 
@@ -673,28 +673,47 @@ function AgentKitchen() {
         ctx.fill();
       }
 
-      // Background circle with gradient
-      const bgGrad = ctx.createRadialGradient(s.px, s.py, 0, s.px, s.py, outerR);
-      bgGrad.addColorStop(0, `${s.color}18`);
-      bgGrad.addColorStop(1, `${s.color}08`);
-      ctx.beginPath();
-      ctx.arc(s.px, s.py, outerR, 0, Math.PI * 2);
-      ctx.fillStyle = bgGrad;
-      ctx.fill();
+      if (s.agent) {
+        // Agent stations: subtle platform glow only (sprite IS the visual)
+        const platGrad = ctx.createRadialGradient(s.px, s.py, 0, s.px, s.py, outerR + 10);
+        platGrad.addColorStop(0, `${s.color}10`);
+        platGrad.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(s.px, s.py, outerR + 10, 0, Math.PI * 2);
+        ctx.fillStyle = platGrad;
+        ctx.fill();
+        // Thin dashed circle as platform indicator
+        ctx.beginPath();
+        ctx.arc(s.px, s.py, outerR, 0, Math.PI * 2);
+        ctx.strokeStyle = `${s.color}${hovered ? '50' : '18'}`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        // Non-agent stations: full circle with icon (EmbedRoute, RowCrew, etc.)
+        const bgGrad = ctx.createRadialGradient(s.px, s.py, 0, s.px, s.py, outerR);
+        bgGrad.addColorStop(0, `${s.color}18`);
+        bgGrad.addColorStop(1, `${s.color}08`);
+        ctx.beginPath();
+        ctx.arc(s.px, s.py, outerR, 0, Math.PI * 2);
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
 
-      // Border
-      ctx.beginPath();
-      ctx.arc(s.px, s.py, outerR, 0, Math.PI * 2);
-      ctx.strokeStyle = `${s.color}${hovered ? '90' : '40'}`;
-      ctx.lineWidth = hovered ? 2 : 1.5;
-      ctx.stroke();
+        // Border
+        ctx.beginPath();
+        ctx.arc(s.px, s.py, outerR, 0, Math.PI * 2);
+        ctx.strokeStyle = `${s.color}${hovered ? '90' : '40'}`;
+        ctx.lineWidth = hovered ? 2 : 1.5;
+        ctx.stroke();
 
-      // Draw icon inside circle
-      if (s.icon) {
-        ctx.save();
-        ctx.globalAlpha = hovered ? 0.9 : 0.55;
-        drawIcon(ctx, s.icon, s.px, s.py, r * 0.35, s.color);
-        ctx.restore();
+        // Draw icon inside circle
+        if (s.icon) {
+          ctx.save();
+          ctx.globalAlpha = hovered ? 0.9 : 0.55;
+          drawIcon(ctx, s.icon, s.px, s.py, r * 0.35, s.color);
+          ctx.restore();
+        }
       }
 
       // Status dot
@@ -919,10 +938,10 @@ function AgentKitchen() {
       {
         const trip = agentTripsRef.current[station.id];
         const homeX = station.px;
-        const homeY = station.py - station.radius - 18;
+        const homeY = station.py - 8;
         const hub = stationsRef.current.find(s => s.isHub);
         const hubX = hub ? hub.px : homeX;
-        const hubY = hub ? hub.py - hub.radius - 18 : homeY;
+        const hubY = hub ? hub.py - hub.radius - 30 : homeY;
 
         if (trip && trip.state !== 'idle') {
           isAtStation = false;
@@ -945,7 +964,7 @@ function AgentKitchen() {
 
       const color = colors[station.agent] || station.color;
       const avatarImg = avatarImagesRef.current[station.agent];
-      const spriteSize = station.agent === 'orchestrator' ? 50 : 42;
+      const spriteSize = station.agent === 'orchestrator' ? 80 : 68;
       const bob = isAtStation ? Math.sin(now / 800 + (station.x || 0) * 10) * 1.5 : 0;
 
       // Shadow
