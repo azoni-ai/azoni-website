@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { avatars } from '../data/agents';
 import '../styles/agent-kitchen.css';
 
 const MCP_URL = 'https://azoni-mcp.onrender.com';
@@ -325,6 +327,31 @@ function AgentKitchen() {
   const tickerRef = useRef([]);         // last 5 events for bottom ticker
   const isFirstLoadRef = useRef(true);  // gate initial snapshot vs new events
   const [tooltip, setTooltip] = useState(null);
+  const avatarImagesRef = useRef({});
+  const effectsRef = useRef([]);       // free-floating visual particles
+  const connectionFlashRef = useRef({}); // { stationId: timestamp }
+
+  // Pre-render SVG avatars as Image objects for canvas drawing
+  useEffect(() => {
+    const agentToAvatar = {
+      chat: 'chat', blog: 'blog', orchestrator: 'orchestrator',
+      gaming: 'gaming', social: 'social', fitness: 'fitness',
+      wellness: 'oldways',
+    };
+    const urls = [];
+    Object.entries(agentToAvatar).forEach(([agentKey, avatarKey]) => {
+      if (!avatars[avatarKey]) return;
+      const svgEl = avatars[avatarKey](128);
+      const svgString = renderToStaticMarkup(svgEl);
+      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      urls.push(url);
+      const img = new Image();
+      img.onload = () => { avatarImagesRef.current[agentKey] = img; };
+      img.src = url;
+    });
+    return () => urls.forEach(u => URL.revokeObjectURL(u));
+  }, []);
 
   // Event-driven pulse spawning (called from onSnapshot)
   const spawnEventPulse = useCallback((stationId, eventData) => {
@@ -342,6 +369,20 @@ function AgentKitchen() {
       label: (eventData.title || '').slice(0, 25) || src.dataLabel || '',
       showLabel: true,
     });
+    // Particle burst at source station (event-driven)
+    for (let i = 0; i < 14; i++) {
+      const angle = (i / 14) * Math.PI * 2 + Math.random() * 0.4;
+      const speed = 0.4 + Math.random() * 1.8;
+      effectsRef.current.push({
+        x: src.px, y: src.py,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1, decay: 0.012 + Math.random() * 0.01,
+        color: src.color, size: 2 + Math.random() * 3,
+      });
+    }
+    // Flash the connection line bright
+    connectionFlashRef.current[stationId] = performance.now();
     // Cap pulses to prevent memory issues
     if (pulsesRef.current.length > 30) {
       pulsesRef.current = pulsesRef.current.slice(-20);
@@ -498,11 +539,29 @@ function AgentKitchen() {
         const mx = (s.px + hub.px) / 2;
         const my = (s.py + hub.py) / 2 - 30;
 
-        // Connection line
+        // Connection line — flash bright on event, otherwise dashed
+        const flashStart = connectionFlashRef.current[s.id];
+        const flashAge = flashStart ? now - flashStart : Infinity;
+        const isFlashing = flashAge < 1200;
+        const flashAlpha = isFlashing ? Math.max(0, 1 - flashAge / 1200) : 0;
+
+        if (isFlashing) {
+          // Bright glow line (under the dashed line)
+          ctx.beginPath();
+          ctx.moveTo(s.px, s.py);
+          ctx.quadraticCurveTo(mx, my, hub.px, hub.py);
+          ctx.strokeStyle = s.color;
+          ctx.lineWidth = 4;
+          ctx.globalAlpha = flashAlpha * 0.5;
+          ctx.setLineDash([]);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
         ctx.beginPath();
         ctx.moveTo(s.px, s.py);
         ctx.quadraticCurveTo(mx, my, hub.px, hub.py);
-        ctx.strokeStyle = `${s.color}20`;
+        ctx.strokeStyle = `${s.color}${isFlashing ? '50' : '20'}`;
         ctx.lineWidth = 1.5;
         ctx.setLineDash([8, 6]);
         ctx.lineDashOffset = -now / 50;
@@ -572,6 +631,30 @@ function AgentKitchen() {
       });
 
       pulsesRef.current = pulsesRef.current.filter(p => p.progress <= 1);
+    };
+
+    const drawEffects = () => {
+      effectsRef.current.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.015; // slight gravity
+        p.life -= p.decay;
+        if (p.life <= 0) return;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life * 0.7;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      });
+      effectsRef.current = effectsRef.current.filter(p => p.life > 0);
+      if (effectsRef.current.length > 200) {
+        effectsRef.current = effectsRef.current.slice(-100);
+      }
     };
 
     const drawStation = (s, now, hovered) => {
@@ -831,10 +914,9 @@ function AgentKitchen() {
       };
 
       let ax, ay;
-      let isAtStation = true; // whether agent is at its home station (for role animations)
+      let isAtStation = true;
 
       {
-        // All agents (including orchestrator): event-driven trips to hub
         const trip = agentTripsRef.current[station.id];
         const homeX = station.px;
         const homeY = station.py - station.radius - 18;
@@ -851,7 +933,7 @@ function AgentKitchen() {
           } else if (trip.state === 'atHub') {
             ax = hubX;
             ay = hubY;
-          } else { // toStation
+          } else {
             ax = hubX + (homeX - hubX) * eased;
             ay = hubY + (homeY - hubY) * eased;
           }
@@ -861,219 +943,312 @@ function AgentKitchen() {
         }
       }
 
-      const bob = Math.sin(now / 400 + (station.x || 0) * 20) * 2.5;
       const color = colors[station.agent] || station.color;
+      const avatarImg = avatarImagesRef.current[station.agent];
+      const spriteSize = station.agent === 'orchestrator' ? 50 : 42;
+      const bob = isAtStation ? Math.sin(now / 800 + (station.x || 0) * 10) * 1.5 : 0;
 
       // Shadow
       ctx.beginPath();
-      ctx.ellipse(ax, ay + 18, 6, 2, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.ellipse(ax, ay + spriteSize * 0.42, spriteSize * 0.28, spriteSize * 0.07, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fill();
 
-      // Body
-      ctx.beginPath();
-      ctx.ellipse(ax, ay + 8 + bob, 7, 9, 0, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.globalAlpha = 0.75;
-      ctx.fill();
-      ctx.globalAlpha = 1;
+      if (avatarImg) {
+        // ─── SVG CHARACTER SPRITE ───
+        ctx.save();
 
-      // Head
-      ctx.beginPath();
-      ctx.arc(ax, ay - 4 + bob, 7, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
+        // Subtle glow behind character in their color
+        const glowR = spriteSize * 0.55;
+        const spriteGlow = ctx.createRadialGradient(ax, ay + bob, 0, ax, ay + bob, glowR);
+        spriteGlow.addColorStop(0, `${color}18`);
+        spriteGlow.addColorStop(1, 'transparent');
+        ctx.fillStyle = spriteGlow;
+        ctx.beginPath();
+        ctx.arc(ax, ay + bob, glowR, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Eyes
-      const mex = mouseRef.current.x;
-      const mey = mouseRef.current.y;
-      const lookDx = mex > 0 ? Math.min(1.5, Math.max(-1.5, (mex - ax) / 100)) : 0;
-      const lookDy = mey > 0 ? Math.min(1, Math.max(-1, (mey - ay) / 100)) : 0;
+        if (!isAtStation) {
+          // Walking: tilt wobble + squash/stretch bounce
+          const wobble = Math.sin(now / 120) * 0.07;
+          const bounce = Math.abs(Math.sin(now / 100)) * 0.04;
+          ctx.translate(ax, ay + bob);
+          ctx.rotate(wobble);
+          ctx.scale(1 - bounce, 1 + bounce);
+          ctx.drawImage(avatarImg, -spriteSize / 2, -spriteSize / 2, spriteSize, spriteSize);
+        } else {
+          ctx.drawImage(avatarImg, ax - spriteSize / 2, ay - spriteSize / 2 + bob, spriteSize, spriteSize);
+        }
+        ctx.restore();
 
-      ctx.fillStyle = '#fafaf9';
-      ctx.beginPath();
-      ctx.arc(ax - 3 + lookDx, ay - 5 + bob + lookDy, 2.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(ax + 3 + lookDx, ay - 5 + bob + lookDy, 2.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#1a1a2e';
-      ctx.beginPath();
-      ctx.arc(ax - 3 + lookDx * 1.2, ay - 5 + bob + lookDy * 1.2, 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(ax + 3 + lookDx * 1.2, ay - 5 + bob + lookDy * 1.2, 1, 0, Math.PI * 2);
-      ctx.fill();
+        // Walking trail particles (event-driven — only when actually traveling)
+        if (!isAtStation) {
+          const trip = agentTripsRef.current[station.id];
+          if (trip && (trip.state === 'toHub' || trip.state === 'toStation') && Math.random() < 0.18) {
+            effectsRef.current.push({
+              x: ax + (Math.random() - 0.5) * 8,
+              y: ay + spriteSize * 0.35 + bob,
+              vx: (Math.random() - 0.5) * 0.2,
+              vy: -0.1 - Math.random() * 0.2,
+              life: 1, decay: 0.03,
+              color: color, size: 1 + Math.random() * 2,
+            });
+          }
+        }
+      } else {
+        // ─── FALLBACK: simple body/head/eyes (before images load) ───
+        const fallbackBob = Math.sin(now / 400 + (station.x || 0) * 20) * 2.5;
+        ctx.beginPath();
+        ctx.ellipse(ax, ay + 8 + fallbackBob, 7, 9, 0, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.75;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(ax, ay - 4 + fallbackBob, 7, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        const mex = mouseRef.current.x;
+        const mey = mouseRef.current.y;
+        const lookDx = mex > 0 ? Math.min(1.5, Math.max(-1.5, (mex - ax) / 100)) : 0;
+        const lookDy = mey > 0 ? Math.min(1, Math.max(-1, (mey - ay) / 100)) : 0;
+        ctx.fillStyle = '#fafaf9';
+        ctx.beginPath(); ctx.arc(ax - 3 + lookDx, ay - 5 + fallbackBob + lookDy, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ax + 3 + lookDx, ay - 5 + fallbackBob + lookDy, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath(); ctx.arc(ax - 3 + lookDx * 1.2, ay - 5 + fallbackBob + lookDy * 1.2, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ax + 3 + lookDx * 1.2, ay - 5 + fallbackBob + lookDy * 1.2, 1, 0, Math.PI * 2); ctx.fill();
+      }
 
       // ─── Carrying data visual (when walking to/from hub) ───
       if (!isAtStation) {
         const trip = agentTripsRef.current[station.id];
         if (trip && (trip.state === 'toHub' || trip.state === 'toStation')) {
-          // Glowing data orb above head
           const orbColor = trip.state === 'toHub' ? station.color : '#ff7a5c';
           const orbPulse = Math.sin(now / 200) * 2;
+          const orbY = ay - spriteSize * 0.4 + bob + orbPulse;
+
+          // Outer glow
           ctx.beginPath();
-          ctx.arc(ax, ay - 16 + bob + orbPulse, 4, 0, Math.PI * 2);
+          ctx.arc(ax, orbY, 9, 0, Math.PI * 2);
           ctx.fillStyle = orbColor;
-          ctx.globalAlpha = 0.5;
+          ctx.globalAlpha = 0.12;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Core orb (bigger, brighter)
+          ctx.beginPath();
+          ctx.arc(ax, orbY, 5, 0, Math.PI * 2);
+          ctx.fillStyle = orbColor;
+          ctx.globalAlpha = 0.65;
           ctx.shadowColor = orbColor;
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 12;
           ctx.fill();
           ctx.shadowBlur = 0;
           ctx.globalAlpha = 1;
 
-          // Tiny label — show real event title when carrying to hub
+          // Spinning ring around orb
+          for (let i = 0; i < 4; i++) {
+            const ra = now / 300 + (i / 4) * Math.PI * 2;
+            const rx = ax + Math.cos(ra) * 8;
+            const ry = orbY + Math.sin(ra) * 3.5;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 1.2, 0, Math.PI * 2);
+            ctx.fillStyle = orbColor;
+            ctx.globalAlpha = 0.4;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+
+          // Event title label
           const tripEvent = stationEventsRef.current[station.id];
           const orbLabel = trip.state === 'toHub'
-            ? (tripEvent?.title || station.dataLabel || 'data').slice(0, 20)
+            ? (tripEvent?.title || station.dataLabel || 'data').slice(0, 22)
             : 'response';
           ctx.save();
-          ctx.globalAlpha = 0.4;
-          ctx.font = '7px "JetBrains Mono", monospace';
+          ctx.globalAlpha = 0.5;
+          ctx.font = '8px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
           ctx.fillStyle = orbColor;
-          ctx.fillText(orbLabel, ax, ay - 24 + bob + orbPulse);
+          ctx.fillText(orbLabel, ax, orbY - 13);
           ctx.restore();
         }
       }
 
-      // ─── Role-specific animations (only when at station AND recent event within 10s) ───
+      // ─── Role-specific animations (EVENT-DRIVEN: only on recent events within 10s) ───
       const stationEvent = stationEventsRef.current[station.id];
       const eventAge = stationEvent?.receivedAt ? (Date.now() - stationEvent.receivedAt) : Infinity;
       const isRecentlyActive = eventAge < 10000;
-      // Fade out animation over last 3 seconds of the 10s window
       const activityFade = isRecentlyActive ? (eventAge > 7000 ? (10000 - eventAge) / 3000 : 1) : 0;
 
+      const halfSprite = spriteSize * 0.4;
+
       if (station.agent === 'blog' && isAtStation && isRecentlyActive) {
-        // Scribe: writing animation — pen strokes
+        // Scribe: floating text lines + pen nib
         ctx.save();
-        ctx.globalAlpha = activityFade;
-        const penPhase = (now / 200) % (Math.PI * 2);
-        const penX = ax + 12 + Math.sin(penPhase) * 4;
-        const penY = ay + bob + Math.cos(penPhase * 2) * 2;
-        ctx.beginPath();
-        ctx.moveTo(penX, penY);
-        ctx.lineTo(penX + 3, penY - 6);
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        if (Math.sin(penPhase * 3) > 0.5) {
-          ctx.beginPath();
-          ctx.arc(penX + Math.random() * 3, penY + 2, 0.8, 0, Math.PI * 2);
-          ctx.fillStyle = '#fbbf2480';
-          ctx.fill();
+        ctx.globalAlpha = activityFade * 0.55;
+        for (let i = 0; i < 3; i++) {
+          const lineY = ay + halfSprite + bob + i * 8;
+          const lineW = 14 + Math.sin(now / 300 + i) * 5;
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(ax + halfSprite, lineY, lineW, 1.5);
         }
+        const penPhase = (now / 200) % (Math.PI * 2);
+        const penX = ax + halfSprite + Math.sin(penPhase) * 5;
+        const penY = ay + halfSprite + bob + Math.cos(penPhase * 2) * 3;
+        ctx.beginPath();
+        ctx.arc(penX, penY, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#fbbf24';
+        ctx.globalAlpha = activityFade * 0.8;
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
         ctx.restore();
       }
 
       if (station.agent === 'chat' && isAtStation && isRecentlyActive) {
-        // Chatbot: speech bubbles floating up
-        for (let i = 0; i < 2; i++) {
-          const bubbleT = ((now / 2000 + i * 0.5) % 1);
+        // Chat: speech bubbles rising
+        for (let i = 0; i < 3; i++) {
+          const bubbleT = ((now / 2000 + i * 0.33) % 1);
           const bubbleAlpha = bubbleT < 0.7 ? 1 : (1 - bubbleT) / 0.3;
-          const bx = ax + 14 + i * 6;
-          const by = ay - 10 + bob - bubbleT * 20;
-          const br = 3 + i * 1.5;
+          const bx = ax + halfSprite + i * 7;
+          const by = ay - halfSprite * 0.5 + bob - bubbleT * 28;
+          const br = 3.5 + i * 1.5;
           ctx.beginPath();
           ctx.arc(bx, by, br, 0, Math.PI * 2);
           ctx.fillStyle = '#60a5fa';
-          ctx.globalAlpha = bubbleAlpha * 0.25 * activityFade;
+          ctx.globalAlpha = bubbleAlpha * 0.3 * activityFade;
           ctx.fill();
           ctx.globalAlpha = 1;
         }
       }
 
       if (station.agent === 'social' && isAtStation && isRecentlyActive) {
-        // Moltbook: broadcast waves
+        // Social: broadcast waves expanding
         for (let i = 0; i < 3; i++) {
           const waveT = ((now / 1500 + i * 0.33) % 1);
-          const waveR = 10 + waveT * 18;
+          const waveR = 14 + waveT * 24;
           ctx.beginPath();
-          ctx.arc(ax + 10, ay + bob, waveR, -0.6, 0.6);
+          ctx.arc(ax + halfSprite, ay + bob, waveR, -0.6, 0.6);
           ctx.strokeStyle = '#fb923c';
-          ctx.lineWidth = 1;
-          ctx.globalAlpha = (1 - waveT) * 0.3 * activityFade;
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = (1 - waveT) * 0.35 * activityFade;
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
       }
 
       if (station.agent === 'fitness' && isAtStation && isRecentlyActive) {
-        // Fitness: lifting animation
+        // Fitness: lifting barbell with effort lines
         ctx.save();
         ctx.globalAlpha = activityFade;
         const liftPhase = Math.sin(now / 600);
-        const liftY = ay - 14 + bob + liftPhase * 3;
+        const liftY = ay - halfSprite - 4 + bob + liftPhase * 4;
         ctx.beginPath();
-        ctx.moveTo(ax - 8, liftY);
-        ctx.lineTo(ax + 8, liftY);
+        ctx.moveTo(ax - 12, liftY);
+        ctx.lineTo(ax + 12, liftY);
         ctx.strokeStyle = '#4ade80';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(ax - 8, liftY, 2.5, 0, Math.PI * 2);
-        ctx.arc(ax + 8, liftY, 2.5, 0, Math.PI * 2);
+        ctx.arc(ax - 12, liftY, 3.5, 0, Math.PI * 2);
+        ctx.arc(ax + 12, liftY, 3.5, 0, Math.PI * 2);
         ctx.fillStyle = '#4ade80';
         ctx.globalAlpha = 0.6 * activityFade;
         ctx.fill();
+        if (liftPhase > 0.5) {
+          for (let i = 0; i < 3; i++) {
+            const eA = -Math.PI / 2 + (i - 1) * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(ax + Math.cos(eA) * 16, liftY + Math.sin(eA) * 8);
+            ctx.lineTo(ax + Math.cos(eA) * 22, liftY + Math.sin(eA) * 12);
+            ctx.strokeStyle = '#4ade80';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.3 * activityFade;
+            ctx.stroke();
+          }
+        }
         ctx.restore();
       }
 
       if (station.agent === 'gaming' && isAtStation && isRecentlyActive) {
-        // Gaming: sparkle/magic effect
-        for (let i = 0; i < 5; i++) {
-          const sa = now / 250 + i * 1.26;
-          const sr = 14 + Math.sin(now / 200 + i) * 5;
+        // Gaming: orbiting sparkle constellation
+        for (let i = 0; i < 6; i++) {
+          const sa = now / 250 + i * 1.05;
+          const sr = halfSprite + 4 + Math.sin(now / 200 + i) * 5;
           const sx = ax + Math.cos(sa) * sr;
-          const sy = ay - 4 + bob + Math.sin(sa) * sr;
-          const sparkAlpha = (0.3 + Math.sin(now / 120 + i * 1.5) * 0.3) * activityFade;
+          const sy = ay + bob + Math.sin(sa) * sr;
+          const sparkAlpha = (0.35 + Math.sin(now / 120 + i * 1.5) * 0.3) * activityFade;
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.rotate(now / 200 + i);
           ctx.beginPath();
-          ctx.moveTo(sx, sy - 2);
-          ctx.lineTo(sx + 0.7, sy - 0.7);
-          ctx.lineTo(sx + 2, sy);
-          ctx.lineTo(sx + 0.7, sy + 0.7);
-          ctx.lineTo(sx, sy + 2);
-          ctx.lineTo(sx - 0.7, sy + 0.7);
-          ctx.lineTo(sx - 2, sy);
-          ctx.lineTo(sx - 0.7, sy - 0.7);
-          ctx.closePath();
-          ctx.fillStyle = '#c084fc';
+          for (let p = 0; p < 4; p++) {
+            const pa = (p / 4) * Math.PI * 2;
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(pa) * 3, Math.sin(pa) * 3);
+          }
+          ctx.strokeStyle = '#c084fc';
+          ctx.lineWidth = 1.2;
           ctx.globalAlpha = sparkAlpha;
-          ctx.fill();
-          ctx.globalAlpha = 1;
+          ctx.stroke();
+          ctx.restore();
         }
       }
 
       if (station.agent === 'wellness' && isAtStation && isRecentlyActive) {
         // Wellness: floating leaf particles
-        for (let i = 0; i < 3; i++) {
-          const leafT = ((now / 2500 + i * 0.33) % 1);
-          const leafX = ax + 8 + i * 5 + Math.sin(now / 400 + i) * 4;
-          const leafY = ay - 5 + bob - leafT * 25;
+        for (let i = 0; i < 4; i++) {
+          const leafT = ((now / 2500 + i * 0.25) % 1);
+          const leafX = ax + halfSprite + i * 5 + Math.sin(now / 400 + i) * 5;
+          const leafY = ay + bob - leafT * 30;
           const leafAlpha = leafT < 0.7 ? 1 : (1 - leafT) / 0.3;
           ctx.save();
-          ctx.globalAlpha = leafAlpha * 0.4 * activityFade;
+          ctx.globalAlpha = leafAlpha * 0.45 * activityFade;
           ctx.fillStyle = '#d97706';
           ctx.translate(leafX, leafY);
           ctx.rotate(now / 600 + i * 2);
           ctx.beginPath();
-          ctx.moveTo(0, -3);
-          ctx.quadraticCurveTo(3, 0, 0, 3);
-          ctx.quadraticCurveTo(-3, 0, 0, -3);
+          ctx.moveTo(0, -3.5);
+          ctx.quadraticCurveTo(3.5, 0, 0, 3.5);
+          ctx.quadraticCurveTo(-3.5, 0, 0, -3.5);
           ctx.fill();
           ctx.restore();
         }
       }
 
-      // Generic working sparkles for agents without specific animation (only when recently active)
-      if (!['blog', 'chat', 'social', 'fitness', 'gaming', 'wellness'].includes(station.agent)) {
+      if (station.agent === 'orchestrator' && isAtStation && isRecentlyActive) {
+        // Orchestrator: orbiting energy dots + ring
+        for (let i = 0; i < 5; i++) {
+          const ga = now / 400 + i * (Math.PI * 2 / 5);
+          const gr = halfSprite + 6 + Math.sin(now / 200 + i) * 3;
+          const gx = ax + Math.cos(ga) * gr;
+          const gy = ay + bob + Math.sin(ga) * gr;
+          ctx.beginPath();
+          ctx.arc(gx, gy, 2, 0, Math.PI * 2);
+          ctx.fillStyle = '#a78bfa';
+          ctx.globalAlpha = (0.35 + Math.sin(now / 150 + i * 1.5) * 0.3) * activityFade;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        ctx.beginPath();
+        ctx.arc(ax, ay + bob, halfSprite + 2, 0, Math.PI * 2);
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.15 * activityFade;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Generic sparkles for agents without specific animation
+      if (!['blog', 'chat', 'social', 'fitness', 'gaming', 'wellness', 'orchestrator'].includes(station.agent)) {
         if (isAtStation && isRecentlyActive) {
           for (let i = 0; i < 3; i++) {
             const sa = now / 300 + i * 2.1;
-            const sr = 12 + Math.sin(now / 200 + i) * 4;
+            const sr = halfSprite + Math.sin(now / 200 + i) * 4;
             const sx = ax + Math.cos(sa) * sr;
-            const sy = ay - 4 + bob + Math.sin(sa) * sr;
+            const sy = ay + bob + Math.sin(sa) * sr;
             ctx.beginPath();
             ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
             ctx.fillStyle = color;
@@ -1081,22 +1256,6 @@ function AgentKitchen() {
             ctx.fill();
             ctx.globalAlpha = 1;
           }
-        }
-      }
-
-      // Orchestrator: gear sparkles when recently active
-      if (station.agent === 'orchestrator' && isAtStation && isRecentlyActive) {
-        for (let i = 0; i < 4; i++) {
-          const ga = now / 350 + i * 1.57;
-          const gr = 14 + Math.sin(now / 200 + i) * 4;
-          const gx = ax + Math.cos(ga) * gr;
-          const gy = ay - 4 + bob + Math.sin(ga) * gr;
-          ctx.beginPath();
-          ctx.arc(gx, gy, 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = '#a78bfa';
-          ctx.globalAlpha = (0.3 + Math.sin(now / 150 + i * 1.5) * 0.3) * activityFade;
-          ctx.fill();
-          ctx.globalAlpha = 1;
         }
       }
     };
@@ -1197,6 +1356,7 @@ function AgentKitchen() {
       drawBackground(now);
       drawConnections(stations, now);
       drawPulses(now);
+      drawEffects();
 
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
@@ -1226,6 +1386,21 @@ function AgentKitchen() {
               trip.state = 'atHub';
               trip.progress = 1;
               trip.waitUntil = now + 1200;
+              // Arrival burst at hub
+              const hub = stations.find(st => st.isHub);
+              if (hub) {
+                for (let i = 0; i < 10; i++) {
+                  const angle = (i / 10) * Math.PI * 2;
+                  const speed = 0.6 + Math.random() * 1.2;
+                  effectsRef.current.push({
+                    x: hub.px, y: hub.py,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1, decay: 0.018 + Math.random() * 0.01,
+                    color: s.color, size: 1.5 + Math.random() * 2.5,
+                  });
+                }
+              }
             }
             break;
           case 'atHub':
