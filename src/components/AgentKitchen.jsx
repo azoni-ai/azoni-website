@@ -342,12 +342,17 @@ function AgentKitchen() {
     Object.entries(agentToAvatar).forEach(([agentKey, avatarKey]) => {
       if (!avatars[avatarKey]) return;
       const svgEl = avatars[avatarKey](256);
-      const svgString = renderToStaticMarkup(svgEl);
-      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      let svgString = renderToStaticMarkup(svgEl);
+      // Standalone SVG documents loaded via Blob URL require xmlns namespace
+      if (!svgString.includes('xmlns')) {
+        svgString = svgString.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+      }
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       urls.push(url);
       const img = new Image();
       img.onload = () => { avatarImagesRef.current[agentKey] = img; };
+      img.onerror = (e) => console.warn(`Avatar failed to load: ${agentKey}`, e);
       img.src = url;
     });
     return () => urls.forEach(u => URL.revokeObjectURL(u));
