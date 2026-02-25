@@ -696,7 +696,7 @@ function AgentKitchen() {
       }
 
       if (s.agent) {
-        // Agent stations: subtle platform glow only (sprite IS the visual)
+        // Agent stations: subtle platform glow only — workspace drawing provides the visual grounding
         const platGrad = ctx.createRadialGradient(s.px, s.py, 0, s.px, s.py, outerR + 10);
         platGrad.addColorStop(0, `${s.color}10`);
         platGrad.addColorStop(1, 'transparent');
@@ -704,16 +704,14 @@ function AgentKitchen() {
         ctx.arc(s.px, s.py, outerR + 10, 0, Math.PI * 2);
         ctx.fillStyle = platGrad;
         ctx.fill();
-        // Thin dashed circle as platform indicator
-        ctx.beginPath();
-        ctx.arc(s.px, s.py, outerR, 0, Math.PI * 2);
-        ctx.strokeStyle = `${s.color}${hovered ? '50' : '18'}`;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
       } else {
         // Non-agent stations: full circle with icon (EmbedRoute, RowCrew, etc.)
+        // Ground shadow so they don't float
+        ctx.beginPath();
+        ctx.ellipse(s.px, s.py + outerR + 4, outerR * 0.7, 3, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.fill();
+
         const bgGrad = ctx.createRadialGradient(s.px, s.py, 0, s.px, s.py, outerR);
         bgGrad.addColorStop(0, `${s.color}18`);
         bgGrad.addColorStop(1, `${s.color}08`);
@@ -922,6 +920,456 @@ function AgentKitchen() {
     };
 
     const easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+    // ─── Role-specific workspace environments ───
+    // Draws contextual scenery behind each agent so they feel grounded, not floating
+    const drawAgentWorkspace = (station) => {
+      if (!station.agent) return;
+      const x = station.px;
+      const y = station.py;
+      const c = station.color;
+
+      ctx.save();
+
+      switch (station.agent) {
+        case 'orchestrator': {
+          // Command console — hexagonal platform + floating screens + console bar
+          const platY = y + 28;
+
+          // Hexagonal dais
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+            const px = x + Math.cos(a) * 42;
+            const py = platY + Math.sin(a) * 16;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fillStyle = `${c}0a`;
+          ctx.fill();
+          ctx.strokeStyle = `${c}20`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Three floating screens in arc behind
+          const screens = [
+            { ox: -30, oy: -42, w: 18, h: 12, rot: 0.15 },
+            { ox: 0, oy: -48, w: 22, h: 14, rot: 0 },
+            { ox: 30, oy: -42, w: 18, h: 12, rot: -0.15 },
+          ];
+          screens.forEach(sc => {
+            ctx.save();
+            ctx.translate(x + sc.ox, y + sc.oy);
+            ctx.rotate(sc.rot);
+            // Screen body
+            ctx.fillStyle = '#0c0c14';
+            ctx.strokeStyle = `${c}30`;
+            ctx.lineWidth = 1;
+            roundRect(ctx, -sc.w / 2, -sc.h / 2, sc.w, sc.h, 2);
+            ctx.fill();
+            ctx.stroke();
+            // Screen content lines
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = c;
+            for (let i = 0; i < 3; i++) {
+              const lw = sc.w * (0.5 + Math.random() * 0.3);
+              ctx.fillRect(-sc.w / 2 + 3, -sc.h / 2 + 3 + i * 3.5, lw - 6, 1.5);
+            }
+            ctx.globalAlpha = 1;
+            ctx.restore();
+          });
+
+          // Console bar beneath
+          ctx.fillStyle = '#0c0c14';
+          ctx.strokeStyle = `${c}18`;
+          ctx.lineWidth = 1;
+          roundRect(ctx, x - 32, platY + 4, 64, 6, 2);
+          ctx.fill();
+          ctx.stroke();
+          // Indicator lights on console
+          for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.arc(x - 16 + i * 8, platY + 7, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = i === 2 ? '#4ade80' : `${c}25`;
+            ctx.fill();
+          }
+          break;
+        }
+
+        case 'chat': {
+          // Terminal station — monitor + code lines + keyboard
+          const monY = y - 10;
+
+          // Monitor
+          ctx.fillStyle = '#0c0c14';
+          ctx.strokeStyle = `${c}35`;
+          ctx.lineWidth = 1;
+          roundRect(ctx, x - 24, monY - 20, 48, 30, 3);
+          ctx.fill();
+          ctx.stroke();
+
+          // Screen content — code/chat lines
+          ctx.globalAlpha = 0.2;
+          ctx.fillStyle = c;
+          const lines = [0.7, 0.5, 0.8, 0.4, 0.6];
+          lines.forEach((len, i) => {
+            ctx.fillRect(x - 20, monY - 16 + i * 4.5, 36 * len, 2);
+          });
+          ctx.globalAlpha = 1;
+
+          // Monitor stand
+          ctx.fillStyle = `${c}15`;
+          ctx.fillRect(x - 3, monY + 10, 6, 6);
+
+          // Keyboard
+          ctx.fillStyle = '#0c0c14';
+          ctx.strokeStyle = `${c}20`;
+          roundRect(ctx, x - 18, monY + 18, 36, 8, 2);
+          ctx.fill();
+          ctx.stroke();
+          // Key dots
+          ctx.globalAlpha = 0.12;
+          ctx.fillStyle = c;
+          for (let row = 0; row < 2; row++) {
+            for (let col = 0; col < 8; col++) {
+              ctx.fillRect(x - 15 + col * 4, monY + 20 + row * 3, 2.5, 1.5);
+            }
+          }
+          ctx.globalAlpha = 1;
+          break;
+        }
+
+        case 'blog': {
+          // Writing desk — surface + papers + ink pot
+          const deskY = y + 18;
+
+          // Desk surface
+          ctx.fillStyle = '#0e0c08';
+          ctx.strokeStyle = `${c}20`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - 38, deskY);
+          ctx.lineTo(x - 34, deskY + 10);
+          ctx.lineTo(x + 34, deskY + 10);
+          ctx.lineTo(x + 38, deskY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Scattered papers
+          const papers = [
+            { ox: -16, oy: -4, w: 14, h: 10, rot: -0.12 },
+            { ox: 8, oy: -2, w: 12, h: 9, rot: 0.08 },
+            { ox: -4, oy: -8, w: 13, h: 10, rot: 0.04 },
+          ];
+          papers.forEach(p => {
+            ctx.save();
+            ctx.translate(x + p.ox, deskY + p.oy);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = '#fef3c710';
+            ctx.strokeStyle = `${c}18`;
+            ctx.lineWidth = 0.5;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            // Text lines on paper
+            ctx.globalAlpha = 0.1;
+            ctx.fillStyle = c;
+            for (let i = 0; i < 3; i++) {
+              ctx.fillRect(-p.w / 2 + 2, -p.h / 2 + 2 + i * 2.5, p.w * 0.6, 1);
+            }
+            ctx.globalAlpha = 1;
+            ctx.restore();
+          });
+
+          // Ink pot
+          ctx.beginPath();
+          ctx.arc(x + 26, deskY - 2, 4, 0, Math.PI * 2);
+          ctx.fillStyle = '#1a150a';
+          ctx.strokeStyle = `${c}25`;
+          ctx.lineWidth = 0.8;
+          ctx.fill();
+          ctx.stroke();
+          // Ink sheen
+          ctx.beginPath();
+          ctx.arc(x + 25, deskY - 3, 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = `${c}20`;
+          ctx.fill();
+          break;
+        }
+
+        case 'gaming': {
+          // Arcane circle — magic circle + runes + center glow
+          const circY = y + 20;
+          const circR = 34;
+
+          // Center glow
+          const glow = ctx.createRadialGradient(x, circY, 0, x, circY, circR);
+          glow.addColorStop(0, `${c}08`);
+          glow.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(x, circY, circR, 0, Math.PI * 2);
+          ctx.fillStyle = glow;
+          ctx.fill();
+
+          // Outer circle
+          ctx.beginPath();
+          ctx.arc(x, circY, circR, 0, Math.PI * 2);
+          ctx.strokeStyle = `${c}18`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Inner circle
+          ctx.beginPath();
+          ctx.arc(x, circY, circR * 0.6, 0, Math.PI * 2);
+          ctx.strokeStyle = `${c}12`;
+          ctx.stroke();
+
+          // Hexagram
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            const px = x + Math.cos(a) * circR * 0.75;
+            const py = circY + Math.sin(a) * circR * 0.5;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = `${c}14`;
+          ctx.stroke();
+
+          // Rune marks at 6 points
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            const rx = x + Math.cos(a) * circR;
+            const ry = circY + Math.sin(a) * circR * 0.65;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `${c}20`;
+            ctx.fill();
+          }
+          break;
+        }
+
+        case 'social': {
+          // Broadcast podium — stage + antenna + audience dots
+          const stageY = y + 22;
+
+          // Stage/podium trapezoid
+          ctx.beginPath();
+          ctx.moveTo(x - 28, stageY);
+          ctx.lineTo(x - 34, stageY + 10);
+          ctx.lineTo(x + 34, stageY + 10);
+          ctx.lineTo(x + 28, stageY);
+          ctx.closePath();
+          ctx.fillStyle = `${c}0a`;
+          ctx.strokeStyle = `${c}18`;
+          ctx.lineWidth = 1;
+          ctx.fill();
+          ctx.stroke();
+
+          // Stage front edge highlight
+          ctx.beginPath();
+          ctx.moveTo(x - 34, stageY + 10);
+          ctx.lineTo(x + 34, stageY + 10);
+          ctx.strokeStyle = `${c}25`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Small antenna behind
+          ctx.beginPath();
+          ctx.moveTo(x + 22, y - 24);
+          ctx.lineTo(x + 22, y - 38);
+          ctx.strokeStyle = `${c}20`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          // Antenna tip
+          ctx.beginPath();
+          ctx.arc(x + 22, y - 40, 2, 0, Math.PI * 2);
+          ctx.fillStyle = `${c}30`;
+          ctx.fill();
+          // Signal arcs
+          for (let i = 0; i < 2; i++) {
+            ctx.beginPath();
+            ctx.arc(x + 22, y - 40, 5 + i * 5, -0.8, 0.8);
+            ctx.strokeStyle = `${c}${i === 0 ? '15' : '0c'}`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+
+          // Audience dots
+          const dots = [
+            { ox: -18, oy: 18 }, { ox: -8, oy: 20 }, { ox: 4, oy: 19 },
+            { ox: 14, oy: 21 }, { ox: -12, oy: 24 }, { ox: 8, oy: 25 },
+          ];
+          dots.forEach(d => {
+            ctx.beginPath();
+            ctx.arc(x + d.ox, stageY + d.oy, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `${c}12`;
+            ctx.fill();
+          });
+          break;
+        }
+
+        case 'wellness': {
+          // Garden patch — earth bed + sprouts + mortar stone
+          const groundY = y + 22;
+
+          // Earth patch
+          ctx.fillStyle = 'rgba(120, 53, 15, 0.08)';
+          ctx.strokeStyle = 'rgba(120, 53, 15, 0.12)';
+          ctx.lineWidth = 1;
+          roundRect(ctx, x - 32, groundY, 64, 14, 6);
+          ctx.fill();
+          ctx.stroke();
+
+          // Soil texture lines
+          ctx.globalAlpha = 0.06;
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 0.5;
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x - 26 + i * 18, groundY + 4);
+            ctx.quadraticCurveTo(x - 20 + i * 18, groundY + 8, x - 14 + i * 18, groundY + 5);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+
+          // Sprouts
+          const sprouts = [
+            { ox: -18, stemH: 14, leafDir: -1 },
+            { ox: -4, stemH: 18, leafDir: 1 },
+            { ox: 12, stemH: 12, leafDir: -1 },
+          ];
+          sprouts.forEach(sp => {
+            const sx = x + sp.ox;
+            const base = groundY + 2;
+
+            // Stem
+            ctx.beginPath();
+            ctx.moveTo(sx, base);
+            ctx.quadraticCurveTo(sx + sp.leafDir * 3, base - sp.stemH * 0.6, sx, base - sp.stemH);
+            ctx.strokeStyle = 'rgba(22, 163, 74, 0.18)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // Leaf
+            ctx.save();
+            ctx.translate(sx, base - sp.stemH);
+            ctx.rotate(sp.leafDir * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(sp.leafDir * 6, -3, sp.leafDir * 8, 0);
+            ctx.quadraticCurveTo(sp.leafDir * 6, 2, 0, 0);
+            ctx.fillStyle = 'rgba(22, 163, 74, 0.15)';
+            ctx.fill();
+            ctx.restore();
+          });
+
+          // Mortar & pestle stone
+          ctx.beginPath();
+          ctx.arc(x + 26, groundY + 4, 5, 0, Math.PI, true);
+          ctx.fillStyle = 'rgba(120, 113, 108, 0.12)';
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(x + 26, groundY + 4, 5, 0, Math.PI, true);
+          ctx.strokeStyle = 'rgba(120, 113, 108, 0.15)';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+          // Pestle stick
+          ctx.beginPath();
+          ctx.moveTo(x + 28, groundY);
+          ctx.lineTo(x + 32, groundY - 6);
+          ctx.strokeStyle = 'rgba(120, 113, 108, 0.15)';
+          ctx.lineWidth = 1.5;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+          ctx.lineCap = 'butt';
+          break;
+        }
+
+        case 'fitness': {
+          // Training platform — mat + dumbbells + chalk line
+          const matY = y + 18;
+
+          // Training mat
+          ctx.fillStyle = 'rgba(4, 120, 87, 0.06)';
+          ctx.strokeStyle = `${c}15`;
+          ctx.lineWidth = 1;
+          roundRect(ctx, x - 36, matY, 72, 14, 3);
+          ctx.fill();
+          ctx.stroke();
+
+          // Mat center line
+          ctx.beginPath();
+          ctx.moveTo(x, matY + 2);
+          ctx.lineTo(x, matY + 12);
+          ctx.strokeStyle = `${c}0c`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+
+          // Left dumbbell
+          const dbY = matY + 7;
+          ctx.strokeStyle = 'rgba(113, 113, 122, 0.18)';
+          ctx.lineWidth = 1.5;
+          // Bar
+          ctx.beginPath();
+          ctx.moveTo(x - 28, dbY);
+          ctx.lineTo(x - 16, dbY);
+          ctx.stroke();
+          // Weights
+          ctx.fillStyle = 'rgba(113, 113, 122, 0.12)';
+          ctx.fillRect(x - 30, dbY - 3, 4, 6);
+          ctx.fillRect(x - 16, dbY - 3, 4, 6);
+
+          // Right dumbbell
+          ctx.beginPath();
+          ctx.moveTo(x + 16, dbY);
+          ctx.lineTo(x + 28, dbY);
+          ctx.stroke();
+          ctx.fillRect(x + 14, dbY - 3, 4, 6);
+          ctx.fillRect(x + 26, dbY - 3, 4, 6);
+
+          // Chalk mark / PR line
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(x - 30, matY - 4);
+          ctx.lineTo(x + 30, matY - 4);
+          ctx.strokeStyle = `${c}10`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // PR label
+          ctx.globalAlpha = 0.1;
+          ctx.fillStyle = c;
+          ctx.font = '6px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText('PR', x + 30, matY - 5);
+          ctx.globalAlpha = 1;
+          break;
+        }
+
+        default:
+          break;
+      }
+
+      ctx.restore();
+    };
+
+    // Helper: draw rounded rectangle path
+    const roundRect = (context, rx, ry, rw, rh, radius) => {
+      context.beginPath();
+      context.moveTo(rx + radius, ry);
+      context.lineTo(rx + rw - radius, ry);
+      context.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+      context.lineTo(rx + rw, ry + rh - radius);
+      context.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+      context.lineTo(rx + radius, ry + rh);
+      context.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+      context.lineTo(rx, ry + radius);
+      context.quadraticCurveTo(rx, ry, rx + radius, ry);
+      context.closePath();
+    };
 
     const drawAgent = (station, now) => {
       if (!station.agent) return;
@@ -1384,16 +1832,17 @@ function AgentKitchen() {
         }
       });
 
-      // Draw stations
+      // Draw stations + workspaces + agents (layered: station → workspace → agent)
       stations.forEach(s => {
         if (s.isHub) {
           drawMCPHub(s, now);
         } else {
           drawStation(s, now, hovered === s);
+          if (s.agent) drawAgentWorkspace(s);
         }
       });
 
-      // Draw agents
+      // Draw agents on top of everything
       stations.forEach(s => {
         if (s.agent) drawAgent(s, now);
       });
