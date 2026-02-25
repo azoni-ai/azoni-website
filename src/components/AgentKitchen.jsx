@@ -822,8 +822,6 @@ function AgentKitchen() {
 
     const drawMCPHub = (hub, now) => {
       const r = hub.radius;
-      const pulse = Math.sin(now / 800) * 2;
-
       // Ambient glow — soft, not flashy
       const ambientGlow = ctx.createRadialGradient(hub.px, hub.py, 0, hub.px, hub.py, r * 2.5);
       ambientGlow.addColorStop(0, 'rgba(255, 122, 92, 0.06)');
