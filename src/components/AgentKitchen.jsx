@@ -23,7 +23,6 @@ const SOURCE_TO_STATION = {
 const TYPE_TO_STATION = {
   'agent_observing': 'orchestrator',
   'agent_deciding': 'orchestrator',
-  'agent_drafting': 'orchestrator',
   'orchestrator_summary': 'orchestrator',
   'self_assessment': 'orchestrator',
   'error_reviewed': 'orchestrator',
@@ -46,8 +45,9 @@ const TYPE_TO_STATION = {
 };
 
 function mapSourceToStation(source, type) {
-  if (TYPE_TO_STATION[type]) return TYPE_TO_STATION[type];
+  // Source is more specific (tells us which agent/service), type is the fallback
   if (SOURCE_TO_STATION[source]) return SOURCE_TO_STATION[source];
+  if (TYPE_TO_STATION[type]) return TYPE_TO_STATION[type];
   return null;
 }
 
