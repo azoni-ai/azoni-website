@@ -943,9 +943,9 @@ function AgentKitchen() {
             i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
           }
           ctx.closePath();
-          ctx.fillStyle = `${c}0a`;
+          ctx.fillStyle = `${c}22`;
           ctx.fill();
-          ctx.strokeStyle = `${c}20`;
+          ctx.strokeStyle = `${c}50`;
           ctx.lineWidth = 1;
           ctx.stroke();
 
@@ -961,13 +961,13 @@ function AgentKitchen() {
             ctx.rotate(sc.rot);
             // Screen body
             ctx.fillStyle = '#0c0c14';
-            ctx.strokeStyle = `${c}30`;
+            ctx.strokeStyle = `${c}60`;
             ctx.lineWidth = 1;
             roundRect(ctx, -sc.w / 2, -sc.h / 2, sc.w, sc.h, 2);
             ctx.fill();
             ctx.stroke();
             // Screen content lines
-            ctx.globalAlpha = 0.15;
+            ctx.globalAlpha = 0.35;
             ctx.fillStyle = c;
             for (let i = 0; i < 3; i++) {
               const lw = sc.w * (0.5 + Math.random() * 0.3);
@@ -979,7 +979,7 @@ function AgentKitchen() {
 
           // Console bar beneath
           ctx.fillStyle = '#0c0c14';
-          ctx.strokeStyle = `${c}18`;
+          ctx.strokeStyle = `${c}40`;
           ctx.lineWidth = 1;
           roundRect(ctx, x - 32, platY + 4, 64, 6, 2);
           ctx.fill();
@@ -988,7 +988,7 @@ function AgentKitchen() {
           for (let i = 0; i < 5; i++) {
             ctx.beginPath();
             ctx.arc(x - 16 + i * 8, platY + 7, 1.5, 0, Math.PI * 2);
-            ctx.fillStyle = i === 2 ? '#4ade80' : `${c}25`;
+            ctx.fillStyle = i === 2 ? '#4ade80' : `${c}55`;
             ctx.fill();
           }
           break;
@@ -1000,14 +1000,14 @@ function AgentKitchen() {
 
           // Monitor
           ctx.fillStyle = '#0c0c14';
-          ctx.strokeStyle = `${c}35`;
+          ctx.strokeStyle = `${c}70`;
           ctx.lineWidth = 1;
           roundRect(ctx, x - 24, monY - 20, 48, 30, 3);
           ctx.fill();
           ctx.stroke();
 
           // Screen content — code/chat lines
-          ctx.globalAlpha = 0.2;
+          ctx.globalAlpha = 0.4;
           ctx.fillStyle = c;
           const lines = [0.7, 0.5, 0.8, 0.4, 0.6];
           lines.forEach((len, i) => {
@@ -1016,17 +1016,17 @@ function AgentKitchen() {
           ctx.globalAlpha = 1;
 
           // Monitor stand
-          ctx.fillStyle = `${c}15`;
+          ctx.fillStyle = `${c}35`;
           ctx.fillRect(x - 3, monY + 10, 6, 6);
 
           // Keyboard
           ctx.fillStyle = '#0c0c14';
-          ctx.strokeStyle = `${c}20`;
+          ctx.strokeStyle = `${c}50`;
           roundRect(ctx, x - 18, monY + 18, 36, 8, 2);
           ctx.fill();
           ctx.stroke();
           // Key dots
-          ctx.globalAlpha = 0.12;
+          ctx.globalAlpha = 0.3;
           ctx.fillStyle = c;
           for (let row = 0; row < 2; row++) {
             for (let col = 0; col < 8; col++) {
@@ -1043,7 +1043,7 @@ function AgentKitchen() {
 
           // Desk surface
           ctx.fillStyle = '#0e0c08';
-          ctx.strokeStyle = `${c}20`;
+          ctx.strokeStyle = `${c}50`;
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(x - 38, deskY);
@@ -1064,13 +1064,13 @@ function AgentKitchen() {
             ctx.save();
             ctx.translate(x + p.ox, deskY + p.oy);
             ctx.rotate(p.rot);
-            ctx.fillStyle = '#fef3c710';
-            ctx.strokeStyle = `${c}18`;
+            ctx.fillStyle = '#fef3c730';
+            ctx.strokeStyle = `${c}40`;
             ctx.lineWidth = 0.5;
             ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
             ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
             // Text lines on paper
-            ctx.globalAlpha = 0.1;
+            ctx.globalAlpha = 0.25;
             ctx.fillStyle = c;
             for (let i = 0; i < 3; i++) {
               ctx.fillRect(-p.w / 2 + 2, -p.h / 2 + 2 + i * 2.5, p.w * 0.6, 1);
@@ -1083,14 +1083,14 @@ function AgentKitchen() {
           ctx.beginPath();
           ctx.arc(x + 26, deskY - 2, 4, 0, Math.PI * 2);
           ctx.fillStyle = '#1a150a';
-          ctx.strokeStyle = `${c}25`;
+          ctx.strokeStyle = `${c}55`;
           ctx.lineWidth = 0.8;
           ctx.fill();
           ctx.stroke();
           // Ink sheen
           ctx.beginPath();
           ctx.arc(x + 25, deskY - 3, 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = `${c}20`;
+          ctx.fillStyle = `${c}45`;
           ctx.fill();
           break;
         }
@@ -1102,7 +1102,7 @@ function AgentKitchen() {
 
           // Center glow
           const glow = ctx.createRadialGradient(x, circY, 0, x, circY, circR);
-          glow.addColorStop(0, `${c}08`);
+          glow.addColorStop(0, `${c}20`);
           glow.addColorStop(1, 'transparent');
           ctx.beginPath();
           ctx.arc(x, circY, circR, 0, Math.PI * 2);
@@ -1112,14 +1112,14 @@ function AgentKitchen() {
           // Outer circle
           ctx.beginPath();
           ctx.arc(x, circY, circR, 0, Math.PI * 2);
-          ctx.strokeStyle = `${c}18`;
+          ctx.strokeStyle = `${c}45`;
           ctx.lineWidth = 1;
           ctx.stroke();
 
           // Inner circle
           ctx.beginPath();
           ctx.arc(x, circY, circR * 0.6, 0, Math.PI * 2);
-          ctx.strokeStyle = `${c}12`;
+          ctx.strokeStyle = `${c}30`;
           ctx.stroke();
 
           // Hexagram
@@ -1131,7 +1131,7 @@ function AgentKitchen() {
             i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
           }
           ctx.closePath();
-          ctx.strokeStyle = `${c}14`;
+          ctx.strokeStyle = `${c}35`;
           ctx.stroke();
 
           // Rune marks at 6 points
@@ -1141,7 +1141,7 @@ function AgentKitchen() {
             const ry = circY + Math.sin(a) * circR * 0.65;
             ctx.beginPath();
             ctx.arc(rx, ry, 2, 0, Math.PI * 2);
-            ctx.fillStyle = `${c}20`;
+            ctx.fillStyle = `${c}50`;
             ctx.fill();
           }
           break;
@@ -1158,8 +1158,8 @@ function AgentKitchen() {
           ctx.lineTo(x + 34, stageY + 10);
           ctx.lineTo(x + 28, stageY);
           ctx.closePath();
-          ctx.fillStyle = `${c}0a`;
-          ctx.strokeStyle = `${c}18`;
+          ctx.fillStyle = `${c}20`;
+          ctx.strokeStyle = `${c}45`;
           ctx.lineWidth = 1;
           ctx.fill();
           ctx.stroke();
@@ -1168,7 +1168,7 @@ function AgentKitchen() {
           ctx.beginPath();
           ctx.moveTo(x - 34, stageY + 10);
           ctx.lineTo(x + 34, stageY + 10);
-          ctx.strokeStyle = `${c}25`;
+          ctx.strokeStyle = `${c}55`;
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
@@ -1176,19 +1176,19 @@ function AgentKitchen() {
           ctx.beginPath();
           ctx.moveTo(x + 22, y - 24);
           ctx.lineTo(x + 22, y - 38);
-          ctx.strokeStyle = `${c}20`;
+          ctx.strokeStyle = `${c}50`;
           ctx.lineWidth = 1;
           ctx.stroke();
           // Antenna tip
           ctx.beginPath();
           ctx.arc(x + 22, y - 40, 2, 0, Math.PI * 2);
-          ctx.fillStyle = `${c}30`;
+          ctx.fillStyle = `${c}60`;
           ctx.fill();
           // Signal arcs
           for (let i = 0; i < 2; i++) {
             ctx.beginPath();
             ctx.arc(x + 22, y - 40, 5 + i * 5, -0.8, 0.8);
-            ctx.strokeStyle = `${c}${i === 0 ? '15' : '0c'}`;
+            ctx.strokeStyle = `${c}${i === 0 ? '40' : '25'}`;
             ctx.lineWidth = 0.8;
             ctx.stroke();
           }
@@ -1201,7 +1201,7 @@ function AgentKitchen() {
           dots.forEach(d => {
             ctx.beginPath();
             ctx.arc(x + d.ox, stageY + d.oy, 2, 0, Math.PI * 2);
-            ctx.fillStyle = `${c}12`;
+            ctx.fillStyle = `${c}35`;
             ctx.fill();
           });
           break;
@@ -1212,15 +1212,15 @@ function AgentKitchen() {
           const groundY = y + 22;
 
           // Earth patch
-          ctx.fillStyle = 'rgba(120, 53, 15, 0.08)';
-          ctx.strokeStyle = 'rgba(120, 53, 15, 0.12)';
+          ctx.fillStyle = 'rgba(120, 53, 15, 0.18)';
+          ctx.strokeStyle = 'rgba(120, 53, 15, 0.30)';
           ctx.lineWidth = 1;
           roundRect(ctx, x - 32, groundY, 64, 14, 6);
           ctx.fill();
           ctx.stroke();
 
           // Soil texture lines
-          ctx.globalAlpha = 0.06;
+          ctx.globalAlpha = 0.15;
           ctx.strokeStyle = '#78350f';
           ctx.lineWidth = 0.5;
           for (let i = 0; i < 3; i++) {
@@ -1245,7 +1245,7 @@ function AgentKitchen() {
             ctx.beginPath();
             ctx.moveTo(sx, base);
             ctx.quadraticCurveTo(sx + sp.leafDir * 3, base - sp.stemH * 0.6, sx, base - sp.stemH);
-            ctx.strokeStyle = 'rgba(22, 163, 74, 0.18)';
+            ctx.strokeStyle = 'rgba(22, 163, 74, 0.40)';
             ctx.lineWidth = 1.2;
             ctx.stroke();
 
@@ -1257,7 +1257,7 @@ function AgentKitchen() {
             ctx.moveTo(0, 0);
             ctx.quadraticCurveTo(sp.leafDir * 6, -3, sp.leafDir * 8, 0);
             ctx.quadraticCurveTo(sp.leafDir * 6, 2, 0, 0);
-            ctx.fillStyle = 'rgba(22, 163, 74, 0.15)';
+            ctx.fillStyle = 'rgba(22, 163, 74, 0.35)';
             ctx.fill();
             ctx.restore();
           });
@@ -1265,18 +1265,18 @@ function AgentKitchen() {
           // Mortar & pestle stone
           ctx.beginPath();
           ctx.arc(x + 26, groundY + 4, 5, 0, Math.PI, true);
-          ctx.fillStyle = 'rgba(120, 113, 108, 0.12)';
+          ctx.fillStyle = 'rgba(120, 113, 108, 0.25)';
           ctx.fill();
           ctx.beginPath();
           ctx.arc(x + 26, groundY + 4, 5, 0, Math.PI, true);
-          ctx.strokeStyle = 'rgba(120, 113, 108, 0.15)';
+          ctx.strokeStyle = 'rgba(120, 113, 108, 0.35)';
           ctx.lineWidth = 0.8;
           ctx.stroke();
           // Pestle stick
           ctx.beginPath();
           ctx.moveTo(x + 28, groundY);
           ctx.lineTo(x + 32, groundY - 6);
-          ctx.strokeStyle = 'rgba(120, 113, 108, 0.15)';
+          ctx.strokeStyle = 'rgba(120, 113, 108, 0.35)';
           ctx.lineWidth = 1.5;
           ctx.lineCap = 'round';
           ctx.stroke();
@@ -1289,8 +1289,8 @@ function AgentKitchen() {
           const matY = y + 18;
 
           // Training mat
-          ctx.fillStyle = 'rgba(4, 120, 87, 0.06)';
-          ctx.strokeStyle = `${c}15`;
+          ctx.fillStyle = 'rgba(4, 120, 87, 0.15)';
+          ctx.strokeStyle = `${c}40`;
           ctx.lineWidth = 1;
           roundRect(ctx, x - 36, matY, 72, 14, 3);
           ctx.fill();
@@ -1300,13 +1300,13 @@ function AgentKitchen() {
           ctx.beginPath();
           ctx.moveTo(x, matY + 2);
           ctx.lineTo(x, matY + 12);
-          ctx.strokeStyle = `${c}0c`;
+          ctx.strokeStyle = `${c}25`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
 
           // Left dumbbell
           const dbY = matY + 7;
-          ctx.strokeStyle = 'rgba(113, 113, 122, 0.18)';
+          ctx.strokeStyle = 'rgba(113, 113, 122, 0.40)';
           ctx.lineWidth = 1.5;
           // Bar
           ctx.beginPath();
@@ -1314,7 +1314,7 @@ function AgentKitchen() {
           ctx.lineTo(x - 16, dbY);
           ctx.stroke();
           // Weights
-          ctx.fillStyle = 'rgba(113, 113, 122, 0.12)';
+          ctx.fillStyle = 'rgba(113, 113, 122, 0.30)';
           ctx.fillRect(x - 30, dbY - 3, 4, 6);
           ctx.fillRect(x - 16, dbY - 3, 4, 6);
 
@@ -1331,13 +1331,13 @@ function AgentKitchen() {
           ctx.beginPath();
           ctx.moveTo(x - 30, matY - 4);
           ctx.lineTo(x + 30, matY - 4);
-          ctx.strokeStyle = `${c}10`;
+          ctx.strokeStyle = `${c}30`;
           ctx.lineWidth = 0.8;
           ctx.stroke();
           ctx.setLineDash([]);
 
           // PR label
-          ctx.globalAlpha = 0.1;
+          ctx.globalAlpha = 0.25;
           ctx.fillStyle = c;
           ctx.font = '6px "JetBrains Mono", monospace';
           ctx.textAlign = 'right';
