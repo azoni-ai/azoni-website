@@ -12,7 +12,8 @@ const FALLBACK_EMOJIS = {
   'dustbunny': '🐰',
   'adoh': '⚔️',
   'oli-fitness': '💪',
-  'hashmaps': '#️⃣'
+  'hashmaps': '#️⃣',
+  'fab-stats': '🛡️'
 };
 
 const ProjectCard = ({ project }) => {

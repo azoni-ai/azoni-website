@@ -162,6 +162,70 @@ Provider API cost + 20% routing fee. No hidden charges, no monthly minimums.`,
     category: "ai"
   },
   {
+    id: "fab-stats",
+    title: "FaB Stats",
+    tagline: "Competitive TCG Match Tracker",
+    description: "Full-stack match tracking platform for Flesh and Blood TCG with 2,500+ users. Features leaderboards, hero matchup analytics, AI chat assistant, community activity feeds, and a Chrome extension for automatic match imports.",
+    longDescription: `FaB Stats is a comprehensive match tracking and analytics platform built for the competitive Flesh and Blood Trading Card Game community. With 2,500+ registered users, it's become a go-to tool for players who want data-driven insights into their tournament performance.
+
+**Match Tracking & Import:**
+• Chrome extension auto-imports matches from GEM (the official tournament platform)
+• Manual match entry with hero selection filtered by game format
+• Cross-player match linking via GEM IDs (your opponent's hero auto-populates)
+• Head-to-head records computed automatically between linked players
+
+**Analytics & Leaderboards:**
+• Overall win rate, streaks, hero breakdowns, and event history
+• Community hero matchup matrix aggregated across all users
+• Public leaderboard with rankings by win rate, matches, events
+• Per-hero performance stats and opponent hero win rates
+• Trends page with win rate over time visualization
+
+**AI Chat Assistant:**
+• Claude-powered stats assistant with full context of player data
+• Answers questions about performance, matchups, and meta trends
+• Rate-limited with per-user cost tracking for admin oversight
+• Prompt caching for cost optimization
+
+**Social & Community:**
+• Activity feed with placements, imports, and engagement events
+• Event comment walls for tournament discussion
+• Player-to-player messaging system
+• Friend system with friend requests
+• Polls and prediction markets for community engagement
+• Badge and achievement system with admin assignment
+
+**Admin Dashboard:**
+• Full user management with 2,500+ users
+• Feedback system with in-app replies
+• Content management: featured events, creators, polls, banners
+• Analytics: page views, creator clicks, AI chat cost tracking
+• Broadcast messaging and data backfill tools
+
+**Technical:**
+• Next.js 14 App Router with TypeScript
+• Firebase Auth + Firestore with comprehensive security rules
+• Netlify serverless functions for AI chat
+• Chrome extension with content script injection
+• Tailwind CSS with custom dark theme design system
+• @flesh-and-blood/cards npm package for hero data`,
+    tech: ["Next.js", "TypeScript", "Firebase", "Claude API", "Tailwind CSS", "Chrome Extension"],
+    highlights: [
+      "2,500+ registered users, community-driven platform",
+      "Chrome extension for automatic match imports",
+      "AI chat assistant with player context",
+      "Community hero matchup matrix",
+      "Real-time leaderboards, activity feeds, messaging"
+    ],
+    links: {
+      live: "https://fabstats.net",
+      github: "https://github.com/azoni/fab-stats"
+    },
+    image: "/images/fabstats-icon.svg",
+    featured: true,
+    category: "web"
+  },
+  {
     id: "bench-only",
     title: "Bench Only",
     tagline: "AI-Powered Strength Training App",
