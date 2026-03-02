@@ -7,6 +7,7 @@ import InteractiveBackground from '../components/InteractiveBackground';
 import CollapsibleSection from '../components/CollapsibleSection';
 import AgentKitchen from '../components/AgentKitchen';
 
+import FabStatsShowcase from '../components/FabStatsShowcase';
 import '../styles/bento.css';
 
 
@@ -230,6 +231,20 @@ const Home = () => {
 
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
+
+        {/* ===== FABSTATS FEATURED PROJECT ===== */}
+        <CollapsibleSection
+          title="FaB Stats"
+          subtitle="Live match tracking platform for 2,500+ competitive Flesh and Blood players"
+          badge="Live"
+          badgeType="live"
+          defaultOpen={true}
+          stats={[
+            { value: 'fabstats.net', label: '' }
+          ]}
+        >
+          <FabStatsShowcase />
+        </CollapsibleSection>
 
         {/* ===== LIVE SYSTEM MAP ===== */}
         <CollapsibleSection

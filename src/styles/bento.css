@@ -1283,3 +1283,321 @@ a.commit-repo:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============ FABSTATS SHOWCASE ============ */
+.fabstats-showcase {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.fabstats-showcase:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+}
+
+.fabstats-accent {
+  width: 3px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #c9a84c 0%, #a8882e 100%);
+}
+
+.fabstats-body {
+  padding: var(--space-lg);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.fabstats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.fabstats-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.fabstats-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+}
+
+.fabstats-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.fabstats-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fabstats-title-row h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.fabstats-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(201, 168, 76, 0.12);
+  color: #c9a84c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fabstats-tagline {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+}
+
+.fabstats-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Live Stats Grid */
+.fabstats-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fabstats-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.fabstats-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  color: #c9a84c;
+  letter-spacing: -0.02em;
+}
+
+.fabstats-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Mini Leaderboard */
+.fabstats-leaderboard {
+  background: rgba(201, 168, 76, 0.04);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.fabstats-lb-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c9a84c;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+}
+
+.fabstats-lb-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.fabstats-lb-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 0.15s ease;
+}
+
+.fabstats-lb-row:last-child {
+  border-bottom: none;
+}
+
+.fabstats-lb-row:hover {
+  background: rgba(201, 168, 76, 0.06);
+}
+
+.fabstats-lb-rank {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: #c9a84c;
+}
+
+.fabstats-lb-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fabstats-lb-hero {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  text-align: right;
+}
+
+.fabstats-lb-wr {
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: #4ade80;
+  text-align: right;
+  min-width: 42px;
+}
+
+.fabstats-lb-matches {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Highlights */
+.fabstats-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fabstats-highlights span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  padding: 5px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+}
+
+.fabstats-highlights span svg {
+  flex-shrink: 0;
+}
+
+/* Tech */
+.fabstats-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fabstats-tech span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono, monospace);
+}
+
+/* Action buttons */
+.fabstats-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fabstats-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 8px 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.fabstats-action:hover {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+  background: var(--bg-card-hover);
+  transform: translateY(-1px);
+}
+
+.fabstats-action-primary {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: rgba(201, 168, 76, 0.25);
+  color: #c9a84c;
+}
+
+.fabstats-action-primary:hover {
+  background: rgba(201, 168, 76, 0.18);
+  border-color: rgba(201, 168, 76, 0.4);
+  color: #d4b85c;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .fabstats-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fabstats-lb-row {
+    grid-template-columns: 28px 1fr auto 50px;
+  }
+
+  .fabstats-lb-hero {
+    display: none;
+  }
+
+  .fabstats-highlights {
+    flex-direction: column;
+  }
+
+  .fabstats-actions {
+    flex-direction: column;
+  }
+
+  .fabstats-action {
+    justify-content: center;
+  }
+}
