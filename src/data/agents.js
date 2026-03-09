@@ -526,6 +526,54 @@ const avatars = {
     </svg>
   ),
 
+  /* ── FaB Stats Bot — Discord bot chibi with headset, golden armor, card motif ── */
+  fabstatsbot: (s) => (
+    <svg viewBox="0 0 100 100" width={s} height={s}>
+      <defs>
+        <linearGradient id="fbot-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c9a84c"/><stop offset="100%" stopColor="#9e7e2e"/></linearGradient>
+        <linearGradient id="fbot-screen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a1525"/><stop offset="100%" stopColor="#0c0a0e"/></linearGradient>
+      </defs>
+      {/* Headset band */}
+      <path d="M26 22 Q50 8 74 22" fill="none" stroke="#71717a" strokeWidth="3" strokeLinecap="round"/>
+      {/* Headset earpieces */}
+      <rect x="20" y="20" width="10" height="14" rx="4" fill="#52525b" stroke="#71717a" strokeWidth="1"/>
+      <rect x="70" y="20" width="10" height="14" rx="4" fill="#52525b" stroke="#71717a" strokeWidth="1"/>
+      <circle cx="25" cy="27" r="2" fill="#c9a84c"/><circle cx="75" cy="27" r="2" fill="#c9a84c"/>
+      {/* Mic boom */}
+      <path d="M20 30 Q14 36 16 42" fill="none" stroke="#71717a" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="16" cy="44" r="3" fill="#52525b" stroke="#c9a84c" strokeWidth="1"/>
+      {/* Head — rounded robot */}
+      <rect x="28" y="16" width="44" height="34" rx="12" fill="url(#fbot-body)" stroke="#9e7e2e" strokeWidth="1.5"/>
+      {/* Face screen */}
+      <rect x="33" y="22" width="34" height="22" rx="7" fill="url(#fbot-screen)"/>
+      {/* Eyes on screen */}
+      <ellipse cx="43" cy="31" rx="4.5" ry="5" fill="#c9a84c" opacity="0.9"/>
+      <ellipse cx="57" cy="31" rx="4.5" ry="5" fill="#c9a84c" opacity="0.9"/>
+      <ellipse cx="43" cy="31" rx="2.5" ry="3" fill="#fde68a"/>
+      <ellipse cx="57" cy="31" rx="2.5" ry="3" fill="#fde68a"/>
+      <circle cx="44.5" cy="29.5" r="1" fill="white"/><circle cx="58.5" cy="29.5" r="1" fill="white"/>
+      {/* Happy mouth */}
+      <path d="M45 38 Q50 42 55 38" fill="none" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Body */}
+      <rect x="34" y="50" width="32" height="22" rx="7" fill="url(#fbot-body)" stroke="#9e7e2e" strokeWidth="1"/>
+      {/* Discord-style gamepad emblem on chest */}
+      <circle cx="50" cy="59" r="4" fill="#0c0a0e" stroke="#c9a84c" strokeWidth="0.8"/>
+      <path d="M47 59 L49 57 L51 59 L53 57" fill="none" stroke="#c9a84c" strokeWidth="1" strokeLinecap="round"/>
+      {/* Card icon below emblem */}
+      <rect x="46" y="64" width="8" height="6" rx="1" fill="#fde68a" stroke="#c9a84c" strokeWidth="0.6" opacity="0.5"/>
+      {/* Arms */}
+      <rect x="24" y="52" width="10" height="14" rx="5" fill="#9e7e2e" stroke="#c9a84c" strokeWidth="0.8"/>
+      <rect x="66" y="52" width="10" height="14" rx="5" fill="#9e7e2e" stroke="#c9a84c" strokeWidth="0.8"/>
+      <circle cx="29" cy="66" r="3.5" fill="#c9a84c" stroke="#9e7e2e" strokeWidth="0.8"/>
+      <circle cx="71" cy="66" r="3.5" fill="#c9a84c" stroke="#9e7e2e" strokeWidth="0.8"/>
+      {/* Legs */}
+      <rect x="39" y="70" width="9" height="10" rx="3" fill="#9e7e2e"/>
+      <rect x="52" y="70" width="9" height="10" rx="3" fill="#9e7e2e"/>
+      <rect x="37" y="78" width="12" height="5" rx="2.5" fill="#c9a84c" stroke="#9e7e2e" strokeWidth="0.6"/>
+      <rect x="51" y="78" width="12" height="5" rx="2.5" fill="#c9a84c" stroke="#9e7e2e" strokeWidth="0.6"/>
+    </svg>
+  ),
+
   /* ── FaB Stats — Card game knight chibi with shield bearing stats bars ── */
   fabstats: (s) => (
     <svg viewBox="0 0 100 100" width={s} height={s}>
@@ -722,6 +770,21 @@ const AGENTS = {
     code: `// Same RAG pattern as azoni.ai:\nconst chunks = await getKnowledgeChunks();\nconst scored = scoreChunks(chunks, query);\nconst context = scored.slice(0, 5);\n// Augment prompt with retrieved knowledge\nconst response = await callLLM({\n  system: buildPrompt(context),\n  messages: history\n});`,
     starters: ["What does Old Ways Today do?", "How is it connected to the agent system?", "What kind of products do you cover?", "What's the most popular question?"],
   },
+  fabstatsbot: {
+    name: "FaB Stats Bot",
+    role: "Discord Bot",
+    color: "#c9a84c",
+    bg: "#c9a84c15",
+    borderColor: "#c9a84c30",
+    quote: "Discord bot serving FaB Stats data to communities via 20+ slash commands.",
+    whatItIs: "A Discord.js 14 bot that serves player stats, leaderboards, hero matchups, daily puzzle results, and tournament data to Flesh and Blood communities. Fully integrated with the FaB Stats Firestore backend.",
+    whyUnique: "Brings all of FaB Stats' data into Discord where players actually hang out. 20+ slash commands cover everything from quick stat lookups to full meta analysis — no need to leave the chat.",
+    tech: ["Discord.js 14", "Firestore", "20+ Slash Commands", "Node.js"],
+    data: ["leaderboard — player lookups", "matches — recent results", "heroMatchups — meta queries", "minigame collections — puzzle results"],
+    cycle: ["Player uses /stats command in Discord", "Bot queries Firestore for player data", "Formats response as rich embed", "Supports autocomplete for hero/player names", "Leaderboard commands paginate results"],
+    code: `// Slash command example:\n/stats player:Azoni\n→ Matches: 142 | Win Rate: 58.4%\n→ Top Hero: Prism (34 matches)\n→ ELO: 1247 | Best Streak: 8`,
+    starters: ["What commands do you have?", "Who's at the top of the leaderboard?", "What hero should I play?"],
+  },
   fabstats: {
     name: "FaB Stats",
     role: "TCG Tracker",
@@ -739,9 +802,9 @@ const AGENTS = {
   },
 };
 
-const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'fabstats'];
+const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'fabstats', 'fabstatsbot'];
 const SITE_AGENTS = ['orchestrator', 'chat', 'blog'];
-const PRODUCT_AGENTS = ['fitness', 'gaming', 'social', 'oldways', 'fabstats'];
+const PRODUCT_AGENTS = ['fitness', 'gaming', 'social', 'oldways', 'fabstats', 'fabstatsbot'];
 
 /* ─── Homepage-specific data (status, links, short descriptions) ─── */
 const AGENT_HOME_DATA = {
@@ -787,6 +850,11 @@ const AGENT_HOME_DATA = {
     shortDesc: "Flesh and Blood TCG stats tracker with match logging, ELO ratings, meta analysis, and 13 daily minigames. Real users, real data.",
     status: 'Active', statusType: 'live',
     links: [{ label: 'Visit Site →', url: 'https://www.fabstats.net', external: true }],
+  },
+  fabstatsbot: {
+    shortDesc: "Discord bot serving FaB Stats data to communities — player stats, leaderboards, meta analysis, and daily puzzle results via 20+ slash commands.",
+    status: 'Active', statusType: 'live',
+    links: [{ label: 'FaB Stats →', url: 'https://www.fabstats.net', external: true }],
   },
 };
 

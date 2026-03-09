@@ -22,6 +22,8 @@ const SOURCE_TO_AGENT = {
   'daily-blog': 'blog',
   'azoni-ai': 'chat',
   'fabstats': 'fabstats',
+  'fab-stats-bot': 'fabstatsbot',
+  'discord-bot': 'fabstatsbot',
 };
 
 const TYPE_TO_AGENT = {
@@ -71,6 +73,7 @@ const AGENT_CONFIGS = [
   { key: 'fitness', col: 'left' },
   { key: 'oldways', col: 'right' },
   { key: 'fabstats', col: 'left' },
+  { key: 'fabstatsbot', col: 'right' },
   { key: 'rag',     col: 'center' },
 ];
 
@@ -82,6 +85,7 @@ const DESTINATIONS = {
   fitness: { label: 'benchpressonly.com', url: 'https://benchpressonly.com', external: true },
   oldways: { label: 'oldwaystoday.com', url: 'https://oldwaystoday.com', external: true },
   fabstats: { label: 'fabstats.net', url: 'https://www.fabstats.net', external: true },
+  fabstatsbot: { label: 'FaB Stats Bot', url: 'https://www.fabstats.net', external: true },
 };
 
 const INFRA = [

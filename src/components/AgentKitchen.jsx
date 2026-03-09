@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { avatars } from '../data/agents';
 import '../styles/agent-kitchen.css';
@@ -19,6 +19,8 @@ const SOURCE_TO_STATION = {
   'daily-blog': 'blog',
   'azoni-ai': 'chatbot',
   'fabstats': 'fabstats',
+  'fab-stats-bot': 'fabstatsbot',
+  'discord-bot': 'fabstatsbot',
 };
 
 const TYPE_TO_STATION = {
@@ -60,78 +62,92 @@ function formatTimeAgo(ms) {
   return `${Math.floor(diff / 86400000)}d ago`;
 }
 
+// ─── Station categories ───
+// agent = autonomous AI agent, app = AI-powered application, data = data source / infrastructure
+const CATEGORY_STYLES = {
+  agent: { label: 'AGENT', color: '#a78bfa' },
+  app:   { label: 'APP',   color: '#60a5fa' },
+  data:  { label: 'DATA',  color: '#6b6b65' },
+};
+
 // ─── Station definitions ───
 const STATION_DEFS = [
   {
-    id: 'mcp', label: 'MCP Server', x: 0.50, y: 0.40, color: '#ff7a5c', isHub: true,
+    id: 'mcp', label: 'MCP Server', x: 0.50, y: 0.40, color: '#ff7a5c', isHub: true, category: 'data',
     desc: 'Tool registry and data gateway — exposes 33 tools across 9 domains. Agents query MCP to read data from services. Activity events flow through Firebase.',
     actions: ['Routing requests', 'Serving 33 tools', 'Health monitoring'],
   },
   {
-    id: 'chatbot', label: 'Azoni AI', x: 0.20, y: 0.16, color: '#60a5fa', agent: 'chat', icon: 'chat',
+    id: 'chatbot', label: 'Azoni AI', x: 0.20, y: 0.16, color: '#60a5fa', agent: 'chat', icon: 'chat', category: 'agent',
     desc: 'RAG chatbot — queries Firestore knowledge base, generates missing knowledge on the fly. Logs every chat to agent_activity directly.',
     actions: ['Answering queries', 'Vector searching', 'Building context'],
     dataLabel: 'queries',
   },
   {
-    id: 'blog', label: 'The Scribe', x: 0.80, y: 0.16, color: '#fbbf24', agent: 'blog', icon: 'pen',
+    id: 'blog', label: 'The Scribe', x: 0.80, y: 0.16, color: '#fbbf24', agent: 'blog', icon: 'pen', category: 'agent',
     desc: 'Daily autonomous blog agent — reads GitHub commits, writes analysis posts via LLM, publishes to Firestore. Logs each post to agent_activity.',
     actions: ['Analyzing commits', 'Writing article', 'Publishing post'],
     dataLabel: 'blog content',
   },
   {
-    id: 'orchestrator', label: 'The Conductor', x: 0.50, y: 0.82, color: '#a78bfa', agent: 'orchestrator', icon: 'gear', roams: true,
+    id: 'orchestrator', label: 'The Conductor', x: 0.50, y: 0.82, color: '#a78bfa', agent: 'orchestrator', icon: 'gear', roams: true, category: 'agent',
     desc: 'Central brain. Wakes every 3 hours, reads state from MCP + Firebase, sends to LLM for decisions, validates, then executes. Logs decisions to agent_activity.',
     actions: ['Gathering 11 sources', 'LLM deciding', 'Executing actions'],
     dataLabel: 'health + state',
   },
   {
-    id: 'spellbrigade', label: 'Spell Brigade', x: 0.10, y: 0.52, color: '#c084fc', agent: 'gaming', icon: 'wand',
+    id: 'spellbrigade', label: 'Spell Brigade', x: 0.10, y: 0.52, color: '#c084fc', agent: 'gaming', icon: 'wand', category: 'app',
     desc: 'Multiplayer wizard combat game. AI generates characters with unique abilities. Logs wizard/dungeon creation to agent_activity via webhook.',
     actions: ['Generating wizards', 'Running battles', 'AI enemies active'],
     dataLabel: 'game data',
   },
   {
-    id: 'moltbook', label: 'Moltbook', x: 0.90, y: 0.52, color: '#fb923c', agent: 'social', icon: 'megaphone',
+    id: 'moltbook', label: 'Moltbook', x: 0.90, y: 0.52, color: '#fb923c', agent: 'social', icon: 'megaphone', category: 'agent',
     desc: 'Autonomous social platform. The orchestrator triggers posts via MCP tools — LLM generates content, comments, and engagement. Logs via webhook.',
     actions: ['Crafting posts', 'Scheduling content', 'Engaging users'],
     dataLabel: 'social content',
   },
   {
-    id: 'oldwaystoday', label: 'Old Ways Today', x: 0.10, y: 0.30, color: '#d97706', agent: 'wellness', icon: 'leaf',
+    id: 'oldwaystoday', label: 'Old Ways Today', x: 0.10, y: 0.30, color: '#d97706', agent: 'wellness', icon: 'leaf', category: 'app',
     desc: 'AI wellness platform — RAG chatbot + auto-blog. Separate backend on Render. Logs chat events to agent_activity via webhook.',
     actions: ['Curating remedies', 'Auto-blogging', 'RAG retrieval'],
     dataLabel: 'recipes',
   },
   {
-    id: 'benchpressonly', label: 'BenchPress', x: 0.30, y: 0.68, color: '#4ade80', agent: 'fitness', icon: 'dumbbell',
+    id: 'benchpressonly', label: 'BenchPress', x: 0.30, y: 0.68, color: '#4ade80', agent: 'fitness', icon: 'dumbbell', category: 'app',
     desc: 'AI fitness app with real users. Generates personalized workouts, tracks PRs. Logs AI activity via webhook. MCP reads its 12 Firestore collections.',
     actions: ['Tracking workouts', 'AI coaching', 'Analyzing PRs'],
     dataLabel: 'fitness data',
   },
   {
-    id: 'embedroute', label: 'EmbedRoute', x: 0.90, y: 0.30, color: '#20d9d2', icon: 'nodes',
+    id: 'embedroute', label: 'EmbedRoute', x: 0.90, y: 0.30, color: '#20d9d2', icon: 'nodes', category: 'data',
     desc: 'Standalone embedding API — one endpoint routes to OpenAI, Cohere, Voyage, and more. MCP exposes it as tools; other services call it directly.',
     actions: ['Routing embeddings', 'Multi-provider', 'Serving vectors'],
     dataLabel: 'embeddings',
   },
   {
-    id: 'rowcrew', label: 'RowCrew', x: 0.68, y: 0.68, color: '#34d399', icon: 'waves',
+    id: 'rowcrew', label: 'RowCrew', x: 0.68, y: 0.68, color: '#34d399', icon: 'waves', category: 'app',
     desc: 'Rowing fitness tracker sharing Firebase with BenchPress. Claude Vision verifies workout photos. MCP reads its session data.',
     actions: ['Logging sessions', 'Stroke analysis', 'Progress tracking'],
     dataLabel: 'rowing data',
   },
   {
-    id: 'activity', label: 'Activity Feed', x: 0.35, y: 0.28, color: '#f87171', icon: 'pulse',
+    id: 'activity', label: 'Activity Feed', x: 0.35, y: 0.28, color: '#f87171', icon: 'pulse', category: 'data',
     desc: 'Firestore collection (agent_activity) — the single source of truth. All services write here directly or via webhook. This visualization watches it in real time.',
     actions: ['Logging events', 'Cross-app tracking', 'Agent monitoring'],
     dataLabel: 'event logs',
   },
   {
-    id: 'fabstats', label: 'FaB Stats', x: 0.70, y: 0.40, color: '#D9A05B', icon: 'shield',
+    id: 'fabstats', label: 'FaB Stats', x: 0.74, y: 0.42, color: '#D9A05B', icon: 'shield', category: 'data',
     desc: 'Flesh and Blood TCG stats tracker at fabstats.net. Tracks matches, heroes, tournaments, and 13 daily minigames across 50+ players. MCP reads leaderboard and community data.',
     actions: ['Tracking matches', 'Meta analysis', 'Daily minigames'],
     dataLabel: 'FaB data',
+  },
+  {
+    id: 'fabstatsbot', label: 'FaB Bot', x: 0.66, y: 0.52, color: '#c9a84c', icon: 'chat', category: 'app',
+    desc: 'Discord bot for FaB Stats — serves player stats, leaderboards, matchups, and daily puzzle results to Discord communities via 20+ slash commands.',
+    actions: ['Player lookups', 'Leaderboards', 'Puzzle results'],
+    dataLabel: 'Discord data',
   },
 ];
 
@@ -156,6 +172,7 @@ const DOMAIN_TO_STATION = {
   embedroute: 'embedroute',
   rowcrew: 'rowcrew',
   fabstats: 'fabstats',
+  fabstatsbot: 'fabstatsbot',
 };
 
 // ─── Icon drawing ───
@@ -364,6 +381,7 @@ function AgentKitchen() {
   const stationEventsRef = useRef({});  // last event per station { [stationId]: { title, type, source, timestamp, receivedAt } }
   const tickerRef = useRef([]);         // last 5 events for bottom ticker
   const isFirstLoadRef = useRef(true);  // gate initial snapshot vs new events
+  const activityHistoryRef = useRef([]); // { stationId, ms } — all events from last 24h for counting
   const [tooltip, setTooltip] = useState(null);
   const avatarImagesRef = useRef({});
   const effectsRef = useRef([]);       // free-floating visual particles
@@ -466,6 +484,27 @@ function AgentKitchen() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch 24h activity history for counting badges
+  useEffect(() => {
+    const cutoff = Timestamp.fromDate(new Date(Date.now() - 86400000));
+    getDocs(query(
+      collection(db, 'agent_activity'),
+      where('timestamp', '>=', cutoff),
+      orderBy('timestamp', 'desc'),
+      limit(500)
+    )).then(snap => {
+      snap.docs.forEach(doc => {
+        const data = doc.data();
+        const sid = mapSourceToStation(data.source, data.type);
+        const ts = data.timestamp;
+        const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+        if (sid && ms) {
+          activityHistoryRef.current.push({ stationId: sid, ms });
+        }
+      });
+    }).catch(() => {});
+  }, []);
+
   // Firebase real-time listener for agent_activity
   useEffect(() => {
     const q = query(
@@ -495,6 +534,9 @@ function AgentKitchen() {
           const data = change.doc.data();
           const stationId = mapSourceToStation(data.source, data.type);
           if (stationId) {
+            const ts = data.timestamp;
+            const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+            if (ms) activityHistoryRef.current.push({ stationId, ms });
             spawnEventPulse(stationId, data);
             triggerAgentTrip(stationId);
             stationEventsRef.current[stationId] = { ...data, receivedAt: Date.now() };
@@ -539,6 +581,8 @@ function AgentKitchen() {
       mouseRef.current = { x: -1, y: -1 };
       setTooltip(null);
     };
+
+    let activityCountsMap = {}; // computed each frame in draw()
 
     // ─── Drawing functions ───
 
@@ -842,6 +886,46 @@ function AgentKitchen() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillText('Listening...', s.px, s.py + r + 20 + pulse);
+        ctx.restore();
+      }
+
+      // ─── Category tag ───
+      const cat = CATEGORY_STYLES[s.category];
+      if (cat) {
+        ctx.save();
+        ctx.font = 'bold 6px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = cat.color;
+        ctx.globalAlpha = hovered ? 0.75 : 0.35;
+        ctx.fillText(cat.label, s.px, s.py - r - 4);
+        ctx.restore();
+      }
+
+      // ─── Activity count badges ───
+      const acts = activityCountsMap[s.id];
+      if (acts && acts.h24 > 0) {
+        ctx.save();
+        const bx = s.px - r - 10;
+        let by = s.py - 4;
+
+        if (acts.h1 > 0) {
+          ctx.font = 'bold 9px "JetBrains Mono", monospace';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = s.color;
+          ctx.globalAlpha = hovered ? 0.9 : 0.6;
+          ctx.fillText(`${acts.h1}/1h`, bx, by);
+          by += 12;
+        }
+
+        ctx.font = 'bold 8px "JetBrains Mono", monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = s.color;
+        ctx.globalAlpha = hovered ? 0.5 : 0.25;
+        ctx.fillText(`${acts.h24}/24h`, bx, by);
+
         ctx.restore();
       }
     };
@@ -1755,6 +1839,17 @@ function AgentKitchen() {
         }
       });
 
+      // Compute activity counts for this frame
+      const actNow = Date.now();
+      activityCountsMap = {};
+      activityHistoryRef.current.forEach(e => {
+        if (e.ms > actNow - 86400000) {
+          if (!activityCountsMap[e.stationId]) activityCountsMap[e.stationId] = { h1: 0, h24: 0 };
+          activityCountsMap[e.stationId].h24++;
+          if (e.ms > actNow - 3600000) activityCountsMap[e.stationId].h1++;
+        }
+      });
+
       // Draw stations + workspaces + agents (layered: station → workspace → agent)
       stations.forEach(s => {
         if (s.isHub) {
@@ -1807,6 +1902,8 @@ function AgentKitchen() {
         const lastEventText = lastEvt ? (lastEvt.title || lastEvt.type) : null;
         const lastEventTime = lastEvt?.timestamp;
         const lastEventMs = lastEventTime?.toMillis ? lastEventTime.toMillis() : lastEventTime?.seconds ? lastEventTime.seconds * 1000 : 0;
+        const hoveredActs = activityCountsMap[hovered.id];
+        const catInfo = CATEGORY_STYLES[hovered.category];
 
         setTooltip({
           x: tooltipX,
@@ -1818,6 +1915,10 @@ function AgentKitchen() {
           dataLabel: hovered.dataLabel ? `Data: ${hovered.dataLabel}` : null,
           lastEvent: lastEventText,
           lastEventAgo: lastEventMs ? formatTimeAgo(lastEventMs) : null,
+          category: catInfo?.label,
+          categoryColor: catInfo?.color,
+          act1h: hoveredActs?.h1 || 0,
+          act24h: hoveredActs?.h24 || 0,
           status,
           statusColor,
         });
@@ -1855,7 +1956,14 @@ function AgentKitchen() {
             marginTop: tooltip.showBelow ? 0 : -12,
           }}
         >
-          <div className="agent-kitchen-tooltip-name">{tooltip.name}</div>
+          <div className="agent-kitchen-tooltip-name">
+            {tooltip.name}
+            {tooltip.category && (
+              <span style={{ marginLeft: 6, fontSize: 9, fontFamily: '"JetBrains Mono", monospace', color: tooltip.categoryColor, opacity: 0.7 }}>
+                {tooltip.category}
+              </span>
+            )}
+          </div>
           <div className="agent-kitchen-tooltip-desc">{tooltip.desc}</div>
           {tooltip.tools && (
             <div className="agent-kitchen-tooltip-tools">{tooltip.tools}</div>
@@ -1866,6 +1974,11 @@ function AgentKitchen() {
           {tooltip.lastEvent && (
             <div className="agent-kitchen-tooltip-data" style={{ color: '#8a8a85', marginTop: 6 }}>
               Last: {tooltip.lastEvent} {tooltip.lastEventAgo && <span style={{ opacity: 0.6 }}>({tooltip.lastEventAgo})</span>}
+            </div>
+          )}
+          {tooltip.act24h > 0 && (
+            <div className="agent-kitchen-tooltip-data" style={{ color: '#a8a8a0', marginTop: 4 }}>
+              Activity: {tooltip.act1h > 0 && <>{tooltip.act1h}/1h &middot; </>}{tooltip.act24h}/24h
             </div>
           )}
           <div className="agent-kitchen-tooltip-status">
