@@ -91,12 +91,19 @@ const Home = () => {
 
   // Fetch GitHub stats
   useEffect(() => {
-    fetch('/.netlify/functions/github-stats')
-      .then(res => res.json())
-      .then(data => {
+    const fetchGithubStats = async () => {
+      try {
+        const res = await fetch('/.netlify/functions/github-stats');
+        if (!res.ok) return;
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) return;
+        const data = await res.json();
         if (!data.error) setGithubStats(data);
-      })
-      .catch(err => console.error('Failed to fetch GitHub stats:', err));
+      } catch (_err) {
+        // Silent fail in local/dev when functions or env vars are unavailable.
+      }
+    };
+    fetchGithubStats();
   }, []);
 
   // Fetch latest health check from orchestrator
@@ -117,6 +124,10 @@ const Home = () => {
           setHealthStatus(status);
         }
       } catch (err) {
+        // Permission is expected for some local/dev Firebase rule setups.
+        if (err?.code === 'permission-denied' || /insufficient permissions/i.test(err?.message || '')) {
+          return;
+        }
         console.error('Failed to fetch health status:', err);
       }
     };
@@ -215,6 +226,12 @@ const Home = () => {
                       )}
                       {commit.claudeCode && (
                         <span className="commit-claude">Claude Code</span>
+                      )}
+                      {commit.codexCode && (
+                        <span className="commit-codex">Codex</span>
+                      )}
+                      {commit.branch && (
+                        <span className="commit-branch">{commit.branch}</span>
                       )}
                       <span className="commit-time">{formatTimeAgo(commit.timestamp)}</span>
                     </div>

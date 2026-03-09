@@ -35,13 +35,21 @@ const Commits = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetch('/.netlify/functions/github-stats')
-      .then(res => res.json())
-      .then(data => {
+    const fetchGithubStats = async () => {
+      try {
+        const res = await fetch('/.netlify/functions/github-stats');
+        if (!res.ok) return;
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) return;
+        const data = await res.json();
         if (!data.error) setGithubStats(data);
-      })
-      .catch(err => console.error('Failed to fetch GitHub stats:', err))
-      .finally(() => setLoading(false));
+      } catch (_err) {
+        // Silent fail in local/dev when function env vars are unavailable.
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGithubStats();
   }, []);
 
   // Get repo list from API (includes all repos, even those without recent commits)
@@ -235,6 +243,12 @@ const Commits = () => {
                             )}
                             {commit.claudeCode && (
                               <span className="commit-item-claude">Claude Code</span>
+                            )}
+                            {commit.codexCode && (
+                              <span className="commit-item-codex">Codex</span>
+                            )}
+                            {commit.branch && (
+                              <span className="commit-item-branch">{commit.branch}</span>
                             )}
                             {commit.sha && (
                               <span className="commit-item-sha">{commit.sha.slice(0, 7)}</span>
