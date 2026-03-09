@@ -172,7 +172,6 @@ const DOMAIN_TO_STATION = {
   embedroute: 'embedroute',
   rowcrew: 'rowcrew',
   fabstats: 'fabstats',
-  fabstatsbot: 'fabstatsbot',
 };
 
 // ─── Icon drawing ───
@@ -580,6 +579,21 @@ function AgentKitchen() {
     const handleMouseLeave = () => {
       mouseRef.current = { x: -1, y: -1 };
       setTooltip(null);
+    };
+
+    const handleTouch = (e) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      const rect = canvas.getBoundingClientRect();
+      mouseRef.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    };
+
+    const handleTouchEnd = () => {
+      // Keep tooltip visible briefly after touch ends — clear on next touch elsewhere
+      setTimeout(() => {
+        mouseRef.current = { x: -1, y: -1 };
+        setTooltip(null);
+      }, 3000);
     };
 
     let activityCountsMap = {}; // computed each frame in draw()
@@ -1933,12 +1947,18 @@ function AgentKitchen() {
     window.addEventListener('resize', resize);
     canvas.addEventListener('mousemove', handleMouse);
     canvas.addEventListener('mouseleave', handleMouseLeave);
+    canvas.addEventListener('touchstart', handleTouch, { passive: true });
+    canvas.addEventListener('touchmove', handleTouch, { passive: true });
+    canvas.addEventListener('touchend', handleTouchEnd);
     animRef.current = requestAnimationFrame(draw);
 
     return () => {
       window.removeEventListener('resize', resize);
       canvas.removeEventListener('mousemove', handleMouse);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('touchstart', handleTouch);
+      canvas.removeEventListener('touchmove', handleTouch);
+      canvas.removeEventListener('touchend', handleTouchEnd);
       cancelAnimationFrame(animRef.current);
     };
   }, [computeStations]);

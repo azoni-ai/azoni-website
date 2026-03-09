@@ -17,6 +17,28 @@
   .agent-kitchen-canvas {
     height: 440px;
   }
+  .agent-kitchen-tooltip {
+    max-width: 220px;
+    font-size: 0.75rem;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .agent-kitchen-canvas {
+    height: 360px;
+  }
+  .agent-kitchen-tooltip {
+    max-width: 180px;
+    font-size: 0.7rem;
+    padding: 8px 10px;
+  }
+  .agent-kitchen-tooltip-name {
+    font-size: 0.8rem;
+  }
+  .agent-kitchen-tooltip-desc {
+    font-size: 0.65rem;
+  }
 }
 
 /* Tooltip overlay */
