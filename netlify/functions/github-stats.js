@@ -34,10 +34,13 @@ exports.handler = async (event, context) => {
 
   const username = 'azoni';
 
-  const detectAgentTags = (message = '') => ({
-    claudeCode: /co-authored-by:.*claude/i.test(message),
-    codexCode: /co-authored-by:.*codex|co-authored-by:.*openai/i.test(message),
-  });
+  const detectAgentTags = (message = '', authorName = '', authorEmail = '') => {
+    const haystack = `${message}\n${authorName}\n${authorEmail}`;
+    return {
+      claudeCode: /co-authored-by:.*claude|noreply@anthropic\.com|\bclaude code\b/i.test(haystack),
+      codexCode: /co-authored-by:.*codex|co-authored-by:.*openai|noreply@openai\.com|\bcodex\b/i.test(haystack),
+    };
+  };
 
   const firstLine = (message = '') => (message || '').split('\n')[0];
   const normalizeBranch = (ref = '') => ref.replace('refs/heads/', '');
@@ -201,6 +204,7 @@ exports.handler = async (event, context) => {
     // Use maps so GraphQL history + PushEvents can merge cleanly.
     const commitMap = new Map();
     const repoByName = new Map();
+    const defaultBranchByRepo = new Map();
 
     const upsertCommit = (item) => {
       if (!item?.fullSha || !item?.repo || !item?.timestamp) return;
@@ -231,6 +235,7 @@ exports.handler = async (event, context) => {
 
     // GraphQL commit history (mostly default-branch reachable commits).
     for (const repo of allRepos) {
+      defaultBranchByRepo.set(repo.name, repo.defaultBranchRef?.name || null);
       upsertRepo({
         name: repo.name,
         url: repo.url,
@@ -249,7 +254,11 @@ exports.handler = async (event, context) => {
         if (commit.message?.startsWith('Merge')) continue;
         if (repo.name === 'autoenhance') continue;
 
-        const tags = detectAgentTags(commit.message || '');
+        const tags = detectAgentTags(
+          commit.message || '',
+          commit.author?.user?.login || '',
+          ''
+        );
         upsertCommit({
           message: firstLine(commit.message),
           sha: commit.oid?.substring(0, 7),
@@ -304,7 +313,11 @@ exports.handler = async (event, context) => {
             if (!fullSha) continue;
             const message = pushCommit.message || '';
             if (message.startsWith('Merge')) continue;
-            const tags = detectAgentTags(message);
+            const tags = detectAgentTags(
+              message,
+              pushCommit.author?.name || '',
+              pushCommit.author?.email || ''
+            );
             upsertCommit({
               message: firstLine(message),
               sha: fullSha.substring(0, 7),
@@ -330,7 +343,12 @@ exports.handler = async (event, context) => {
 
     const topCommits = Array.from(commitMap.values())
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, 300);
+      .slice(0, 300)
+      .map((commit) => ({
+        ...commit,
+        // Ensure branch is always populated in UI, even when events payload is limited.
+        branch: commit.branch || defaultBranchByRepo.get(commit.repo) || 'main',
+      }));
 
     // Build repo list - only repos that have visible commits in the returned list.
     const activeRepoNames = new Set(topCommits.map(c => c.repo));
