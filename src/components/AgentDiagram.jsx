@@ -21,6 +21,7 @@ const SOURCE_TO_AGENT = {
   'orchestrator': 'orchestrator',
   'daily-blog': 'blog',
   'azoni-ai': 'chat',
+  'fabstats': 'fabstats',
 };
 
 const TYPE_TO_AGENT = {
@@ -69,6 +70,7 @@ const AGENT_CONFIGS = [
   { key: 'gaming',  col: 'right' },
   { key: 'fitness', col: 'left' },
   { key: 'oldways', col: 'right' },
+  { key: 'fabstats', col: 'left' },
   { key: 'rag',     col: 'center' },
 ];
 
@@ -79,6 +81,7 @@ const DESTINATIONS = {
   gaming:  { label: 'Spell Brigade', url: '/game', external: false },
   fitness: { label: 'benchpressonly.com', url: 'https://benchpressonly.com', external: true },
   oldways: { label: 'oldwaystoday.com', url: 'https://oldwaystoday.com', external: true },
+  fabstats: { label: 'fabstats.net', url: 'https://www.fabstats.net', external: true },
 };
 
 const INFRA = [

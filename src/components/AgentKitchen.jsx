@@ -18,6 +18,7 @@ const SOURCE_TO_STATION = {
   'orchestrator': 'orchestrator',
   'daily-blog': 'blog',
   'azoni-ai': 'chatbot',
+  'fabstats': 'fabstats',
 };
 
 const TYPE_TO_STATION = {
@@ -126,6 +127,12 @@ const STATION_DEFS = [
     actions: ['Logging events', 'Cross-app tracking', 'Agent monitoring'],
     dataLabel: 'event logs',
   },
+  {
+    id: 'fabstats', label: 'FaB Stats', x: 0.70, y: 0.40, color: '#D9A05B', icon: 'shield',
+    desc: 'Flesh and Blood TCG stats tracker at fabstats.net. Tracks matches, heroes, tournaments, and 13 daily minigames across 50+ players. MCP reads leaderboard and community data.',
+    actions: ['Tracking matches', 'Meta analysis', 'Daily minigames'],
+    dataLabel: 'FaB data',
+  },
 ];
 
 // ─── Per-agent idle personality ───
@@ -148,6 +155,7 @@ const DOMAIN_TO_STATION = {
   moltbook: 'moltbook',
   embedroute: 'embedroute',
   rowcrew: 'rowcrew',
+  fabstats: 'fabstats',
 };
 
 // ─── Icon drawing ───
@@ -303,6 +311,24 @@ function drawIcon(ctx, icon, x, y, s, color) {
       ctx.lineTo(x + s * 0.5, y);
       ctx.lineTo(x + s, y);
       ctx.stroke();
+      break;
+
+    case 'shield': // shield with stats bars
+      ctx.beginPath();
+      ctx.moveTo(x, y - s * 0.9);
+      ctx.lineTo(x + s * 0.8, y - s * 0.5);
+      ctx.lineTo(x + s * 0.8, y + s * 0.2);
+      ctx.quadraticCurveTo(x + s * 0.6, y + s * 0.8, x, y + s);
+      ctx.quadraticCurveTo(x - s * 0.6, y + s * 0.8, x - s * 0.8, y + s * 0.2);
+      ctx.lineTo(x - s * 0.8, y - s * 0.5);
+      ctx.closePath();
+      ctx.stroke();
+      // bars inside
+      ctx.fillStyle = color;
+      ctx.globalAlpha = ctx.globalAlpha * 0.7;
+      ctx.fillRect(x - s * 0.4, y + s * 0.1, s * 0.2, s * 0.5);
+      ctx.fillRect(x - s * 0.1, y - s * 0.2, s * 0.2, s * 0.8);
+      ctx.fillRect(x + s * 0.2, y - s * 0.4, s * 0.2, s * 1.0);
       break;
 
     default:

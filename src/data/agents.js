@@ -525,6 +525,64 @@ const avatars = {
       <circle cx="60" cy="34" r="0.6" fill="#b45309" opacity="0.3"/><circle cx="62" cy="35" r="0.6" fill="#b45309" opacity="0.3"/>
     </svg>
   ),
+
+  /* ── FaB Stats — Card game knight chibi with shield bearing stats bars ── */
+  fabstats: (s) => (
+    <svg viewBox="0 0 100 100" width={s} height={s}>
+      <defs>
+        <linearGradient id="fab-armor" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#D9A05B"/><stop offset="100%" stopColor="#b8863e"/></linearGradient>
+        <linearGradient id="fab-skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fcd9a8"/><stop offset="100%" stopColor="#f0c48a"/></linearGradient>
+        <linearGradient id="fab-shield" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a1525"/><stop offset="100%" stopColor="#0c0a0e"/></linearGradient>
+      </defs>
+      {/* Shield in left hand */}
+      <path d="M8 36 L8 56 Q8 74 24 80 Q40 74 40 56 L40 36 Z" fill="url(#fab-shield)" stroke="#D9A05B" strokeWidth="2"/>
+      {/* Stats bars on shield */}
+      <rect x="14" y="54" width="4" height="10" rx="1" fill="#E53935"/>
+      <rect x="21" y="48" width="4" height="16" rx="1" fill="#FBC02D"/>
+      <rect x="28" y="42" width="4" height="22" rx="1" fill="#1E88E5"/>
+      {/* Body — golden armor */}
+      <path d="M38 48 Q36 44 44 42 L66 42 Q74 44 72 48 L74 78 Q74 84 56 84 Q38 84 36 78 Z" fill="url(#fab-armor)" stroke="#b8863e" strokeWidth="1.2"/>
+      {/* Chest plate detail */}
+      <path d="M48 44 L58 44 L60 54 Q54 58 48 54 Z" fill="#f0d090" stroke="#D9A05B" strokeWidth="0.8"/>
+      {/* Belt */}
+      <rect x="40" y="62" width="30" height="4" rx="2" fill="#8B6914"/>
+      <rect x="52" y="61" width="6" height="6" rx="1.5" fill="#D9A05B" stroke="#b8863e" strokeWidth="0.8"/>
+      {/* Arms */}
+      <path d="M38 50 Q30 52 28 60" fill="none" stroke="#D9A05B" strokeWidth="6" strokeLinecap="round"/>
+      <path d="M72 50 Q80 54 84 62" fill="none" stroke="#D9A05B" strokeWidth="6" strokeLinecap="round"/>
+      {/* Right hand — holding card */}
+      <rect x="78" y="54" width="14" height="20" rx="2" fill="#fef3c7" stroke="#D9A05B" strokeWidth="1.2"/>
+      <rect x="80" y="56" width="10" height="6" rx="1" fill="#1E88E5" opacity="0.3"/>
+      <line x1="80" y1="65" x2="90" y2="65" stroke="#D9A05B" strokeWidth="0.6" opacity="0.4"/>
+      <line x1="80" y1="68" x2="88" y2="68" stroke="#D9A05B" strokeWidth="0.6" opacity="0.4"/>
+      {/* Legs — armored */}
+      <rect x="44" y="78" width="10" height="10" rx="3" fill="#8B6914"/>
+      <rect x="58" y="78" width="10" height="10" rx="3" fill="#8B6914"/>
+      {/* Boots */}
+      <rect x="42" y="86" width="14" height="7" rx="3" fill="#b8863e" stroke="#D9A05B" strokeWidth="0.8"/>
+      <rect x="56" y="86" width="14" height="7" rx="3" fill="#b8863e" stroke="#D9A05B" strokeWidth="0.8"/>
+      {/* Head */}
+      <circle cx="56" cy="28" r="16" fill="url(#fab-skin)"/>
+      {/* Hair */}
+      <path d="M40 24 Q42 12 56 10 Q70 12 72 24 Q70 18 62 14 Q56 12 50 14 Q42 18 40 24Z" fill="#3b2507"/>
+      {/* Headband — gold */}
+      <path d="M40 22 Q56 18 72 22" fill="none" stroke="#D9A05B" strokeWidth="3" strokeLinecap="round"/>
+      {/* Eyes */}
+      <ellipse cx="49" cy="28" rx="5" ry="5.5" fill="white" stroke="#3b2507" strokeWidth="0.8"/>
+      <ellipse cx="63" cy="28" rx="5" ry="5.5" fill="white" stroke="#3b2507" strokeWidth="0.8"/>
+      <ellipse cx="50" cy="29" rx="3" ry="3.5" fill="#b8863e"/>
+      <ellipse cx="64" cy="29" rx="3" ry="3.5" fill="#b8863e"/>
+      <circle cx="51.5" cy="27.5" r="1.3" fill="white"/><circle cx="65.5" cy="27.5" r="1.3" fill="white"/>
+      {/* Brows */}
+      <path d="M44 22 Q49 20 54 23" fill="none" stroke="#3b2507" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M58 23 Q63 20 68 22" fill="none" stroke="#3b2507" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Confident smirk */}
+      <path d="M51 36 Q56 39 61 36" fill="none" stroke="#8B6914" strokeWidth="1.3" strokeLinecap="round"/>
+      {/* Blush */}
+      <ellipse cx="44" cy="34" rx="3" ry="1.5" fill="#f0d090" opacity="0.4"/>
+      <ellipse cx="68" cy="34" rx="3" ry="1.5" fill="#f0d090" opacity="0.4"/>
+    </svg>
+  ),
 };
 
 /* ─── Agent Data ─── */
@@ -664,11 +722,26 @@ const AGENTS = {
     code: `// Same RAG pattern as azoni.ai:\nconst chunks = await getKnowledgeChunks();\nconst scored = scoreChunks(chunks, query);\nconst context = scored.slice(0, 5);\n// Augment prompt with retrieved knowledge\nconst response = await callLLM({\n  system: buildPrompt(context),\n  messages: history\n});`,
     starters: ["What does Old Ways Today do?", "How is it connected to the agent system?", "What kind of products do you cover?", "What's the most popular question?"],
   },
+  fabstats: {
+    name: "FaB Stats",
+    role: "TCG Tracker",
+    color: "#D9A05B",
+    bg: "#D9A05B15",
+    borderColor: "#D9A05B30",
+    quote: "Flesh and Blood TCG stats tracker with match logging, meta analysis, and 13 daily minigames.",
+    whatItIs: "A full-featured stats platform at fabstats.net for the Flesh and Blood trading card game. Players log matches, track win rates by hero, analyze the competitive meta, and play daily puzzle minigames. Includes a Chrome extension for importing tournament results.",
+    whyUnique: "A real product with real users — 50+ active players tracking thousands of matches. Features include ELO ratings, head-to-head records, tournament top 8 tracking, hero matchup analysis, and 13 different daily minigames. MCP exposes community stats, leaderboards, and minigame data.",
+    tech: ["Next.js 16", "Firebase/Firestore", "Tailwind CSS v4", "Chrome Extension", "Netlify"],
+    data: ["leaderboard — player stats + rankings", "matches — individual match records", "heroMatchups — community meta data", "14 minigame collections — daily puzzle stats"],
+    cycle: ["Players log matches via web or Chrome extension", "Stats aggregate to leaderboard in real-time", "Meta analysis computes hero popularity + top 8 conversion", "Daily minigames generate unique puzzles from card data", "MCP exposes community stats for the agent ecosystem"],
+    code: `// Community data available via MCP:\n{\n  totalPlayers: 54,\n  totalMatches: 3200,\n  avgWinRate: "51.2%",\n  topHeroes: [\n    { hero: "Prism", players: 8 },\n    { hero: "Briar", players: 7 },\n  ],\n  minigames: 13\n}`,
+    starters: ["How many players use FaB Stats?", "What's the most popular hero?", "What minigames do you have?", "How do you track tournaments?"],
+  },
 };
 
-const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways'];
+const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'fabstats'];
 const SITE_AGENTS = ['orchestrator', 'chat', 'blog'];
-const PRODUCT_AGENTS = ['fitness', 'gaming', 'social', 'oldways'];
+const PRODUCT_AGENTS = ['fitness', 'gaming', 'social', 'oldways', 'fabstats'];
 
 /* ─── Homepage-specific data (status, links, short descriptions) ─── */
 const AGENT_HOME_DATA = {
@@ -709,6 +782,11 @@ const AGENT_HOME_DATA = {
     shortDesc: "Standalone product: AI-powered platform helping families find non-toxic, traditional alternatives. Same RAG + blog architecture as azoni.ai.",
     status: 'Active', statusType: 'live',
     links: [{ label: 'Visit Site →', url: 'https://oldwaystoday.com', external: true }],
+  },
+  fabstats: {
+    shortDesc: "Flesh and Blood TCG stats tracker with match logging, ELO ratings, meta analysis, and 13 daily minigames. Real users, real data.",
+    status: 'Active', statusType: 'live',
+    links: [{ label: 'Visit Site →', url: 'https://www.fabstats.net', external: true }],
   },
 };
 
