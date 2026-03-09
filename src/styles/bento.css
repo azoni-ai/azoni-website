@@ -830,6 +830,27 @@ a.commit-repo:hover {
   letter-spacing: 0.02em;
 }
 
+.commit-codex {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #67c1ff;
+  padding: 1px 6px;
+  background: rgba(103, 193, 255, 0.12);
+  border: 1px solid rgba(103, 193, 255, 0.22);
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
+}
+
+.commit-branch {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  padding: 1px 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
 .commit-time {
   font-size: 0.75rem;
   color: var(--text-muted);
