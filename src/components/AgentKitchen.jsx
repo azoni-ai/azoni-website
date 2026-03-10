@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { collection, query, orderBy, limit, onSnapshot, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -22,6 +23,10 @@ const SOURCE_TO_STATION = {
   'fabstats': 'fabstats',
   'fab-stats-bot': 'fabstatsbot',
   'discord-bot': 'fabstatsbot',
+  'mcp-server': 'mcp',
+  'azoni-mcp': 'mcp',
+  'embedroute': 'embedroute',
+  'embed-route': 'embedroute',
 };
 
 const TYPE_TO_STATION = {
@@ -46,12 +51,22 @@ const TYPE_TO_STATION = {
   'moltbook_upvote': 'moltbook',
   'owt_chat': 'oldwaystoday',
   'owt_blog': 'oldwaystoday',
+  'pr_detected': 'orchestrator',
+  'ai_coaching': 'benchpressonly',
+  'rowing_session': 'rowcrew',
+  'row_completed': 'rowcrew',
+  'embed_request': 'embedroute',
+  'mcp_request': 'mcp',
+  'fab_match': 'fabstats',
+  'fab_match_tracked': 'fabstats',
 };
 
 function mapSourceToStation(source, type) {
-  // Source is more specific (tells us which agent/service), type is the fallback
   if (SOURCE_TO_STATION[source]) return SOURCE_TO_STATION[source];
   if (TYPE_TO_STATION[type]) return TYPE_TO_STATION[type];
+  if (process.env.NODE_ENV === 'development' && (source || type)) {
+    console.warn('[AgentKitchen] unmapped event:', { source, type });
+  }
   return null;
 }
 
@@ -516,7 +531,9 @@ function AgentKitchen() {
         arr.sort((a, b) => b.ms - a.ms);
         if (arr.length > 20) arr.length = 20;
       });
-    }).catch(() => {});
+    }).catch(err => {
+      if (process.env.NODE_ENV === 'development') console.error('[AgentKitchen] activity fetch failed:', err);
+    });
   }, []);
 
   // Firebase real-time listener for agent_activity
@@ -2883,6 +2900,7 @@ function AgentKitchen() {
   }, [computeStations]);
 
   return (
+    <>
     <div className="agent-kitchen-wrap" ref={wrapRef}>
       <canvas ref={canvasRef} className="agent-kitchen-canvas" />
       {tooltip && (
@@ -2926,6 +2944,8 @@ function AgentKitchen() {
           </div>
         </div>
       )}
+    </div>
+    {createPortal(
       <AnimatePresence>
         {selectedStation && (() => {
           const s = selectedStation;
@@ -2936,7 +2956,7 @@ function AgentKitchen() {
           const now = Date.now();
           const history = activityHistoryRef.current.filter(e => e.stationId === s.id);
           const h1 = history.filter(e => now - e.ms < 3600000).length;
-          const h24 = history.length;
+          const h24 = history.filter(e => now - e.ms < 86400000).length;
           const events = (stationHistoryRef.current[s.id] || []).slice(0, 10);
           const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === s.id)?.[0];
           const mcpStatus = domain && mcpRef.current.health?.[domain];
@@ -2954,107 +2974,117 @@ function AgentKitchen() {
                 onClick={() => setSelectedStation(null)}
               />
               <motion.div
-                className="agent-kitchen-detail"
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="agent-kitchen-detail-wrap"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
               >
-                <button className="agent-kitchen-detail-close" onClick={() => setSelectedStation(null)}>&times;</button>
+                <motion.div
+                  className="agent-kitchen-detail"
+                  initial={{ scale: 0.95, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.95, y: 20 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
+                  <button className="agent-kitchen-detail-close" onClick={() => setSelectedStation(null)}>&times;</button>
 
-                {/* Header */}
-                <div className="agent-kitchen-detail-header">
-                  <span className="agent-kitchen-detail-dot" style={{ background: s.color }} />
-                  <h2 className="agent-kitchen-detail-name">{agentData?.name || s.label}</h2>
-                  {cat && <span className="agent-kitchen-detail-cat" style={{ color: cat.color }}>{cat.label}</span>}
-                </div>
-                {agentData?.role && <div className="agent-kitchen-detail-role">{agentData.role}</div>}
-                {(agentData?.quote || s.desc) && (
-                  <div className="agent-kitchen-detail-quote">{agentData?.quote || s.desc}</div>
-                )}
-                <div className="agent-kitchen-detail-status">
-                  <span className="agent-kitchen-tooltip-dot" style={{ background: statusColor }} />
-                  {statusText}
-                </div>
-
-                {/* Activity stats */}
-                <div className="agent-kitchen-detail-stats">
-                  <div className="agent-kitchen-detail-stat" style={{ borderColor: `${s.color}30` }}>
-                    <div className="agent-kitchen-detail-stat-num" style={{ color: s.color }}>{h1}</div>
-                    <div className="agent-kitchen-detail-stat-label">last hour</div>
+                  {/* Header */}
+                  <div className="agent-kitchen-detail-header">
+                    <span className="agent-kitchen-detail-dot" style={{ background: s.color }} />
+                    <h2 className="agent-kitchen-detail-name">{agentData?.name || s.label}</h2>
+                    {cat && <span className="agent-kitchen-detail-cat" style={{ color: cat.color }}>{cat.label}</span>}
                   </div>
-                  <div className="agent-kitchen-detail-stat" style={{ borderColor: `${s.color}30` }}>
-                    <div className="agent-kitchen-detail-stat-num" style={{ color: s.color }}>{h24}</div>
-                    <div className="agent-kitchen-detail-stat-label">last 24h</div>
-                  </div>
-                </div>
-
-                {/* Recent events */}
-                <div className="agent-kitchen-detail-section">
-                  <div className="agent-kitchen-detail-section-title">Recent Activity</div>
-                  {events.length > 0 ? (
-                    <div className="agent-kitchen-detail-events">
-                      {events.map((evt, i) => (
-                        <div key={i} className="agent-kitchen-detail-event">
-                          <span className="agent-kitchen-detail-event-title">{evt.title || evt.type}</span>
-                          <span className="agent-kitchen-detail-event-ago">{formatTimeAgo(evt.ms)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="agent-kitchen-detail-empty">No events recorded yet</div>
+                  {agentData?.role && <div className="agent-kitchen-detail-role">{agentData.role}</div>}
+                  {(agentData?.quote || s.desc) && (
+                    <div className="agent-kitchen-detail-quote">{agentData?.quote || s.desc}</div>
                   )}
-                </div>
-
-                {/* About */}
-                {(agentData?.whatItIs || s.desc) && (
-                  <div className="agent-kitchen-detail-section">
-                    <div className="agent-kitchen-detail-section-title">About</div>
-                    <div className="agent-kitchen-detail-text">{agentData?.whatItIs || s.desc}</div>
+                  <div className="agent-kitchen-detail-status">
+                    <span className="agent-kitchen-tooltip-dot" style={{ background: statusColor }} />
+                    {statusText}
                   </div>
-                )}
 
-                {/* Tech stack */}
-                {agentData?.tech && (
-                  <div className="agent-kitchen-detail-section">
-                    <div className="agent-kitchen-detail-section-title">Tech Stack</div>
-                    <div className="agent-kitchen-detail-tags">
-                      {agentData.tech.map((t, i) => (
-                        <span key={i} className="agent-kitchen-detail-tag" style={{ borderColor: `${s.color}40`, color: s.color }}>{t}</span>
-                      ))}
+                  {/* Activity stats */}
+                  <div className="agent-kitchen-detail-stats">
+                    <div className="agent-kitchen-detail-stat" style={{ borderColor: `${s.color}30` }}>
+                      <div className="agent-kitchen-detail-stat-num" style={{ color: s.color }}>{h1}</div>
+                      <div className="agent-kitchen-detail-stat-label">last hour</div>
+                    </div>
+                    <div className="agent-kitchen-detail-stat" style={{ borderColor: `${s.color}30` }}>
+                      <div className="agent-kitchen-detail-stat-num" style={{ color: s.color }}>{h24}</div>
+                      <div className="agent-kitchen-detail-stat-label">last 24h</div>
                     </div>
                   </div>
-                )}
 
-                {/* How it works */}
-                {agentData?.cycle && (
+                  {/* Recent events */}
                   <div className="agent-kitchen-detail-section">
-                    <div className="agent-kitchen-detail-section-title">How It Works</div>
-                    <ol className="agent-kitchen-detail-cycle">
-                      {agentData.cycle.map((step, i) => (
-                        <li key={i}>{step}</li>
-                      ))}
-                    </ol>
+                    <div className="agent-kitchen-detail-section-title">Recent Activity</div>
+                    {events.length > 0 ? (
+                      <div className="agent-kitchen-detail-events">
+                        {events.map((evt, i) => (
+                          <div key={i} className="agent-kitchen-detail-event">
+                            <span className="agent-kitchen-detail-event-title">{evt.title || evt.type}</span>
+                            <span className="agent-kitchen-detail-event-ago">{formatTimeAgo(evt.ms)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="agent-kitchen-detail-empty">No events recorded yet</div>
+                    )}
                   </div>
-                )}
 
-                {/* Data sources */}
-                {agentData?.data && (
-                  <div className="agent-kitchen-detail-section">
-                    <div className="agent-kitchen-detail-section-title">Data Sources</div>
-                    <ul className="agent-kitchen-detail-data-list">
-                      {agentData.data.map((d, i) => (
-                        <li key={i}>{d}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  {/* About */}
+                  {(agentData?.whatItIs || s.desc) && (
+                    <div className="agent-kitchen-detail-section">
+                      <div className="agent-kitchen-detail-section-title">About</div>
+                      <div className="agent-kitchen-detail-text">{agentData?.whatItIs || s.desc}</div>
+                    </div>
+                  )}
+
+                  {/* Tech stack */}
+                  {agentData?.tech && (
+                    <div className="agent-kitchen-detail-section">
+                      <div className="agent-kitchen-detail-section-title">Tech Stack</div>
+                      <div className="agent-kitchen-detail-tags">
+                        {agentData.tech.map((t, i) => (
+                          <span key={i} className="agent-kitchen-detail-tag" style={{ borderColor: `${s.color}40`, color: s.color }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* How it works */}
+                  {agentData?.cycle && (
+                    <div className="agent-kitchen-detail-section">
+                      <div className="agent-kitchen-detail-section-title">How It Works</div>
+                      <ol className="agent-kitchen-detail-cycle">
+                        {agentData.cycle.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {/* Data sources */}
+                  {agentData?.data && (
+                    <div className="agent-kitchen-detail-section">
+                      <div className="agent-kitchen-detail-section-title">Data Sources</div>
+                      <ul className="agent-kitchen-detail-data-list">
+                        {agentData.data.map((d, i) => (
+                          <li key={i}>{d}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </motion.div>
               </motion.div>
             </>
           );
         })()}
-      </AnimatePresence>
-    </div>
+      </AnimatePresence>,
+      document.body
+    )}
+    </>
   );
 }
 
