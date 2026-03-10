@@ -190,6 +190,8 @@ const Home = () => {
     return Number.isFinite(num) && num > 0 ? num.toLocaleString() : 'Live';
   };
 
+  const combinedFitnessUsers = Number(appStats?.benchpressonly?.users || 0) + Number(appStats?.rowcrew?.uniqueRowers || 0);
+
   return (
     <Layout>
       <InteractiveBackground />
@@ -456,11 +458,11 @@ const Home = () => {
         <CollapsibleSection
           title="BenchPressOnly + RowCrew"
           subtitle="AI-powered strength training and rowing apps with real users"
-          badge={`${formatCountOrLive(appStats?.benchpressonly?.users)} users`}
+          badge={`${formatCountOrLive(combinedFitnessUsers)} users`}
           badgeType="count"
           defaultOpen={false}
           stats={[
-            { value: formatCountOrLive(appStats?.benchpressonly?.users), label: 'users' },
+            { value: formatCountOrLive(combinedFitnessUsers), label: 'users' },
             { value: formatCountOrLive(appStats?.rowcrew?.sessions), label: 'rows' }
           ]}
         >

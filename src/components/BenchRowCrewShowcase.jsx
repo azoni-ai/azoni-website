@@ -18,7 +18,9 @@ const BenchRowCrewShowcase = ({ stats }) => {
   const row = stats?.rowcrew || {};
   const loading = !stats;
 
-  const users = Number(bench.users || 0);
+  const benchUsers = Number(bench.users || 0);
+  const rowUsers = Number(row.uniqueRowers || 0);
+  const users = benchUsers + rowUsers;
   const workoutsLogged = Number(bench.workoutsLogged || 0);
   const rowSessions = Number(row.sessions || 0);
   const totalMeters = Number(row.meters || 0);
