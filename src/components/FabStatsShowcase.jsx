@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, collection, query, orderBy, limit, getDocs, getCountFromServer, getAggregateFromServer, sum } from 'firebase/firestore';
 
@@ -26,6 +26,8 @@ const FabStatsShowcase = ({ onStats } = {}) => {
   const [stats, setStats] = useState({ users: 0, matches: 0, heroes: 0 });
   const [topPlayers, setTopPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const onStatsRef = useRef(onStats);
+  onStatsRef.current = onStats;
 
   useEffect(() => {
     if (!fabDb) { setLoading(false); return; }
@@ -45,7 +47,7 @@ const FabStatsShowcase = ({ onStats } = {}) => {
           matches: matchSnap.data().total,
           heroes: heroSnap.data().count,
         });
-        if (onStats) onStats({ users: userCount });
+        if (onStatsRef.current) onStatsRef.current({ users: userCount });
 
         setTopPlayers(leaderSnap.docs.map(d => {
           const data = d.data();
