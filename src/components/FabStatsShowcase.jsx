@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collection, query, orderBy, limit, getDocs, getCountFromServer, getAggregateFromServer, sum } from 'firebase/firestore';
+import { getFirestore, collection, getCountFromServer, getAggregateFromServer, sum } from 'firebase/firestore';
 
 // FabStats Firebase config (public — embedded in client bundle)
 const FABSTATS_CONFIG = {
@@ -24,7 +24,6 @@ try {
 
 const FabStatsShowcase = ({ onStats } = {}) => {
   const [stats, setStats] = useState({ users: 0, matches: 0, heroes: 0 });
-  const [topPlayers, setTopPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const onStatsRef = useRef(onStats);
   onStatsRef.current = onStats;
@@ -34,11 +33,10 @@ const FabStatsShowcase = ({ onStats } = {}) => {
 
     const fetchStats = async () => {
       try {
-        const [userSnap, matchSnap, heroSnap, leaderSnap] = await Promise.all([
+        const [userSnap, matchSnap, heroSnap] = await Promise.all([
           getCountFromServer(collection(fabDb, 'usernames')),
           getAggregateFromServer(collection(fabDb, 'leaderboard'), { total: sum('totalMatches') }),
           getCountFromServer(collection(fabDb, 'heroMatchups')),
-          getDocs(query(collection(fabDb, 'leaderboard'), orderBy('totalMatches', 'desc'), limit(5))),
         ]);
 
         const userCount = userSnap.data().count;
@@ -48,16 +46,6 @@ const FabStatsShowcase = ({ onStats } = {}) => {
           heroes: heroSnap.data().count,
         });
         if (onStatsRef.current) onStatsRef.current({ users: userCount });
-
-        setTopPlayers(leaderSnap.docs.map(d => {
-          const data = d.data();
-          return {
-            name: data.displayName || data.username || 'Anonymous',
-            matches: data.totalMatches,
-            winRate: data.winRate?.toFixed(1) || '0',
-            topHero: data.topHero || 'Unknown',
-          };
-        }));
       } catch (err) {
         console.error('FabStats fetch error:', err);
       } finally {
@@ -130,29 +118,6 @@ const FabStatsShowcase = ({ onStats } = {}) => {
                 <span className="fabstats-stat-label">Chat Assistant</span>
               </div>
             </div>
-
-            {/* Top Players Mini-Leaderboard */}
-            {topPlayers.length > 0 && (
-              <div className="fabstats-leaderboard">
-                <div className="fabstats-lb-header">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth="2" strokeLinecap="round">
-                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-                  </svg>
-                  <span>Top Players</span>
-                </div>
-                <div className="fabstats-lb-rows">
-                  {topPlayers.map((p, i) => (
-                    <div key={i} className="fabstats-lb-row">
-                      <span className="fabstats-lb-rank">#{i + 1}</span>
-                      <span className="fabstats-lb-name">{p.name}</span>
-                      <span className="fabstats-lb-hero">{p.topHero}</span>
-                      <span className="fabstats-lb-wr">{p.winRate}%</span>
-                      <span className="fabstats-lb-matches">{p.matches}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Highlights */}
             <div className="fabstats-highlights">
