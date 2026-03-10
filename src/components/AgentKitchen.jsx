@@ -21,6 +21,7 @@ const SOURCE_TO_STATION = {
   'daily-blog': 'blog',
   'azoni-ai': 'chatbot',
   'fabstats': 'fabstats',
+  'fab-stats': 'fabstats',
   'fab-stats-bot': 'fabstatsbot',
   'discord-bot': 'fabstatsbot',
   'mcp-server': 'mcp',
@@ -57,6 +58,10 @@ const TYPE_TO_STATION = {
   'row_completed': 'rowcrew',
   'embed_request': 'embedroute',
   'mcp_request': 'mcp',
+  'fabstats_activity': 'fabstats',
+  'match_logged': 'fabstats',
+  'minigame_completed': 'fabstats',
+  'discord_command': 'fabstatsbot',
   'fab_match': 'fabstats',
   'fab_match_tracked': 'fabstats',
 };
