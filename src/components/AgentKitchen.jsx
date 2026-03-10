@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { collection, query, orderBy, limit, onSnapshot, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { avatars } from '../data/agents';
+import { avatars, AGENTS } from '../data/agents';
+import { AnimatePresence, motion } from 'framer-motion';
 import '../styles/agent-kitchen.css';
 
 const MCP_URL = 'https://azoni-mcp.onrender.com';
@@ -382,7 +383,10 @@ function AgentKitchen() {
   const tickerRef = useRef([]);         // last 5 events for bottom ticker
   const isFirstLoadRef = useRef(true);  // gate initial snapshot vs new events
   const activityHistoryRef = useRef([]); // { stationId, ms } — all events from last 24h for counting
+  const stationHistoryRef = useRef({});  // { [stationId]: [{ title, type, source, ms }, ...] } — last 20 per station
   const [tooltip, setTooltip] = useState(null);
+  const [selectedStation, setSelectedStation] = useState(null);
+  const touchStartRef = useRef(null); // for tap detection
   const avatarImagesRef = useRef({});
   const effectsRef = useRef([]);       // free-floating visual particles
   const connectionFlashRef = useRef({}); // { stationId: timestamp }
@@ -501,7 +505,14 @@ function AgentKitchen() {
         const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
         if (sid && ms) {
           activityHistoryRef.current.push({ stationId: sid, ms });
+          if (!stationHistoryRef.current[sid]) stationHistoryRef.current[sid] = [];
+          stationHistoryRef.current[sid].push({ title: data.title || data.type, type: data.type, source: data.source, ms });
         }
+      });
+      // Sort each station's history newest-first and cap at 20
+      Object.values(stationHistoryRef.current).forEach(arr => {
+        arr.sort((a, b) => b.ms - a.ms);
+        if (arr.length > 20) arr.length = 20;
       });
     }).catch(() => {});
   }, []);
@@ -538,6 +549,9 @@ function AgentKitchen() {
             const ts = data.timestamp;
             const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
             if (ms) activityHistoryRef.current.push({ stationId, ms });
+            if (!stationHistoryRef.current[stationId]) stationHistoryRef.current[stationId] = [];
+            stationHistoryRef.current[stationId].unshift({ title: data.title || data.type, type: data.type, source: data.source, ms: Date.now() });
+            if (stationHistoryRef.current[stationId].length > 20) stationHistoryRef.current[stationId].pop();
             spawnEventPulse(stationId, data);
             triggerAgentTrip(stationId);
             stationEventsRef.current[stationId] = { ...data, receivedAt: Date.now() };
@@ -587,15 +601,50 @@ function AgentKitchen() {
       const touch = e.touches[0];
       if (!touch) return;
       const rect = canvas.getBoundingClientRect();
-      mouseRef.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      const tx = touch.clientX - rect.left;
+      const ty = touch.clientY - rect.top;
+      mouseRef.current = { x: tx, y: ty };
+      if (e.type === 'touchstart') {
+        touchStartRef.current = { x: tx, y: ty, t: Date.now() };
+      }
     };
 
     const handleTouchEnd = () => {
-      // Keep tooltip visible briefly after touch ends — clear on next touch elsewhere
+      // Tap detection — short press, small movement
+      const ts = touchStartRef.current;
+      if (ts && Date.now() - ts.t < 300) {
+        const stations = stationsRef.current;
+        for (const s of stations) {
+          const dx = ts.x - s.px;
+          const dy = ts.y - s.py;
+          if (Math.sqrt(dx * dx + dy * dy) < s.radius + 12) {
+            setSelectedStation(s);
+            touchStartRef.current = null;
+            return;
+          }
+        }
+      }
+      touchStartRef.current = null;
+      // Keep tooltip visible briefly after touch ends
       setTimeout(() => {
         mouseRef.current = { x: -1, y: -1 };
         setTooltip(null);
       }, 3000);
+    };
+
+    const handleClick = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const stations = stationsRef.current;
+      for (const s of stations) {
+        const dx = cx - s.px;
+        const dy = cy - s.py;
+        if (Math.sqrt(dx * dx + dy * dy) < s.radius + 12) {
+          setSelectedStation(s);
+          return;
+        }
+      }
     };
 
     let activityCountsMap = {}; // computed each frame in draw()
@@ -1032,6 +1081,18 @@ function AgentKitchen() {
         ctx.fillStyle = cat.color;
         ctx.globalAlpha = hovered ? 0.75 : 0.35;
         ctx.fillText(cat.label, s.px, s.py - r - 4);
+        ctx.restore();
+      }
+
+      // ─── "tap to explore" CTA ───
+      if (hovered && !s.isHub) {
+        ctx.save();
+        ctx.font = '7px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = s.color;
+        ctx.globalAlpha = 0.45;
+        ctx.fillText('tap to explore \u203A', s.px, s.py + r + 44 + pulse);
         ctx.restore();
       }
 
@@ -2188,6 +2249,11 @@ function AgentKitchen() {
         }
       });
 
+      // Cursor changes to pointer over stations
+      if (canvasRef.current) {
+        canvasRef.current.style.cursor = hovered ? 'pointer' : 'default';
+      }
+
       // ─── Update agent trips (event-driven, no random timers) ───
       stations.forEach(s => {
         if (!s.agent) return;
@@ -2332,6 +2398,7 @@ function AgentKitchen() {
     window.addEventListener('resize', resize);
     canvas.addEventListener('mousemove', handleMouse);
     canvas.addEventListener('mouseleave', handleMouseLeave);
+    canvas.addEventListener('click', handleClick);
     canvas.addEventListener('touchstart', handleTouch, { passive: true });
     canvas.addEventListener('touchmove', handleTouch, { passive: true });
     canvas.addEventListener('touchend', handleTouchEnd);
@@ -2341,6 +2408,7 @@ function AgentKitchen() {
       window.removeEventListener('resize', resize);
       canvas.removeEventListener('mousemove', handleMouse);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('click', handleClick);
       canvas.removeEventListener('touchstart', handleTouch);
       canvas.removeEventListener('touchmove', handleTouch);
       canvas.removeEventListener('touchend', handleTouchEnd);
@@ -2392,6 +2460,135 @@ function AgentKitchen() {
           </div>
         </div>
       )}
+      <AnimatePresence>
+        {selectedStation && (() => {
+          const s = selectedStation;
+          const agentKey = s.agent || s.id;
+          const AGENT_KEY_MAP = { wellness: 'oldways', oldwaystoday: 'oldways' };
+          const agentData = AGENTS[AGENT_KEY_MAP[agentKey] || agentKey] || AGENTS[s.id] || null;
+          const cat = CATEGORY_STYLES[s.category];
+          const now = Date.now();
+          const history = activityHistoryRef.current.filter(e => e.stationId === s.id);
+          const h1 = history.filter(e => now - e.ms < 3600000).length;
+          const h24 = history.length;
+          const events = (stationHistoryRef.current[s.id] || []).slice(0, 10);
+          const lastEvt = stationEventsRef.current[s.id];
+          const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === s.id)?.[0];
+          const mcpStatus = domain && mcpRef.current.health?.[domain];
+          const statusText = mcpStatus === true ? 'online' : mcpStatus === false ? 'offline' : s.isHub ? 'hub' : 'connected';
+          const statusColor = mcpStatus === true ? '#4ade80' : mcpStatus === false ? '#f87171' : '#60a5fa';
+
+          return (
+            <>
+              <motion.div
+                className="agent-kitchen-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setSelectedStation(null)}
+              />
+              <motion.div
+                className="agent-kitchen-detail"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                <button className="agent-kitchen-detail-close" onClick={() => setSelectedStation(null)}>&times;</button>
+
+                {/* Header */}
+                <div className="agent-kitchen-detail-header">
+                  <span className="agent-kitchen-detail-dot" style={{ background: s.color }} />
+                  <h2 className="agent-kitchen-detail-name">{agentData?.name || s.label}</h2>
+                  {cat && <span className="agent-kitchen-detail-cat" style={{ color: cat.color }}>{cat.label}</span>}
+                </div>
+                {agentData?.role && <div className="agent-kitchen-detail-role">{agentData.role}</div>}
+                {(agentData?.quote || s.desc) && (
+                  <div className="agent-kitchen-detail-quote">{agentData?.quote || s.desc}</div>
+                )}
+                <div className="agent-kitchen-detail-status">
+                  <span className="agent-kitchen-tooltip-dot" style={{ background: statusColor }} />
+                  {statusText}
+                </div>
+
+                {/* Activity stats */}
+                <div className="agent-kitchen-detail-stats">
+                  <div className="agent-kitchen-detail-stat" style={{ borderColor: `${s.color}30` }}>
+                    <div className="agent-kitchen-detail-stat-num" style={{ color: s.color }}>{h1}</div>
+                    <div className="agent-kitchen-detail-stat-label">last hour</div>
+                  </div>
+                  <div className="agent-kitchen-detail-stat" style={{ borderColor: `${s.color}30` }}>
+                    <div className="agent-kitchen-detail-stat-num" style={{ color: s.color }}>{h24}</div>
+                    <div className="agent-kitchen-detail-stat-label">last 24h</div>
+                  </div>
+                </div>
+
+                {/* Recent events */}
+                <div className="agent-kitchen-detail-section">
+                  <div className="agent-kitchen-detail-section-title">Recent Activity</div>
+                  {events.length > 0 ? (
+                    <div className="agent-kitchen-detail-events">
+                      {events.map((evt, i) => (
+                        <div key={i} className="agent-kitchen-detail-event">
+                          <span className="agent-kitchen-detail-event-title">{evt.title || evt.type}</span>
+                          <span className="agent-kitchen-detail-event-ago">{formatTimeAgo(evt.ms)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="agent-kitchen-detail-empty">No events recorded yet</div>
+                  )}
+                </div>
+
+                {/* About */}
+                {(agentData?.whatItIs || s.desc) && (
+                  <div className="agent-kitchen-detail-section">
+                    <div className="agent-kitchen-detail-section-title">About</div>
+                    <div className="agent-kitchen-detail-text">{agentData?.whatItIs || s.desc}</div>
+                  </div>
+                )}
+
+                {/* Tech stack */}
+                {agentData?.tech && (
+                  <div className="agent-kitchen-detail-section">
+                    <div className="agent-kitchen-detail-section-title">Tech Stack</div>
+                    <div className="agent-kitchen-detail-tags">
+                      {agentData.tech.map((t, i) => (
+                        <span key={i} className="agent-kitchen-detail-tag" style={{ borderColor: `${s.color}40`, color: s.color }}>{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* How it works */}
+                {agentData?.cycle && (
+                  <div className="agent-kitchen-detail-section">
+                    <div className="agent-kitchen-detail-section-title">How It Works</div>
+                    <ol className="agent-kitchen-detail-cycle">
+                      {agentData.cycle.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* Data sources */}
+                {agentData?.data && (
+                  <div className="agent-kitchen-detail-section">
+                    <div className="agent-kitchen-detail-section-title">Data Sources</div>
+                    <ul className="agent-kitchen-detail-data-list">
+                      {agentData.data.map((d, i) => (
+                        <li key={i}>{d}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </motion.div>
+            </>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }
