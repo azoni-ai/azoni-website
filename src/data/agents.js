@@ -631,6 +631,65 @@ const avatars = {
       <ellipse cx="68" cy="34" rx="3" ry="1.5" fill="#f0d090" opacity="0.4"/>
     </svg>
   ),
+
+  /* ── RowCrew — Athletic rower chibi with sunvisor, rowing unitard ── */
+  rowing: (s) => (
+    <svg viewBox="0 0 100 100" width={s} height={s}>
+      <defs>
+        <linearGradient id="row-uni" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#34d399"/><stop offset="100%" stopColor="#059669"/>
+        </linearGradient>
+        <linearGradient id="row-skin" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fcd9a8"/><stop offset="100%" stopColor="#f0c48a"/>
+        </linearGradient>
+      </defs>
+      {/* Body / rowing unitard */}
+      <path d="M34 50 Q34 46 42 46 L58 46 Q66 46 66 50 L68 76 Q68 80 50 80 Q32 80 32 76 Z"
+            fill="url(#row-uni)" stroke="#059669" strokeWidth="1.2"/>
+      {/* Tank top straps */}
+      <path d="M42 46 L40 36" stroke="#059669" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M58 46 L60 36" stroke="#059669" strokeWidth="3" strokeLinecap="round"/>
+      {/* RC on chest */}
+      <text x="50" y="64" textAnchor="middle" fontFamily="sans-serif"
+            fontWeight="bold" fontSize="10" fill="#022c22" opacity="0.4">RC</text>
+      {/* Arms — extended grip pose */}
+      <path d="M34 50 Q22 54 16 62" fill="none" stroke="url(#row-skin)" strokeWidth="7" strokeLinecap="round"/>
+      <path d="M66 50 Q78 54 84 62" fill="none" stroke="url(#row-skin)" strokeWidth="7" strokeLinecap="round"/>
+      {/* Hands */}
+      <circle cx="16" cy="64" r="4.5" fill="#fcd9a8" stroke="#d4a574" strokeWidth="0.8"/>
+      <circle cx="84" cy="64" r="4.5" fill="#fcd9a8" stroke="#d4a574" strokeWidth="0.8"/>
+      {/* Oar handles in hands */}
+      <rect x="10" y="62" width="14" height="3" rx="1.5" fill="#c4a86c" stroke="#a08050" strokeWidth="0.6"/>
+      <rect x="78" y="62" width="14" height="3" rx="1.5" fill="#c4a86c" stroke="#a08050" strokeWidth="0.6"/>
+      {/* Shorts */}
+      <rect x="36" y="74" width="12" height="10" rx="3" fill="#022c22"/>
+      <rect x="52" y="74" width="12" height="10" rx="3" fill="#022c22"/>
+      {/* Legs */}
+      <rect x="38" y="82" width="10" height="8" rx="3" fill="url(#row-skin)"/>
+      <rect x="54" y="82" width="10" height="8" rx="3" fill="url(#row-skin)"/>
+      {/* Rowing shoes */}
+      <rect x="36" y="88" width="13" height="6" rx="3" fill="#34d399" stroke="#059669" strokeWidth="0.8"/>
+      <rect x="53" y="88" width="13" height="6" rx="3" fill="#34d399" stroke="#059669" strokeWidth="0.8"/>
+      {/* Head */}
+      <circle cx="50" cy="28" r="17" fill="url(#row-skin)"/>
+      {/* Hair — short athletic */}
+      <path d="M33 24 Q36 12 50 10 Q64 12 67 24 Q66 18 58 14 Q50 12 42 14 Q34 18 33 24Z" fill="#4a3728"/>
+      {/* Sunvisor */}
+      <path d="M32 22 Q50 18 68 22" fill="none" stroke="#34d399" strokeWidth="3.5" strokeLinecap="round"/>
+      <path d="M30 22 L26 20 Q28 18 32 20" fill="#34d399"/>
+      {/* Eyes — focused */}
+      <ellipse cx="43" cy="28" rx="4.5" ry="5" fill="white" stroke="#1a1a2e" strokeWidth="0.8"/>
+      <ellipse cx="57" cy="28" rx="4.5" ry="5" fill="white" stroke="#1a1a2e" strokeWidth="0.8"/>
+      <ellipse cx="44" cy="29" rx="3" ry="3.5" fill="#059669"/>
+      <ellipse cx="58" cy="29" rx="3" ry="3.5" fill="#059669"/>
+      <circle cx="45" cy="28" r="1.2" fill="white"/><circle cx="59" cy="28" r="1.2" fill="white"/>
+      {/* Brows — determined */}
+      <path d="M38 22 Q43 20 48 23" fill="none" stroke="#1a1a2e" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M52 23 Q57 20 62 22" fill="none" stroke="#1a1a2e" strokeWidth="1.8" strokeLinecap="round"/>
+      {/* Confident grin */}
+      <path d="M44 36 Q50 40 56 36" fill="none" stroke="#92400e" strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  ),
 };
 
 /* ─── Agent Data ─── */

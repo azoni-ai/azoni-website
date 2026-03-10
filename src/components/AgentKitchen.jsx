@@ -126,7 +126,7 @@ const STATION_DEFS = [
     dataLabel: 'embeddings',
   },
   {
-    id: 'rowcrew', label: 'RowCrew', x: 0.68, y: 0.68, color: '#34d399', icon: 'waves', category: 'agent',
+    id: 'rowcrew', label: 'RowCrew', x: 0.68, y: 0.68, color: '#34d399', icon: 'waves', agent: 'rowing', category: 'agent',
     desc: 'AI-powered rowing tracker — Claude Vision verifies workout photos, extracts meters and display data. Shares Firebase with BenchPress. MCP reads its session data.',
     actions: ['Logging sessions', 'Stroke analysis', 'Progress tracking'],
     dataLabel: 'rowing data',
@@ -161,6 +161,7 @@ const AGENT_IDLE = {
   gaming:       { bobSpeed: 3600, bobAmt: 2.0, breathSpeed: 3000, breathAmt: 0.018, lean: 0.01 },
   social:       { bobSpeed: 2000, bobAmt: 3.0, breathSpeed: 2200, breathAmt: 0.015, lean: -0.02 },
   wellness:     { bobSpeed: 4800, bobAmt: 1.5, breathSpeed: 4200, breathAmt: 0.01, lean: 0.012 },
+  rowing:       { bobSpeed: 3200, bobAmt: 3.0, breathSpeed: 3800, breathAmt: 0.008, lean: 0.01 },
 };
 
 const DOMAIN_TO_STATION = {
@@ -392,6 +393,7 @@ function AgentKitchen() {
       chat: 'chat', blog: 'blog', orchestrator: 'orchestrator',
       gaming: 'gaming', social: 'social', fitness: 'fitness',
       wellness: 'oldways',
+      rowing: 'rowing',
     };
     const urls = [];
     Object.entries(agentToAvatar).forEach(([agentKey, avatarKey]) => {
@@ -632,12 +634,129 @@ function AgentKitchen() {
       }
     };
 
+    // ─── Water channel connection for RowCrew (replaces standard bezier line) ───
+    const drawWaterConnection = (s, hub, now) => {
+      const mx = (s.px + hub.px) / 2;
+      const my = (s.py + hub.py) / 2 - 30;
+
+      const flashStart = connectionFlashRef.current[s.id];
+      const flashAge = flashStart ? now - flashStart : Infinity;
+      const isFlashing = flashAge < 1800;
+      const flashAlpha = isFlashing ? Math.max(0, 1 - flashAge / 1800) : 0;
+
+      // Sample points along bezier
+      const N = 40;
+      const points = [];
+      for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        const px = (1 - t) * (1 - t) * s.px + 2 * (1 - t) * t * mx + t * t * hub.px;
+        const py = (1 - t) * (1 - t) * s.py + 2 * (1 - t) * t * my + t * t * hub.py;
+        const dx = 2 * (1 - t) * (mx - s.px) + 2 * t * (hub.px - mx);
+        const dy = 2 * (1 - t) * (my - s.py) + 2 * t * (hub.py - my);
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        points.push({ x: px, y: py, nx: -dy / len, ny: dx / len, t });
+      }
+
+      // Animated channel width with sinusoidal ripple edges
+      const baseWidth = isFlashing ? 5 + flashAlpha * 3 : 4;
+      const leftEdge = [];
+      const rightEdge = [];
+      for (let i = 0; i <= N; i++) {
+        const p = points[i];
+        const ripple = Math.sin(p.t * 12 + now / 400) * 1.2;
+        const w = baseWidth + ripple;
+        leftEdge.push({ x: p.x + p.nx * w, y: p.y + p.ny * w });
+        rightEdge.push({ x: p.x - p.nx * w, y: p.y - p.ny * w });
+      }
+
+      ctx.save();
+
+      // Filled water channel polygon
+      ctx.beginPath();
+      ctx.moveTo(leftEdge[0].x, leftEdge[0].y);
+      for (let i = 1; i <= N; i++) ctx.lineTo(leftEdge[i].x, leftEdge[i].y);
+      for (let i = N; i >= 0; i--) ctx.lineTo(rightEdge[i].x, rightEdge[i].y);
+      ctx.closePath();
+      const waterGrad = ctx.createLinearGradient(s.px, s.py, hub.px, hub.py);
+      waterGrad.addColorStop(0, isFlashing ? 'rgba(52, 211, 153, 0.25)' : 'rgba(52, 211, 153, 0.1)');
+      waterGrad.addColorStop(0.5, isFlashing ? 'rgba(20, 184, 166, 0.2)' : 'rgba(20, 184, 166, 0.06)');
+      waterGrad.addColorStop(1, isFlashing ? 'rgba(255, 122, 92, 0.18)' : 'rgba(255, 122, 92, 0.04)');
+      ctx.fillStyle = waterGrad;
+      ctx.fill();
+
+      // Channel edge lines
+      ctx.strokeStyle = isFlashing ? 'rgba(52, 211, 153, 0.3)' : 'rgba(52, 211, 153, 0.12)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(leftEdge[0].x, leftEdge[0].y);
+      for (let i = 1; i <= N; i++) ctx.lineTo(leftEdge[i].x, leftEdge[i].y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(rightEdge[0].x, rightEdge[0].y);
+      for (let i = 1; i <= N; i++) ctx.lineTo(rightEdge[i].x, rightEdge[i].y);
+      ctx.stroke();
+
+      // 6 animated flow dashes traveling along path
+      for (let d = 0; d < 6; d++) {
+        const flowT = ((now / 3000 + d / 6) % 1);
+        const idx = Math.min(Math.floor(flowT * N), N - 2);
+        const p0 = points[idx];
+        const p1 = points[idx + 2];
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.4 + (isFlashing ? flashAlpha * 0.3 : 0);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Flash: bright wave pulse traveling along channel
+      if (isFlashing) {
+        const pulseIdx = Math.min(Math.floor((1 - flashAlpha) * N), N);
+        const p = points[pulseIdx];
+        const pulseGlow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 22);
+        pulseGlow.addColorStop(0, 'rgba(52, 211, 153, 0.6)');
+        pulseGlow.addColorStop(0.5, 'rgba(52, 211, 153, 0.15)');
+        pulseGlow.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
+        ctx.fillStyle = pulseGlow;
+        ctx.globalAlpha = flashAlpha * 0.5;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Data label along channel
+      if (s.dataLabel) {
+        const lt = 0.45;
+        const lx = (1 - lt) * (1 - lt) * s.px + 2 * (1 - lt) * lt * mx + lt * lt * hub.px;
+        const ly = (1 - lt) * (1 - lt) * s.py + 2 * (1 - lt) * lt * my + lt * lt * hub.py;
+        ctx.globalAlpha = isFlashing ? 0.5 + flashAlpha * 0.3 : 0.2;
+        ctx.font = '8px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#34d399';
+        ctx.fillText(s.dataLabel, lx, ly - 10);
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.restore();
+    };
+
     const drawConnections = (stations, now) => {
       const hub = stations.find(s => s.isHub);
       if (!hub) return;
 
       stations.forEach(s => {
         if (s.isHub) return;
+
+        // RowCrew gets a water channel instead of a standard line
+        if (s.id === 'rowcrew') {
+          drawWaterConnection(s, hub, now);
+          return;
+        }
 
         const mx = (s.px + hub.px) / 2;
         const my = (s.py + hub.py) / 2 - 30;
@@ -1370,6 +1489,68 @@ function AgentKitchen() {
           break;
         }
 
+        case 'rowing': {
+          // Dock + water surface beneath idle rower
+          const waterY = footY;
+
+          // Water glow
+          const waterGlow = ctx.createRadialGradient(x, waterY, 0, x, waterY, 48);
+          waterGlow.addColorStop(0, 'rgba(52, 211, 153, 0.1)');
+          waterGlow.addColorStop(0.5, 'rgba(20, 184, 166, 0.05)');
+          waterGlow.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(x, waterY, 48, 0, Math.PI * 2);
+          ctx.fillStyle = waterGlow;
+          ctx.fill();
+
+          // Water surface ellipse
+          ctx.beginPath();
+          ctx.ellipse(x, waterY + 2, 42, 10, 0, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(52, 211, 153, 0.06)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(52, 211, 153, 0.15)';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+
+          // Animated concentric ripple rings
+          const ripNow = performance.now();
+          for (let i = 0; i < 2; i++) {
+            const ripT = ((ripNow / 2500 + i * 0.5) % 1);
+            const ripR = 12 + ripT * 28;
+            ctx.beginPath();
+            ctx.ellipse(x, waterY + 2, ripR, ripR * 0.25, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(52, 211, 153, ${(1 - ripT) * 0.12})`;
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+
+          // Small dock/pier on the left
+          const dockX = x - 38;
+          const dockY = waterY - 2;
+          ctx.fillStyle = 'rgba(139, 92, 46, 0.3)';
+          ctx.fillRect(dockX - 8, dockY, 18, 8);
+          // Plank grain lines
+          ctx.strokeStyle = 'rgba(100, 60, 20, 0.2)';
+          ctx.lineWidth = 0.5;
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(dockX - 8, dockY + 2 + i * 3);
+            ctx.lineTo(dockX + 10, dockY + 2 + i * 3);
+            ctx.stroke();
+          }
+          // Dock post
+          ctx.fillStyle = 'rgba(139, 92, 46, 0.4)';
+          ctx.fillRect(dockX - 4, dockY - 10, 3, 12);
+          // Mooring rope
+          ctx.beginPath();
+          ctx.moveTo(dockX - 2, dockY - 8);
+          ctx.quadraticCurveTo(dockX + 8, dockY - 12, x - 20, waterY);
+          ctx.strokeStyle = 'rgba(160, 130, 80, 0.25)';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+          break;
+        }
+
         default:
           break;
       }
@@ -1392,13 +1573,126 @@ function AgentKitchen() {
       context.closePath();
     };
 
+    // ─── Canvas-drawn rowing shell with animated oars ───
+    const drawRowingShell = (x, y, angle, oarPhase, scale = 1) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+
+      // Hull — sleek racing shell, bow pointing right
+      ctx.beginPath();
+      ctx.moveTo(38, 0);
+      ctx.quadraticCurveTo(25, -4, 0, -3.5);
+      ctx.quadraticCurveTo(-28, -3, -35, 0);
+      ctx.quadraticCurveTo(-28, 3, 0, 3.5);
+      ctx.quadraticCurveTo(25, 4, 38, 0);
+      ctx.closePath();
+      const hullGrad = ctx.createLinearGradient(-35, 0, 38, 0);
+      hullGrad.addColorStop(0, '#1e293b');
+      hullGrad.addColorStop(0.5, '#334155');
+      hullGrad.addColorStop(1, '#1e293b');
+      ctx.fillStyle = hullGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.5)';
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+
+      // Teal racing stripe
+      ctx.beginPath();
+      ctx.moveTo(-30, 0);
+      ctx.lineTo(34, 0);
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Seated rower (faces stern = left)
+      ctx.beginPath();
+      ctx.ellipse(-2, -5, 3, 4.5, 0.08, 0, Math.PI * 2);
+      ctx.fillStyle = '#059669';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(-2, -11, 3.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#fcd9a8';
+      ctx.fill();
+      // Cap
+      ctx.beginPath();
+      ctx.ellipse(-2, -12.5, 3.8, 1.3, 0, Math.PI, 0);
+      ctx.fillStyle = '#34d399';
+      ctx.fill();
+
+      // Oars — pivot at oarlocks, swing with phase
+      const oarAngle = Math.sin(oarPhase) * 0.4;
+      const isRecovery = Math.cos(oarPhase) > 0;
+      const bladeAlpha = isRecovery ? 0.5 : 0.85;
+      const oarLen = 22;
+
+      // Port oar (top side)
+      ctx.save();
+      ctx.translate(0, -3.5);
+      ctx.rotate(-1.35 + oarAngle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(oarLen, 0);
+      ctx.strokeStyle = '#c4a86c';
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+      ctx.globalAlpha = bladeAlpha;
+      ctx.fillStyle = '#34d399';
+      ctx.fillRect(oarLen - 1, -2.5, 4, 5);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // Starboard oar (bottom side)
+      ctx.save();
+      ctx.translate(0, 3.5);
+      ctx.rotate(1.35 - oarAngle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(oarLen, 0);
+      ctx.strokeStyle = '#c4a86c';
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+      ctx.globalAlpha = bladeAlpha;
+      ctx.fillStyle = '#34d399';
+      ctx.fillRect(oarLen - 1, -2.5, 4, 5);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      ctx.restore();
+    };
+
+    // ─── V-shaped wake trail behind rowing shell ───
+    const drawBoatWake = (x, y, angle, speed) => {
+      if (speed < 0.01) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      for (let i = 0; i < 3; i++) {
+        const wakeLen = 15 + i * 8;
+        const spread = 3 + i * 4;
+        const alpha = (0.2 - i * 0.05) * speed;
+        ctx.strokeStyle = `rgba(52, 211, 153, ${alpha})`;
+        ctx.lineWidth = 1 - i * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(-20, 0);
+        ctx.lineTo(-20 - wakeLen, -spread);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-20, 0);
+        ctx.lineTo(-20 - wakeLen, spread);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+
     const drawAgent = (station, now) => {
       if (!station.agent) return;
 
       const colors = {
         chat: '#60a5fa', blog: '#fbbf24', orchestrator: '#a78bfa',
         social: '#fb923c', fitness: '#4ade80', gaming: '#c084fc',
-        wellness: '#d97706',
+        wellness: '#d97706', rowing: '#34d399',
       };
 
       let ax, ay;
@@ -1415,7 +1709,25 @@ function AgentKitchen() {
         if (trip && trip.state !== 'idle') {
           isAtStation = false;
           const eased = easeInOut(trip.progress);
-          if (trip.state === 'toHub') {
+
+          if (station.agent === 'rowing') {
+            // Rowing: follow the quadratic bezier curve (same as water channel)
+            const cx = (homeX + hubX) / 2;
+            const cy = (homeY + hubY) / 2 - 30;
+            let t;
+            if (trip.state === 'toHub') { t = eased; }
+            else if (trip.state === 'atHub') { t = 1; }
+            else { t = 1 - eased; }
+            ax = (1 - t) * (1 - t) * homeX + 2 * (1 - t) * t * cx + t * t * hubX;
+            ay = (1 - t) * (1 - t) * homeY + 2 * (1 - t) * t * cy + t * t * hubY;
+            // Travel angle from bezier derivative
+            const ddx = 2 * (1 - t) * (cx - homeX) + 2 * t * (hubX - cx);
+            const ddy = 2 * (1 - t) * (cy - homeY) + 2 * t * (hubY - cy);
+            trip._boatAngle = Math.atan2(ddy, ddx);
+            if (trip.state === 'toStation') trip._boatAngle += Math.PI;
+            trip._oarPhase = now / 400;
+            trip._speed = trip.state === 'atHub' ? 0.1 : 1;
+          } else if (trip.state === 'toHub') {
             ax = homeX + (hubX - homeX) * eased;
             ay = homeY + (hubY - homeY) * eased;
           } else if (trip.state === 'atHub') {
@@ -1449,7 +1761,25 @@ function AgentKitchen() {
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
       ctx.fill();
 
-      if (avatarImg) {
+      if (station.agent === 'rowing' && !isAtStation) {
+        // ─── ROWING SHELL (during trip) ───
+        const trip = agentTripsRef.current[station.id];
+        if (trip) {
+          const boatAngle = trip._boatAngle || 0;
+          const oarPhase = trip._oarPhase || 0;
+          const speed = trip._speed || 1;
+          drawBoatWake(ax, ay, boatAngle, speed);
+          drawRowingShell(ax, ay, boatAngle, oarPhase * speed);
+          // Water glow around boat
+          ctx.beginPath();
+          ctx.ellipse(ax, ay, 18, 8, boatAngle, 0, Math.PI * 2);
+          const boatGlow = ctx.createRadialGradient(ax, ay, 0, ax, ay, 18);
+          boatGlow.addColorStop(0, 'rgba(52, 211, 153, 0.12)');
+          boatGlow.addColorStop(1, 'transparent');
+          ctx.fillStyle = boatGlow;
+          ctx.fill();
+        }
+      } else if (avatarImg) {
         // ─── SVG CHARACTER SPRITE ───
         ctx.save();
 
@@ -1506,7 +1836,35 @@ function AgentKitchen() {
       }
 
       // ─── Carrying data visual (when walking to/from hub) ───
-      if (!isAtStation) {
+      if (!isAtStation && station.agent === 'rowing') {
+        // Small glowing data dot above the boat
+        const trip = agentTripsRef.current[station.id];
+        if (trip && (trip.state === 'toHub' || trip.state === 'toStation')) {
+          const dotColor = trip.state === 'toHub' ? station.color : '#ff7a5c';
+          ctx.beginPath();
+          ctx.arc(ax, ay - 22, 3, 0, Math.PI * 2);
+          ctx.fillStyle = dotColor;
+          ctx.globalAlpha = 0.6;
+          ctx.shadowColor = dotColor;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+
+          // Label
+          const tripEvent = stationEventsRef.current[station.id];
+          const dotLabel = trip.state === 'toHub'
+            ? (tripEvent?.title || station.dataLabel || 'data').slice(0, 22)
+            : 'response';
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.font = '8px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = dotColor;
+          ctx.fillText(dotLabel, ax, ay - 30);
+          ctx.restore();
+        }
+      } else if (!isAtStation) {
         const trip = agentTripsRef.current[station.id];
         if (trip && (trip.state === 'toHub' || trip.state === 'toStation')) {
           const orbColor = trip.state === 'toHub' ? station.color : '#ff7a5c';
@@ -1689,6 +2047,33 @@ function AgentKitchen() {
           ctx.fillStyle = sweepGrad;
           ctx.fill();
           ctx.restore();
+        }
+
+        if (station.agent === 'rowing') {
+          // Rowing: expanding elliptical water ripple rings (oar splash)
+          for (let i = 0; i < 3; i++) {
+            const ripT = ((now / 2000 + i * 0.33) % 1);
+            const ripR = halfSprite + ripT * 16;
+            ctx.beginPath();
+            ctx.ellipse(ax, ay + bob + halfSprite * 0.3, ripR, ripR * 0.3, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = (1 - ripT) * 0.25 * activityFade;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          }
+          // Splash droplets
+          for (let i = 0; i < 2; i++) {
+            const dropT = ((now / 1500 + i * 0.5) % 1);
+            const dropX = ax + (i === 0 ? -1 : 1) * (halfSprite * 0.5);
+            const dropY = ay + bob - dropT * 18;
+            ctx.beginPath();
+            ctx.arc(dropX, dropY, 1.5 - dropT, 0, Math.PI * 2);
+            ctx.fillStyle = '#34d399';
+            ctx.globalAlpha = (1 - dropT) * 0.3 * activityFade;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
         }
       }
     };
