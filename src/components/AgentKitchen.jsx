@@ -1239,378 +1239,842 @@ function AgentKitchen() {
 
       ctx.save();
 
+      const t = performance.now();
+
       switch (station.agent) {
         case 'orchestrator': {
-          // Raised hex command platform with glow
+          // Command center — hex platform with holographic data panels and data ring
           const platY = footY - 2;
 
-          // Platform glow beneath
-          const glow = ctx.createRadialGradient(x, platY, 0, x, platY, 55);
-          glow.addColorStop(0, `${c}18`);
-          glow.addColorStop(0.6, `${c}08`);
-          glow.addColorStop(1, 'transparent');
-          ctx.beginPath();
-          ctx.arc(x, platY, 55, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
-          ctx.fill();
-
-          // Hex platform
+          // Hex platform floor
           ctx.beginPath();
           for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-            const px = x + Math.cos(a) * 48;
-            const py = platY + Math.sin(a) * 18;
+            const px = x + Math.cos(a) * 50;
+            const py = platY + Math.sin(a) * 19;
             i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
           }
           ctx.closePath();
-          ctx.fillStyle = `${c}15`;
+          ctx.fillStyle = `${c}12`;
           ctx.fill();
-          ctx.strokeStyle = `${c}40`;
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = `${c}35`;
+          ctx.lineWidth = 1.2;
           ctx.stroke();
 
-          // Inner hex ring
+          // Inner hex ring with rotating phase
+          const hexRot = t / 8000;
           ctx.beginPath();
           for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-            const px = x + Math.cos(a) * 30;
-            const py = platY + Math.sin(a) * 11;
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 6 + hexRot;
+            const px = x + Math.cos(a) * 32;
+            const py = platY + Math.sin(a) * 12;
             i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
           }
           ctx.closePath();
+          ctx.strokeStyle = `${c}20`;
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+
+          // 6 vertex indicator dots on outer hex
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+            const dx = x + Math.cos(a) * 50;
+            const dy = platY + Math.sin(a) * 19;
+            ctx.beginPath();
+            ctx.arc(dx, dy, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `${c}50`;
+            ctx.fill();
+          }
+
+          // Floating holographic data panel — left
+          const lpx = x - 46, lpy = y - 16;
+          roundRect(ctx, lpx, lpy, 22, 28, 2);
+          ctx.fillStyle = 'rgba(10, 6, 20, 0.6)';
+          ctx.fill();
+          ctx.strokeStyle = `${c}30`;
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+          // Mini bar chart on panel
+          const bars = [0.4, 0.7, 0.5, 0.9, 0.3];
+          bars.forEach((h, i) => {
+            ctx.fillStyle = `${c}${Math.floor(30 + h * 40).toString(16)}`;
+            ctx.fillRect(lpx + 3 + i * 4, lpy + 24 - h * 16, 3, h * 16);
+          });
+          // Panel header line
+          ctx.fillStyle = `${c}30`;
+          ctx.fillRect(lpx + 3, lpy + 3, 14, 1.5);
+
+          // Floating holographic data panel — right
+          const rpx = x + 24, rpy = y - 12;
+          roundRect(ctx, rpx, rpy, 22, 22, 2);
+          ctx.fillStyle = 'rgba(10, 6, 20, 0.5)';
+          ctx.fill();
           ctx.strokeStyle = `${c}25`;
-          ctx.lineWidth = 0.8;
+          ctx.lineWidth = 0.7;
           ctx.stroke();
+          // Text lines on right panel
+          for (let i = 0; i < 4; i++) {
+            ctx.fillStyle = `${c}${i === 0 ? '40' : '20'}`;
+            ctx.fillRect(rpx + 3, rpy + 4 + i * 4.5, i === 0 ? 16 : 10 + Math.random() * 6, 1.2);
+          }
+
+          // Rotating data ring (orbiting dots)
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2 + t / 3000;
+            const rx = x + Math.cos(a) * 40;
+            const ry = platY - 10 + Math.sin(a) * 8;
+            const alpha = 0.15 + Math.sin(a + t / 500) * 0.1;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 1.2, 0, Math.PI * 2);
+            ctx.fillStyle = `${c}`;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
           break;
         }
 
         case 'chat': {
-          // Glowing monitor screen behind character
-          const scrY = y - 34; // well above character center, behind head
+          // Terminal desk — monitor, keyboard, coffee, chat bubbles
+          const deskY = footY - 2;
 
-          // Screen glow
-          const glow = ctx.createRadialGradient(x, scrY + 8, 0, x, scrY + 8, 40);
-          glow.addColorStop(0, `${c}12`);
-          glow.addColorStop(1, 'transparent');
+          // Desk surface
           ctx.beginPath();
-          ctx.arc(x, scrY + 8, 40, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
+          ctx.moveTo(x - 48, deskY);
+          ctx.lineTo(x - 42, deskY + 10);
+          ctx.lineTo(x + 42, deskY + 10);
+          ctx.lineTo(x + 48, deskY);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
           ctx.fill();
-
-          // Monitor body
-          roundRect(ctx, x - 28, scrY - 10, 56, 36, 4);
-          ctx.fillStyle = 'rgba(10, 10, 18, 0.85)';
-          ctx.fill();
-          ctx.strokeStyle = `${c}50`;
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = `${c}30`;
+          ctx.lineWidth = 0.8;
           ctx.stroke();
 
-          // Screen scanlines
-          ctx.globalAlpha = 0.3;
-          ctx.fillStyle = c;
-          const lw = [0.7, 0.5, 0.85, 0.4, 0.65, 0.55];
-          lw.forEach((len, i) => {
-            ctx.fillRect(x - 22, scrY - 4 + i * 4, 40 * len, 1.5);
+          // Monitor behind character
+          const scrY = y - 38;
+          roundRect(ctx, x - 26, scrY - 8, 52, 32, 3);
+          ctx.fillStyle = 'rgba(8, 8, 16, 0.85)';
+          ctx.fill();
+          ctx.strokeStyle = `${c}40`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          // Screen content — code/chat lines
+          const lines = [0.8, 0.55, 0.7, 0.4, 0.65, 0.5, 0.75];
+          lines.forEach((len, i) => {
+            ctx.fillStyle = i < 2 ? `${c}30` : `${c}18`;
+            ctx.fillRect(x - 20, scrY - 2 + i * 3.2, 38 * len, 1.5);
           });
-          ctx.globalAlpha = 1;
+
+          // Blinking cursor
+          const cursorOn = Math.floor(t / 600) % 2 === 0;
+          if (cursorOn) {
+            ctx.fillStyle = `${c}60`;
+            ctx.fillRect(x - 20, scrY - 2 + 7 * 3.2, 5, 2);
+          }
 
           // Monitor stand
-          ctx.fillStyle = `${c}30`;
-          ctx.fillRect(x - 2, scrY + 26, 4, 8);
-          ctx.fillRect(x - 10, scrY + 33, 20, 3);
+          ctx.fillStyle = `${c}25`;
+          ctx.fillRect(x - 2, scrY + 24, 4, 6);
+          ctx.fillRect(x - 8, scrY + 29, 16, 2);
+
+          // Keyboard on desk
+          roundRect(ctx, x - 16, deskY + 1, 32, 6, 1.5);
+          ctx.fillStyle = 'rgba(30, 30, 50, 0.5)';
+          ctx.fill();
+          ctx.strokeStyle = `${c}20`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          // Key rows
+          for (let row = 0; row < 2; row++) {
+            for (let k = 0; k < 8; k++) {
+              ctx.fillStyle = `${c}12`;
+              ctx.fillRect(x - 14 + k * 3.5, deskY + 2 + row * 2.5, 2.5, 1.5);
+            }
+          }
+
+          // Coffee mug on right side of desk
+          const mugX = x + 32, mugY = deskY - 2;
+          ctx.fillStyle = 'rgba(80, 60, 40, 0.35)';
+          ctx.fillRect(mugX - 3, mugY, 6, 6);
+          roundRect(ctx, mugX - 3, mugY, 6, 6, 1);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(120, 90, 60, 0.3)';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          // Mug handle
+          ctx.beginPath();
+          ctx.arc(mugX + 4, mugY + 3, 2, -Math.PI / 2, Math.PI / 2);
+          ctx.strokeStyle = 'rgba(120, 90, 60, 0.3)';
+          ctx.stroke();
+          // Steam wisps
+          for (let i = 0; i < 2; i++) {
+            const sy = mugY - 3 - i * 4;
+            const sway = Math.sin(t / 800 + i * 1.5) * 2;
+            ctx.beginPath();
+            ctx.moveTo(mugX + sway, sy + 2);
+            ctx.quadraticCurveTo(mugX + sway + 2, sy, mugX + sway, sy - 2);
+            ctx.strokeStyle = `rgba(200, 200, 220, ${0.08 - i * 0.03})`;
+            ctx.lineWidth = 0.6;
+            ctx.stroke();
+          }
+
+          // Floating chat bubble (small, above-right)
+          const bubY = y - 20 + Math.sin(t / 1200) * 2;
+          roundRect(ctx, x + 34, bubY, 16, 8, 3);
+          ctx.fillStyle = `${c}15`;
+          ctx.fill();
+          ctx.strokeStyle = `${c}25`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          // Dots in bubble
+          for (let i = 0; i < 3; i++) {
+            const dotAlpha = Math.sin(t / 400 + i * 0.8) * 0.3 + 0.3;
+            ctx.beginPath();
+            ctx.arc(x + 38 + i * 4, bubY + 4, 1, 0, Math.PI * 2);
+            ctx.fillStyle = c;
+            ctx.globalAlpha = dotAlpha;
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
           break;
         }
 
         case 'blog': {
-          // Writing desk — wide surface beneath character
+          // Writer's study — desk with inkwell, quill, stacked books, candle
           const deskY = footY - 4;
 
-          // Desk glow
-          const glow = ctx.createRadialGradient(x, deskY, 0, x, deskY, 50);
-          glow.addColorStop(0, `${c}10`);
-          glow.addColorStop(1, 'transparent');
+          // Desk surface (warm wood)
           ctx.beginPath();
-          ctx.arc(x, deskY, 50, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
-          ctx.fill();
-
-          // Desk surface (isometric-ish trapezoid)
-          ctx.beginPath();
-          ctx.moveTo(x - 46, deskY);
-          ctx.lineTo(x - 40, deskY + 12);
-          ctx.lineTo(x + 40, deskY + 12);
-          ctx.lineTo(x + 46, deskY);
+          ctx.moveTo(x - 48, deskY);
+          ctx.lineTo(x - 42, deskY + 12);
+          ctx.lineTo(x + 42, deskY + 12);
+          ctx.lineTo(x + 48, deskY);
           ctx.closePath();
-          ctx.fillStyle = 'rgba(30, 22, 10, 0.7)';
+          ctx.fillStyle = 'rgba(45, 30, 12, 0.65)';
           ctx.fill();
-          ctx.strokeStyle = `${c}45`;
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = `${c}35`;
+          ctx.lineWidth = 1;
           ctx.stroke();
+          // Wood grain
+          ctx.strokeStyle = 'rgba(80, 50, 20, 0.15)';
+          ctx.lineWidth = 0.4;
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x - 40 + i * 12, deskY + 3 + i);
+            ctx.lineTo(x + 38 - i * 8, deskY + 4 + i);
+            ctx.stroke();
+          }
 
-          // Papers on desk
+          // Stack of books on left edge
+          const bkX = x - 38, bkY = deskY - 6;
+          const bkColors = ['rgba(220, 38, 38, 0.4)', 'rgba(59, 130, 246, 0.4)', 'rgba(251, 191, 36, 0.35)'];
+          bkColors.forEach((col, i) => {
+            ctx.fillStyle = col;
+            roundRect(ctx, bkX, bkY + i * 5, 14, 4.5, 1);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 0.3;
+            ctx.stroke();
+          });
+
+          // Open parchment on desk center
           ctx.save();
-          ctx.translate(x - 20, deskY + 2);
-          ctx.rotate(-0.1);
+          ctx.translate(x - 12, deskY + 1);
+          ctx.rotate(-0.04);
           ctx.fillStyle = 'rgba(254, 243, 199, 0.15)';
-          ctx.fillRect(0, 0, 16, 11);
-          ctx.strokeStyle = `${c}30`;
-          ctx.lineWidth = 0.5;
-          ctx.strokeRect(0, 0, 16, 11);
+          ctx.fillRect(0, 0, 24, 8);
+          ctx.strokeStyle = `${c}25`;
+          ctx.lineWidth = 0.4;
+          ctx.strokeRect(0, 0, 24, 8);
+          // Writing lines
+          for (let i = 0; i < 3; i++) {
+            ctx.fillStyle = `${c}18`;
+            ctx.fillRect(2, 2 + i * 2.2, 12 + i * 3, 0.6);
+          }
           ctx.restore();
 
-          ctx.save();
-          ctx.translate(x + 6, deskY + 1);
-          ctx.rotate(0.06);
-          ctx.fillStyle = 'rgba(254, 243, 199, 0.12)';
-          ctx.fillRect(0, 0, 14, 10);
-          ctx.strokeStyle = `${c}25`;
-          ctx.lineWidth = 0.5;
-          ctx.strokeRect(0, 0, 14, 10);
-          ctx.restore();
+          // Ink well on right side
+          const inkX = x + 22, inkY = deskY - 2;
+          ctx.beginPath();
+          ctx.arc(inkX, inkY + 3, 4, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(20, 10, 5, 0.5)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(60, 30, 10, 0.4)';
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+          // Ink surface
+          ctx.beginPath();
+          ctx.arc(inkX, inkY + 3, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(10, 5, 30, 0.6)';
+          ctx.fill();
+
+          // Quill resting in inkwell
+          ctx.beginPath();
+          ctx.moveTo(inkX + 1, inkY + 1);
+          ctx.lineTo(inkX + 14, inkY - 16);
+          ctx.strokeStyle = 'rgba(120, 53, 15, 0.5)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          // Feather
+          ctx.beginPath();
+          ctx.moveTo(inkX + 14, inkY - 16);
+          ctx.quadraticCurveTo(inkX + 18, inkY - 20, inkX + 16, inkY - 24);
+          ctx.quadraticCurveTo(inkX + 12, inkY - 20, inkX + 14, inkY - 16);
+          ctx.fillStyle = `${c}40`;
+          ctx.fill();
+
+          // Candle on far right
+          const candleX = x + 38, candleY = deskY - 8;
+          // Candle body
+          ctx.fillStyle = 'rgba(254, 243, 199, 0.25)';
+          ctx.fillRect(candleX - 2, candleY, 4, 10);
+          ctx.strokeStyle = 'rgba(200, 180, 140, 0.2)';
+          ctx.lineWidth = 0.4;
+          ctx.strokeRect(candleX - 2, candleY, 4, 10);
+          // Wick
+          ctx.fillStyle = 'rgba(60, 30, 10, 0.4)';
+          ctx.fillRect(candleX - 0.5, candleY - 2, 1, 3);
+          // Flame
+          const flicker = Math.sin(t / 150) * 0.5 + Math.sin(t / 230) * 0.3;
+          ctx.beginPath();
+          ctx.moveTo(candleX, candleY - 2);
+          ctx.quadraticCurveTo(candleX + 2.5 + flicker, candleY - 6, candleX, candleY - 9);
+          ctx.quadraticCurveTo(candleX - 2.5 - flicker, candleY - 6, candleX, candleY - 2);
+          ctx.fillStyle = `${c}50`;
+          ctx.fill();
+          // Inner flame
+          ctx.beginPath();
+          ctx.moveTo(candleX, candleY - 3);
+          ctx.quadraticCurveTo(candleX + 1 + flicker * 0.5, candleY - 5.5, candleX, candleY - 7);
+          ctx.quadraticCurveTo(candleX - 1 - flicker * 0.5, candleY - 5.5, candleX, candleY - 3);
+          ctx.fillStyle = 'rgba(255, 240, 200, 0.4)';
+          ctx.fill();
           break;
         }
 
         case 'gaming': {
-          // Bold arcane circle on the ground
+          // Arcane arena — magic circle, crystal pillars, floating rune book
           const circY = footY;
-          const circR = 44;
+          const circR = 46;
 
-          // Strong center glow
-          const glow = ctx.createRadialGradient(x, circY, 0, x, circY, circR);
-          glow.addColorStop(0, `${c}20`);
-          glow.addColorStop(0.5, `${c}0c`);
-          glow.addColorStop(1, 'transparent');
+          // Outer arcane ring
           ctx.beginPath();
-          ctx.arc(x, circY, circR, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
-          ctx.fill();
-
-          // Outer ring
-          ctx.beginPath();
-          ctx.arc(x, circY, circR, 0, Math.PI * 2);
-          ctx.strokeStyle = `${c}50`;
+          ctx.ellipse(x, circY, circR, circR * 0.35, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `${c}40`;
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
           // Inner ring
           ctx.beginPath();
-          ctx.arc(x, circY, circR * 0.55, 0, Math.PI * 2);
-          ctx.strokeStyle = `${c}35`;
-          ctx.lineWidth = 1;
+          ctx.ellipse(x, circY, circR * 0.55, circR * 0.2, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `${c}25`;
+          ctx.lineWidth = 0.8;
           ctx.stroke();
 
-          // Star pattern — two overlapping triangles
-          for (let t = 0; t < 2; t++) {
+          // Star of David pattern (two overlapping triangles)
+          for (let tri = 0; tri < 2; tri++) {
             ctx.beginPath();
             for (let i = 0; i < 3; i++) {
-              const a = (i / 3) * Math.PI * 2 - Math.PI / 2 + t * (Math.PI / 3);
-              const px = x + Math.cos(a) * circR * 0.7;
-              const py = circY + Math.sin(a) * circR * 0.45;
+              const a = (i / 3) * Math.PI * 2 - Math.PI / 2 + tri * (Math.PI / 3);
+              const px = x + Math.cos(a) * circR * 0.72;
+              const py = circY + Math.sin(a) * circR * 0.26;
               i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
             }
             ctx.closePath();
-            ctx.strokeStyle = `${c}30`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `${c}25`;
+            ctx.lineWidth = 0.8;
             ctx.stroke();
           }
 
-          // 6 rune dots on outer ring
+          // Rune symbols on outer ring (small line segments)
           for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2;
-            const rx = x + Math.cos(a) * circR * 0.92;
-            const ry = circY + Math.sin(a) * circR * 0.6;
+            const a = (i / 6) * Math.PI * 2 + t / 12000;
+            const rx = x + Math.cos(a) * circR * 0.88;
+            const ry = circY + Math.sin(a) * circR * 0.32;
+            ctx.save();
+            ctx.translate(rx, ry);
+            // Small rune mark
+            ctx.strokeStyle = `${c}40`;
+            ctx.lineWidth = 0.8;
             ctx.beginPath();
-            ctx.arc(rx, ry, 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = `${c}50`;
-            ctx.fill();
+            ctx.moveTo(-2, -2); ctx.lineTo(2, 2);
+            ctx.moveTo(2, -2); ctx.lineTo(-2, 2);
+            ctx.moveTo(0, -3); ctx.lineTo(0, 3);
+            ctx.stroke();
+            ctx.restore();
           }
+
+          // Crystal pillar — left
+          const cpx1 = x - 42, cpy1 = circY - 14;
+          ctx.beginPath();
+          ctx.moveTo(cpx1, cpy1 + 20);
+          ctx.lineTo(cpx1 - 4, cpy1 + 6);
+          ctx.lineTo(cpx1 - 2, cpy1);
+          ctx.lineTo(cpx1 + 2, cpy1 - 2);
+          ctx.lineTo(cpx1 + 4, cpy1 + 4);
+          ctx.lineTo(cpx1 + 4, cpy1 + 20);
+          ctx.closePath();
+          ctx.fillStyle = `${c}18`;
+          ctx.fill();
+          ctx.strokeStyle = `${c}30`;
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+
+          // Crystal pillar — right
+          const cpx2 = x + 42, cpy2 = circY - 12;
+          ctx.beginPath();
+          ctx.moveTo(cpx2, cpy2 + 18);
+          ctx.lineTo(cpx2 - 3, cpy2 + 4);
+          ctx.lineTo(cpx2 - 1, cpy2);
+          ctx.lineTo(cpx2 + 3, cpy2 - 1);
+          ctx.lineTo(cpx2 + 5, cpy2 + 6);
+          ctx.lineTo(cpx2 + 4, cpy2 + 18);
+          ctx.closePath();
+          ctx.fillStyle = `${c}14`;
+          ctx.fill();
+          ctx.strokeStyle = `${c}28`;
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+
+          // Floating spell book above-right
+          const bkFly = Math.sin(t / 1800) * 3;
+          const bookX = x + 30, bookY = y - 22 + bkFly;
+          ctx.save();
+          ctx.translate(bookX, bookY);
+          ctx.rotate(0.1);
+          // Book cover
+          ctx.fillStyle = 'rgba(76, 29, 149, 0.45)';
+          roundRect(ctx, -7, -5, 14, 10, 1.5);
+          ctx.fill();
+          ctx.strokeStyle = `${c}35`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+          // Spine
+          ctx.fillStyle = `${c}25`;
+          ctx.fillRect(-7, -5, 2, 10);
+          // Page lines
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillRect(-3, -3, 8, 0.8);
+          ctx.fillRect(-3, -1, 6, 0.8);
+          ctx.fillRect(-3, 1, 7, 0.8);
+          ctx.restore();
           break;
         }
 
         case 'social': {
-          // Spotlight/stage beneath character
+          // Broadcast stage — platform, mic stand, speaker stacks, sound bars
           const stageY = footY;
 
-          // Spotlight cone from above
+          // Stage platform — raised
           ctx.beginPath();
-          ctx.moveTo(x - 6, y - 50);
-          ctx.lineTo(x - 36, stageY + 8);
-          ctx.lineTo(x + 36, stageY + 8);
-          ctx.lineTo(x + 6, y - 50);
-          ctx.closePath();
-          const spot = ctx.createLinearGradient(x, y - 50, x, stageY + 8);
-          spot.addColorStop(0, `${c}04`);
-          spot.addColorStop(0.4, `${c}0c`);
-          spot.addColorStop(1, `${c}18`);
-          ctx.fillStyle = spot;
+          ctx.ellipse(x, stageY + 4, 44, 10, 0, 0, Math.PI * 2);
+          ctx.fillStyle = `${c}10`;
+          ctx.fill();
+          ctx.strokeStyle = `${c}30`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          // Stage front edge (thickness)
+          ctx.beginPath();
+          ctx.ellipse(x, stageY + 7, 44, 10, 0, 0, Math.PI);
+          ctx.lineTo(x - 44, stageY + 7);
+          ctx.fillStyle = `${c}08`;
           ctx.fill();
 
-          // Stage floor ellipse
-          ctx.beginPath();
-          ctx.ellipse(x, stageY + 6, 38, 8, 0, 0, Math.PI * 2);
-          ctx.fillStyle = `${c}15`;
+          // Speaker stack — left
+          const spkL = x - 40, spkY = stageY - 8;
+          roundRect(ctx, spkL - 6, spkY, 12, 16, 2);
+          ctx.fillStyle = 'rgba(20, 15, 10, 0.5)';
           ctx.fill();
-          ctx.strokeStyle = `${c}35`;
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = `${c}25`;
+          ctx.lineWidth = 0.6;
           ctx.stroke();
+          // Speaker cone circles
+          ctx.beginPath();
+          ctx.arc(spkL, spkY + 5, 3.5, 0, Math.PI * 2);
+          ctx.strokeStyle = `${c}30`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(spkL, spkY + 12, 2.5, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Speaker stack — right
+          const spkR = x + 40;
+          roundRect(ctx, spkR - 6, spkY + 2, 12, 14, 2);
+          ctx.fillStyle = 'rgba(20, 15, 10, 0.45)';
+          ctx.fill();
+          ctx.strokeStyle = `${c}22`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(spkR, spkY + 7, 3.5, 0, Math.PI * 2);
+          ctx.strokeStyle = `${c}28`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(spkR, spkY + 13, 2, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Mic stand behind character
+          const micX = x - 18, micY = y - 42;
+          ctx.strokeStyle = 'rgba(160, 160, 170, 0.3)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(micX, stageY);
+          ctx.lineTo(micX, micY + 6);
+          ctx.stroke();
+          // Mic head
+          ctx.beginPath();
+          ctx.arc(micX, micY + 3, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(60, 60, 70, 0.5)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(160, 160, 170, 0.35)';
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+          // Mic mesh lines
+          ctx.beginPath();
+          ctx.arc(micX, micY + 3, 3.5, -Math.PI * 0.8, -Math.PI * 0.2);
+          ctx.strokeStyle = 'rgba(200, 200, 210, 0.15)';
+          ctx.stroke();
+
+          // Animated sound bars on right side
+          for (let i = 0; i < 4; i++) {
+            const barH = 4 + Math.sin(t / 300 + i * 1.2) * 3 + Math.sin(t / 500 + i * 0.7) * 2;
+            ctx.fillStyle = `${c}`;
+            ctx.globalAlpha = 0.15 + (barH / 12) * 0.15;
+            ctx.fillRect(x + 26 + i * 3.5, y - 4 - barH, 2, barH);
+          }
+          ctx.globalAlpha = 1;
           break;
         }
 
         case 'wellness': {
-          // Earthy ground patch with sprouts
+          // Herb garden — stone path, mortar & pestle, hanging herbs, garden bed
           const groundY = footY - 2;
 
-          // Earth glow
-          const glow = ctx.createRadialGradient(x, groundY + 4, 0, x, groundY + 4, 45);
-          glow.addColorStop(0, 'rgba(22, 163, 74, 0.10)');
-          glow.addColorStop(1, 'transparent');
+          // Garden bed (earthy ellipse)
           ctx.beginPath();
-          ctx.arc(x, groundY + 4, 45, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
+          ctx.ellipse(x, groundY + 6, 46, 12, 0, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(80, 40, 10, 0.18)';
           ctx.fill();
-
-          // Ground patch ellipse
-          ctx.beginPath();
-          ctx.ellipse(x, groundY + 6, 42, 10, 0, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(120, 53, 15, 0.20)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(22, 163, 74, 0.25)';
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(22, 163, 74, 0.2)';
+          ctx.lineWidth = 0.8;
           ctx.stroke();
 
-          // 3 sprouts
-          const sprouts = [
-            { ox: -22, h: 18, dir: -1 },
-            { ox: 0, h: 22, dir: 1 },
-            { ox: 20, h: 16, dir: -1 },
+          // Stepping stones
+          const stones = [{ ox: -20, oy: 6, rx: 6, ry: 2.5 }, { ox: -8, oy: 9, rx: 5, ry: 2 }, { ox: 6, oy: 8, rx: 5.5, ry: 2.2 }];
+          stones.forEach(st => {
+            ctx.beginPath();
+            ctx.ellipse(x + st.ox, groundY + st.oy, st.rx, st.ry, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(120, 110, 100, 0.15)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(160, 150, 130, 0.12)';
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          });
+
+          // Plants — varied herbs and flowers
+          const plants = [
+            { ox: -30, h: 20, dir: -1, flower: true },
+            { ox: -14, h: 24, dir: 1, flower: false },
+            { ox: 4, h: 18, dir: -1, flower: false },
+            { ox: 18, h: 22, dir: 1, flower: true },
+            { ox: 30, h: 16, dir: -1, flower: false },
           ];
-          sprouts.forEach(sp => {
+          plants.forEach(sp => {
             const sx = x + sp.ox;
             const base = groundY + 4;
+            const sway = Math.sin(t / 2000 + sp.ox * 0.1) * 1.5;
 
             // Stem
             ctx.beginPath();
             ctx.moveTo(sx, base);
-            ctx.quadraticCurveTo(sx + sp.dir * 4, base - sp.h * 0.5, sx, base - sp.h);
-            ctx.strokeStyle = 'rgba(22, 163, 74, 0.45)';
-            ctx.lineWidth = 1.5;
+            ctx.quadraticCurveTo(sx + sp.dir * 4 + sway, base - sp.h * 0.5, sx + sway, base - sp.h);
+            ctx.strokeStyle = 'rgba(22, 163, 74, 0.4)';
+            ctx.lineWidth = 1.2;
             ctx.stroke();
 
             // Leaf
-            ctx.beginPath();
-            const lx = sx;
+            const lx = sx + sway;
             const ly = base - sp.h;
+            ctx.beginPath();
             ctx.moveTo(lx, ly);
-            ctx.quadraticCurveTo(lx + sp.dir * 8, ly - 4, lx + sp.dir * 12, ly);
-            ctx.quadraticCurveTo(lx + sp.dir * 8, ly + 3, lx, ly);
-            ctx.fillStyle = 'rgba(22, 163, 74, 0.35)';
+            ctx.quadraticCurveTo(lx + sp.dir * 8, ly - 3.5, lx + sp.dir * 11, ly);
+            ctx.quadraticCurveTo(lx + sp.dir * 8, ly + 2.5, lx, ly);
+            ctx.fillStyle = `rgba(22, 163, 74, ${sp.flower ? 0.3 : 0.35})`;
             ctx.fill();
+
+            // Small flower on some
+            if (sp.flower) {
+              ctx.beginPath();
+              ctx.arc(lx + sp.dir * 2, ly - 3, 2, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(251, 191, 36, 0.45)';
+              ctx.fill();
+              ctx.beginPath();
+              ctx.arc(lx + sp.dir * 2, ly - 3, 1, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(245, 158, 11, 0.5)';
+              ctx.fill();
+            }
           });
+
+          // Mortar & pestle on right side
+          const morX = x + 32, morY = groundY;
+          // Mortar bowl
+          ctx.beginPath();
+          ctx.moveTo(morX - 6, morY - 2);
+          ctx.quadraticCurveTo(morX - 7, morY + 6, morX, morY + 7);
+          ctx.quadraticCurveTo(morX + 7, morY + 6, morX + 6, morY - 2);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(120, 100, 80, 0.3)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(160, 140, 110, 0.25)';
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+          // Pestle
+          ctx.beginPath();
+          ctx.moveTo(morX + 2, morY - 1);
+          ctx.lineTo(morX + 10, morY - 10);
+          ctx.strokeStyle = 'rgba(140, 120, 90, 0.35)';
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+          ctx.lineCap = 'butt';
+
+          // Herb bundle hanging above (drying rack)
+          const rackX = x - 36, rackY = y - 28;
+          // Horizontal bar
+          ctx.strokeStyle = 'rgba(139, 92, 46, 0.25)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(rackX - 8, rackY);
+          ctx.lineTo(rackX + 8, rackY);
+          ctx.stroke();
+          // Hanging herbs
+          for (let i = 0; i < 3; i++) {
+            const hx = rackX - 6 + i * 6;
+            ctx.beginPath();
+            ctx.moveTo(hx, rackY);
+            ctx.lineTo(hx, rackY + 8 + i);
+            ctx.strokeStyle = 'rgba(22, 163, 74, 0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // Leaf cluster at bottom
+            ctx.beginPath();
+            ctx.arc(hx, rackY + 9 + i, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(22, 163, 74, ${0.2 + i * 0.05})`;
+            ctx.fill();
+          }
           break;
         }
 
         case 'fitness': {
-          // Gym floor plate
+          // Home gym — rubber mat, weight rack, pull-up frame, chalk bucket
           const matY = footY - 2;
 
-          // Floor glow
-          const glow = ctx.createRadialGradient(x, matY + 4, 0, x, matY + 4, 45);
-          glow.addColorStop(0, `${c}10`);
-          glow.addColorStop(1, 'transparent');
+          // Rubber gym mat
+          roundRect(ctx, x - 44, matY, 88, 14, 3);
+          ctx.fillStyle = 'rgba(4, 120, 87, 0.10)';
+          ctx.fill();
+          ctx.strokeStyle = `${c}28`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          // Mat texture lines
+          ctx.strokeStyle = `${c}08`;
+          ctx.lineWidth = 0.4;
+          for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x - 42 + i * 18, matY + 1);
+            ctx.lineTo(x - 42 + i * 18, matY + 13);
+            ctx.stroke();
+          }
+
+          // Weight rack on left side
+          const rackX = x - 40, rackY = matY - 22;
+          // Rack frame — two vertical posts
+          ctx.strokeStyle = 'rgba(120, 120, 130, 0.3)';
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(x, matY + 4, 45, 0, Math.PI * 2);
-          ctx.fillStyle = glow;
+          ctx.moveTo(rackX, matY + 2);
+          ctx.lineTo(rackX, rackY);
+          ctx.moveTo(rackX + 12, matY + 2);
+          ctx.lineTo(rackX + 12, rackY);
+          ctx.stroke();
+          // Cross bars
+          ctx.lineWidth = 1;
+          for (let i = 0; i < 3; i++) {
+            const barY = rackY + 4 + i * 7;
+            ctx.beginPath();
+            ctx.moveTo(rackX, barY);
+            ctx.lineTo(rackX + 12, barY);
+            ctx.stroke();
+          }
+          // Weight plates on rack
+          const plateColors = [`${c}30`, `${c}22`, `${c}18`];
+          plateColors.forEach((pc, i) => {
+            const py = rackY + 3 + i * 7;
+            ctx.fillStyle = pc;
+            ctx.fillRect(rackX + 2, py - 2, 8, 4);
+          });
+
+          // Barbell on floor (right side)
+          const bbY = matY + 7;
+          ctx.strokeStyle = 'rgba(160, 160, 170, 0.4)';
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(x + 14, bbY);
+          ctx.lineTo(x + 44, bbY);
+          ctx.stroke();
+          // Plates on barbell
+          ctx.fillStyle = 'rgba(160, 160, 170, 0.3)';
+          ctx.fillRect(x + 12, bbY - 4, 4, 8);
+          ctx.fillRect(x + 42, bbY - 4, 4, 8);
+          ctx.fillStyle = 'rgba(140, 140, 150, 0.25)';
+          ctx.fillRect(x + 9, bbY - 5, 4, 10);
+          ctx.fillRect(x + 45, bbY - 5, 4, 10);
+
+          // Chalk bucket
+          const chalkX = x + 34, chalkY = matY - 4;
+          ctx.beginPath();
+          ctx.moveTo(chalkX - 3, chalkY);
+          ctx.lineTo(chalkX - 4, chalkY + 7);
+          ctx.lineTo(chalkX + 4, chalkY + 7);
+          ctx.lineTo(chalkX + 3, chalkY);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(180, 180, 190, 0.15)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(180, 180, 190, 0.2)';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          // Chalk dust at top
+          ctx.beginPath();
+          ctx.ellipse(chalkX, chalkY, 3, 1.5, 0, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(240, 240, 250, 0.12)';
           ctx.fill();
 
-          // Gym mat rectangle
-          roundRect(ctx, x - 42, matY, 84, 14, 4);
-          ctx.fillStyle = 'rgba(4, 120, 87, 0.12)';
+          // Timer display above-right
+          const timerX = x + 28, timerY = y - 28;
+          roundRect(ctx, timerX - 8, timerY, 16, 8, 1.5);
+          ctx.fillStyle = 'rgba(10, 10, 20, 0.45)';
           ctx.fill();
-          ctx.strokeStyle = `${c}35`;
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = `${c}20`;
+          ctx.lineWidth = 0.5;
           ctx.stroke();
-
-          // Left dumbbell
-          const dbY = matY + 7;
-          ctx.strokeStyle = 'rgba(160, 160, 170, 0.45)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(x - 34, dbY);
-          ctx.lineTo(x - 22, dbY);
-          ctx.stroke();
-          ctx.fillStyle = 'rgba(160, 160, 170, 0.35)';
-          ctx.fillRect(x - 37, dbY - 4, 5, 8);
-          ctx.fillRect(x - 22, dbY - 4, 5, 8);
-
-          // Right dumbbell
-          ctx.beginPath();
-          ctx.moveTo(x + 22, dbY);
-          ctx.lineTo(x + 34, dbY);
-          ctx.stroke();
-          ctx.fillRect(x + 19, dbY - 4, 5, 8);
-          ctx.fillRect(x + 32, dbY - 4, 5, 8);
+          // Timer digits (blinking colon)
+          ctx.font = '5px monospace';
+          ctx.fillStyle = `${c}50`;
+          ctx.textAlign = 'center';
+          const colonVisible = Math.floor(t / 500) % 2 === 0;
+          ctx.fillText(colonVisible ? '03:45' : '03 45', timerX, timerY + 6);
+          ctx.textAlign = 'start';
           break;
         }
 
         case 'rowing': {
-          // Dock + water surface beneath idle rower
+          // Boathouse dock — water, dock structure, oar rack, lantern
           const waterY = footY;
 
-          // Water glow
-          const waterGlow = ctx.createRadialGradient(x, waterY, 0, x, waterY, 48);
-          waterGlow.addColorStop(0, 'rgba(52, 211, 153, 0.1)');
-          waterGlow.addColorStop(0.5, 'rgba(20, 184, 166, 0.05)');
-          waterGlow.addColorStop(1, 'transparent');
+          // Water surface
           ctx.beginPath();
-          ctx.arc(x, waterY, 48, 0, Math.PI * 2);
-          ctx.fillStyle = waterGlow;
+          ctx.ellipse(x + 6, waterY + 2, 44, 11, 0, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(52, 211, 153, 0.05)';
           ctx.fill();
-
-          // Water surface ellipse
-          ctx.beginPath();
-          ctx.ellipse(x, waterY + 2, 42, 10, 0, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(52, 211, 153, 0.06)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(52, 211, 153, 0.15)';
-          ctx.lineWidth = 0.8;
+          ctx.strokeStyle = 'rgba(52, 211, 153, 0.12)';
+          ctx.lineWidth = 0.7;
           ctx.stroke();
 
-          // Animated concentric ripple rings
-          const ripNow = performance.now();
-          for (let i = 0; i < 2; i++) {
-            const ripT = ((ripNow / 2500 + i * 0.5) % 1);
-            const ripR = 12 + ripT * 28;
-            ctx.beginPath();
-            ctx.ellipse(x, waterY + 2, ripR, ripR * 0.25, 0, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(52, 211, 153, ${(1 - ripT) * 0.12})`;
-            ctx.lineWidth = 0.7;
-            ctx.stroke();
-          }
-
-          // Small dock/pier on the left
-          const dockX = x - 38;
-          const dockY = waterY - 2;
-          ctx.fillStyle = 'rgba(139, 92, 46, 0.3)';
-          ctx.fillRect(dockX - 8, dockY, 18, 8);
-          // Plank grain lines
-          ctx.strokeStyle = 'rgba(100, 60, 20, 0.2)';
-          ctx.lineWidth = 0.5;
+          // Animated ripple rings
           for (let i = 0; i < 3; i++) {
+            const ripT = ((t / 3000 + i * 0.33) % 1);
+            const ripR = 10 + ripT * 30;
             ctx.beginPath();
-            ctx.moveTo(dockX - 8, dockY + 2 + i * 3);
-            ctx.lineTo(dockX + 10, dockY + 2 + i * 3);
+            ctx.ellipse(x + 6, waterY + 2, ripR, ripR * 0.22, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(52, 211, 153, ${(1 - ripT) * 0.1})`;
+            ctx.lineWidth = 0.5;
             ctx.stroke();
           }
-          // Dock post
-          ctx.fillStyle = 'rgba(139, 92, 46, 0.4)';
-          ctx.fillRect(dockX - 4, dockY - 10, 3, 12);
-          // Mooring rope
-          ctx.beginPath();
-          ctx.moveTo(dockX - 2, dockY - 8);
-          ctx.quadraticCurveTo(dockX + 8, dockY - 12, x - 20, waterY);
-          ctx.strokeStyle = 'rgba(160, 130, 80, 0.25)';
-          ctx.lineWidth = 0.8;
+
+          // Dock/pier on the left side
+          const dockX = x - 34;
+          const dockY = waterY - 4;
+          // Dock platform
+          ctx.fillStyle = 'rgba(139, 92, 46, 0.3)';
+          roundRect(ctx, dockX - 10, dockY, 22, 10, 1);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(160, 120, 60, 0.2)';
+          ctx.lineWidth = 0.5;
           ctx.stroke();
+          // Plank gaps
+          ctx.strokeStyle = 'rgba(80, 50, 20, 0.15)';
+          ctx.lineWidth = 0.4;
+          for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(dockX - 10, dockY + 2.5 + i * 2.5);
+            ctx.lineTo(dockX + 12, dockY + 2.5 + i * 2.5);
+            ctx.stroke();
+          }
+
+          // Dock support posts (two vertical)
+          ctx.fillStyle = 'rgba(100, 65, 30, 0.35)';
+          ctx.fillRect(dockX - 8, dockY + 8, 3, 6);
+          ctx.fillRect(dockX + 6, dockY + 8, 3, 6);
+
+          // Mooring post with rope
+          ctx.fillStyle = 'rgba(139, 92, 46, 0.45)';
+          ctx.fillRect(dockX - 5, dockY - 10, 3, 12);
+          // Rope coiled around post
+          ctx.beginPath();
+          ctx.moveTo(dockX - 3, dockY - 6);
+          ctx.quadraticCurveTo(dockX + 6, dockY - 10, x - 18, waterY);
+          ctx.strokeStyle = 'rgba(160, 130, 80, 0.22)';
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+
+          // Oar rack on far left (vertical with 2 oars)
+          const oarRackX = dockX - 18, oarRackY = dockY - 16;
+          // Rack post
+          ctx.strokeStyle = 'rgba(120, 80, 40, 0.3)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(oarRackX, oarRackY);
+          ctx.lineTo(oarRackX, oarRackY + 22);
+          ctx.stroke();
+          // Rack pegs
+          ctx.strokeStyle = 'rgba(120, 80, 40, 0.25)';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(oarRackX, oarRackY + 4);
+          ctx.lineTo(oarRackX + 5, oarRackY + 4);
+          ctx.moveTo(oarRackX, oarRackY + 14);
+          ctx.lineTo(oarRackX + 5, oarRackY + 14);
+          ctx.stroke();
+          // Oar shafts resting on pegs
+          ctx.strokeStyle = 'rgba(196, 168, 108, 0.25)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(oarRackX + 2, oarRackY + 2);
+          ctx.lineTo(oarRackX + 2, oarRackY + 20);
+          ctx.moveTo(oarRackX + 4, oarRackY + 3);
+          ctx.lineTo(oarRackX + 4, oarRackY + 19);
+          ctx.stroke();
+
+          // Small lantern on dock post
+          const lanX = dockX - 3.5, lanY = dockY - 12;
+          // Lantern body
+          ctx.fillStyle = 'rgba(200, 160, 80, 0.15)';
+          ctx.fillRect(lanX - 2, lanY, 4, 5);
+          ctx.strokeStyle = 'rgba(200, 160, 80, 0.25)';
+          ctx.lineWidth = 0.4;
+          ctx.strokeRect(lanX - 2, lanY, 4, 5);
+          // Lantern glow
+          const lanGlow = ctx.createRadialGradient(lanX, lanY + 2, 0, lanX, lanY + 2, 6);
+          lanGlow.addColorStop(0, 'rgba(255, 200, 80, 0.08)');
+          lanGlow.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(lanX, lanY + 2, 6, 0, Math.PI * 2);
+          ctx.fillStyle = lanGlow;
+          ctx.fill();
           break;
         }
 
