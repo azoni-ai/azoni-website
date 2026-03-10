@@ -39,6 +39,13 @@ function asNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function firstDefined(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
+}
+
 function round(value, digits = 2) {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
@@ -107,23 +114,98 @@ async function fetchAppStats() {
 
   if (rowResult.status === 'fulfilled') {
     const payload = rowResult.value || {};
-    const totals = payload.totals || {};
-    const worldGoal = payload.worldGoal || {};
+    const totals = payload.totals || payload.stats || payload.usage || payload || {};
+    const worldGoal = payload.worldGoal || payload.world_goal || payload.goal || payload || {};
 
-    stats.rowcrew.sessions = asNumber(totals.sessions);
-    stats.rowcrew.meters = asNumber(totals.meters);
-    stats.rowcrew.kilometers = asNumber(totals.kilometers, round(stats.rowcrew.meters / 1000, 2));
-    stats.rowcrew.uniqueRowers = asNumber(totals.uniqueRowers);
-    stats.rowcrew.worldGoalMeters = asNumber(worldGoal.meters, 40075000);
-    stats.rowcrew.worldProgressPercent = asNumber(worldGoal.progressPercent);
+    stats.rowcrew.sessions = asNumber(firstDefined(
+      totals.sessions,
+      totals.totalSessions,
+      totals.total_sessions,
+      totals.sessionsLogged,
+      payload.sessions,
+      payload.totalSessions,
+      payload.total_sessions
+    ));
+
+    stats.rowcrew.meters = asNumber(firstDefined(
+      totals.meters,
+      totals.totalMeters,
+      totals.total_meters,
+      totals.distanceMeters,
+      totals.distance_meters,
+      payload.meters,
+      payload.totalMeters,
+      payload.total_meters
+    ));
+
+    stats.rowcrew.kilometers = asNumber(
+      firstDefined(
+        totals.kilometers,
+        totals.kilometres,
+        totals.totalKilometers,
+        totals.total_kilometers,
+        payload.kilometers,
+        payload.totalKilometers
+      ),
+      round(stats.rowcrew.meters / 1000, 2)
+    );
+
+    stats.rowcrew.uniqueRowers = asNumber(firstDefined(
+      totals.uniqueRowers,
+      totals.unique_rowers,
+      totals.uniqueUsers,
+      totals.unique_users,
+      totals.rowers,
+      payload.uniqueRowers,
+      payload.unique_rowers
+    ));
+
+    stats.rowcrew.worldGoalMeters = asNumber(firstDefined(
+      worldGoal.meters,
+      worldGoal.targetMeters,
+      worldGoal.worldGoalMeters,
+      worldGoal.goalMeters,
+      worldGoal.goal_meters,
+      payload.worldGoalMeters,
+      payload.goalMeters
+    ), 40075000);
+
+    stats.rowcrew.worldProgressPercent = asNumber(firstDefined(
+      worldGoal.progressPercent,
+      worldGoal.progress,
+      worldGoal.progress_percentage,
+      payload.worldProgressPercent,
+      payload.progressPercent
+    ));
     stats.rowcrew.metersRemaining = asNumber(
-      worldGoal.metersRemaining,
+      firstDefined(
+        worldGoal.metersRemaining,
+        worldGoal.remainingMeters,
+        worldGoal.remaining_meters,
+        worldGoal.remaining,
+        payload.metersRemaining,
+        payload.remainingMeters
+      ),
       Math.max(0, stats.rowcrew.worldGoalMeters - stats.rowcrew.meters)
     );
-    stats.rowcrew.loopsCompleted = asNumber(worldGoal.loopsCompleted, round(
+    stats.rowcrew.loopsCompleted = asNumber(firstDefined(
+      worldGoal.loopsCompleted,
+      worldGoal.loops,
+      worldGoal.loops_completed,
+      payload.loopsCompleted,
+      payload.loops
+    ), round(
       stats.rowcrew.worldGoalMeters > 0 ? stats.rowcrew.meters / stats.rowcrew.worldGoalMeters : 0,
       3
     ));
+
+    // If only meters + goal are present, compute progress as a final fallback.
+    if (!stats.rowcrew.worldProgressPercent && stats.rowcrew.worldGoalMeters > 0 && stats.rowcrew.meters > 0) {
+      stats.rowcrew.worldProgressPercent = round(
+        (stats.rowcrew.meters / stats.rowcrew.worldGoalMeters) * 100,
+        2
+      );
+    }
   }
 
   if (owtResult.status === 'fulfilled') {
