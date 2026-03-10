@@ -2786,7 +2786,12 @@ function AgentKitchen() {
         while (replay.eventIndex < replay.events.length) {
           const ev = replay.events[replay.eventIndex];
           if (ev.ms > virtualTime) break;
-          triggerAgentTrip(ev.stationId);
+          // Inline trip trigger (same as triggerAgentTrip but avoids useEffect dep)
+          const trip = agentTripsRef.current[ev.stationId];
+          if (trip && trip.state === 'idle') {
+            trip.state = 'toHub';
+            trip.progress = 0;
+          }
           connectionFlashRef.current[ev.stationId] = now;
           replay.eventIndex++;
         }
