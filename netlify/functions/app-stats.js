@@ -51,6 +51,21 @@ function round(value, digits = 2) {
   return Math.round(value * factor) / factor;
 }
 
+function preserveMonotonicOldWaysTotals(currentStats, previousStats) {
+  if (!currentStats || !previousStats) return currentStats;
+
+  const current = currentStats.oldwaystoday;
+  const previous = previousStats.oldwaystoday;
+  if (!current || !previous) return currentStats;
+
+  current.requests = Math.max(asNumber(current.requests), asNumber(previous.requests));
+  current.inputTokens = Math.max(asNumber(current.inputTokens), asNumber(previous.inputTokens));
+  current.outputTokens = Math.max(asNumber(current.outputTokens), asNumber(previous.outputTokens));
+  current.totalCost = Math.max(asNumber(current.totalCost), asNumber(previous.totalCost));
+
+  return currentStats;
+}
+
 async function fetchJson(url, headers = {}, timeoutMs = 10000) {
   const res = await fetch(url, {
     headers,
@@ -235,12 +250,14 @@ exports.handler = async (event) => {
   }
 
   const canCache = initFirebase();
+  let previousCached = null;
 
   try {
     if (canCache) {
       const cacheDoc = await db.collection(CACHE_DOC_PATH.collection).doc(CACHE_DOC_PATH.id).get();
       if (cacheDoc.exists) {
         const cached = cacheDoc.data();
+        previousCached = cached;
         const cacheAgeMs = Date.now() - new Date(cached.updatedAt || 0).getTime();
         if (cacheAgeMs >= 0 && cacheAgeMs < CACHE_TTL_MS) {
           return {
@@ -252,7 +269,10 @@ exports.handler = async (event) => {
       }
     }
 
-    const stats = await fetchAppStats();
+    const stats = preserveMonotonicOldWaysTotals(
+      await fetchAppStats(),
+      previousCached
+    );
 
     if (canCache) {
       await db.collection(CACHE_DOC_PATH.collection).doc(CACHE_DOC_PATH.id).set(stats);
