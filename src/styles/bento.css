@@ -1622,3 +1622,146 @@ a.commit-repo:hover {
     justify-content: center;
   }
 }
+
+/* ============ PRODUCT SHOWCASE VARIANTS ============ */
+.fitness-showcase:hover {
+  border-color: rgba(74, 222, 128, 0.32);
+}
+
+.fitness-showcase .fabstats-accent {
+  background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+}
+
+.fitness-showcase .fabstats-icon-wrap {
+  border-color: rgba(74, 222, 128, 0.24);
+}
+
+.fitness-showcase .fabstats-badge {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.fitness-showcase .fabstats-stat-value {
+  color: #4ade80;
+}
+
+.fitness-showcase .fabstats-action-primary {
+  background: rgba(74, 222, 128, 0.11);
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #4ade80;
+}
+
+.fitness-showcase .fabstats-action-primary:hover {
+  background: rgba(74, 222, 128, 0.18);
+  border-color: rgba(74, 222, 128, 0.42);
+  color: #6dee94;
+}
+
+.oldways-showcase:hover {
+  border-color: rgba(217, 119, 6, 0.34);
+}
+
+.oldways-showcase .fabstats-accent {
+  background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+}
+
+.oldways-showcase .fabstats-icon-wrap {
+  border-color: rgba(217, 119, 6, 0.28);
+}
+
+.oldways-showcase .fabstats-badge {
+  background: rgba(217, 119, 6, 0.14);
+  color: #f59e0b;
+}
+
+.oldways-showcase .fabstats-stat-value {
+  color: #f59e0b;
+}
+
+.oldways-showcase .fabstats-action-primary {
+  background: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #f59e0b;
+}
+
+.oldways-showcase .fabstats-action-primary:hover {
+  background: rgba(217, 119, 6, 0.2);
+  border-color: rgba(217, 119, 6, 0.45);
+  color: #fbbf24;
+}
+
+/* ============ SHOWCASE PROGRESS ============ */
+.showcase-progress {
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.showcase-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.showcase-progress-header strong {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.86rem;
+  color: #4ade80;
+}
+
+.showcase-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.showcase-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e 0%, #34d399 100%);
+  transition: width 0.4s ease;
+}
+
+.showcase-progress-meta {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* ============ DUAL ICON WRAP ============ */
+.dual-app-icon-wrap {
+  position: relative;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dual-app-icon {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  padding: 3px;
+  border-radius: 8px;
+  background: #0d0f16;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dual-app-icon-primary {
+  left: 6px;
+  top: 8px;
+}
+
+.dual-app-icon-secondary {
+  right: 6px;
+  bottom: 8px;
+}

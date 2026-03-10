@@ -8,6 +8,8 @@ import CollapsibleSection from '../components/CollapsibleSection';
 import AgentKitchen from '../components/AgentKitchen';
 
 import FabStatsShowcase from '../components/FabStatsShowcase';
+import BenchRowCrewShowcase from '../components/BenchRowCrewShowcase';
+import OldWaysTodayShowcase from '../components/OldWaysTodayShowcase';
 import '../styles/bento.css';
 
 
@@ -30,6 +32,7 @@ const Home = () => {
   const [latestBlog, setLatestBlog] = useState(null);
   const [agentActivityCount, setAgentActivityCount] = useState(0);
   const [healthStatus, setHealthStatus] = useState(null);
+  const [appStats, setAppStats] = useState(null);
 
   const heroRef = useRef(null);
 
@@ -134,6 +137,28 @@ const Home = () => {
     fetchHealth();
   }, []);
 
+  // Fetch app metrics for homepage product cards
+  useEffect(() => {
+    const fetchAppStats = async () => {
+      try {
+        const res = await fetch('/.netlify/functions/app-stats');
+        if (!res.ok) return;
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) return;
+        const data = await res.json();
+        if (!data.error) {
+          setAppStats(data);
+        }
+      } catch (_err) {
+        // Silent fail in local/dev when function env vars are unavailable.
+      }
+    };
+
+    fetchAppStats();
+    const interval = setInterval(fetchAppStats, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Mouse tracking for hero glow effect — uses ref to avoid re-rendering whole page
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -158,6 +183,11 @@ const Home = () => {
     if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
     return `${days}d`;
+  };
+
+  const formatCountOrLive = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 ? num.toLocaleString() : 'Live';
   };
 
   return (
@@ -261,6 +291,35 @@ const Home = () => {
           ]}
         >
           <FabStatsShowcase />
+        </CollapsibleSection>
+
+        {/* ===== FITNESS PLATFORM SHOWCASE ===== */}
+        <CollapsibleSection
+          title="BenchPressOnly + RowCrew"
+          subtitle="Live metrics across strength training and rowing products"
+          badge="Live"
+          badgeType="live"
+          defaultOpen={true}
+          stats={[
+            { value: formatCountOrLive(appStats?.benchpressonly?.users), label: 'users' },
+            { value: formatCountOrLive(appStats?.rowcrew?.sessions), label: 'rows' }
+          ]}
+        >
+          <BenchRowCrewShowcase stats={appStats} />
+        </CollapsibleSection>
+
+        {/* ===== OLD WAYS TODAY SHOWCASE ===== */}
+        <CollapsibleSection
+          title="Old Ways Today"
+          subtitle="Standalone AI wellness product with live backend usage metrics"
+          badge="Live"
+          badgeType="live"
+          defaultOpen={false}
+          stats={[
+            { value: formatCountOrLive(appStats?.oldwaystoday?.requests), label: 'requests' }
+          ]}
+        >
+          <OldWaysTodayShowcase stats={appStats} healthStatus={healthStatus} />
         </CollapsibleSection>
 
         {/* ===== LIVE SYSTEM MAP ===== */}

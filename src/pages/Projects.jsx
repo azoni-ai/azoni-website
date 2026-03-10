@@ -7,35 +7,35 @@ import { useProjects } from '../hooks/useProjects';
  * Projects page with loading state to prevent flash
  */
 const Projects = () => {
-  const { 
-    projects: filteredProjects, 
-    categories, 
-    activeCategory, 
+  const {
+    projects: filteredProjects,
+    categories,
+    activeCategory,
     changeCategory,
-    loading 
+    loading
   } = useProjects('all');
 
   return (
     <Layout>
       <section className="section" style={{ paddingTop: '120px' }}>
         <div className="container">
-          {/* Header */}
           <div className="section-header">
             <h1>Projects</h1>
             <p>
-              A collection of things I've built — from AI platforms to prediction markets 
-              to high-frequency trading systems.
+              Selected production work across AI products, platform infrastructure,
+              developer tooling, and consumer applications.
             </p>
           </div>
 
-          {/* Category Filter */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: 'var(--space-sm)',
-            marginBottom: 'var(--space-2xl)'
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              gap: 'var(--space-sm)',
+              marginBottom: 'var(--space-2xl)'
+            }}
+          >
             {Object.entries(categories || {}).map(([key, label]) => (
               <button
                 key={key}
@@ -47,18 +47,18 @@ const Projects = () => {
             ))}
           </div>
 
-          {/* Loading State */}
           {loading ? (
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              padding: 'var(--space-2xl)' 
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                padding: 'var(--space-2xl)'
+              }}
+            >
               <p style={{ color: 'var(--text-muted)' }}>Loading projects...</p>
             </div>
           ) : (
             <>
-              {/* Project Grid */}
               <div className="project-grid">
                 {filteredProjects.map((project) => (
                   <ProjectCard key={project.id} project={project} />

@@ -350,7 +350,7 @@ function AgentKitchen() {
       gaming: 'gaming', social: 'social', fitness: 'fitness',
       wellness: 'oldways',
     };
-    const urls = [];
+    let isActive = true;
     Object.entries(agentToAvatar).forEach(([agentKey, avatarKey]) => {
       if (!avatars[avatarKey]) return;
       const svgEl = avatars[avatarKey](256);
@@ -359,15 +359,17 @@ function AgentKitchen() {
       if (!svgString.includes('xmlns')) {
         svgString = svgString.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
       }
-      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      urls.push(url);
+      const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
       const img = new Image();
-      img.onload = () => { avatarImagesRef.current[agentKey] = img; };
+      img.onload = () => {
+        if (isActive) avatarImagesRef.current[agentKey] = img;
+      };
       img.onerror = (e) => console.warn(`Avatar failed to load: ${agentKey}`, e);
       img.src = url;
     });
-    return () => urls.forEach(u => URL.revokeObjectURL(u));
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   // Event-driven pulse spawning (called from onSnapshot)
