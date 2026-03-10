@@ -22,7 +22,7 @@ try {
   // silently fail if Firebase init fails
 }
 
-const FabStatsShowcase = () => {
+const FabStatsShowcase = ({ onStats } = {}) => {
   const [stats, setStats] = useState({ users: 0, matches: 0, heroes: 0 });
   const [topPlayers, setTopPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,11 +39,13 @@ const FabStatsShowcase = () => {
           getDocs(query(collection(fabDb, 'leaderboard'), orderBy('totalMatches', 'desc'), limit(5))),
         ]);
 
+        const userCount = userSnap.data().count;
         setStats({
-          users: userSnap.data().count,
+          users: userCount,
           matches: matchSnap.data().total,
           heroes: heroSnap.data().count,
         });
+        if (onStats) onStats({ users: userCount });
 
         setTopPlayers(leaderSnap.docs.map(d => {
           const data = d.data();

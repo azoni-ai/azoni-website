@@ -33,6 +33,7 @@ const Home = () => {
   const [agentActivityCount, setAgentActivityCount] = useState(0);
   const [healthStatus, setHealthStatus] = useState(null);
   const [appStats, setAppStats] = useState(null);
+  const [fabUserCount, setFabUserCount] = useState(0);
 
   const heroRef = useRef(null);
 
@@ -444,14 +445,14 @@ const Home = () => {
         <CollapsibleSection
           title="FaB Stats"
           subtitle="Live match tracking platform for competitive Flesh and Blood players"
-          badge="2,500+ players"
+          badge={fabUserCount > 0 ? `${fabUserCount.toLocaleString()} players` : 'Live'}
           badgeType="live"
           defaultOpen={true}
           stats={[
             { value: 'fabstats.net', label: '' }
           ]}
         >
-          <FabStatsShowcase />
+          <FabStatsShowcase onStats={({ users }) => setFabUserCount(users)} />
         </CollapsibleSection>
 
         {/* ===== 3. FITNESS PLATFORM ===== */}
