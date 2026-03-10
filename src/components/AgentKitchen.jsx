@@ -2938,7 +2938,6 @@ function AgentKitchen() {
           const h1 = history.filter(e => now - e.ms < 3600000).length;
           const h24 = history.length;
           const events = (stationHistoryRef.current[s.id] || []).slice(0, 10);
-          const lastEvt = stationEventsRef.current[s.id];
           const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === s.id)?.[0];
           const mcpStatus = domain && mcpRef.current.health?.[domain];
           const statusText = mcpStatus === true ? 'online' : mcpStatus === false ? 'offline' : s.isHub ? 'hub' : 'connected';
