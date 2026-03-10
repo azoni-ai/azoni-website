@@ -66,6 +66,43 @@ function preserveMonotonicOldWaysTotals(currentStats, previousStats) {
   return currentStats;
 }
 
+async function fetchOldWaysFromActivityLogs() {
+  if (!db) return null;
+
+  try {
+    const snapshot = await db
+      .collection('agent_activity')
+      .where('source', 'in', ['oldwaystoday', 'old-ways-today'])
+      .get();
+
+    if (snapshot.empty) return null;
+
+    let requests = 0;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let totalCost = 0;
+
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data() || {};
+      const tokens = data.tokens || {};
+
+      requests += 1;
+      inputTokens += asNumber(firstDefined(tokens.prompt, tokens.input, tokens.inputTokens));
+      outputTokens += asNumber(firstDefined(tokens.completion, tokens.output, tokens.outputTokens));
+      totalCost += asNumber(data.cost);
+    });
+
+    return {
+      requests,
+      inputTokens,
+      outputTokens,
+      totalCost: round(totalCost, 6),
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJson(url, headers = {}, timeoutMs = 10000) {
   const res = await fetch(url, {
     headers,
@@ -231,6 +268,23 @@ async function fetchAppStats() {
     stats.oldwaystoday.outputTokens = asNumber(totals.outputTokens ?? totals.total_output_tokens);
     stats.oldwaystoday.totalCost = asNumber(totals.totalCost ?? totals.total_cost);
     stats.oldwaystoday.status = payload.status || 'ok';
+  }
+
+  // If OWT backend counters reset, recover from durable activity logs.
+  if (
+    db
+    && stats.oldwaystoday.requests === 0
+    && stats.oldwaystoday.inputTokens === 0
+    && stats.oldwaystoday.outputTokens === 0
+  ) {
+    const activityTotals = await fetchOldWaysFromActivityLogs();
+    if (activityTotals) {
+      stats.oldwaystoday.requests = Math.max(stats.oldwaystoday.requests, activityTotals.requests);
+      stats.oldwaystoday.inputTokens = Math.max(stats.oldwaystoday.inputTokens, activityTotals.inputTokens);
+      stats.oldwaystoday.outputTokens = Math.max(stats.oldwaystoday.outputTokens, activityTotals.outputTokens);
+      stats.oldwaystoday.totalCost = Math.max(stats.oldwaystoday.totalCost, activityTotals.totalCost);
+      if (stats.oldwaystoday.status === 'unknown') stats.oldwaystoday.status = 'ok';
+    }
   }
 
   stats.updatedAt = new Date().toISOString();
