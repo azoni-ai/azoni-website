@@ -126,8 +126,8 @@ const STATION_DEFS = [
     dataLabel: 'embeddings',
   },
   {
-    id: 'rowcrew', label: 'RowCrew', x: 0.68, y: 0.68, color: '#34d399', icon: 'waves', category: 'app',
-    desc: 'Rowing fitness tracker sharing Firebase with BenchPress. Claude Vision verifies workout photos. MCP reads its session data.',
+    id: 'rowcrew', label: 'RowCrew', x: 0.68, y: 0.68, color: '#34d399', icon: 'waves', category: 'agent',
+    desc: 'AI-powered rowing tracker — Claude Vision verifies workout photos, extracts meters and display data. Shares Firebase with BenchPress. MCP reads its session data.',
     actions: ['Logging sessions', 'Stroke analysis', 'Progress tracking'],
     dataLabel: 'rowing data',
   },
