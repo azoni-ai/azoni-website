@@ -276,56 +276,23 @@ const Home = () => {
           </div>
         </section>
 
+        {/* ===== NARRATIVE INTRO ===== */}
+        <section className="narrative-section">
+          <div className="container">
+            <p className="narrative-text">
+              This portfolio runs itself — 3 AI agents autonomously write blog posts, manage social presence,
+              and coordinate data across 8+ live products. Every section below is backed by real systems, real users, and real-time data.
+            </p>
+          </div>
+        </section>
+
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 
-        {/* ===== FABSTATS FEATURED PROJECT ===== */}
+        {/* ===== 1. THE AGENT SYSTEM (merged map + agents) ===== */}
         <CollapsibleSection
-          title="FaB Stats"
-          subtitle="Live match tracking platform for 2,500+ competitive Flesh and Blood players"
-          badge="Live"
-          badgeType="live"
-          defaultOpen={true}
-          stats={[
-            { value: 'fabstats.net', label: '' }
-          ]}
-        >
-          <FabStatsShowcase />
-        </CollapsibleSection>
-
-        {/* ===== FITNESS PLATFORM SHOWCASE ===== */}
-        <CollapsibleSection
-          title="BenchPressOnly + RowCrew"
-          subtitle="Live metrics across strength training and rowing products"
-          badge="Live"
-          badgeType="live"
-          defaultOpen={true}
-          stats={[
-            { value: formatCountOrLive(appStats?.benchpressonly?.users), label: 'users' },
-            { value: formatCountOrLive(appStats?.rowcrew?.sessions), label: 'rows' }
-          ]}
-        >
-          <BenchRowCrewShowcase stats={appStats} />
-        </CollapsibleSection>
-
-        {/* ===== OLD WAYS TODAY SHOWCASE ===== */}
-        <CollapsibleSection
-          title="Old Ways Today"
-          subtitle="Standalone AI wellness product with live backend usage metrics"
-          badge="Live"
-          badgeType="live"
-          defaultOpen={false}
-          stats={[
-            { value: formatCountOrLive(appStats?.oldwaystoday?.requests), label: 'requests' }
-          ]}
-        >
-          <OldWaysTodayShowcase stats={appStats} healthStatus={healthStatus} />
-        </CollapsibleSection>
-
-        {/* ===== LIVE SYSTEM MAP ===== */}
-        <CollapsibleSection
-          title="Live System Map"
-          subtitle="Real-time agent activity — characters respond to live Firebase events"
+          title="The Agent System"
+          subtitle="3 autonomous AI agents running this site — real-time map + architecture"
           badge="Live"
           badgeType="live"
           defaultOpen={true}
@@ -335,195 +302,196 @@ const Home = () => {
               <AgentKitchen />
             </div>
           </section>
-        </CollapsibleSection>
+          <section className="showcase-section">
+            <div className="container">
+              <div className="showcase-grid showcase-grid-3">
 
-        {/* ===== THE 3 AGENTS ===== */}
-        <CollapsibleSection
-          title="The Agents"
-          subtitle="Autonomous systems running this site right now"
-          badge="3 Live"
-          badgeType="live"
-          defaultOpen={false}
-        >
-        <section className="showcase-section">
-          <div className="container">
-            <div className="showcase-grid showcase-grid-3">
-
-              <Link to="/activity" className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#ff7a5c' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff7a5c" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>The Conductor</h3>
-                        <span className="showcase-status showcase-status-orange">Every 3h</span>
+                <Link to="/activity" className="showcase-card">
+                  <div className="showcase-card-accent" style={{ background: '#ff7a5c' }} />
+                  <div className="showcase-card-body">
+                    <div className="showcase-card-header">
+                      <div className="showcase-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff7a5c" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                       </div>
-                      <span className="showcase-tagline">Central intelligence coordinating all agents</span>
+                      <div>
+                        <div className="showcase-title-row">
+                          <h3>The Conductor</h3>
+                          <span className="showcase-status showcase-status-orange">Every 3h</span>
+                        </div>
+                        <span className="showcase-tagline">Central intelligence coordinating all agents</span>
+                      </div>
+                    </div>
+                    <p className="showcase-desc">
+                      Wakes up every 3 hours, gathers state from 11 data sources, sends it to an LLM for analysis,
+                      then validates and executes the decided actions. Rate-limited and action-whitelisted.
+                    </p>
+                    <div className="showcase-flow">
+                      <span className="showcase-flow-step">11 Sources</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">LLM Decides</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Validate</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Execute</span>
+                    </div>
+                    {agentActivityCount > 0 && (
+                      <div className="showcase-preview">
+                        <span className="showcase-preview-label">24h</span>
+                        <span className="showcase-preview-title">{agentActivityCount} agent events</span>
+                      </div>
+                    )}
+                    <div className="showcase-tech">
+                      <span>GPT-4o-mini</span>
+                      <span>GitHub API</span>
+                      <span>Firebase</span>
+                      <span>Cron</span>
                     </div>
                   </div>
-                  <p className="showcase-desc">
-                    Wakes up every 3 hours, gathers state from 11 data sources, sends it to an LLM for analysis,
-                    then validates and executes the decided actions. Rate-limited and action-whitelisted.
-                  </p>
-                  <div className="showcase-flow">
-                    <span className="showcase-flow-step">11 Sources</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">LLM Decides</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Validate</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Execute</span>
+                </Link>
+
+                <Link to="/blog" className="showcase-card">
+                  <div className="showcase-card-accent" style={{ background: '#fbbf24' }} />
+                  <div className="showcase-card-body">
+                    <div className="showcase-card-header">
+                      <div className="showcase-icon" style={{ background: 'rgba(251,191,36,0.12)' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      </div>
+                      <div>
+                        <div className="showcase-title-row">
+                          <h3>The Scribe</h3>
+                          <span className="showcase-status showcase-status-yellow">Daily</span>
+                        </div>
+                        <span className="showcase-tagline">Writes and publishes without human input</span>
+                      </div>
+                    </div>
+                    <p className="showcase-desc">
+                      Every day the orchestrator reviews GitHub commits, decides if there's something worth
+                      writing about, and generates a full blog post with code analysis. No prompts, no drafts.
+                    </p>
+                    <div className="showcase-flow">
+                      <span className="showcase-flow-step">Commits</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Orchestrator</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Claude Blog</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Published</span>
+                    </div>
+                    {latestBlog && (
+                      <div className="showcase-preview">
+                        <span className="showcase-preview-label">Latest</span>
+                        <span className="showcase-preview-title">{latestBlog.title}</span>
+                      </div>
+                    )}
+                    <div className="showcase-tech">
+                      <span>Claude Sonnet</span>
+                      <span>GitHub API</span>
+                      <span>Firestore</span>
+                      <span>SVG Covers</span>
+                    </div>
                   </div>
-                  {agentActivityCount > 0 && (
+                </Link>
+
+                <Link to="/chat" className="showcase-card">
+                  <div className="showcase-card-accent" style={{ background: '#60a5fa' }} />
+                  <div className="showcase-card-body">
+                    <div className="showcase-card-header">
+                      <div className="showcase-icon" style={{ background: 'rgba(96,165,250,0.12)' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                      </div>
+                      <div>
+                        <div className="showcase-title-row">
+                          <h3>Azoni AI</h3>
+                          <span className="showcase-status">Try it</span>
+                        </div>
+                        <span className="showcase-tagline">Self-improving RAG chatbot</span>
+                      </div>
+                    </div>
+                    <p className="showcase-desc">
+                      Vector search with OpenAI embeddings finds relevant knowledge. When stumped, generates
+                      new knowledge on the spot and saves it. Paste a job description for AI fit analysis.
+                    </p>
+                    <div className="showcase-flow">
+                      <span className="showcase-flow-step">Question</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Intent</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Vector + MCP</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      <span className="showcase-flow-step">Response</span>
+                    </div>
                     <div className="showcase-preview">
-                      <span className="showcase-preview-label">24h</span>
-                      <span className="showcase-preview-title">{agentActivityCount} agent events</span>
+                      <span className="showcase-preview-label">Try</span>
+                      <span className="showcase-preview-title">Paste a job description for AI fit analysis</span>
                     </div>
-                  )}
-                  <div className="showcase-tech">
-                    <span>GPT-4o-mini</span>
-                    <span>GitHub API</span>
-                    <span>Firebase</span>
-                    <span>Cron</span>
+                    <div className="showcase-tech">
+                      <span>OpenRouter</span>
+                      <span>Embeddings</span>
+                      <span>MCP</span>
+                      <span>Firestore RAG</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
 
-              <Link to="/blog" className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#fbbf24' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(251,191,36,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>The Scribe</h3>
-                        <span className="showcase-status showcase-status-yellow">Daily</span>
-                      </div>
-                      <span className="showcase-tagline">Writes and publishes without human input</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    Every day the orchestrator reviews GitHub commits, decides if there's something worth
-                    writing about, and generates a full blog post with code analysis. No prompts, no drafts.
-                  </p>
-                  <div className="showcase-flow">
-                    <span className="showcase-flow-step">Commits</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Orchestrator</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Claude Blog</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Published</span>
-                  </div>
-                  {latestBlog && (
-                    <div className="showcase-preview">
-                      <span className="showcase-preview-label">Latest</span>
-                      <span className="showcase-preview-title">{latestBlog.title}</span>
-                    </div>
-                  )}
-                  <div className="showcase-tech">
-                    <span>Claude Sonnet</span>
-                    <span>GitHub API</span>
-                    <span>Firestore</span>
-                    <span>SVG Covers</span>
-                  </div>
-                </div>
-              </Link>
-
-              <Link to="/chat" className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#60a5fa' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(96,165,250,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>Azoni AI</h3>
-                        <span className="showcase-status">Try it</span>
-                      </div>
-                      <span className="showcase-tagline">Self-improving RAG chatbot</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    Vector search with OpenAI embeddings finds relevant knowledge. When stumped, generates
-                    new knowledge on the spot and saves it. Paste a job description for AI fit analysis.
-                  </p>
-                  <div className="showcase-flow">
-                    <span className="showcase-flow-step">Question</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Intent</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Vector + MCP</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <span className="showcase-flow-step">Response</span>
-                  </div>
-                  <div className="showcase-preview">
-                    <span className="showcase-preview-label">Try</span>
-                    <span className="showcase-preview-title">Paste a job description for AI fit analysis</span>
-                  </div>
-                  <div className="showcase-tech">
-                    <span>OpenRouter</span>
-                    <span>Embeddings</span>
-                    <span>MCP</span>
-                    <span>Firestore RAG</span>
-                  </div>
-                </div>
-              </Link>
-
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         </CollapsibleSection>
 
-        {/* ===== AI PRODUCTS ===== */}
+        {/* ===== 2. FABSTATS ===== */}
         <CollapsibleSection
-          title="AI Products"
-          subtitle="Shipping AI in fitness, gaming, social, and wellness apps"
-          badge="4 Apps"
+          title="FaB Stats"
+          subtitle="Live match tracking platform for competitive Flesh and Blood players"
+          badge="2,500+ players"
+          badgeType="count"
+          defaultOpen={false}
+          stats={[
+            { value: 'fabstats.net', label: '' }
+          ]}
+        >
+          <FabStatsShowcase />
+        </CollapsibleSection>
+
+        {/* ===== 3. FITNESS PLATFORM ===== */}
+        <CollapsibleSection
+          title="BenchPressOnly + RowCrew"
+          subtitle="AI-powered strength training and rowing apps with real users"
+          badge={`${formatCountOrLive(appStats?.benchpressonly?.users)} users`}
+          badgeType="count"
+          defaultOpen={false}
+          stats={[
+            { value: formatCountOrLive(appStats?.benchpressonly?.users), label: 'users' },
+            { value: formatCountOrLive(appStats?.rowcrew?.sessions), label: 'rows' }
+          ]}
+        >
+          <BenchRowCrewShowcase stats={appStats} />
+        </CollapsibleSection>
+
+        {/* ===== 4. OLD WAYS TODAY ===== */}
+        <CollapsibleSection
+          title="Old Ways Today"
+          subtitle="Standalone AI wellness product — same agent architecture, different domain"
+          badge="Product"
+          badgeType="count"
+          defaultOpen={false}
+          stats={[
+            { value: formatCountOrLive(appStats?.oldwaystoday?.requests), label: 'requests' }
+          ]}
+        >
+          <OldWaysTodayShowcase stats={appStats} healthStatus={healthStatus} />
+        </CollapsibleSection>
+
+        {/* ===== 5. MORE PROJECTS (deduplicated — only Spell Brigade + Moltbook) ===== */}
+        <CollapsibleSection
+          title="More Projects"
+          subtitle="AI-powered gaming and autonomous social presence"
+          badge="2 Apps"
           badgeType="count"
           defaultOpen={false}
         >
         <section className="showcase-section">
           <div className="container">
-            <div className="showcase-grid showcase-grid-2x2">
-
-              <div className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#4ade80' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(74,222,128,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"><path d="M6.5 6.5h11M6.5 17.5h11M4 10h2.5v4H4zM17.5 10H20v4h-2.5zM6.5 11h11v2h-11z"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>BenchPressOnly + RowCrew</h3>
-                        <span className="showcase-status showcase-status-green">Live</span>
-                      </div>
-                      <span className="showcase-tagline">AI fitness platform</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    Two fitness apps with real users. AI generates personalized workouts, provides real-time form
-                    correction, tracks PRs, and analyzes progress trends. RowCrew extends the same platform to rowing.
-                  </p>
-                  <div className="showcase-tech">
-                    <span>React Native</span>
-                    <span>AI Form Correction</span>
-                    <span>AI Workouts</span>
-                    <span>Firebase</span>
-                  </div>
-                  <div className="showcase-actions">
-                    <a href="https://benchpressonly.com" target="_blank" rel="noopener noreferrer" className="showcase-action">BenchPressOnly ↗</a>
-                    <a href="https://rowcrew.netlify.app" target="_blank" rel="noopener noreferrer" className="showcase-action">RowCrew ↗</a>
-                  </div>
-                </div>
-              </div>
+            <div className="showcase-grid">
 
               <div className="showcase-card">
                 <div className="showcase-card-accent" style={{ background: '#c084fc' }} />
@@ -568,8 +536,6 @@ const Home = () => {
                         <h3>Moltbook</h3>
                         {healthStatus?.moltbook === 'down' || healthStatus?.moltbook === 'degraded' ? (
                           <span className="showcase-status showcase-status-red">Offline</span>
-                        ) : healthStatus?.moltbook === 'healthy' ? (
-                          <span className="showcase-status showcase-status-orange">Autonomous</span>
                         ) : (
                           <span className="showcase-status showcase-status-orange">Autonomous</span>
                         )}
@@ -593,50 +559,19 @@ const Home = () => {
                 </div>
               </div>
 
-              <div className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#d97706' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(217,119,6,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round"><path d="M12 2C13 7 17 10 12 17C7 10 11 7 12 2Z"/><path d="M12 17v5"/><path d="M8 21h8"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>Old Ways Today</h3>
-                        <span className="showcase-status showcase-status-amber">Live</span>
-                      </div>
-                      <span className="showcase-tagline">AI wellness platform</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    Standalone product helping families find non-toxic, traditional alternatives. Same RAG + blog
-                    architecture as azoni.ai — proving the agent system is portable beyond a portfolio site.
-                  </p>
-                  <div className="showcase-tech">
-                    <span>React</span>
-                    <span>RAG</span>
-                    <span>Auto-blog</span>
-                    <span>EmbedRoute</span>
-                  </div>
-                  <div className="showcase-actions">
-                    <a href="https://oldwaystoday.com" target="_blank" rel="noopener noreferrer" className="showcase-action">Visit Site ↗</a>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         </section>
         </CollapsibleSection>
 
+        {/* ===== 6. TOOLS & SERVICES ===== */}
         <CollapsibleSection
           title="Tools & Services"
-          subtitle="Live APIs and tools powering the agent ecosystem — MCP data server, RAG chatbot, and unified embeddings"
-          badge="3 Live"
-          badgeType="live"
+          subtitle="APIs powering the agent ecosystem — MCP data server, RAG chatbot, and unified embeddings"
+          badge="3 APIs"
+          badgeType="count"
           defaultOpen={false}
         >
-        {/* Services */}
         <section className="services-section">
           <div className="container">
             <div className="section-header">
@@ -707,9 +642,10 @@ const Home = () => {
         </section>
         </CollapsibleSection>
 
+        {/* ===== 7. BACKGROUND (merged Experience + Earlier Work) ===== */}
         <CollapsibleSection
-          title="Experience"
-          subtitle="7+ years shipping production software at T-Mobile, Capital One, and startups"
+          title="Background"
+          subtitle="7+ years at T-Mobile, Capital One, and startups — plus a 50-machine trading system and ACM publication"
           badge="7+ yrs"
           badgeType="count"
           defaultOpen={false}
@@ -816,24 +752,14 @@ const Home = () => {
             </div>
           </div>
         </section>
-        </CollapsibleSection>
 
-        <CollapsibleSection
-          title="Earlier Work"
-          subtitle="A 50-machine autonomous trading system and an ACM-published computer vision startup"
-          defaultOpen={false}
-
-        >
-        {/* Projects */}
         <section className="projects-section">
           <div className="container">
-
-            {/* Earlier Work - Showcase */}
-            <div className="section-header">
+            <div className="section-header secondary">
               <h2>Earlier Work</h2>
               <Link to="/projects" className="view-all">All projects →</Link>
             </div>
-            
+
             <div className="earlier-work-grid">
               <Link to="/projects/dustbunny" className="earlier-card">
                 <div className="earlier-card-accent" style={{ background: '#f59e0b' }} />
@@ -846,10 +772,10 @@ const Home = () => {
                     </div>
                   </div>
                   <p className="earlier-card-desc">
-                    Built a fully autonomous bidding system that tracked every collection on OpenSea in real-time, 
-                    distributed across 50 machines on a local network. A constant arms race — OpenSea added API keys, 
-                    changed their SDK, and shifted rate limits regularly. Other bots were competing for the same bids, 
-                    so the system had to adapt daily: monitoring floor prices, maintaining competitive bids, and 
+                    Built a fully autonomous bidding system that tracked every collection on OpenSea in real-time,
+                    distributed across 50 machines on a local network. A constant arms race — OpenSea added API keys,
+                    changed their SDK, and shifted rate limits regularly. Other bots were competing for the same bids,
+                    so the system had to adapt daily: monitoring floor prices, maintaining competitive bids, and
                     outmaneuvering rival algorithms — all while staying profitable.
                   </p>
                   <div className="earlier-card-highlights">
@@ -901,9 +827,9 @@ const Home = () => {
                     </div>
                   </div>
                   <p className="earlier-card-desc">
-                    Co-founded a fitness startup straight out of college that used Microsoft Kinect to analyze 
-                    weightlifting form in real-time. Built the core tracking engine — 25 joint positions at 30fps, 
-                    scored against expert references and normalized across body types. Led a small team of 5 plus 
+                    Co-founded a fitness startup straight out of college that used Microsoft Kinect to analyze
+                    weightlifting form in real-time. Built the core tracking engine — 25 joint positions at 30fps,
+                    scored against expert references and normalized across body types. Led a small team of 5 plus
                     interns through ACM publication, startup competitions, and an accelerator program until funding ran out.
                   </p>
                   <div className="earlier-card-highlights">
