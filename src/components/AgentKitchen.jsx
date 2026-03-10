@@ -405,6 +405,15 @@ function AgentKitchen() {
   const avatarImagesRef = useRef({});
   const effectsRef = useRef([]);       // free-floating visual particles
   const connectionFlashRef = useRef({}); // { stationId: timestamp }
+  const replayRef = useRef({
+    active: false,
+    startTime: 0,
+    events: [],
+    eventIndex: 0,
+    duration: 8000,
+    timeSpanMs: 0,
+    minMs: 0,
+  });
 
   // Pre-render SVG avatars as Image objects for canvas drawing
   useEffect(() => {
@@ -483,6 +492,34 @@ function AgentKitchen() {
       trip.state = 'toHub';
       trip.progress = 0;
     }
+  }, []);
+
+  // Start 24h time-lapse replay
+  const startReplay = useCallback(() => {
+    const events = [...activityHistoryRef.current]
+      .filter(e => Date.now() - e.ms < 86400000)
+      .sort((a, b) => a.ms - b.ms);
+    if (events.length === 0) return;
+
+    // Reset all trips to idle
+    Object.values(agentTripsRef.current).forEach(t => {
+      t.state = 'idle'; t.progress = 0;
+    });
+    pulsesRef.current = [];
+    effectsRef.current = [];
+
+    const minMs = events[0].ms;
+    const maxMs = events[events.length - 1].ms;
+
+    replayRef.current = {
+      active: true,
+      startTime: performance.now(),
+      events,
+      eventIndex: 0,
+      duration: 8000,
+      timeSpanMs: maxMs - minMs || 1,
+      minMs,
+    };
   }, []);
 
   // Fetch MCP data every 30s
@@ -2724,20 +2761,44 @@ function AgentKitchen() {
       const my = mouseRef.current.y;
 
       let hovered = null;
-      stations.forEach(s => {
-        const dx = mx - s.px;
-        const dy = my - s.py;
-        if (Math.sqrt(dx * dx + dy * dy) < s.radius + 12) {
-          hovered = s;
-        }
-      });
+      if (!replayRef.current.active) {
+        stations.forEach(s => {
+          const dx = mx - s.px;
+          const dy = my - s.py;
+          if (Math.sqrt(dx * dx + dy * dy) < s.radius + 12) {
+            hovered = s;
+          }
+        });
+      }
 
       // Cursor changes to pointer over stations
       if (canvasRef.current) {
         canvasRef.current.style.cursor = hovered ? 'pointer' : 'default';
       }
 
+      // ─── Replay mode: advance virtual clock and fire events ───
+      const replay = replayRef.current;
+      if (replay.active) {
+        const elapsed = now - replay.startTime;
+        const progress = Math.min(elapsed / replay.duration, 1);
+        const virtualTime = replay.minMs + progress * replay.timeSpanMs;
+
+        while (replay.eventIndex < replay.events.length) {
+          const ev = replay.events[replay.eventIndex];
+          if (ev.ms > virtualTime) break;
+          triggerAgentTrip(ev.stationId);
+          connectionFlashRef.current[ev.stationId] = now;
+          replay.eventIndex++;
+        }
+
+        if (progress >= 1) {
+          replay.active = false;
+        }
+      }
+
       // ─── Update agent trips (event-driven, no random timers) ───
+      const tripSpeed = replay.active ? 0.04 : 0.004;
+      const hubWait = replay.active ? 120 : 1200;
       stations.forEach(s => {
         if (!s.agent) return;
         const trip = agentTripsRef.current[s.id];
@@ -2748,14 +2809,14 @@ function AgentKitchen() {
             // Trips are triggered by triggerAgentTrip() from Firebase events
             break;
           case 'toHub':
-            trip.progress += 0.004;
+            trip.progress += tripSpeed;
             if (trip.progress >= 1) {
               trip.state = 'atHub';
               trip.progress = 1;
-              trip.waitUntil = now + 1200;
+              trip.waitUntil = now + hubWait;
               // Subtle arrival pulse at hub
               const hub = stations.find(st => st.isHub);
-              if (hub) {
+              if (hub && !replay.active) {
                 for (let i = 0; i < 5; i++) {
                   const angle = (i / 5) * Math.PI * 2;
                   const speed = 0.3 + Math.random() * 0.8;
@@ -2777,7 +2838,7 @@ function AgentKitchen() {
             }
             break;
           case 'toStation':
-            trip.progress += 0.004;
+            trip.progress += tripSpeed;
             if (trip.progress >= 1) {
               trip.state = 'idle';
               trip.progress = 0;
@@ -2815,6 +2876,22 @@ function AgentKitchen() {
 
       // Draw live event ticker
       drawTicker(now);
+
+      // Draw replay progress bar
+      if (replay.active) {
+        const canvas = canvasRef.current;
+        const elapsed = now - replay.startTime;
+        const pct = Math.min(elapsed / replay.duration, 1);
+        ctx.fillStyle = 'rgba(255, 122, 92, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, 4);
+        ctx.fillStyle = '#ff7a5c';
+        ctx.fillRect(0, 0, canvas.width * pct, 4);
+        ctx.font = '600 11px "DM Sans", sans-serif';
+        ctx.fillStyle = 'rgba(255, 122, 92, 0.9)';
+        ctx.textAlign = 'center';
+        ctx.fillText('REPLAYING 24H', canvas.width / 2, 18);
+        ctx.textAlign = 'start';
+      }
 
       // Update tooltip
       if (hovered) {
@@ -2903,6 +2980,16 @@ function AgentKitchen() {
     <>
     <div className="agent-kitchen-wrap" ref={wrapRef}>
       <canvas ref={canvasRef} className="agent-kitchen-canvas" />
+      <button
+        className="agent-kitchen-replay-btn"
+        onClick={startReplay}
+        title="Replay last 24 hours of activity"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+        24h
+      </button>
       {tooltip && (
         <div
           className="agent-kitchen-tooltip"

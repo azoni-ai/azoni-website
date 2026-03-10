@@ -445,8 +445,8 @@ const Home = () => {
           title="FaB Stats"
           subtitle="Live match tracking platform for competitive Flesh and Blood players"
           badge="2,500+ players"
-          badgeType="count"
-          defaultOpen={false}
+          badgeType="live"
+          defaultOpen={true}
           stats={[
             { value: 'fabstats.net', label: '' }
           ]}

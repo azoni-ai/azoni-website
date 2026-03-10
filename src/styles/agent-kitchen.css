@@ -384,3 +384,46 @@
     padding: 20px 18px;
   }
 }
+
+/* Replay button */
+.agent-kitchen-replay-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.agent-kitchen-replay-btn:hover {
+  background: rgba(255, 122, 92, 0.15);
+  border-color: rgba(255, 122, 92, 0.3);
+  color: #ff7a5c;
+}
+
+.agent-kitchen-replay-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .agent-kitchen-replay-btn {
+    top: 8px;
+    right: 8px;
+    padding: 5px 8px;
+    font-size: 0.65rem;
+  }
+}
