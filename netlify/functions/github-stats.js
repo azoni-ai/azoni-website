@@ -5,7 +5,7 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
-    'Cache-Control': 'public, max-age=300'
+    'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -34,16 +34,40 @@ exports.handler = async (event, context) => {
 
   const username = 'azoni';
 
-  const detectAgentTags = (message = '', authorName = '', authorEmail = '') => {
-    const haystack = `${message}\n${authorName}\n${authorEmail}`;
+  const detectAgentTags = ({
+    message = '',
+    authorName = '',
+    authorEmail = '',
+    authorLogin = '',
+    committerName = '',
+    committerEmail = '',
+    committerLogin = '',
+  } = {}) => {
+    const haystack = [
+      message,
+      authorName,
+      authorEmail,
+      authorLogin,
+      committerName,
+      committerEmail,
+      committerLogin,
+    ].join('\n');
     return {
       claudeCode: /co-authored-by:.*claude|noreply@anthropic\.com|\bclaude code\b/i.test(haystack),
-      codexCode: /co-authored-by:.*codex|co-authored-by:.*openai|noreply@openai\.com|\bcodex\b/i.test(haystack),
+      codexCode: /co-authored-by:.*codex|co-authored-by:.*openai|noreply@openai\.com|\bcodex(?:\s*cli|\s*code)?\b|openai codex/i.test(haystack),
     };
   };
 
   const firstLine = (message = '') => (message || '').split('\n')[0];
   const normalizeBranch = (ref = '') => ref.replace('refs/heads/', '');
+  const extractMergedBranch = (message = '') => {
+    if (!message) return null;
+    const mergeBranchMatch = message.match(/Merge branch '([^']+)'/i);
+    if (mergeBranchMatch?.[1]) return mergeBranchMatch[1];
+    const mergePrMatch = message.match(/Merge pull request #\d+ from [^/]+\/([^\s]+)/i);
+    if (mergePrMatch?.[1]) return mergePrMatch[1];
+    return null;
+  };
 
   try {
     const query = `
@@ -79,6 +103,15 @@ exports.handler = async (event, context) => {
                         oid
                         url
                         author {
+                          name
+                          email
+                          user {
+                            login
+                          }
+                        }
+                        committer {
+                          name
+                          email
                           user {
                             login
                           }
@@ -110,6 +143,15 @@ exports.handler = async (event, context) => {
                         oid
                         url
                         author {
+                          name
+                          email
+                          user {
+                            login
+                          }
+                        }
+                        committer {
+                          name
+                          email
                           user {
                             login
                           }
@@ -251,14 +293,17 @@ exports.handler = async (event, context) => {
         const isOwnedRepo = ownerLogin === username || ownerLogin === 'azoni-ai';
         if (authorLogin && authorLogin !== username) continue;
         if (!authorLogin && !isOwnedRepo) continue;
-        if (commit.message?.startsWith('Merge')) continue;
         if (repo.name === 'autoenhance') continue;
 
-        const tags = detectAgentTags(
-          commit.message || '',
-          commit.author?.user?.login || '',
-          ''
-        );
+        const tags = detectAgentTags({
+          message: commit.message || '',
+          authorName: commit.author?.name || '',
+          authorEmail: commit.author?.email || '',
+          authorLogin: commit.author?.user?.login || '',
+          committerName: commit.committer?.name || '',
+          committerEmail: commit.committer?.email || '',
+          committerLogin: commit.committer?.user?.login || '',
+        });
         upsertCommit({
           message: firstLine(commit.message),
           sha: commit.oid?.substring(0, 7),
@@ -269,7 +314,7 @@ exports.handler = async (event, context) => {
           isPrivate: repo.isPrivate,
           timestamp: commit.committedDate,
           url: commit.url,
-          branch: repo.defaultBranchRef?.name || null,
+          branch: extractMergedBranch(commit.message) || repo.defaultBranchRef?.name || null,
           claudeCode: tags.claudeCode,
           codexCode: tags.codexCode,
         });
@@ -312,12 +357,11 @@ exports.handler = async (event, context) => {
             const fullSha = pushCommit.sha;
             if (!fullSha) continue;
             const message = pushCommit.message || '';
-            if (message.startsWith('Merge')) continue;
-            const tags = detectAgentTags(
+            const tags = detectAgentTags({
               message,
-              pushCommit.author?.name || '',
-              pushCommit.author?.email || ''
-            );
+              authorName: pushCommit.author?.name || '',
+              authorEmail: pushCommit.author?.email || '',
+            });
             upsertCommit({
               message: firstLine(message),
               sha: fullSha.substring(0, 7),
@@ -328,7 +372,7 @@ exports.handler = async (event, context) => {
               isPrivate,
               timestamp: pushedAt,
               url: `https://github.com/${repoFullName}/commit/${fullSha}`,
-              branch: branch || null,
+              branch: branch || extractMergedBranch(message) || null,
               claudeCode: tags.claudeCode,
               codexCode: tags.codexCode,
             });
