@@ -1,637 +1,408 @@
 export const projects = [
-  // ===== MAJOR RECENT PROJECTS =====
   {
-    id: "embedroute",
-    title: "EmbedRoute",
-    tagline: "Unified Embedding API Gateway",
-    description: "Unified API gateway for text embeddings. One endpoint to access OpenAI, Voyage AI, Cohere, and Mistral. OpenAI SDK-compatible drop-in replacement—switch providers by changing two lines of code.",
-    longDescription: `EmbedRoute is a unified embedding API gateway that provides developers with a single endpoint to access multiple text embedding providers. Instead of managing separate API keys, SDKs, and billing accounts for each provider, developers use one API key and one consistent interface.
+    id: 'embedroute',
+    title: 'EmbedRoute',
+    tagline: 'Unified Embedding API Gateway',
+    description: 'Single API for embeddings across OpenAI, Voyage, Cohere, and Mistral with consistent request and response formats.',
+    longDescription: `EmbedRoute is a unified embedding API gateway designed to reduce provider lock-in and integration overhead.
 
-**Problem Solved:**
-• Provider lock-in: Different models excel at different tasks (Voyage for code, Cohere for multilingual, OpenAI for general purpose)
-• SDK fragmentation: Each provider has its own SDK, auth method, and response format
-• Cost optimization: No easy way to compare pricing across providers
-• Billing complexity: Managing multiple accounts and tracking spend
-
-**Technical Implementation:**
-• OpenAI SDK-compatible API—existing codebases switch with 2 line changes
-• Model routing via provider/model format (e.g., voyage/voyage-3, cohere/embed-english-v3.0)
-• Next.js 14 App Router with TypeScript
-• Supabase PostgreSQL with Row Level Security
-• Server-side rendering for GEO (AI crawler discoverability)
-
-**Features Built:**
-• Landing page with interactive code examples
-• Waitlist system with real-time validation and duplicate handling
-• Blog with SSR for SEO/GEO optimization
-• Comprehensive API documentation with code examples (JS, Python, cURL)
-• Custom design system: dark theme, gradient borders, grid backgrounds
-
-**Supported Providers:**
-• OpenAI (text-embedding-3-small, text-embedding-3-large)
-• Voyage AI (voyage-3, voyage-3-lite, voyage-code-3)
-• Cohere (embed-english-v3.0, embed-multilingual-v3.0)
-• Mistral (mistral-embed)
-
-**Pricing Model:**
-Provider API cost + 20% routing fee. No hidden charges, no monthly minimums.`,
-    tech: ["Next.js 14", "TypeScript", "Supabase", "PostgreSQL", "Tailwind CSS", "Vercel"],
+It provides one authentication model, one request shape, and one response contract while routing to multiple providers. The platform focuses on operational simplicity: faster model switching, clearer cost controls, and lower integration time for teams running RAG and semantic search in production.`,
+    tech: ['Next.js', 'TypeScript', 'Supabase', 'PostgreSQL', 'Vercel'],
     highlights: [
-      "OpenAI SDK-compatible drop-in replacement",
-      "8 embedding models across 4 providers",
-      "Server-side rendering for GEO optimization",
-      "Row Level Security with Supabase",
-      "Custom design system with dark theme"
+      'OpenAI-compatible endpoint design for low-friction adoption',
+      'Multi-provider routing across major embedding vendors',
+      'Consistent model naming and response handling',
+      'Built for RAG and semantic search workloads'
     ],
     links: {
-      live: "https://www.embedroute.com",
+      live: 'https://www.embedroute.com',
       github: null
     },
-    image: "/images/embedroute-icon.svg",
+    image: '/images/embedroute-icon.svg',
     featured: true,
-    category: "ai"
+    category: 'infra'
   },
   {
-    id: "old-ways-today",
-    title: "Old Ways Today",
-    tagline: "Full-Stack AI Platform",
-    description: "Production AI application helping families discover non-toxic products. Full-stack with AI chat, blog CMS, admin dashboard, email system, and SEO optimization.",
-    longDescription: `A production-grade full-stack web application helping families discover non-toxic, traditional alternatives to everyday products. Combines AI-powered product recommendations with educational content through an integrated blog system.
+    id: 'azoni-mcp',
+    title: 'Azoni MCP Server',
+    tagline: 'Cross-App Tooling Layer for AI Agents',
+    description: 'Domain-based API server exposing live tools for fitness, gaming, content, and ops workflows used by autonomous agents.',
+    longDescription: `Azoni MCP Server is the shared tooling backbone across multiple products in this workspace. It exposes authenticated endpoints for activity logs, app health, analytics, and action execution.
 
-**AI Chat System:**
-• Semantic search RAG pipeline using OpenAI embeddings (text-embedding-3-small)
-• Custom cosine similarity ranking with PostgreSQL JSON storage
-• Hybrid retrieval: semantic similarity with keyword fallback
-• ~40% reduction in LLM context tokens while improving relevance
-• IP-based rate limiting and token usage logging with cost tracking
-
-**Content Management:**
-• Full blog system with markdown editor and inline image uploads
-• Product management with Amazon affiliate link integration
-• SEO-friendly slugs, XML sitemap generation, meta tags
-• View tracking (unique views by IP) and comment moderation
-
-**Admin Dashboard:**
-• Posts, Products, Comments, Subscribers tabs
-• Email subscription system with SMTP integration
-• Newsletter sending with one-click unsubscribe
-• Quick-edit modals and status badges
-
-**Infrastructure:**
-• React/Vite frontend on Netlify
-• FastAPI/PostgreSQL backend on Render
-• SQLAlchemy ORM with auto table creation
-• Twitter auto-posting for new content`,
-    tech: ["React", "FastAPI", "PostgreSQL", "OpenAI API", "SQLAlchemy", "Vite"],
+The server is organized by domain modules and used by both interactive chat experiences and autonomous workflows. It standardizes access patterns, applies rate limits, and centralizes operational observability across projects.`,
+    tech: ['Node.js', 'Express', 'Firebase Admin', 'Rate Limiting', 'REST API'],
     highlights: [
-      "Semantic search RAG with OpenAI embeddings",
-      "Full CMS with blog, products, and admin panel",
-      "Email subscription system with SMTP",
-      "SEO: XML sitemap, meta tags, Google Search Console",
-      "Amazon affiliate integration"
-    ],
-    links: {
-      live: "https://oldwaystoday.com",
-      github: null
-    },
-    image: "/images/favicon-sprout.svg",
-    featured: true,
-    category: "ai"
-  },
-  {
-    id: "row-crew",
-    title: "Row Crew",
-    tagline: "AI-Powered Social Fitness App",
-    description: "Social fitness tracking app for rowers with AI-powered workout verification using Claude Vision API. Features group challenges, leaderboards, achievements, and a PWA for mobile.",
-    longDescription: `Row Crew transforms solitary rowing machine workouts into a connected, competitive experience through AI-powered workout verification, group challenges, and gamification. Built as a full Progressive Web App with ~6,000 lines of React.
-
-**AI-Powered Workout Verification:**
-• Photos of rowing machine displays analyzed using Claude Vision API
-• Multi-layer verification: AI confidence scoring + duplicate image detection + behavioral analysis
-• OCR extracts meters, time, and calories automatically from machine displays
-• AI training system learns from user corrections to improve accuracy over time
-• Manual entry option available (marked as "unverified" for data integrity)
-
-**Social Competition System:**
-• Private groups with shareable invite codes
-• 8 challenge types: Collective Distance Goals, Distance Races, Time Trials, Streak Battles, Session Count, Total Time, Calorie Burn, Team Calorie Goals
-• Real-time progress tracking with group-filtered leaderboards
-• Activity feed showing friend workouts, achievements, and milestones
-
-**Gamification Engine:**
-• 50+ achievements across multiple categories (distance, streaks, consistency, time, calories)
-• Military-inspired rank progression system (Landlubber → Admiral of the Fleet)
-• Weekly leaderboard competitions with champion badges
-• Personal records tracking with celebration animations
-• Global goal: collectively row 40,075km (Earth's circumference)
-
-**Leaderboards:**
-• All-Time Distance, Weekly Distance, Current Streak
-• Achievement Count, Total Time, Total Calories
-• Filterable by global or group membership
-
-**Security & Technical:**
-• Firebase Security Rules enforce data integrity at database level
-• Users can only submit entries for their own account
-• Entries are immutable (no edits/deletes after submission)
-• Rate limiting: 15-minute cooldown between entries
-• Entry validation: 100-50,000 meters per session bounds
-• Firestore listeners provide instant real-time updates
-
-**PWA & UX:**
-• Installable on iOS/Android home screens with offline viewing
-• Version-aware changelog system with "What's New" modal
-• First-time visitor onboarding modal
-• Device remembers last-used rowing machine
-• Mobile-first responsive design
-• "2025 Wrapped" - Spotify-style year-in-review with 10 story slides`,
-    tech: ["React", "Firebase", "Claude API", "PWA", "Firestore", "Cloud Functions"],
-    highlights: [
-      "Claude Vision API for photo verification & OCR",
-      "50+ achievements, 8 challenge types, rank progression",
-      "Real-time leaderboards and activity feed",
-      "Full PWA with offline support",
-      "~6,000 lines React, 20+ releases"
-    ],
-    links: {
-      live: "https://rowcrew.netlify.app",
-      github: "https://github.com/azoni/rowing-tracker"
-    },
-    image: "/images/rowing-favicon.svg",
-    featured: true,
-    category: "ai"
-  },
-  {
-    id: "fab-stats",
-    title: "FaB Stats",
-    tagline: "Competitive TCG Match Tracker",
-    description: "Full-stack match tracking platform for Flesh and Blood TCG with 2,500+ users. Features leaderboards, hero matchup analytics, AI chat assistant, community activity feeds, and a Chrome extension for automatic match imports.",
-    longDescription: `FaB Stats is a comprehensive match tracking and analytics platform built for the competitive Flesh and Blood Trading Card Game community. With 2,500+ registered users, it's become a go-to tool for players who want data-driven insights into their tournament performance.
-
-**Match Tracking & Import:**
-• Chrome extension auto-imports matches from GEM (the official tournament platform)
-• Manual match entry with hero selection filtered by game format
-• Cross-player match linking via GEM IDs (your opponent's hero auto-populates)
-• Head-to-head records computed automatically between linked players
-
-**Analytics & Leaderboards:**
-• Overall win rate, streaks, hero breakdowns, and event history
-• Community hero matchup matrix aggregated across all users
-• Public leaderboard with rankings by win rate, matches, events
-• Per-hero performance stats and opponent hero win rates
-• Trends page with win rate over time visualization
-
-**AI Chat Assistant:**
-• Claude-powered stats assistant with full context of player data
-• Answers questions about performance, matchups, and meta trends
-• Rate-limited with per-user cost tracking for admin oversight
-• Prompt caching for cost optimization
-
-**Social & Community:**
-• Activity feed with placements, imports, and engagement events
-• Event comment walls for tournament discussion
-• Player-to-player messaging system
-• Friend system with friend requests
-• Polls and prediction markets for community engagement
-• Badge and achievement system with admin assignment
-
-**Admin Dashboard:**
-• Full user management with 2,500+ users
-• Feedback system with in-app replies
-• Content management: featured events, creators, polls, banners
-• Analytics: page views, creator clicks, AI chat cost tracking
-• Broadcast messaging and data backfill tools
-
-**Technical:**
-• Next.js 14 App Router with TypeScript
-• Firebase Auth + Firestore with comprehensive security rules
-• Netlify serverless functions for AI chat
-• Chrome extension with content script injection
-• Tailwind CSS with custom dark theme design system
-• @flesh-and-blood/cards npm package for hero data`,
-    tech: ["Next.js", "TypeScript", "Firebase", "Claude API", "Tailwind CSS", "Chrome Extension"],
-    highlights: [
-      "2,500+ registered users, community-driven platform",
-      "Chrome extension for automatic match imports",
-      "AI chat assistant with player context",
-      "Community hero matchup matrix",
-      "Real-time leaderboards, activity feeds, messaging"
-    ],
-    links: {
-      live: "https://fabstats.net",
-      github: "https://github.com/azoni/fab-stats"
-    },
-    image: "/images/fabstats-icon.svg",
-    featured: true,
-    category: "web"
-  },
-  {
-    id: "bench-only",
-    title: "Bench Only",
-    tagline: "AI-Powered Strength Training App",
-    description: "Full-stack PWA for tracking bench press with AI coach. Generates workouts, analyzes progress, tracks goals with auto-completion detection. Group training features for team programs.",
-    longDescription: `Full-stack progressive web app for serious lifters who want data-driven training insights. Built because I wanted an app that actually helps you get stronger, not just log sets.
-
-**AI Assistant:**
-• GPT-4o-mini powered chat with full context of your workout history and goals
-• Workout generation based on your recent training and target goals
-• Progress analysis with actionable insights
-• Autofill suggestions during workout logging
-• Token usage tracking to manage costs
-
-**Goal System:**
-• Multiple metric types: weight (lbs), reps, time (seconds)
-• Progress tracking with visual indicators
-• Deadline tracking with calendar integration
-• Auto-completion detection from workout data
-• Optional notes (e.g., "with pause", "20lb weighted vest")
-
-**Workout Tracking:**
-• Create scheduled or completed workouts
-• Track sets, reps, weight, RPE, pain levels
-• Prescribed vs actual performance comparison
-• Inline logging from scheduled templates
-
-**Group Training:**
-• Create/join training groups
-• Assign workouts to group members
-• Shared calendar and attendance tracking
-
-**Technical:**
-• React 18 + Vite, Tailwind CSS, Framer Motion
-• Firebase Auth + Firestore
-• 4 Netlify serverless functions for AI features
-• Full PWA with offline caching and iOS safe area handling
-• "Brutalist fitness" design system with Bebas Neue typography`,
-    tech: ["React", "Firebase", "OpenAI API", "Tailwind", "Framer Motion", "PWA"],
-    highlights: [
-      "4 AI serverless functions (workout gen, progress analysis, autofill, chat)",
-      "Goal tracking with auto-completion detection",
-      "Group training with workout assignment",
-      "Offline-first PWA, installable on iOS/Android",
-      "Custom brutalist design system"
-    ],
-    links: {
-      live: "https://benchpressonly.com",
-      github: null
-    },
-    image: "/images/benchpressonly.svg",
-    featured: true,
-    category: "ai"
-  },
-  {
-    id: "tcgdoku",
-    title: "TCGDoku",
-    tagline: "Daily Card Puzzle Game",
-    description: "Daily puzzle game webapp inspired by Wordle meets Sudoku. Players guess cards that match both row and column category criteria in a 3x3 grid.",
-    longDescription: `TCGDoku combines the daily puzzle format of Wordle with Sudoku-style logic. Players fill a 3x3 grid where each cell requires a card matching both its row and column category criteria.
-
-**Multi-Game Support:**
-• Magic: The Gathering (powered by Scryfall API)
-• Flesh and Blood TCG
-• Real-time card validation with image previews as you type
-
-**Daily Puzzle System:**
-• Seeded daily puzzles - same puzzle for all players each day
-• Share results with Wordle-style emoji grid
-• Streak tracking for consecutive days played
-
-**Community Features:**
-• Custom puzzle creator - users can build and share puzzles
-• Firebase backend tracking guess statistics across all players
-• See how your guesses compare to the community
-
-**Admin Dashboard:**
-• Stats dashboard with player metrics
-• Category management for each supported game
-• Game visibility controls (enable/disable games)
-
-**Technical:**
-• React frontend with responsive dark theme design
-• Firebase Firestore for real-time data
-• Scryfall API integration for MTG card data
-• Netlify hosting with fast global CDN`,
-    tech: ["React", "Firebase", "Scryfall API", "Firestore", "Netlify"],
-    highlights: [
-      "Daily seeded puzzles (same for all players)",
-      "Multi-game: Magic: The Gathering, Flesh and Blood",
-      "Community puzzle creator",
-      "Real-time card search with image preview",
-      "Wordle-style shareable results"
-    ],
-    links: {
-      live: "https://tcgdoku.netlify.app",
-      github: null
-    },
-    image: "/images/tcgdoku.svg",
-    featured: true,
-    category: "web"
-  },
-  {
-    id: "azoni-ai",
-    title: "azoni.ai",
-    tagline: "AI Portfolio Assistant",
-    description: "Personal portfolio with an AI chatbot trained on my background. Recruiters can paste job descriptions for automated fit analysis. Built with React and Netlify Functions.",
-    longDescription: `This portfolio site features an AI assistant that can answer questions about my background, skills, and projects in real-time.
-
-**Key Features:**
-• AI chatbot with 4 tone modes (Professional, Friendly, Casual, Funny)
-• Recruiters can paste job descriptions for automated fit analysis
-• Custom system prompt with comprehensive background info
-• Secure API key handling via Netlify serverless functions
-
-**Technical Implementation:**
-• React with modern patterns (Context, Hooks, Suspense, Error Boundaries)
-• Code splitting with React.lazy for performance
-• Netlify Functions proxy for secure OpenAI API calls
-• Mobile-first responsive design
-• Dark theme with custom CSS (no frameworks)
-
-This site itself demonstrates the React patterns and AI integration skills relevant to the Anthropic role.`,
-    tech: ["React", "OpenAI API", "Netlify Functions", "CSS"],
-    highlights: [
-      "AI chatbot with custom system prompts",
-      "Job description fit analysis for recruiters",
-      "Secure API via Netlify serverless functions",
-      "Modern React patterns (Context, Suspense, Error Boundaries)",
-      "Mobile-first responsive design"
-    ],
-    links: {
-      live: "https://azoni.ai/chat",
-      github: null
-    },
-    image: "/images/azoni.png",
-    featured: true,
-    category: "ai"
-  },
-  {
-    id: "dumarket",
-    title: "DuMarket",
-    tagline: "Prediction Market Platform",
-    description: "Full-stack prediction market webapp with CLOB matching engine, automated market maker, and real-time P&L tracking.",
-    longDescription: `A complete prediction market webapp featuring a Central Limit Order Book (CLOB) matching engine with price-time priority algorithm. Built to understand prediction market mechanics hands-on.
-
-**Core Features:**
-• CLOB matching engine with price-time priority
-• Automated market maker bot with inventory-aware pricing
-• Real-time position tracking with cost basis and P&L
-• Firebase Authentication integration
-
-**Gamification:**
-• Daily login rewards with streak multipliers
-• Achievement system
-• Leaderboards and user rankings
-
-**Technical:**
-• React frontend, FastAPI backend, PostgreSQL
-• Full admin panel for market management`,
-    tech: ["React", "FastAPI", "PostgreSQL", "Firebase Auth", "Python"],
-    highlights: [
-      "Central Limit Order Book (CLOB) matching engine",
-      "Automated market maker with inventory-aware pricing",
-      "Real-time P&L tracking and position management",
-      "Gamification: streaks, achievements, leaderboards"
-    ],
-    links: {
-      live: "https://dumarket.netlify.app",
-      github: null
-    },
-    image: "/images/polymarket.svg",
-    featured: true,
-    category: "fintech"
-  },
-  {
-    id: "polymarket-tool",
-    title: "Polymarket Analysis Tool",
-    tagline: "Trading Signal Detection",
-    description: "Tool to analyze Polymarket prediction markets and identify trading opportunities through arbitrage, spread analysis, and momentum signals.",
-    longDescription: `Building a tool to analyze Polymarket prediction markets and identify trading opportunities through multiple strategies:
-
-• Arbitrage — Price differences across markets or YES+NO not summing to 100%
-• Spread Analysis — Wide bid-ask spreads for buy low/sell high opportunities  
-• Volume Anomalies — Unusual volume spikes that often precede price moves
-• Momentum — Price trending in one direction tends to continue
-• Mean Reversion — Prices far from historical average tend to snap back`,
-    tech: ["Python", "React", "Polymarket API"],
-    highlights: [
-      "Multiple signal detection strategies",
-      "Arbitrage and spread analysis",
-      "Volume anomaly detection",
-      "Momentum and mean reversion signals"
-    ],
-    links: {
-      live: "https://kalshi.netlify.app",
-      github: null
-    },
-    image: "/images/polymarket.png",
-    featured: true,
-    category: "fintech"
-  },
-
-  // ===== OLDER BUT IMPRESSIVE PROJECTS =====
-  {
-    id: "dustbunny",
-    title: "Dustbunny",
-    tagline: "NFT Trading Operation",
-    description: "Automated NFT bidding system distributed across 50 machines, processing 2,500+ requests/minute with Redis caching and competitive bidding algorithms.",
-    longDescription: `High-performance NFT trading operation built to work around OpenSea's IP-based rate limits by distributing across 50 machines on a local network.
-
-**Architecture:**
-• Worker machines polling OpenSea API for floor prices
-• Redis aggregation for sub-second price lookups
-• Bidder machines executing orders via OpenSea SDK
-• Etherscan API for blockchain data
-
-**Bidding Logic:**
-• Competitive algorithms analyzing floor prices and existing bids
-• Max bid safeguards to prevent overpaying
-• Liquidity analysis to avoid dead collections
-• Support for ERC-721 and ERC-1155 tokens
-
-**Scale:**
-• 50 machines processing 2,500+ requests/minute
-• Real-time floor price tracking across collections
-• Profitable for ~6 months until market downturn
-
-Learned: The system worked great, but I should have taken profits instead of reinvesting during the decline.`,
-    tech: ["Node.js", "Redis", "OpenSea SDK", "Docker", "Etherscan API"],
-    highlights: [
-      "50 machines, 2,500+ requests/minute",
-      "Redis for real-time floor price caching",
-      "Competitive bidding algorithms with safeguards",
-      "Deployed ERC-721 smart contract"
+      '40+ tool endpoints across multiple domains',
+      'Auth and rate-limiting middleware on all routes',
+      'Shared interface for agents and portfolio systems',
+      'Cross-project data surface for production automation'
     ],
     links: {
       live: null,
       github: null
     },
-    image: "/images/dustbunny.png",
+    image: '/images/mcp-logo-nodes.svg',
     featured: true,
-    category: "web3"
+    category: 'infra'
   },
   {
-    id: "oli-fitness",
-    title: "OLI Fitness",
-    tagline: "Computer Vision Startup",
-    description: "Co-founded fitness startup using Kinect SDK to analyze weightlifting form in real-time. Published at ACM CHI 2017, Princeton Tiger Launch finalist.",
-    longDescription: `Co-founded with friends right out of college. Built a fitness app using Microsoft Kinect SDK to track joint positions during squats and deadlifts, comparing against "good form" overlays.
+    id: 'moltbook-agent',
+    title: 'Azoni Moltbook Agent',
+    tagline: 'LangGraph Autonomous Social Agent',
+    description: 'Autonomous agent that observes feed context, decides actions, drafts content, quality-checks output, and executes on schedule.',
+    longDescription: `Azoni Moltbook Agent is a LangGraph-powered system that runs an end-to-end agent loop: observe, decide, draft, evaluate, execute, and log.
 
-**Technical Implementation:**
-• C# with Kinect SDK for 25-joint tracking at 30fps
-• Form scoring algorithm comparing user angles to reference ranges
-• Real-time overlay showing professional form comparison
-• Normalized for different body types using ratios
-
-**Achievements:**
-• Published extended abstract at ACM CHI 2017
-• Regional finalist at Princeton Tiger Launch
-• Finalist at UW Business Plan Competition
-• Selected for Collision Alpha startup program
-
-**Lessons Learned:**
-Ultimately couldn't crack distribution — Kinect was dying as a platform and pivoting to mobile CV wasn't feasible with our resources. But I learned how to ship under uncertainty and build from zero to one.`,
-    tech: ["C#", "Kinect SDK", "Computer Vision", "Unity"],
+It is built as a production workflow with explicit state transitions, external API integrations, and auditable activity logs. The agent is designed to operate safely under scheduled execution while keeping decision quality visible and measurable.`,
+    tech: ['Python', 'LangGraph', 'LangChain', 'FastAPI', 'Firebase'],
     highlights: [
-      "Real-time joint position tracking at 30fps",
-      "Movement scoring algorithms with expert input",
-      "ACM CHI 2017 publication",
-      "Princeton Tiger Launch finalist"
+      'Stateful agent workflow with explicit step transitions',
+      'Scheduled autonomous runs plus manual triggers',
+      'Quality evaluation before posting actions',
+      'Firestore-backed activity logging'
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: '/images/moltbook-lobster.svg',
+    featured: true,
+    category: 'ai'
+  },
+  {
+    id: 'old-ways-today',
+    title: 'Old Ways Today',
+    tagline: 'AI-Powered Consumer Wellness Platform',
+    description: 'Full-stack product helping families find non-toxic alternatives with AI chat, editorial content, and conversion-focused product pages.',
+    longDescription: `Old Ways Today combines editorial publishing, product discovery, and AI assistance into a single production platform.
+
+The stack includes a Next.js frontend and FastAPI backend with OpenAI integration, SEO-friendly content architecture, and subscription workflows. The system is built to support both educational content and practical purchase decisions.`,
+    tech: ['Next.js', 'FastAPI', 'PostgreSQL', 'OpenAI API', 'Netlify', 'Render'],
+    highlights: [
+      'AI-assisted Q and A for product guidance',
+      'Production CMS workflows for content publishing',
+      'SEO-focused architecture for discoverability',
+      'Integrated backend services and rate control'
+    ],
+    links: {
+      live: 'https://oldwaystoday.com',
+      github: null
+    },
+    image: '/images/favicon-sprout.svg',
+    featured: true,
+    category: 'ai'
+  },
+  {
+    id: 'bench-only',
+    title: 'Bench Only',
+    tagline: 'AI Strength Training PWA',
+    description: 'Progressive web app for lifters with workout tracking, goal management, group coaching, and AI training assistance.',
+    longDescription: `Bench Only is a production fitness application focused on measurable progress for strength athletes.
+
+It combines structured workout logging with AI-assisted recommendations and analysis features. The app supports individual and group workflows, runs as an installable PWA, and is designed for frequent mobile usage.`,
+    tech: ['React', 'Vite', 'Firebase', 'OpenAI API', 'Tailwind CSS', 'PWA'],
+    highlights: [
+      'AI-assisted workout recommendations and analysis',
+      'Goal tracking and progress visibility',
+      'Group training and shared scheduling features',
+      'Installable mobile-first PWA experience'
+    ],
+    links: {
+      live: 'https://benchpressonly.com',
+      github: null
+    },
+    image: '/images/benchpressonly.svg',
+    featured: true,
+    category: 'ai'
+  },
+  {
+    id: 'row-crew',
+    title: 'Row Crew',
+    tagline: 'Social Fitness App with Vision Verification',
+    description: 'Rowing tracker with AI-assisted workout verification, social challenges, and real-time progress features.',
+    longDescription: `Row Crew turns solitary rowing sessions into a connected social product with accountability and competition mechanics.
+
+The app uses vision-based workout verification and supports challenges, rankings, and group workflows. It is designed as a full PWA with mobile-first interaction patterns and real-time updates.`,
+    tech: ['React', 'Firebase', 'Claude API', 'Firestore', 'PWA'],
+    highlights: [
+      'AI-assisted image verification for workout entries',
+      'Group challenges and competitive leaderboard loops',
+      'Real-time updates via Firestore listeners',
+      'PWA support for mobile installation and repeat use'
+    ],
+    links: {
+      live: 'https://rowcrew.netlify.app',
+      github: 'https://github.com/azoni/rowing-tracker'
+    },
+    image: '/images/rowing-favicon.svg',
+    featured: true,
+    category: 'ai'
+  },
+  {
+    id: 'azoni-ai',
+    title: 'azoni.ai',
+    tagline: 'Portfolio Platform with AI Assistant',
+    description: 'Personal portfolio platform with chat assistant, activity dashboards, and live system integrations.',
+    longDescription: `This portfolio is built as an operational product rather than a static brochure site.
+
+It includes interactive project detail pages, AI chat workflows, activity telemetry, and live integrations with supporting services. The architecture demonstrates production frontend patterns and practical AI integration in a public-facing application.`,
+    tech: ['React', 'Firebase', 'Netlify Functions', 'OpenRouter', 'RAG'],
+    highlights: [
+      'AI assistant integrated into portfolio experience',
+      'Live activity surfaces from production systems',
+      'Project detail routing with reusable data structures',
+      'Serverless backend functions for integrations'
+    ],
+    links: {
+      live: 'https://azoni.ai',
+      github: null
+    },
+    image: '/images/azoni.png',
+    featured: true,
+    category: 'web'
+  },
+  {
+    id: 'fab-stats',
+    title: 'FaB Stats',
+    tagline: 'Competitive TCG Analytics Platform',
+    description: 'Large Next.js application for hero-level performance analytics, matchup tools, and community features for Flesh and Blood players.',
+    longDescription: `FaB Stats is a feature-rich analytics and community platform with dozens of routes spanning player profiles, match tracking, leaderboards, tools, and mini-games.
+
+The app focuses on decision support for competitive players with searchable stats, matchup exploration, social features, and extensible game-specific tooling.`,
+    tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Recharts'],
+    highlights: [
+      'Large surface area with extensive route architecture',
+      'Player analytics, leaderboards, and matchup tooling',
+      'Integrated social and communication features',
+      'Game-focused utilities and engagement loops'
+    ],
+    links: {
+      live: 'https://fabstats.net',
+      github: null
+    },
+    image: '/images/admin-panel.png',
+    featured: true,
+    category: 'games'
+  },
+  {
+    id: 'fab-stats-bot',
+    title: 'FaB Stats Discord Bot',
+    tagline: 'Companion Bot for Competitive Analytics',
+    description: 'TypeScript Discord bot with command routing, analytics tracking, and game-specific utilities connected to platform data.',
+    longDescription: `FaB Stats Bot extends analytics workflows into Discord with slash commands, autocomplete, scheduled jobs, and usage tracking.
+
+It acts as a companion layer to the main platform, providing quick access to stats and utility commands directly in community channels.`,
+    tech: ['TypeScript', 'Discord.js', 'Firebase Admin', 'Node.js'],
+    highlights: [
+      'Command router supporting many game-focused actions',
+      'Autocomplete and interaction handling patterns',
+      'Background scheduler and heartbeat monitoring',
+      'Analytics instrumentation for command usage'
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: '/images/bots.png',
+    featured: false,
+    category: 'games'
+  },
+  {
+    id: 'tcgdoku',
+    title: 'TCGDoku',
+    tagline: 'Daily Trading Card Puzzle Game',
+    description: 'Daily puzzle game blending category logic and card knowledge with shareable outcomes and community play.',
+    longDescription: `TCGDoku applies daily puzzle mechanics to trading card games, combining repeatable retention loops with community participation.
+
+The product includes seeded daily puzzles, custom puzzle creation, and game-specific data integrations for real-time validation and search.`,
+    tech: ['React', 'Firebase', 'Scryfall API', 'Netlify'],
+    highlights: [
+      'Seeded daily puzzle logic for consistent global play',
+      'Custom puzzle builder and share flows',
+      'Card validation and lookup integrations',
+      'Community-oriented progression mechanics'
+    ],
+    links: {
+      live: 'https://tcgdoku.netlify.app',
+      github: null
+    },
+    image: '/images/tcgdoku.svg',
+    featured: true,
+    category: 'games'
+  },
+  {
+    id: 'spell-brigade',
+    title: 'Spell Brigade',
+    tagline: 'Multiplayer Survival Game Platform',
+    description: 'Real-time multiplayer wizard game with class systems, progression, and persistent backend state.',
+    longDescription: `Spell Brigade pairs a React game client with a Socket.IO/Express backend for live multiplayer sessions.
+
+The system includes class mechanics, zone progression, persistent player data, and backend services for session coordination and long-term state.`,
+    tech: ['React', 'Node.js', 'Socket.IO', 'Express', 'Firebase Admin'],
+    highlights: [
+      'Real-time multiplayer architecture with Socket.IO',
+      'Class-based combat and progression systems',
+      'Persistent player profiles and unlock paths',
+      'Integrated backend state and server coordination'
+    ],
+    links: {
+      live: 'https://azoni.ai/game',
+      github: null
+    },
+    image: '/images/spell-brigade-hero.svg',
+    featured: true,
+    category: 'games'
+  },
+  {
+    id: 'polymarket-tool',
+    title: 'Polymarket Edge Finder',
+    tagline: 'Prediction Market Signal Discovery',
+    description: 'Full-stack analysis tool for identifying potential edge cases in prediction markets using multiple strategy modules.',
+    longDescription: `Polymarket Edge Finder combines a FastAPI backend with a React frontend to ingest market data and surface candidate opportunities.
+
+The project explores detection patterns such as spread inefficiencies, volume anomalies, and directional momentum to support research-driven decision making.`,
+    tech: ['FastAPI', 'Python', 'React', 'Vite', 'Recharts'],
+    highlights: [
+      'Market ingestion and analysis pipeline',
+      'Multiple strategy modules for edge detection',
+      'Interactive frontend for scenario exploration',
+      'Designed for iterative research workflows'
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: '/images/polymarket.svg',
+    featured: false,
+    category: 'fintech'
+  },
+  {
+    id: 'image-pipeline-api',
+    title: 'Image Pipeline API',
+    tagline: 'Background Job Processing Service',
+    description: 'FastAPI service for image processing with job queues, observability middleware, and agent-managed worker lifecycles.',
+    longDescription: `Image Pipeline API is a backend service that manages image uploads, processing jobs, and runtime observability.
+
+It includes request tracing, metrics collection, background execution orchestration, and a lightweight dashboard endpoint for operational visibility.`,
+    tech: ['FastAPI', 'SQLAlchemy', 'Pydantic', 'Pillow', 'Pytest'],
+    highlights: [
+      'Job-based processing architecture',
+      'Request trace IDs and duration metrics',
+      'Agent lifecycle management in app lifespan',
+      'Operational health and dashboard endpoints'
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: '/images/admin-panel.png',
+    featured: false,
+    category: 'infra'
+  },
+  {
+    id: 'scryfall-ai',
+    title: 'Scryfall AI',
+    tagline: 'Natural Language Card Search',
+    description: 'Service that translates natural-language card requests into structured Scryfall query syntax.',
+    longDescription: `Scryfall AI focuses on one practical interface problem: making complex card database search accessible to non-expert users.
+
+Users ask in plain language, and the service returns structured query syntax suitable for direct Scryfall lookups.`,
+    tech: ['Node.js', 'Express', 'OpenAI API', 'Scryfall API'],
+    highlights: [
+      'Natural-language to query-string transformation',
+      'Prompt design for constrained output format',
+      'Simple API surface for frontend integration',
+      'Domain-specific search productivity gains'
+    ],
+    links: {
+      live: 'https://scryfall.netlify.app',
+      github: null
+    },
+    image: '/images/scryfall.png',
+    featured: false,
+    category: 'ai'
+  },
+  {
+    id: 'dustbunny',
+    title: 'Dustbunny',
+    tagline: 'Distributed NFT Trading Automation',
+    description: 'Distributed bidding operation across 50 machines with high request throughput and real-time pricing logic.',
+    longDescription: `Dustbunny was an automation-heavy trading system built for high-frequency NFT market monitoring and bidding.
+
+The platform used distributed workers, caching, and strategy controls to sustain high request throughput while adapting to changing API and marketplace conditions.`,
+    tech: ['Node.js', 'Redis', 'Docker', 'OpenSea SDK', 'Web3'],
+    highlights: [
+      'Distributed architecture across 50 machines',
+      'Real-time floor monitoring and bid automation',
+      'Throughput in the 2,500+ requests per minute range',
+      'Operational safeguards for bidding decisions'
+    ],
+    links: {
+      live: null,
+      github: null
+    },
+    image: '/images/dustbunny.png',
+    featured: false,
+    category: 'web3'
+  },
+  {
+    id: 'oli-fitness',
+    title: 'OLI Fitness',
+    tagline: 'Computer Vision Startup',
+    description: 'Co-founded computer vision fitness startup using Kinect-based movement analysis; work published at ACM CHI 2017.',
+    longDescription: `OLI Fitness used Kinect-based body tracking to evaluate lifting form in real time and compare movement against reference patterns.
+
+The project combined product development, technical execution, and early-stage startup operations, resulting in an ACM CHI publication and multiple startup program appearances.`,
+    tech: ['C#', 'Kinect SDK', 'Computer Vision', 'Unity'],
+    highlights: [
+      'Real-time movement tracking and form scoring',
+      'ACM CHI 2017 publication',
+      'Startup competition finalist experience',
+      'Zero-to-one product and team execution'
     ],
     links: {
       live: null,
       github: null,
-      paper: "https://dl.acm.org/doi/abs/10.1145/3027063.3048429"
+      paper: 'https://dl.acm.org/doi/abs/10.1145/3027063.3048429'
     },
-    image: "/images/oli.png",
-    featured: true,
-    category: "ai"
-  },
-
-  // ===== SMALLER UTILITIES =====
-  {
-    id: "scryfall-ai",
-    title: "Scryfall AI",
-    tagline: "Natural Language Card Search",
-    description: "AI tool that translates plain English into complex Scryfall database queries. Makes Magic: The Gathering card discovery accessible to everyone.",
-    longDescription: `An AI application that uses natural language processing to query the Scryfall Magic: The Gathering database.
-
-Instead of learning Scryfall's complex query syntax, users type in plain English:
-• "Show me all red dragons that cost less than 5 mana"
-• "Find blue instant spells that draw cards"
-• "What legendary creatures are in the latest set?"
-
-The AI interprets the input and translates it into proper Scryfall query syntax, making card discovery accessible to casual players who don't know the search operators.`,
-    tech: ["React", "OpenAI API", "Scryfall API", "NLP"],
-    highlights: [
-      "Natural language to query translation",
-      "AI-powered search interpretation",
-      "Accessible to non-technical users",
-      "Real-time Scryfall API integration"
-    ],
-    links: {
-      live: "https://scryfall.netlify.app",
-      github: null
-    },
-    image: "/images/scryfall.png",
+    image: '/images/oli.png',
     featured: false,
-    category: "ai"
+    category: 'ai'
   },
   {
-    id: "discord-bots",
-    title: "LLM-Powered Bots",
-    tagline: "Agentic AI Systems",
-    description: "Discord and Twitter bots with persistent memory, tool integration, and agentic decision-making using OpenAI and Anthropic APIs.",
-    longDescription: `Built multiple AI agents that go beyond simple chatbots:
+    id: 'hashmaps',
+    title: 'HashMaps',
+    tagline: 'Hackathon Winner: Contextual Hashtag Generation',
+    description: 'OpenCV and geolocation-based system for contextual hashtag generation; won first place at T-Mobile Big Data Hackathon.',
+    longDescription: `HashMaps generated context-aware social hashtags by combining image analysis with location context.
 
-**Persistent Memory:**
-• Conversation history stored in SQLite
-• Context fetched for relevant past discussions
-• User preferences and facts remembered
-
-**Tool Integration:**
-• Google Calendar integration for scheduling
-• Web search capabilities
-• Custom function calling
-
-**Agentic Architecture:**
-• Bots decide when to use tools vs just respond
-• Multi-step reasoning for complex requests
-• Error handling and retry logic
-
-These bots can reason about what action to take, remember past conversations, and execute external tools — the defining characteristics of AI agents.`,
-    tech: ["Python", "OpenAI API", "Claude API", "SQLite", "Discord.py"],
+The project was built and presented in a hackathon setting and won first place for applied use of computer vision and metadata fusion.`,
+    tech: ['Python', 'OpenCV', 'Geolocation API'],
     highlights: [
-      "Persistent memory with SQLite",
-      "Tool integration (Google Calendar, web search)",
-      "Agentic decision-making architecture",
-      "Multi-platform (Discord, Twitter)"
+      'First place at T-Mobile Big Data Hackathon',
+      'Image understanding plus location-aware recommendations',
+      'Rapid prototyping and presentation under time constraints'
     ],
     links: {
       live: null,
       github: null
     },
-    image: "/images/bots.png",
+    image: '/images/hashmaps.png',
     featured: false,
-    category: "ai"
-  },
-
-  // ===== OTHER PROJECTS =====
-  {
-    id: "adoh",
-    title: "A Dawn of Heroes",
-    tagline: "Game Development & Analytics",
-    description: "Contributing game balance for NeverWinter Nights server, plus a player dashboard with DPS calculations and real-time leaderboards.",
-    longDescription: `Active contributor to a persistent world server for NeverWinter Nights: Enhanced Edition with 20-50 concurrent players.
-
-Contributions include game balance, custom mechanics, and quality of life improvements. Built an external player dashboard that parses game log files to calculate theoretical DPS based on weapon stats, class, and abilities — displayed with real-time leaderboards.`,
-    tech: ["Python", "React", "NWScript", "Log Parsing"],
-    highlights: [
-      "Game balance and custom mechanics",
-      "DPS calculator from log parsing",
-      "Real-time player leaderboards",
-      "20-50 concurrent players"
-    ],
-    links: {
-      live: "https://adoh.online",
-      github: null
-    },
-    image: "/images/adoh.png",
-    featured: false,
-    category: "games"
-  },
-  {
-    id: "hashmaps",
-    title: "HashMaps",
-    tagline: "1st Place Hackathon Winner",
-    description: "Auto-hashtag generation using OpenCV image analysis and geolocation. Won 1st place at T-Mobile Big Data Hackathon.",
-    longDescription: `Built at T-Mobile Big Data Hackathon. HashMaps analyzes photos using OpenCV and combines that with geolocation metadata to generate trending, relevant hashtags for maximum social media reach.
-
-Example: A coffee photo taken in Seattle would generate hashtags like #SeattleCoffee #PNW #CoffeeLovers based on both the image content and location context.`,
-    tech: ["Python", "OpenCV", "Geolocation API"],
-    highlights: [
-      "1st Place — T-Mobile Big Data Hackathon",
-      "OpenCV image analysis",
-      "Geolocation-aware hashtag generation"
-    ],
-    links: {
-      live: null,
-      github: null
-    },
-    image: "/images/hashmaps.png",
-    featured: false,
-    category: "ai"
+    category: 'ai'
   }
 ];
 
 export const categories = {
-  all: "All Projects",
-  ai: "AI & ML",
-  fintech: "Fintech",
-  web3: "Web3",
-  games: "Games"
+  all: 'All Projects',
+  ai: 'AI and ML',
+  infra: 'Platforms and Infra',
+  fintech: 'Fintech',
+  web3: 'Web3',
+  games: 'Games',
+  web: 'Web Apps'
 };
 
-export const getFeaturedProjects = () => projects.filter(p => p.featured);
-export const getProjectById = (id) => projects.find(p => p.id === id);
-export const getProjectsByCategory = (category) => 
-  category === 'all' ? projects : projects.filter(p => p.category === category);
+export const getFeaturedProjects = () => projects.filter((p) => p.featured);
+export const getProjectById = (id) => projects.find((p) => p.id === id);
+export const getProjectsByCategory = (category) =>
+  category === 'all' ? projects : projects.filter((p) => p.category === category);

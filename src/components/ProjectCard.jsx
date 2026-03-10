@@ -1,24 +1,28 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const FALLBACK_EMOJIS = {
-  'scryfall-ai': '🃏',
-  'old-ways-today': '🌿',
-  'azoni-ai': '🤖',
-  'dumarket': '📊',
-  'rowing-tracker': '🚣',
-  'polymarket-tool': '📈',
-  'discord-bots': '🤖',
-  'dustbunny': '🐰',
-  'adoh': '⚔️',
-  'oli-fitness': '💪',
-  'hashmaps': '#️⃣',
-  'fab-stats': '🛡️'
+const FALLBACK_LABELS = {
+  'scryfall-ai': 'SA',
+  'old-ways-today': 'OW',
+  'azoni-ai': 'AI',
+  'azoni-mcp': 'MCP',
+  'moltbook-agent': 'MB',
+  dumarket: 'DM',
+  'row-crew': 'RC',
+  'polymarket-tool': 'PM',
+  'discord-bots': 'BOT',
+  dustbunny: 'DB',
+  adoh: 'NWN',
+  'oli-fitness': 'OLI',
+  hashmaps: 'HM',
+  'fab-stats': 'FAB',
+  'spell-brigade': 'SB',
+  'image-pipeline-api': 'IPA'
 };
 
 const ProjectCard = ({ project }) => {
   const [imageError, setImageError] = React.useState(false);
-  const fallbackEmoji = FALLBACK_EMOJIS[project.id] || '📁';
+  const fallbackLabel = FALLBACK_LABELS[project.id] || 'APP';
 
   return (
     <Link to={`/projects/${project.id}`} className="card project-card">
@@ -29,7 +33,9 @@ const ProjectCard = ({ project }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '3rem',
+          fontSize: '1.25rem',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
           overflow: 'hidden'
         }}
       >
@@ -46,7 +52,7 @@ const ProjectCard = ({ project }) => {
             }}
           />
         ) : (
-          fallbackEmoji
+          fallbackLabel
         )}
       </div>
       
