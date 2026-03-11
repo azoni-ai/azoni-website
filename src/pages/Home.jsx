@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
@@ -29,31 +29,11 @@ const Home = () => {
   const [githubStats, setGithubStats] = useState(null);
   const [profile, setProfile] = useState(null);
 
-  const [latestBlog, setLatestBlog] = useState(null);
-  const [agentActivityCount, setAgentActivityCount] = useState(0);
   const [healthStatus, setHealthStatus] = useState(null);
   const [appStats, setAppStats] = useState(null);
   const [fabUserCount, setFabUserCount] = useState(0);
 
   const heroRef = useRef(null);
-
-  // Fetch latest blog post
-  useEffect(() => {
-    const fetchLatestBlog = async () => {
-      try {
-        const blogRef = collection(db, 'blogPosts');
-        const q = query(blogRef, where('published', '==', true), orderBy('publishedAt', 'desc'), limit(1));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          setLatestBlog({ id: doc.id, ...doc.data() });
-        }
-      } catch (err) {
-        console.error('Failed to fetch latest blog:', err);
-      }
-    };
-    fetchLatestBlog();
-  }, []);
 
   // Fetch profile from Firestore
   useEffect(() => {
@@ -69,28 +49,6 @@ const Home = () => {
       }
     };
     fetchProfile();
-  }, []);
-
-  // Fetch agent activity count (recent)
-  useEffect(() => {
-    const fetchActivityCount = async () => {
-      try {
-        const activityRef = collection(db, 'agent_activity');
-        const q = query(activityRef, orderBy('timestamp', 'desc'), limit(50));
-        const snapshot = await getDocs(q);
-        // Count items from last 24h
-        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-        const recentCount = snapshot.docs.filter(d => {
-          const ts = d.data().timestamp;
-          const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
-          return ms > cutoff;
-        }).length;
-        setAgentActivityCount(recentCount);
-      } catch (err) {
-        console.error('Failed to fetch activity count:', err);
-      }
-    };
-    fetchActivityCount();
   }, []);
 
   // Fetch GitHub stats
