@@ -1,9 +1,9 @@
-import React, { forwardRef } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { avatars } from '../../data/agents';
 import { CATEGORY_STYLES, AGENT_IDLE, formatTimeAgo } from '../../utils/station-mapping';
 
-const WorkstationCard = forwardRef(({
+function WorkstationCard({
   station,
   lastEvent,
   activityCounts = {},
@@ -11,7 +11,8 @@ const WorkstationCard = forwardRef(({
   onClick,
   index = 0,
   roomNumber,
-}, ref) => {
+  door,
+}) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
   const hasAvatar = station.agent && avatars[station.agent];
@@ -21,13 +22,12 @@ const WorkstationCard = forwardRef(({
 
   return (
     <motion.div
-      ref={ref}
       className={`aw-station-card aw-theme-${station.id}${isFlashing ? ' aw-station-active' : ''}`}
       style={{ '--station-color': station.color }}
-      initial={{ opacity: 0, y: 24 }}
+      data-door={door}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 + index * 0.06, ease: 'easeOut' }}
-      whileHover={{ scale: 1.005 }}
       onClick={() => onClick(station)}
       role="button"
       tabIndex={0}
@@ -90,9 +90,7 @@ const WorkstationCard = forwardRef(({
       </div>
     </motion.div>
   );
-});
-
-WorkstationCard.displayName = 'WorkstationCard';
+}
 
 // ─── Themed workspace props for each station ───
 function WorkspaceProps({ stationId, color }) {

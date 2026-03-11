@@ -5,55 +5,43 @@ import { useMCPHealth } from '../../hooks/useMCPHealth';
 import { STATION_DEFS, CATEGORY_STYLES, formatTimeAgo } from '../../utils/station-mapping';
 import WorkstationCard from './WorkstationCard';
 import MCPHub from './MCPHub';
-import ConnectionLines from './ConnectionLines';
 import WorkspaceTicker from './WorkspaceTicker';
 import StationDetailPanel from './StationDetailPanel';
 import '../../styles/agent-workspace.css';
 
-// ─── Grid placement (9-col × 7-row with corridor channels) ───
-// Rooms on odd cols/rows: 1,3,5,7,9 × 1,3,5,7
-// Corridors on even cols/rows: 2,4,6,8 × 2,4,6
+// ─── Building floor plan: 5-col grid ───
+// Cols 1-2 = left wing, Col 3 = hallway, Cols 4-5 = right wing
+// Row 1 = MCP Lobby (spans full width)
+// Rows 2-5 = office rooms
 const GRID_PLACEMENT = {
-  chatbot:        { col: 1, row: 1, room: 1 },
-  oldwaystoday:   { col: 3, row: 1, room: 2 },
-  embedroute:     { col: 7, row: 1, room: 3 },
-  blog:           { col: 9, row: 1, room: 4 },
-  spellbrigade:   { col: 1, row: 3, room: 5 },
-  activity:       { col: 3, row: 3, room: 6 },
-  // mcp hub is col 5, row 3
-  fabstats:       { col: 7, row: 3, room: 7 },
-  moltbook:       { col: 9, row: 3, room: 8 },
-  benchpressonly: { col: 3, row: 5, room: 9 },
-  fabstatsbot:    { col: 5, row: 5, room: 10 },
-  rowcrew:        { col: 7, row: 5, room: 11 },
-  orchestrator:   { col: 5, row: 7, room: 12 },
+  chatbot:        { col: 1, row: 2, room: 1,  door: 'right' },
+  oldwaystoday:   { col: 2, row: 2, room: 2,  door: 'right' },
+  embedroute:     { col: 4, row: 2, room: 3,  door: 'left' },
+  blog:           { col: 5, row: 2, room: 4,  door: 'left' },
+  spellbrigade:   { col: 1, row: 3, room: 5,  door: 'right' },
+  activity:       { col: 2, row: 3, room: 6,  door: 'right' },
+  fabstats:       { col: 4, row: 3, room: 7,  door: 'left' },
+  moltbook:       { col: 5, row: 3, room: 8,  door: 'left' },
+  benchpressonly: { col: 2, row: 4, room: 9,  door: 'right' },
+  fabstatsbot:    { col: 3, row: 4, room: 10, door: 'top' },
+  rowcrew:        { col: 4, row: 4, room: 11, door: 'left' },
+  orchestrator:   { col: 3, row: 5, room: 12, door: 'top' },
 };
 
-// Corridor segments — connect adjacent rooms through the grid gaps
-const CORRIDORS = [
-  // Row 1 horizontal corridors
-  { col: 2, row: 1, dir: 'h' },  // chatbot ↔ oldways
-  { col: 8, row: 1, dir: 'h' },  // embedroute ↔ blog
-  // Row 3 horizontal corridors
-  { col: 2, row: 3, dir: 'h' },  // spell ↔ activity
-  { col: 4, row: 3, dir: 'h' },  // activity ↔ hub
-  { col: 6, row: 3, dir: 'h' },  // hub ↔ fabstats
-  { col: 8, row: 3, dir: 'h' },  // fabstats ↔ moltbook
-  // Row 5 horizontal corridors
-  { col: 4, row: 5, dir: 'h' },  // bench ↔ fabbot (through col4)
-  { col: 6, row: 5, dir: 'h' },  // fabbot ↔ rowcrew
-  // Vertical corridors
-  { col: 1, row: 2, dir: 'v' },  // chatbot ↔ spell
-  { col: 3, row: 2, dir: 'v' },  // oldways ↔ activity
-  { col: 7, row: 2, dir: 'v' },  // embedroute ↔ fabstats
-  { col: 9, row: 2, dir: 'v' },  // blog ↔ moltbook
-  { col: 3, row: 4, dir: 'v' },  // activity ↔ bench
-  { col: 5, row: 4, dir: 'v' },  // hub ↔ fabbot
-  { col: 7, row: 4, dir: 'v' },  // fabstats ↔ rowcrew
-  { col: 5, row: 6, dir: 'v' },  // fabbot ↔ conductor
-  // Junction dots (intersections)
-  { col: 4, row: 4, dir: 'j' },  // junction
-  { col: 6, row: 4, dir: 'j' },  // junction
+// Hallway segments (column 3, rows 2-3)
+const HALLWAY_CELLS = [
+  { col: 3, row: 2 },
+  { col: 3, row: 3 },
+];
+
+// Empty floor cells — unoccupied building space
+const EMPTY_CELLS = [
+  { col: 1, row: 4 },
+  { col: 5, row: 4 },
+  { col: 1, row: 5 },
+  { col: 2, row: 5 },
+  { col: 4, row: 5 },
+  { col: 5, row: 5 },
 ];
 
 const nonHubStations = STATION_DEFS.filter(s => !s.isHub);
@@ -65,39 +53,28 @@ function AgentWorkspace() {
   const { health, totalTools } = useMCPHealth();
 
   const [selectedStation, setSelectedStation] = useState(null);
-  const [hoveredStation, setHoveredStation] = useState(null);
   const [hoverDelayId, setHoverDelayId] = useState(null);
   const [tooltipStation, setTooltipStation] = useState(null);
 
   // Replay state
-  const [replayProgress, setReplayProgress] = useState(null); // null = inactive, 0-1 = progress
+  const [replayProgress, setReplayProgress] = useState(null);
   const [replayFlashes, setReplayFlashes] = useState({});
   const replayRef = useRef(null);
   const replayRafRef = useRef(null);
 
-  const containerRef = useRef(null);
-  const hubRef = useRef(null);
-  const stationRefs = useRef({});
-
-  const setStationRef = useCallback((id, el) => {
-    if (el) stationRefs.current[id] = el;
-  }, []);
-
   const handleStationClick = useCallback((station) => {
-    if (replayProgress !== null) return; // disabled during replay
+    if (replayProgress !== null) return;
     setSelectedStation(station);
   }, [replayProgress]);
 
   // ─── Hover tooltip with delay ───
   const handleStationEnter = useCallback((stationId) => {
     if (replayProgress !== null) return;
-    setHoveredStation(stationId);
     const id = setTimeout(() => setTooltipStation(stationId), 200);
     setHoverDelayId(id);
   }, [replayProgress]);
 
   const handleStationLeave = useCallback(() => {
-    setHoveredStation(null);
     setTooltipStation(null);
     if (hoverDelayId) clearTimeout(hoverDelayId);
   }, [hoverDelayId]);
@@ -123,7 +100,6 @@ function AgentWorkspace() {
     setReplayProgress(0);
     setReplayFlashes({});
     setTooltipStation(null);
-    setHoveredStation(null);
 
     const tick = () => {
       const r = replayRef.current;
@@ -133,11 +109,9 @@ function AgentWorkspace() {
       const progress = Math.min(elapsed / r.duration, 1);
       const virtualTime = r.minMs + progress * r.timeSpanMs;
 
-      // Fire events as virtual time passes them
       while (r.eventIndex < r.events.length && r.events[r.eventIndex].ms <= virtualTime) {
         const evt = r.events[r.eventIndex];
         setReplayFlashes(prev => ({ ...prev, [evt.stationId]: Date.now() }));
-        // Clear flash after 600ms
         const sid = evt.stationId;
         setTimeout(() => {
           setReplayFlashes(prev => {
@@ -163,7 +137,6 @@ function AgentWorkspace() {
     replayRafRef.current = requestAnimationFrame(tick);
   }, [activityHistory]);
 
-  // Cleanup replay on unmount
   useEffect(() => {
     return () => {
       if (replayRafRef.current) cancelAnimationFrame(replayRafRef.current);
@@ -173,7 +146,7 @@ function AgentWorkspace() {
   const isReplaying = replayProgress !== null;
 
   return (
-    <div className="aw-container" ref={containerRef}>
+    <div className="aw-container">
       {/* Header */}
       <div className="aw-header">
         <div className="aw-header-left">
@@ -197,13 +170,8 @@ function AgentWorkspace() {
         </div>
       </div>
 
-      {/* Office floor plan */}
+      {/* Building floor plan */}
       <div className="aw-floor">
-        {/* Building decoration */}
-        <div className="aw-building-corner aw-building-corner--tl" />
-        <div className="aw-building-corner aw-building-corner--tr" />
-        <div className="aw-building-corner aw-building-corner--bl" />
-        <div className="aw-building-corner aw-building-corner--br" />
         <span className="aw-building-label">FL-01 · AZONI HQ</span>
 
         {/* Replay progress bar */}
@@ -214,34 +182,37 @@ function AgentWorkspace() {
           </div>
         )}
 
-        {/* Connection lines (SVG overlay) */}
-        <ConnectionLines
-          containerRef={containerRef}
-          hubRef={hubRef}
-          stationRefs={stationRefs.current}
-          hoveredStation={hoveredStation}
-        />
-
-        {/* Corridors */}
-        {CORRIDORS.map((c, i) => (
-          <div
-            key={i}
-            className={`aw-corridor ${c.dir === 'h' ? 'aw-corridor-h' : c.dir === 'v' ? 'aw-corridor-v' : 'aw-corridor-j'}`}
-            style={{ gridColumn: c.col, gridRow: c.row }}
-          />
-        ))}
-
-        {/* MCP Hub — center */}
-        <div className="aw-grid-cell aw-grid-hub" style={{ gridColumn: 5, gridRow: 3 }}>
+        {/* MCP Hub — Lobby (row 1, full width) */}
+        <div
+          className="aw-lobby"
+          style={{ gridColumn: '1 / -1', gridRow: 1 }}
+        >
           <MCPHub
-            ref={hubRef}
             totalTools={totalTools}
             isFlashing={!!flashingStations.mcp || !!replayFlashes.mcp}
             onClick={() => handleStationClick(mcpStation)}
           />
         </div>
 
-        {/* Station cards */}
+        {/* Central hallway */}
+        {HALLWAY_CELLS.map((h, i) => (
+          <div
+            key={`hall-${i}`}
+            className="aw-hallway"
+            style={{ gridColumn: h.col, gridRow: h.row }}
+          />
+        ))}
+
+        {/* Empty floor cells */}
+        {EMPTY_CELLS.map((e, i) => (
+          <div
+            key={`empty-${i}`}
+            className="aw-empty-floor"
+            style={{ gridColumn: e.col, gridRow: e.row }}
+          />
+        ))}
+
+        {/* Station rooms */}
         {nonHubStations.map((station, i) => {
           const pos = GRID_PLACEMENT[station.id];
           if (!pos) return null;
@@ -254,7 +225,6 @@ function AgentWorkspace() {
               onMouseLeave={handleStationLeave}
             >
               <WorkstationCard
-                ref={(el) => setStationRef(station.id, el)}
                 station={station}
                 lastEvent={stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
@@ -262,6 +232,7 @@ function AgentWorkspace() {
                 onClick={handleStationClick}
                 index={i}
                 roomNumber={pos.room}
+                door={pos.door}
               />
             </div>
           );
@@ -278,9 +249,9 @@ function AgentWorkspace() {
             const counts = activityCounts[tooltipStation] || {};
             const eventMs = lastEvent?.receivedAt || 0;
 
-            // Position tooltip based on grid column
-            const tooltipCol = pos.col <= 3 ? pos.col + 1 : pos.col >= 7 ? pos.col - 1 : pos.col;
-            const tooltipRow = pos.col >= 3 && pos.col <= 7 ? pos.row : pos.row;
+            // Position tooltip: left rooms → right side, right rooms → left side
+            const tooltipCol = pos.col <= 2 ? pos.col + 1 : pos.col >= 4 ? pos.col - 1 : pos.col;
+            const tooltipRow = pos.row;
 
             return (
               <motion.div

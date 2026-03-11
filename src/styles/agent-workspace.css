@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   Agent Workspace — Isometric Office/Lab
+   Agent Workspace — Office Floor Plan
    ═══════════════════════════════════════════════════════ */
 
 /* ─── Container ─── */
@@ -83,101 +83,232 @@
   cursor: default;
 }
 
-/* ─── Floor (Building shell — rooms flush, corridors = hallways) ─── */
+/* ═══════════════════════════════════════════════════════
+   Building Floor Plan
+   5-column grid: Left wing (1-2) | Hallway (3) | Right wing (4-5)
+   ═══════════════════════════════════════════════════════ */
 .aw-floor {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 24px 1fr 24px 1.2fr 24px 1fr 24px 1fr;
-  grid-template-rows: auto 20px auto 20px auto 20px auto;
-  padding: 0;
-  min-height: 700px;
+  grid-template-columns: 1fr 1fr 56px 1fr 1fr;
+  grid-template-rows: auto auto auto auto auto;
+  gap: 0;
+  min-height: 600px;
 
   /* Building outer wall */
-  border: 2px solid rgba(255, 122, 92, 0.15);
-  border-radius: 3px;
+  border: 2px solid rgba(255, 122, 92, 0.18);
+  border-radius: 2px;
   overflow: hidden;
 
-  /* Floor texture — uniform blueprint grid */
+  /* Floor texture */
   background-color: #0a0a10;
   background-image:
-    radial-gradient(circle at 50% 40%, rgba(255, 122, 92, 0.04) 0%, transparent 50%),
-    linear-gradient(30deg, rgba(255, 122, 92, 0.025) 1px, transparent 1px),
-    linear-gradient(150deg, rgba(255, 122, 92, 0.025) 1px, transparent 1px),
-    linear-gradient(210deg, rgba(255, 179, 71, 0.015) 1px, transparent 1px),
-    linear-gradient(330deg, rgba(255, 179, 71, 0.015) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    40px 23px,
-    40px 23px,
-    40px 23px,
-    40px 23px;
-  animation: awGridDrift 60s linear infinite;
+    radial-gradient(circle at 50% 30%, rgba(255, 122, 92, 0.03) 0%, transparent 50%),
+    linear-gradient(30deg, rgba(255, 122, 92, 0.018) 1px, transparent 1px),
+    linear-gradient(150deg, rgba(255, 122, 92, 0.018) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 18px, 32px 18px;
 }
 
-/* ─── Corridors — visible hallway spaces between rooms ─── */
-.aw-corridor {
-  position: relative;
+/* ─── Building label ─── */
+.aw-building-label {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.45rem;
+  color: rgba(255, 122, 92, 0.35);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  z-index: 10;
   pointer-events: none;
-  background: rgba(255, 122, 92, 0.025);
 }
 
-/* Horizontal hallway — wall lines top/bottom */
-.aw-corridor-h::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.04);
+/* ═══════════════════════════════════════════════════════
+   MCP Lobby — Full-width entrance (Row 1)
+   ═══════════════════════════════════════════════════════ */
+.aw-lobby {
+  position: relative;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.07);
+  z-index: 2;
 }
 
-.aw-corridor-h::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.04);
+.aw-mcp-hub {
+  position: relative;
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.04), rgba(255, 179, 71, 0.02));
+  cursor: pointer;
+  overflow: hidden;
 }
 
-/* Vertical hallway — wall lines left/right */
-.aw-corridor-v::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.04);
+.aw-mcp-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
 }
 
-.aw-corridor-v::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.04);
+.aw-mcp-icon {
+  position: relative;
+  flex-shrink: 0;
 }
 
-/* Structural column at corridor intersections */
-.aw-corridor-j {
-  background: rgba(255, 122, 92, 0.025);
+.aw-mcp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.aw-corridor-j::after {
-  content: '';
+.aw-mcp-label {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary, #fafaf9);
+}
+
+.aw-mcp-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aw-mcp-tools,
+.aw-mcp-domains {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.62rem;
+  color: var(--text-secondary, #a8a8a0);
+}
+
+.aw-mcp-dot-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted, #6b6b65);
+}
+
+.aw-mcp-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.6rem;
+  color: #60a5fa;
+  margin-left: 12px;
+}
+
+.aw-mcp-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #60a5fa;
+  box-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+  animation: awPulse 2s ease-in-out infinite;
+}
+
+/* Orbital ring — positioned around icon */
+.aw-mcp-orbit {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 5px;
-  height: 5px;
-  margin: -2.5px 0 0 -2.5px;
-  border-radius: 1px;
-  background: rgba(255, 122, 92, 0.18);
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  animation: awOrbit 20s linear infinite;
+  pointer-events: none;
+}
+
+.aw-mcp-orbit-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ff7a5c;
+  opacity: 0.35;
+  top: 50%;
+  left: 50%;
+  transform: rotate(calc(var(--i) * 60deg)) translateX(28px) translateY(-1.5px);
+}
+
+/* MCP active flash */
+.aw-mcp-hub.aw-station-active {
+  background: linear-gradient(135deg, rgba(255, 122, 92, 0.1), rgba(255, 179, 71, 0.06));
+  box-shadow: inset 0 0 30px rgba(255, 122, 92, 0.08);
+  animation: awFlash 2s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Central Hallway — Column 3
+   ═══════════════════════════════════════════════════════ */
+.aw-hallway {
+  position: relative;
+  background: rgba(255, 122, 92, 0.02);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.07);
+  border-right: 1.5px solid rgba(255, 255, 255, 0.07);
+  min-height: 160px;
+}
+
+/* Center walkway line */
+.aw-hallway::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(255, 122, 92, 0.06);
+  pointer-events: none;
+}
+
+/* Upward flowing data traffic */
+.aw-hallway::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    rgba(255, 122, 92, 0.04) 40%,
+    rgba(255, 122, 92, 0.06) 50%,
+    rgba(255, 122, 92, 0.04) 60%,
+    transparent 100%
+  );
+  background-size: 100% 200%;
+  animation: awHallwayFlow 3s linear infinite;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+@keyframes awHallwayFlow {
+  from { background-position: 0 100%; }
+  to { background-position: 0 -100%; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Empty Floor Cells — Unoccupied building space
+   ═══════════════════════════════════════════════════════ */
+.aw-empty-floor {
+  position: relative;
+  background: rgba(255, 255, 255, 0.008);
+  border: 1.5px solid rgba(255, 255, 255, 0.03);
+  min-height: 80px;
+}
+
+/* Subtle blueprint cross-hatch for empty spaces */
+.aw-empty-floor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 12px,
+      rgba(255, 255, 255, 0.012) 12px,
+      rgba(255, 255, 255, 0.012) 13px
+    );
+  pointer-events: none;
 }
 
 /* ─── Replay progress bar ─── */
@@ -212,36 +343,6 @@
   font-weight: 700;
   letter-spacing: 0.15em;
   color: #ff7a5c;
-}
-
-/* ─── Building decorations ─── */
-.aw-building-corner {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-color: rgba(255, 122, 92, 0.25);
-  border-style: solid;
-  border-width: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.aw-building-corner--tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
-.aw-building-corner--tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
-.aw-building-corner--bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
-.aw-building-corner--br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
-
-.aw-building-label {
-  position: absolute;
-  top: 5px;
-  left: 8px;
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.45rem;
-  color: rgba(255, 122, 92, 0.3);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  z-index: 10;
-  pointer-events: none;
 }
 
 /* ─── Room number badge ─── */
@@ -342,36 +443,25 @@
   color: var(--text-muted, #6b6b65);
 }
 
-/* Replay flash on station card */
-.aw-replay-flash {
-  animation: awReplayGlow 0.6s ease-out;
-}
-
 /* ─── Grid Cell — rooms fill their allotted space ─── */
 .aw-grid-cell {
   display: flex;
   min-width: 0;
 }
 
-.aw-grid-hub {
-  z-index: 2;
-}
-
 /* ═══════════════════════════════════════════════════════
-   Station Card — Flush room inside building
+   Station Card — Room inside the building
    ═══════════════════════════════════════════════════════ */
 .aw-station-card {
   position: relative;
   width: 100%;
   flex: 1;
-  background: rgba(255, 255, 255, 0.018);
-  border: none;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1.5px solid rgba(255, 255, 255, 0.07);
   border-radius: 0;
   overflow: hidden;
   cursor: pointer;
-  /* Interior wall — inset shadow creates the room boundary */
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 /* Room nameplate — colored accent strip at top */
@@ -383,31 +473,77 @@
   right: 0;
   height: 2px;
   background: var(--station-color);
+  opacity: 0.5;
   z-index: 4;
   pointer-events: none;
 }
 
-/* Active event flash */
+/* ─── Doorway indicators — colored notch on hallway-facing wall ─── */
+.aw-station-card[data-door="right"]::before {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  background: var(--station-color);
+  opacity: 0.25;
+  border-radius: 1px 0 0 1px;
+  z-index: 5;
+}
+
+.aw-station-card[data-door="left"]::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  background: var(--station-color);
+  opacity: 0.25;
+  border-radius: 0 1px 1px 0;
+  z-index: 5;
+}
+
+.aw-station-card[data-door="top"]::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 3px;
+  background: var(--station-color);
+  opacity: 0.25;
+  border-radius: 0 0 1px 1px;
+  z-index: 5;
+}
+
+/* Active event flash — wall glow */
 .aw-station-active {
+  background: rgba(255, 255, 255, 0.04) !important;
   box-shadow:
     inset 0 0 0 2px var(--station-color),
-    0 0 20px color-mix(in srgb, var(--station-color) 25%, transparent),
-    inset 0 0 20px color-mix(in srgb, var(--station-color) 5%, transparent) !important;
+    0 0 20px color-mix(in srgb, var(--station-color) 20%, transparent),
+    inset 0 0 30px color-mix(in srgb, var(--station-color) 8%, transparent) !important;
   animation: awFlash 2s ease-out;
 }
 
 /* Hover state — room lights on */
 .aw-station-card:hover {
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 0 40px color-mix(in srgb, var(--station-color) 8%, transparent);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.aw-station-card:hover::after {
+  opacity: 0.8;
 }
 
 /* ─── Scene Area ─── */
 .aw-station-scene {
   position: relative;
-  height: 130px;
+  height: 120px;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
@@ -517,117 +653,6 @@
 .aw-count small {
   color: var(--text-muted, #6b6b65);
   font-size: 0.55rem;
-}
-
-/* ═══════════════════════════════════════════════════════
-   MCP Hub — Center
-   ═══════════════════════════════════════════════════════ */
-.aw-mcp-hub {
-  position: relative;
-  width: 100%;
-  flex: 1;
-  padding: 24px 16px 20px;
-  background: linear-gradient(135deg, rgba(255, 122, 92, 0.06), rgba(255, 179, 71, 0.03));
-  border: none;
-  border-radius: 0;
-  text-align: center;
-  cursor: pointer;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255, 122, 92, 0.12);
-}
-
-/* MCP nameplate */
-.aw-mcp-hub::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #ff7a5c;
-  z-index: 4;
-}
-
-.aw-mcp-content {
-  position: relative;
-  z-index: 1;
-}
-
-.aw-mcp-icon {
-  margin-bottom: 8px;
-}
-
-.aw-mcp-label {
-  font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary, #fafaf9);
-  margin-bottom: 4px;
-}
-
-.aw-mcp-meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.aw-mcp-tools,
-.aw-mcp-domains {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.65rem;
-  color: var(--text-secondary, #a8a8a0);
-}
-
-.aw-mcp-dot-sep {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--text-muted, #6b6b65);
-}
-
-.aw-mcp-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.6rem;
-  color: #60a5fa;
-}
-
-.aw-mcp-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #60a5fa;
-  box-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
-  animation: awPulse 2s ease-in-out infinite;
-}
-
-/* Orbital ring */
-.aw-mcp-orbit {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 120px;
-  height: 120px;
-  margin: -60px 0 0 -60px;
-  animation: awOrbit 20s linear infinite;
-  pointer-events: none;
-}
-
-.aw-mcp-orbit-dot {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #ff7a5c;
-  opacity: 0.4;
-  top: 50%;
-  left: 50%;
-  transform: rotate(calc(var(--i) * 60deg)) translateX(58px) translateY(-2.5px);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1599,12 +1624,7 @@
 
 @keyframes awFlash {
   0% { box-shadow: inset 0 0 0 2px var(--station-color), 0 0 30px color-mix(in srgb, var(--station-color) 40%, transparent); }
-  100% { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04); }
-}
-
-@keyframes awGridDrift {
-  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
-  to { background-position: 0 0, 40px 23px, 40px 23px, 40px 23px, 40px 23px; }
+  100% { box-shadow: none; }
 }
 
 @keyframes awOrbit {
@@ -1656,23 +1676,17 @@
   100% { transform: scale(1.5); opacity: 0; }
 }
 
-@keyframes awReplayGlow {
-  0% { box-shadow: inset 0 0 0 2px var(--station-color), 0 0 24px color-mix(in srgb, var(--station-color) 50%, transparent); }
-  100% { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04); }
-}
-
 /* ═══════════════════════════════════════════════════════
    Responsive
    ═══════════════════════════════════════════════════════ */
 
 @media (max-width: 1100px) {
   .aw-floor {
-    grid-template-columns: 1fr 18px 1fr 18px 1.2fr 18px 1fr 18px 1fr;
-    grid-template-rows: auto 14px auto 14px auto 14px auto;
+    grid-template-columns: 1fr 1fr 48px 1fr 1fr;
   }
 
   .aw-station-scene {
-    height: 110px;
+    height: 100px;
   }
 }
 
@@ -1680,24 +1694,27 @@
   .aw-floor {
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: auto;
-    gap: 12px;
+    gap: 10px;
     min-height: auto;
     border: none;
     border-radius: 0;
     overflow: visible;
-    padding: 20px 16px;
+    padding: 16px 12px;
   }
 
   /* Restore standalone card styling */
   .aw-station-card {
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
-    box-shadow: none;
     flex: initial;
   }
 
   .aw-station-card::after {
     border-radius: 10px 10px 0 0;
+  }
+
+  .aw-station-card::before {
+    display: none;
   }
 
   .aw-grid-cell {
@@ -1707,55 +1724,39 @@
     align-items: center;
   }
 
-  .aw-grid-hub {
-    grid-column: 2 !important;
+  .aw-lobby {
+    grid-column: span 3 !important;
+    grid-row: auto !important;
     order: -1;
-  }
-
-  .aw-mcp-hub {
     border: 1px solid rgba(255, 122, 92, 0.15);
-    border-radius: 12px;
-    box-shadow: none;
-    flex: initial;
-  }
-
-  .aw-mcp-hub::before {
-    border-radius: 12px 12px 0 0;
+    border-radius: 10px;
+    border-bottom: 1px solid rgba(255, 122, 92, 0.15);
   }
 
   .aw-station-scene {
-    height: 100px;
+    height: 90px;
   }
 
   /* Hide building elements on tablet */
-  .aw-corridor { display: none; }
+  .aw-hallway { display: none; }
+  .aw-empty-floor { display: none; }
   .aw-tooltip { display: none; }
-  .animated-beam-svg { display: none; }
-  .aw-building-corner { display: none; }
   .aw-building-label { display: none; }
 }
 
 @media (max-width: 768px) {
   .aw-floor {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 16px 12px;
+    gap: 8px;
+    padding: 14px 10px;
   }
 
-  .aw-grid-hub {
+  .aw-lobby {
     grid-column: span 2 !important;
-  }
-
-  .aw-mcp-hub {
-    max-width: 100%;
   }
 
   .aw-station-scene {
     height: 80px;
-  }
-
-  .aw-station-card {
-    max-width: 100%;
   }
 
   .aw-ticker-events {
@@ -1779,8 +1780,8 @@
   }
 
   .aw-floor {
-    padding: 12px 8px;
-    gap: 8px;
+    padding: 10px 6px;
+    gap: 6px;
   }
 
   .aw-station-scene {
