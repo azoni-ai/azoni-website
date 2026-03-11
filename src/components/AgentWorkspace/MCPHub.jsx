@@ -10,7 +10,7 @@ const MCPHub = forwardRef(({ totalTools, isFlashing, onClick }, ref) => {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, delay: 0.05, ease: 'easeOut' }}
-      whileHover={{ scale: 1.03 }}
+      whileHover={{ scale: 1.005 }}
       onClick={onClick}
       role="button"
       tabIndex={0}

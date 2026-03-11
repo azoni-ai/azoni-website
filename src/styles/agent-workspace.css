@@ -83,21 +83,22 @@
   cursor: default;
 }
 
-/* ─── Floor (Building shell — 9-col office floor plan) ─── */
+/* ─── Floor (Building shell — rooms flush, corridors = hallways) ─── */
 .aw-floor {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 20px 1fr 20px 1.2fr 20px 1fr 20px 1fr;
-  grid-template-rows: auto 16px auto 16px auto 16px auto;
-  padding: 44px 28px 32px;
+  grid-template-columns: 1fr 24px 1fr 24px 1.2fr 24px 1fr 24px 1fr;
+  grid-template-rows: auto 20px auto 20px auto 20px auto;
+  padding: 0;
   min-height: 700px;
 
-  /* Building shell */
-  border: 1.5px solid rgba(255, 122, 92, 0.12);
-  border-radius: 4px;
+  /* Building outer wall */
+  border: 2px solid rgba(255, 122, 92, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
 
   /* Floor texture — uniform blueprint grid */
-  background-color: #08080d;
+  background-color: #0a0a10;
   background-image:
     radial-gradient(circle at 50% 40%, rgba(255, 122, 92, 0.04) 0%, transparent 50%),
     linear-gradient(30deg, rgba(255, 122, 92, 0.025) 1px, transparent 1px),
@@ -113,46 +114,70 @@
   animation: awGridDrift 60s linear infinite;
 }
 
-/* ─── Corridors — hallways connecting rooms ─── */
+/* ─── Corridors — visible hallway spaces between rooms ─── */
 .aw-corridor {
   position: relative;
   pointer-events: none;
-  background: rgba(255, 122, 92, 0.008);
+  background: rgba(255, 122, 92, 0.025);
 }
 
-/* Horizontal hallway — center runner line */
+/* Horizontal hallway — wall lines top/bottom */
+.aw-corridor-h::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .aw-corridor-h::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: -2px;
-  right: -2px;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 1px;
-  background: rgba(255, 122, 92, 0.06);
+  background: rgba(255, 255, 255, 0.04);
 }
 
-/* Vertical hallway — center runner line */
+/* Vertical hallway — wall lines left/right */
+.aw-corridor-v::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .aw-corridor-v::after {
   content: '';
   position: absolute;
-  left: 50%;
-  top: -2px;
-  bottom: -2px;
+  top: 0;
+  bottom: 0;
+  right: 0;
   width: 1px;
-  background: rgba(255, 122, 92, 0.06);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Structural column at corridor intersections */
+.aw-corridor-j {
+  background: rgba(255, 122, 92, 0.025);
+}
+
 .aw-corridor-j::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
   border-radius: 1px;
-  background: rgba(255, 122, 92, 0.15);
+  background: rgba(255, 122, 92, 0.18);
 }
 
 /* ─── Replay progress bar ─── */
@@ -192,13 +217,13 @@
 /* ─── Building decorations ─── */
 .aw-building-corner {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: rgba(255, 122, 92, 0.2);
+  width: 16px;
+  height: 16px;
+  border-color: rgba(255, 122, 92, 0.25);
   border-style: solid;
   border-width: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 10;
 }
 
 .aw-building-corner--tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
@@ -208,14 +233,14 @@
 
 .aw-building-label {
   position: absolute;
-  top: 12px;
-  left: 20px;
+  top: 5px;
+  left: 8px;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.5rem;
-  color: rgba(255, 122, 92, 0.25);
+  font-size: 0.45rem;
+  color: rgba(255, 122, 92, 0.3);
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  z-index: 5;
+  z-index: 10;
   pointer-events: none;
 }
 
@@ -325,8 +350,7 @@
 /* ─── Grid Cell — rooms fill their allotted space ─── */
 .aw-grid-cell {
   display: flex;
-  justify-content: stretch;
-  align-items: stretch;
+  min-width: 0;
 }
 
 .aw-grid-hub {
@@ -334,35 +358,50 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   Station Card — Base Styles
+   Station Card — Flush room inside building
    ═══════════════════════════════════════════════════════ */
 .aw-station-card {
   position: relative;
   width: 100%;
+  flex: 1;
   background: rgba(255, 255, 255, 0.018);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-top: 2px solid var(--station-color);
-  border-radius: 2px;
+  border: none;
+  border-radius: 0;
   overflow: hidden;
   cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  /* Interior wall — inset shadow creates the room boundary */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Room nameplate — colored accent strip at top */
+.aw-station-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--station-color);
+  z-index: 4;
+  pointer-events: none;
 }
 
 /* Active event flash */
 .aw-station-active {
-  border-color: var(--station-color) !important;
   box-shadow:
+    inset 0 0 0 2px var(--station-color),
     0 0 20px color-mix(in srgb, var(--station-color) 25%, transparent),
-    inset 0 0 20px color-mix(in srgb, var(--station-color) 5%, transparent);
+    inset 0 0 20px color-mix(in srgb, var(--station-color) 5%, transparent) !important;
   animation: awFlash 2s ease-out;
 }
 
-/* Hover state — room illumination */
+/* Hover state — room lights on */
 .aw-station-card:hover {
-  background: rgba(255, 255, 255, 0.035);
-  border-color: rgba(255, 255, 255, 0.08);
-  border-top-color: var(--station-color);
-  box-shadow: inset 0 0 40px color-mix(in srgb, var(--station-color) 6%, transparent);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 0 40px color-mix(in srgb, var(--station-color) 8%, transparent);
 }
 
 /* ─── Scene Area ─── */
@@ -486,14 +525,27 @@
 .aw-mcp-hub {
   position: relative;
   width: 100%;
+  flex: 1;
   padding: 24px 16px 20px;
   background: linear-gradient(135deg, rgba(255, 122, 92, 0.06), rgba(255, 179, 71, 0.03));
-  border: 1px solid rgba(255, 122, 92, 0.2);
-  border-top: 2px solid #ff7a5c;
-  border-radius: 2px;
+  border: none;
+  border-radius: 0;
   text-align: center;
   cursor: pointer;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 122, 92, 0.12);
+}
+
+/* MCP nameplate */
+.aw-mcp-hub::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ff7a5c;
+  z-index: 4;
 }
 
 .aw-mcp-content {
@@ -1546,8 +1598,8 @@
 }
 
 @keyframes awFlash {
-  0% { box-shadow: 0 0 30px color-mix(in srgb, var(--station-color) 40%, transparent); }
-  100% { box-shadow: none; }
+  0% { box-shadow: inset 0 0 0 2px var(--station-color), 0 0 30px color-mix(in srgb, var(--station-color) 40%, transparent); }
+  100% { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04); }
 }
 
 @keyframes awGridDrift {
@@ -1605,8 +1657,8 @@
 }
 
 @keyframes awReplayGlow {
-  0% { box-shadow: 0 0 24px color-mix(in srgb, var(--station-color) 50%, transparent); border-color: var(--station-color); }
-  100% { box-shadow: none; border-color: rgba(255, 255, 255, 0.06); }
+  0% { box-shadow: inset 0 0 0 2px var(--station-color), 0 0 24px color-mix(in srgb, var(--station-color) 50%, transparent); }
+  100% { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04); }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1615,9 +1667,8 @@
 
 @media (max-width: 1100px) {
   .aw-floor {
-    grid-template-columns: 1fr 14px 1fr 14px 1.2fr 14px 1fr 14px 1fr;
-    grid-template-rows: auto 12px auto 12px auto 12px auto;
-    padding: 36px 16px 24px;
+    grid-template-columns: 1fr 18px 1fr 18px 1.2fr 18px 1fr 18px 1fr;
+    grid-template-rows: auto 14px auto 14px auto 14px auto;
   }
 
   .aw-station-scene {
@@ -1633,13 +1684,20 @@
     min-height: auto;
     border: none;
     border-radius: 0;
+    overflow: visible;
     padding: 20px 16px;
   }
 
-  /* Restore individual card styling */
+  /* Restore standalone card styling */
   .aw-station-card {
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
-    border-top-width: 1.5px;
+    box-shadow: none;
+    flex: initial;
+  }
+
+  .aw-station-card::after {
+    border-radius: 10px 10px 0 0;
   }
 
   .aw-grid-cell {
@@ -1655,8 +1713,14 @@
   }
 
   .aw-mcp-hub {
+    border: 1px solid rgba(255, 122, 92, 0.15);
     border-radius: 12px;
-    border-top-width: 1px;
+    box-shadow: none;
+    flex: initial;
+  }
+
+  .aw-mcp-hub::before {
+    border-radius: 12px 12px 0 0;
   }
 
   .aw-station-scene {
