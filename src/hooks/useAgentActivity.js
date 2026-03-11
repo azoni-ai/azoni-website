@@ -119,5 +119,5 @@ export function useAgentActivity() {
     return counts;
   }, [activityHistory]);
 
-  return { stationEvents, tickerEvents, activityCounts, stationHistory, flashingStations };
+  return { stationEvents, tickerEvents, activityCounts, stationHistory, flashingStations, activityHistory };
 }

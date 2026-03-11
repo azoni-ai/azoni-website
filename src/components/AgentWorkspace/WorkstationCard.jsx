@@ -10,6 +10,7 @@ const WorkstationCard = forwardRef(({
   isFlashing,
   onClick,
   index = 0,
+  roomNumber,
 }, ref) => {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -32,6 +33,9 @@ const WorkstationCard = forwardRef(({
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onClick(station)}
     >
+      {/* Room number badge */}
+      {roomNumber && <span className="aw-room-badge">R-{String(roomNumber).padStart(2, '0')}</span>}
+
       {/* Scene area with workspace illustration */}
       <div className="aw-station-scene">
         {/* Themed workspace props (rendered via CSS) */}

@@ -46,6 +46,7 @@
 
 .aw-header-right {
   display: flex;
+  align-items: center;
   gap: 16px;
 }
 
@@ -55,13 +56,39 @@
   color: var(--text-muted, #6b6b65);
 }
 
-/* ─── Floor (Grid Layout) ─── */
+/* Replay button */
+.aw-replay-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 122, 92, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 122, 92, 0.06);
+  color: #ff7a5c;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.aw-replay-btn:hover:not(:disabled) {
+  background: rgba(255, 122, 92, 0.12);
+  border-color: rgba(255, 122, 92, 0.5);
+}
+
+.aw-replay-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ─── Floor (Grid Layout — 9-col building floor plan) ─── */
 .aw-floor {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(4, auto);
-  gap: 16px;
+  grid-template-columns: 1fr 20px 1fr 20px 1.2fr 20px 1fr 20px 1fr;
+  grid-template-rows: auto 16px auto 16px auto 16px auto;
   padding: 32px 24px;
   min-height: 700px;
 
@@ -80,6 +107,184 @@
     40px 23px,
     40px 23px;
   animation: awGridDrift 60s linear infinite;
+}
+
+/* ─── Corridors ─── */
+.aw-corridor {
+  position: relative;
+  pointer-events: none;
+}
+
+/* Horizontal corridor — thin center line */
+.aw-corridor-h::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 122, 92, 0.06);
+}
+
+/* Vertical corridor — thin center line */
+.aw-corridor-v::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 122, 92, 0.06);
+}
+
+/* Junction dot — intersection of corridors */
+.aw-corridor-j::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  background: rgba(255, 122, 92, 0.12);
+}
+
+/* ─── Replay progress bar ─── */
+.aw-replay-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: rgba(255, 122, 92, 0.15);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.aw-replay-fill {
+  height: 100%;
+  background: rgba(255, 122, 92, 0.4);
+  transition: width 0.08s linear;
+}
+
+.aw-replay-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #ff7a5c;
+}
+
+/* ─── Room badge ─── */
+.aw-room-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.05em;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ─── Hover tooltip ─── */
+.aw-tooltip {
+  position: relative;
+  z-index: 20;
+  background: rgba(12, 12, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 2px solid var(--tip-color, #ff7a5c);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 160px;
+  max-width: 220px;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  align-self: start;
+}
+
+.aw-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.aw-tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.aw-tooltip-name {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary, #fafaf9);
+}
+
+.aw-tooltip-cat {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin-left: auto;
+}
+
+.aw-tooltip-desc {
+  font-size: 0.65rem;
+  color: var(--text-secondary, #a8a8a0);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.aw-tooltip-event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.aw-tooltip-event-title {
+  font-size: 0.62rem;
+  color: var(--text-secondary, #a8a8a0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.aw-tooltip-event-time {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.55rem;
+  color: var(--text-muted, #6b6b65);
+  flex-shrink: 0;
+}
+
+.aw-tooltip-counts {
+  display: flex;
+  gap: 8px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.58rem;
+  color: var(--text-muted, #6b6b65);
+}
+
+/* Replay flash on station card */
+.aw-replay-flash {
+  animation: awReplayGlow 0.6s ease-out;
 }
 
 /* ─── Grid Cell ─── */
@@ -101,7 +306,7 @@
   width: 100%;
   max-width: 200px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -1393,13 +1598,19 @@
   100% { transform: scale(1.5); opacity: 0; }
 }
 
+@keyframes awReplayGlow {
+  0% { box-shadow: 0 0 24px color-mix(in srgb, var(--station-color) 50%, transparent); border-color: var(--station-color); }
+  100% { box-shadow: none; border-color: rgba(255, 255, 255, 0.06); }
+}
+
 /* ═══════════════════════════════════════════════════════
    Responsive
    ═══════════════════════════════════════════════════════ */
 
 @media (max-width: 1100px) {
   .aw-floor {
-    gap: 12px;
+    grid-template-columns: 1fr 14px 1fr 14px 1.2fr 14px 1fr 14px 1fr;
+    grid-template-rows: auto 12px auto 12px auto 12px auto;
     padding: 24px 16px;
   }
 
@@ -1435,10 +1646,10 @@
     height: 100px;
   }
 
-  /* Hide connection lines on tablet */
-  .animated-beam-svg {
-    display: none;
-  }
+  /* Hide corridors and connection lines on tablet */
+  .aw-corridor { display: none; }
+  .aw-tooltip { display: none; }
+  .animated-beam-svg { display: none; }
 }
 
 @media (max-width: 768px) {

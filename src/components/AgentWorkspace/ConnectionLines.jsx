@@ -2,29 +2,28 @@ import React, { useState, useEffect } from 'react';
 import AnimatedBeam from '../ui/animated-beam';
 import { STATION_DEFS } from '../../utils/station-mapping';
 
-// Grid positions for curvature calculation
+// Grid positions for curvature (logical positions, not CSS grid columns)
 const GRID_POS = {
-  chatbot: { col: 0, row: 0 },
-  oldwaystoday: { col: 1, row: 0 },
-  embedroute: { col: 3, row: 0 },
-  blog: { col: 4, row: 0 },
-  spellbrigade: { col: 0, row: 1 },
-  activity: { col: 1, row: 1 },
-  fabstats: { col: 3, row: 1 },
-  moltbook: { col: 4, row: 1 },
+  chatbot:        { col: 0, row: 0 },
+  oldwaystoday:   { col: 1, row: 0 },
+  embedroute:     { col: 3, row: 0 },
+  blog:           { col: 4, row: 0 },
+  spellbrigade:   { col: 0, row: 1 },
+  activity:       { col: 1, row: 1 },
+  fabstats:       { col: 3, row: 1 },
+  moltbook:       { col: 4, row: 1 },
   benchpressonly: { col: 1, row: 2 },
-  fabstatsbot: { col: 2, row: 2 },
-  rowcrew: { col: 3, row: 2 },
-  orchestrator: { col: 2, row: 3 },
+  fabstatsbot:    { col: 2, row: 2 },
+  rowcrew:        { col: 3, row: 2 },
+  orchestrator:   { col: 2, row: 3 },
 };
 
 function computeCurvature(stationId) {
   const pos = GRID_POS[stationId];
   if (!pos) return 0;
-  // Left stations get positive curvature, right get negative
-  if (pos.col < 2) return 30 + (pos.row === 0 ? 20 : 0);
-  if (pos.col > 2) return -(30 + (pos.row === 0 ? 20 : 0));
-  // Center column stations
+  // Wider spacing needs more curvature
+  if (pos.col < 2) return 40 + (pos.row === 0 ? 25 : 0);
+  if (pos.col > 2) return -(40 + (pos.row === 0 ? 25 : 0));
   if (pos.row > 1) return 0;
   return 0;
 }
