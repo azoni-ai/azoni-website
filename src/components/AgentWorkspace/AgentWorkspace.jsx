@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAgentActivity } from '../../hooks/useAgentActivity';
 import { useMCPHealth } from '../../hooks/useMCPHealth';
 import { STATION_DEFS, CATEGORY_STYLES, formatTimeAgo } from '../../utils/station-mapping';
+import { avatars } from '../../data/agents';
 import WorkstationCard from './WorkstationCard';
 import MCPHub from './MCPHub';
 import WorkspaceTicker from './WorkspaceTicker';
@@ -10,9 +11,6 @@ import StationDetailPanel from './StationDetailPanel';
 import '../../styles/agent-workspace.css';
 
 // ─── Building floor plan: 5-col grid ───
-// Cols 1-2 = left wing, Col 3 = hallway, Cols 4-5 = right wing
-// Row 1 = MCP Lobby (spans full width)
-// Rows 2-5 = office rooms
 const GRID_PLACEMENT = {
   chatbot:        { col: 1, row: 2, room: 1,  door: 'right' },
   oldwaystoday:   { col: 2, row: 2, room: 2,  door: 'right' },
@@ -28,13 +26,11 @@ const GRID_PLACEMENT = {
   orchestrator:   { col: 3, row: 5, room: 12, door: 'top' },
 };
 
-// Hallway segments (column 3, rows 2-3)
 const HALLWAY_CELLS = [
   { col: 3, row: 2 },
   { col: 3, row: 3 },
 ];
 
-// Empty floor cells — unoccupied building space
 const EMPTY_CELLS = [
   { col: 1, row: 4 },
   { col: 5, row: 4 },
@@ -47,6 +43,25 @@ const EMPTY_CELLS = [
 const nonHubStations = STATION_DEFS.filter(s => !s.isHub);
 const mcpStation = STATION_DEFS.find(s => s.isHub);
 const stationById = Object.fromEntries(STATION_DEFS.map(s => [s.id, s]));
+
+// ─── Waypoint calculation for walking path ───
+function calcWaypoints(floorRect, cellRect, lobbyRect) {
+  const startX = cellRect.left + cellRect.width / 2 - floorRect.left;
+  const startY = cellRect.top + cellRect.height * 0.55 - floorRect.top;
+  const hallX = floorRect.width / 2;
+  const mcpX = lobbyRect.left + lobbyRect.width / 2 - floorRect.left;
+  const mcpY = lobbyRect.top + lobbyRect.height / 2 - floorRect.top;
+
+  return [
+    { x: startX, y: startY },
+    { x: hallX,  y: startY },
+    { x: hallX,  y: mcpY },
+    { x: mcpX,   y: mcpY },
+    { x: hallX,  y: mcpY },
+    { x: hallX,  y: startY },
+    { x: startX, y: startY },
+  ];
+}
 
 function AgentWorkspace() {
   const { stationEvents, tickerEvents, activityCounts, stationHistory, flashingStations, activityHistory } = useAgentActivity();
@@ -62,12 +77,22 @@ function AgentWorkspace() {
   const replayRef = useRef(null);
   const replayRafRef = useRef(null);
 
+  // Walking agents state
+  const [walkingAgents, setWalkingAgents] = useState({});
+  const floorRef = useRef(null);
+  const lobbyRef = useRef(null);
+  const cellRefs = useRef({});
+  const prevFlashRef = useRef({});
+
+  const setCellRef = useCallback((id, el) => {
+    if (el) cellRefs.current[id] = el;
+  }, []);
+
   const handleStationClick = useCallback((station) => {
     if (replayProgress !== null) return;
     setSelectedStation(station);
   }, [replayProgress]);
 
-  // ─── Hover tooltip with delay ───
   const handleStationEnter = useCallback((stationId) => {
     if (replayProgress !== null) return;
     const id = setTimeout(() => setTooltipStation(stationId), 200);
@@ -78,6 +103,50 @@ function AgentWorkspace() {
     setTooltipStation(null);
     if (hoverDelayId) clearTimeout(hoverDelayId);
   }, [hoverDelayId]);
+
+  // ─── Watch flashes and trigger agent walks ───
+  const startWalkRef = useRef(null);
+  startWalkRef.current = (stationId) => {
+    const station = stationById[stationId];
+    if (!station?.agent || !avatars[station.agent]) return;
+    if (walkingAgents[stationId]) return; // already walking
+
+    const floorEl = floorRef.current;
+    const lobbyEl = lobbyRef.current;
+    const cellEl = cellRefs.current[stationId];
+    if (!floorEl || !lobbyEl || !cellEl) return;
+
+    const floorRect = floorEl.getBoundingClientRect();
+    const cellRect = cellEl.getBoundingClientRect();
+    const lobbyRect = lobbyEl.getBoundingClientRect();
+    const waypoints = calcWaypoints(floorRect, cellRect, lobbyRect);
+
+    setWalkingAgents(prev => ({
+      ...prev,
+      [stationId]: { waypoints, agent: station.agent },
+    }));
+  };
+
+  useEffect(() => {
+    const prev = prevFlashRef.current;
+    const combined = { ...flashingStations, ...replayFlashes };
+
+    for (const stationId of Object.keys(combined)) {
+      if (!prev[stationId]) {
+        startWalkRef.current(stationId);
+      }
+    }
+
+    prevFlashRef.current = combined;
+  }, [flashingStations, replayFlashes]);
+
+  const removeWalkingAgent = useCallback((stationId) => {
+    setWalkingAgents(prev => {
+      const next = { ...prev };
+      delete next[stationId];
+      return next;
+    });
+  }, []);
 
   // ─── 24h Replay ───
   const startReplay = useCallback(() => {
@@ -100,6 +169,7 @@ function AgentWorkspace() {
     setReplayProgress(0);
     setReplayFlashes({});
     setTooltipStation(null);
+    setWalkingAgents({});
 
     const tick = () => {
       const r = replayRef.current;
@@ -171,7 +241,7 @@ function AgentWorkspace() {
       </div>
 
       {/* Building floor plan */}
-      <div className="aw-floor">
+      <div className="aw-floor" ref={floorRef}>
         <span className="aw-building-label">FL-01 · AZONI HQ</span>
 
         {/* Replay progress bar */}
@@ -184,6 +254,7 @@ function AgentWorkspace() {
 
         {/* MCP Hub — Lobby (row 1, full width) */}
         <div
+          ref={lobbyRef}
           className="aw-lobby"
           style={{ gridColumn: '1 / -1', gridRow: 1 }}
         >
@@ -219,6 +290,7 @@ function AgentWorkspace() {
           return (
             <div
               key={station.id}
+              ref={(el) => setCellRef(station.id, el)}
               className="aw-grid-cell"
               style={{ gridColumn: pos.col, gridRow: pos.row }}
               onMouseEnter={() => handleStationEnter(station.id)}
@@ -229,6 +301,7 @@ function AgentWorkspace() {
                 lastEvent={stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
                 isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
+                isWalking={!!walkingAgents[station.id]}
                 onClick={handleStationClick}
                 index={i}
                 roomNumber={pos.room}
@@ -237,6 +310,29 @@ function AgentWorkspace() {
             </div>
           );
         })}
+
+        {/* Walking agent avatars */}
+        <AnimatePresence>
+          {Object.entries(walkingAgents).map(([stationId, data]) => (
+            <motion.div
+              key={`walk-${stationId}`}
+              className="aw-walking-agent"
+              initial={{ x: data.waypoints[0].x, y: data.waypoints[0].y }}
+              animate={{
+                x: data.waypoints.map(w => w.x),
+                y: data.waypoints.map(w => w.y),
+              }}
+              transition={{
+                duration: 3.4,
+                times: [0, 0.18, 0.41, 0.5, 0.59, 0.82, 1],
+                ease: 'easeInOut',
+              }}
+              onAnimationComplete={() => removeWalkingAgent(stationId)}
+            >
+              {avatars[data.agent](28)}
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {/* Hover tooltip */}
         <AnimatePresence>
@@ -249,7 +345,6 @@ function AgentWorkspace() {
             const counts = activityCounts[tooltipStation] || {};
             const eventMs = lastEvent?.receivedAt || 0;
 
-            // Position tooltip: left rooms → right side, right rooms → left side
             const tooltipCol = pos.col <= 2 ? pos.col + 1 : pos.col >= 4 ? pos.col - 1 : pos.col;
             const tooltipRow = pos.row;
 

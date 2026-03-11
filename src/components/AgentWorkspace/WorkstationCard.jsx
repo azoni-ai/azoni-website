@@ -8,6 +8,7 @@ function WorkstationCard({
   lastEvent,
   activityCounts = {},
   isFlashing,
+  isWalking,
   onClick,
   index = 0,
   roomNumber,
@@ -22,7 +23,7 @@ function WorkstationCard({
 
   return (
     <motion.div
-      className={`aw-station-card aw-theme-${station.id}${isFlashing ? ' aw-station-active' : ''}`}
+      className={`aw-station-card aw-theme-${station.id}${isFlashing ? ' aw-station-active' : ''}${isWalking ? ' aw-agent-walking' : ''}`}
       style={{ '--station-color': station.color }}
       data-door={door}
       initial={{ opacity: 0, y: 16 }}

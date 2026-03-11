@@ -311,6 +311,23 @@
   pointer-events: none;
 }
 
+/* ═══════════════════════════════════════════════════════
+   Walking Agent — Avatar moving through hallway
+   ═══════════════════════════════════════════════════════ */
+.aw-walking-agent {
+  position: absolute;
+  z-index: 15;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.5));
+  transform: translate(-50%, -50%);
+}
+
+/* Dim the room avatar while the agent is walking */
+.aw-agent-walking .aw-station-avatar {
+  opacity: 0.12;
+  transition: opacity 0.4s ease;
+}
+
 /* ─── Replay progress bar ─── */
 .aw-replay-bar {
   position: absolute;
