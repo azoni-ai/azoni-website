@@ -83,16 +83,20 @@
   cursor: default;
 }
 
-/* ─── Floor (Grid Layout — 9-col building floor plan) ─── */
+/* ─── Floor (Building shell — 9-col office floor plan) ─── */
 .aw-floor {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 20px 1fr 20px 1.2fr 20px 1fr 20px 1fr;
   grid-template-rows: auto 16px auto 16px auto 16px auto;
-  padding: 32px 24px;
+  padding: 44px 28px 32px;
   min-height: 700px;
 
-  /* Isometric diamond grid background */
+  /* Building shell */
+  border: 1.5px solid rgba(255, 122, 92, 0.12);
+  border-radius: 4px;
+
+  /* Floor texture — uniform blueprint grid */
   background-color: #08080d;
   background-image:
     radial-gradient(circle at 50% 40%, rgba(255, 122, 92, 0.04) 0%, transparent 50%),
@@ -109,45 +113,46 @@
   animation: awGridDrift 60s linear infinite;
 }
 
-/* ─── Corridors ─── */
+/* ─── Corridors — hallways connecting rooms ─── */
 .aw-corridor {
   position: relative;
   pointer-events: none;
+  background: rgba(255, 122, 92, 0.008);
 }
 
-/* Horizontal corridor — thin center line */
+/* Horizontal hallway — center runner line */
 .aw-corridor-h::after {
   content: '';
   position: absolute;
   top: 50%;
-  left: 0;
-  right: 0;
+  left: -2px;
+  right: -2px;
   height: 1px;
   background: rgba(255, 122, 92, 0.06);
 }
 
-/* Vertical corridor — thin center line */
+/* Vertical hallway — center runner line */
 .aw-corridor-v::after {
   content: '';
   position: absolute;
   left: 50%;
-  top: 0;
-  bottom: 0;
+  top: -2px;
+  bottom: -2px;
   width: 1px;
   background: rgba(255, 122, 92, 0.06);
 }
 
-/* Junction dot — intersection of corridors */
+/* Structural column at corridor intersections */
 .aw-corridor-j::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 3px;
-  height: 3px;
-  margin: -1.5px 0 0 -1.5px;
-  border-radius: 50%;
-  background: rgba(255, 122, 92, 0.12);
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 1px;
+  background: rgba(255, 122, 92, 0.15);
 }
 
 /* ─── Replay progress bar ─── */
@@ -184,14 +189,44 @@
   color: #ff7a5c;
 }
 
-/* ─── Room badge ─── */
-.aw-room-badge {
+/* ─── Building decorations ─── */
+.aw-building-corner {
   position: absolute;
-  top: 6px;
-  right: 8px;
+  width: 14px;
+  height: 14px;
+  border-color: rgba(255, 122, 92, 0.2);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.aw-building-corner--tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
+.aw-building-corner--tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
+.aw-building-corner--bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
+.aw-building-corner--br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
+
+.aw-building-label {
+  position: absolute;
+  top: 12px;
+  left: 20px;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 0.5rem;
-  color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 122, 92, 0.25);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ─── Room number badge ─── */
+.aw-room-badge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.15);
   letter-spacing: 0.05em;
   z-index: 3;
   pointer-events: none;
@@ -287,11 +322,11 @@
   animation: awReplayGlow 0.6s ease-out;
 }
 
-/* ─── Grid Cell ─── */
+/* ─── Grid Cell — rooms fill their allotted space ─── */
 .aw-grid-cell {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: stretch;
+  align-items: stretch;
 }
 
 .aw-grid-hub {
@@ -304,42 +339,13 @@
 .aw-station-card {
   position: relative;
   width: 100%;
-  max-width: 200px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 2px solid var(--station-color);
+  border-radius: 2px;
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-/* Isometric depth — bottom shadow */
-.aw-station-card::before {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 4px;
-  right: -4px;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.25);
-  clip-path: polygon(0 0, 96% 0, 100% 100%, 4% 100%);
-  border-radius: 0 0 4px 4px;
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* Isometric depth — right edge */
-.aw-station-card::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  right: -5px;
-  bottom: -5px;
-  width: 5px;
-  background: rgba(0, 0, 0, 0.15);
-  clip-path: polygon(0 0, 100% 4%, 100% 96%, 0 100%);
-  pointer-events: none;
-  z-index: -1;
+  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 /* Active event flash */
@@ -351,12 +357,12 @@
   animation: awFlash 2s ease-out;
 }
 
-/* Hover state */
+/* Hover state — room illumination */
 .aw-station-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    0 0 16px color-mix(in srgb, var(--station-color) 12%, transparent);
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.08);
+  border-top-color: var(--station-color);
+  box-shadow: inset 0 0 40px color-mix(in srgb, var(--station-color) 6%, transparent);
 }
 
 /* ─── Scene Area ─── */
@@ -480,11 +486,11 @@
 .aw-mcp-hub {
   position: relative;
   width: 100%;
-  max-width: 180px;
   padding: 24px 16px 20px;
   background: linear-gradient(135deg, rgba(255, 122, 92, 0.06), rgba(255, 179, 71, 0.03));
   border: 1px solid rgba(255, 122, 92, 0.2);
-  border-radius: 14px;
+  border-top: 2px solid #ff7a5c;
+  border-radius: 2px;
   text-align: center;
   cursor: pointer;
   overflow: hidden;
@@ -1611,11 +1617,7 @@
   .aw-floor {
     grid-template-columns: 1fr 14px 1fr 14px 1.2fr 14px 1fr 14px 1fr;
     grid-template-rows: auto 12px auto 12px auto 12px auto;
-    padding: 24px 16px;
-  }
-
-  .aw-station-card {
-    max-width: 170px;
+    padding: 36px 16px 24px;
   }
 
   .aw-station-scene {
@@ -1629,12 +1631,22 @@
     grid-template-rows: auto;
     gap: 12px;
     min-height: auto;
+    border: none;
+    border-radius: 0;
+    padding: 20px 16px;
   }
 
-  /* Re-layout for 3 columns — all stations flow naturally */
+  /* Restore individual card styling */
+  .aw-station-card {
+    border-radius: 10px;
+    border-top-width: 1.5px;
+  }
+
   .aw-grid-cell {
     grid-column: auto !important;
     grid-row: auto !important;
+    justify-content: center;
+    align-items: center;
   }
 
   .aw-grid-hub {
@@ -1642,14 +1654,21 @@
     order: -1;
   }
 
+  .aw-mcp-hub {
+    border-radius: 12px;
+    border-top-width: 1px;
+  }
+
   .aw-station-scene {
     height: 100px;
   }
 
-  /* Hide corridors and connection lines on tablet */
+  /* Hide building elements on tablet */
   .aw-corridor { display: none; }
   .aw-tooltip { display: none; }
   .animated-beam-svg { display: none; }
+  .aw-building-corner { display: none; }
+  .aw-building-label { display: none; }
 }
 
 @media (max-width: 768px) {

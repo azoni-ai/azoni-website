@@ -197,8 +197,15 @@ function AgentWorkspace() {
         </div>
       </div>
 
-      {/* Workspace floor */}
+      {/* Office floor plan */}
       <div className="aw-floor">
+        {/* Building decoration */}
+        <div className="aw-building-corner aw-building-corner--tl" />
+        <div className="aw-building-corner aw-building-corner--tr" />
+        <div className="aw-building-corner aw-building-corner--bl" />
+        <div className="aw-building-corner aw-building-corner--br" />
+        <span className="aw-building-label">FL-01 · AZONI HQ</span>
+
         {/* Replay progress bar */}
         {isReplaying && (
           <div className="aw-replay-bar">

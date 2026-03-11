@@ -23,39 +23,66 @@ export const SOURCE_TO_STATION = {
 };
 
 export const TYPE_TO_STATION = {
+  // Orchestrator
   'agent_observing': 'orchestrator',
   'agent_deciding': 'orchestrator',
+  'agent_drafting': 'orchestrator',
   'orchestrator_summary': 'orchestrator',
   'self_assessment': 'orchestrator',
   'error_reviewed': 'orchestrator',
   'project_updated': 'orchestrator',
+  'pr_detected': 'orchestrator',
+  'reactive_trigger': 'orchestrator',
+  // Activity feed
   'health_alert': 'activity',
+  // Blog
   'blog_published': 'blog',
   'blog_generated': 'blog',
+  // Chatbot
   'knowledge_generated': 'chatbot',
+  'assistant_chat': 'chatbot',
+  // Spell Brigade
   'wizard_created': 'spellbrigade',
   'dungeon_created': 'spellbrigade',
+  'user_login': 'spellbrigade',
+  'user_signup': 'spellbrigade',
+  'guest_session': 'spellbrigade',
+  'game_started': 'spellbrigade',
+  // BenchPress
   'workout_generated': 'benchpressonly',
+  'group_workout_generated': 'benchpressonly',
   'workout_autofilled': 'benchpressonly',
   'progress_analyzed': 'benchpressonly',
-  'assistant_chat': 'chatbot',
+  'ai_coaching': 'benchpressonly',
+  // Moltbook
   'moltbook_post': 'moltbook',
   'moltbook_comment': 'moltbook',
   'moltbook_upvote': 'moltbook',
+  // Old Ways Today
   'owt_chat': 'oldwaystoday',
   'owt_blog': 'oldwaystoday',
-  'pr_detected': 'orchestrator',
-  'ai_coaching': 'benchpressonly',
+  'owt_blog_viewed': 'oldwaystoday',
+  'owt_comment': 'oldwaystoday',
+  // RowCrew
   'rowing_session': 'rowcrew',
   'row_completed': 'rowcrew',
+  'row_verified': 'rowcrew',
+  'group_created': 'rowcrew',
+  'group_joined': 'rowcrew',
+  'challenge_created': 'rowcrew',
+  // EmbedRoute
   'embed_request': 'embedroute',
+  // MCP
   'mcp_request': 'mcp',
+  // FabStats
   'fabstats_activity': 'fabstats',
   'match_logged': 'fabstats',
+  'matches_imported': 'fabstats',
   'minigame_completed': 'fabstats',
-  'discord_command': 'fabstatsbot',
   'fab_match': 'fabstats',
   'fab_match_tracked': 'fabstats',
+  // FaB Bot
+  'discord_command': 'fabstatsbot',
 };
 
 export const DOMAIN_TO_STATION = {

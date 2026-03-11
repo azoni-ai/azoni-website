@@ -27,7 +27,7 @@ const WorkstationCard = forwardRef(({
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 + index * 0.06, ease: 'easeOut' }}
-      whileHover={{ y: -4, scale: 1.02 }}
+      whileHover={{ scale: 1.005 }}
       onClick={() => onClick(station)}
       role="button"
       tabIndex={0}
