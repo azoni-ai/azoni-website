@@ -5,7 +5,7 @@ import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import CollapsibleSection from '../components/CollapsibleSection';
-import AgentKitchen from '../components/AgentKitchen';
+import AgentWorkspace from '../components/AgentWorkspace/AgentWorkspace';
 
 import FabStatsShowcase from '../components/FabStatsShowcase';
 import BenchRowCrewShowcase from '../components/BenchRowCrewShowcase';
@@ -302,7 +302,7 @@ const Home = () => {
         >
           <section className="showcase-section">
             <div className="container">
-              <AgentKitchen />
+              <AgentWorkspace />
             </div>
           </section>
           <section className="showcase-section">
