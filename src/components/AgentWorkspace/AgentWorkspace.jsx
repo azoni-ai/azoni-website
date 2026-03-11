@@ -13,32 +13,26 @@ import '../../styles/agent-workspace.css';
 // ─── Building floor plan: 5-col grid ───
 const GRID_PLACEMENT = {
   chatbot:        { col: 1, row: 2, room: 1,  door: 'right' },
-  oldwaystoday:   { col: 2, row: 2, room: 2,  door: 'right' },
-  embedroute:     { col: 4, row: 2, room: 3,  door: 'left' },
+  spellbrigade:   { col: 2, row: 2, room: 2,  door: 'right' },
+  moltbook:       { col: 4, row: 2, room: 3,  door: 'left' },
   blog:           { col: 5, row: 2, room: 4,  door: 'left' },
-  spellbrigade:   { col: 1, row: 3, room: 5,  door: 'right' },
+  benchpressonly: { col: 1, row: 3, room: 5,  door: 'right' },
   activity:       { col: 2, row: 3, room: 6,  door: 'right' },
-  fabstats:       { col: 4, row: 3, room: 7,  door: 'left' },
-  moltbook:       { col: 5, row: 3, room: 8,  door: 'left' },
-  benchpressonly: { col: 2, row: 4, room: 9,  door: 'right' },
-  fabstatsbot:    { col: 3, row: 4, room: 10, door: 'top' },
-  rowcrew:        { col: 4, row: 4, room: 11, door: 'left' },
-  orchestrator:   { col: 3, row: 5, room: 12, door: 'top' },
+  fabstatsbot:    { col: 4, row: 3, room: 7,  door: 'left' },
+  rowcrew:        { col: 5, row: 3, room: 8,  door: 'left' },
+  oldwaystoday:   { col: 1, row: 4, room: 9,  door: 'right' },
+  orchestrator:   { col: 2, row: 4, room: 10, door: 'right' },
+  embedroute:     { col: 4, row: 4, room: 11, door: 'left' },
+  fabstats:       { col: 5, row: 4, room: 12, door: 'left' },
 };
 
 const HALLWAY_CELLS = [
   { col: 3, row: 2 },
   { col: 3, row: 3 },
+  { col: 3, row: 4 },
 ];
 
-const EMPTY_CELLS = [
-  { col: 1, row: 4 },
-  { col: 5, row: 4 },
-  { col: 1, row: 5 },
-  { col: 2, row: 5 },
-  { col: 4, row: 5 },
-  { col: 5, row: 5 },
-];
+const EMPTY_CELLS = [];
 
 const nonHubStations = STATION_DEFS.filter(s => !s.isHub);
 const mcpStation = STATION_DEFS.find(s => s.isHub);

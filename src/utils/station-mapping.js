@@ -139,7 +139,7 @@ export const STATION_DEFS = [
     dataLabel: 'social content',
   },
   {
-    id: 'oldwaystoday', label: 'Old Ways Today', color: '#d97706', agent: 'wellness', icon: 'leaf', category: 'app',
+    id: 'oldwaystoday', label: 'Old Ways Today', color: '#d97706', icon: 'leaf', category: 'app',
     desc: 'AI wellness platform — RAG chatbot + auto-blog for natural remedies.',
     actions: ['Curating remedies', 'Auto-blogging', 'RAG retrieval'],
     dataLabel: 'recipes',
@@ -189,7 +189,6 @@ export const AGENT_IDLE = {
   fitness:      { bobSpeed: 2200, bobAmt: 2.5, breathSpeed: 2000, breathAmt: 0.02, lean: 0 },
   gaming:       { bobSpeed: 3600, bobAmt: 2.0, breathSpeed: 3000, breathAmt: 0.018, lean: 0.01 },
   social:       { bobSpeed: 2000, bobAmt: 3.0, breathSpeed: 2200, breathAmt: 0.015, lean: -0.02 },
-  wellness:     { bobSpeed: 4800, bobAmt: 1.5, breathSpeed: 4200, breathAmt: 0.01, lean: 0.012 },
   rowing:       { bobSpeed: 3200, bobAmt: 3.0, breathSpeed: 3800, breathAmt: 0.008, lean: 0.01 },
 };
 
