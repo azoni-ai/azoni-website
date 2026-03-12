@@ -31,6 +31,7 @@ export const TYPE_TO_STATION = {
   'self_assessment': 'orchestrator',
   'error_reviewed': 'orchestrator',
   'project_updated': 'orchestrator',
+  'project_created': 'orchestrator',
   'pr_detected': 'orchestrator',
   'reactive_trigger': 'orchestrator',
   // Activity feed
@@ -41,6 +42,7 @@ export const TYPE_TO_STATION = {
   // Chatbot
   'knowledge_generated': 'chatbot',
   'assistant_chat': 'chatbot',
+  'chat_answered': 'chatbot',
   // Spell Brigade
   'wizard_created': 'spellbrigade',
   'dungeon_created': 'spellbrigade',
@@ -54,6 +56,10 @@ export const TYPE_TO_STATION = {
   'workout_autofilled': 'benchpressonly',
   'progress_analyzed': 'benchpressonly',
   'ai_coaching': 'benchpressonly',
+  'form_check': 'benchpressonly',
+  'exercise_swapped': 'benchpressonly',
+  'program_generated': 'benchpressonly',
+  'fitness_synced': 'benchpressonly',
   // Moltbook
   'moltbook_post': 'moltbook',
   'moltbook_comment': 'moltbook',
@@ -70,8 +76,11 @@ export const TYPE_TO_STATION = {
   'group_created': 'rowcrew',
   'group_joined': 'rowcrew',
   'challenge_created': 'rowcrew',
+  'admin_transferred': 'rowcrew',
   // EmbedRoute
   'embed_request': 'embedroute',
+  'rag_chunk_created': 'embedroute',
+  'rag_chunk_updated': 'embedroute',
   // MCP
   'mcp_request': 'mcp',
   // FabStats
