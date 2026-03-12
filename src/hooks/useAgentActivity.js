@@ -77,17 +77,30 @@ export function useAgentActivity() {
       if (isFirstLoadRef.current) {
         const docs = snapshot.docs.map(d => d.data());
         const initial = {};
+        // Docs are newest-first. Track latest receivedAt (including visits)
+        // and latest non-visit event for display title.
+        const latestAt = {};   // stationId → most recent timestamp
+        const display = {};    // stationId → first non-visit event data
         docs.forEach(data => {
           const sid = mapSourceToStation(data.source, data.type) || 'activity';
           const ts = data.timestamp;
           const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
-          // Skip site_visit for "last event" display on cards
-          if (data.type !== 'site_visit' && !initial[sid]) {
-            initial[sid] = { ...data, receivedAt: ms || Date.now() };
+          const recAt = ms || Date.now();
+          // Track most recent timestamp (any event type)
+          if (!latestAt[sid]) latestAt[sid] = recAt;
+          if (sid !== 'activity' && !latestAt['activity']) latestAt['activity'] = recAt;
+          // Track first non-visit event for display
+          if (data.type !== 'site_visit') {
+            if (!display[sid]) display[sid] = data;
+            if (sid !== 'activity' && !display['activity']) display['activity'] = data;
           }
-          if (data.type !== 'site_visit' && sid !== 'activity' && !initial['activity']) {
-            initial['activity'] = { ...data, receivedAt: ms || Date.now() };
-          }
+        });
+        // Merge: display data with visit-aware receivedAt
+        Object.keys(latestAt).forEach(sid => {
+          const d = display[sid];
+          initial[sid] = d
+            ? { ...d, receivedAt: latestAt[sid] }
+            : { type: 'site_visit', title: 'Site visit', receivedAt: latestAt[sid] };
         });
         setStationEvents(initial);
         setTickerEvents(docs.filter(d => d.type !== 'site_visit').slice(0, 5));
@@ -122,17 +135,24 @@ export function useAgentActivity() {
             }
             return updated;
           });
-          // Skip visits for card display, ticker, and flash
-          if (!isVisit) {
+          if (isVisit) {
+            // Visits: update receivedAt (for idle level) + flash, but keep previous display title
+            setStationEvents(prev => ({
+              ...prev,
+              [stationId]: { ...(prev[stationId] || {}), receivedAt: now },
+              activity: { ...(prev['activity'] || {}), receivedAt: now },
+            }));
+          } else {
+            // Non-visits: full update including display data + ticker
             setStationEvents(prev => ({
               ...prev,
               [stationId]: { ...data, receivedAt: now },
               activity: { ...data, receivedAt: now },
             }));
             setTickerEvents(prev => [data, ...prev].slice(0, 5));
-            flashStationRef.current(stationId);
-            if (stationId !== 'activity') flashStationRef.current('activity');
           }
+          flashStationRef.current(stationId);
+          if (stationId !== 'activity') flashStationRef.current('activity');
         }
       });
     });

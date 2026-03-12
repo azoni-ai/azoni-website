@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Comments from '../components/Comments';
 import { useProjects } from '../hooks/useProjects';
+import useVisitTracker from '../hooks/useVisitTracker';
 import { db } from '../config/firebase';
 import { doc, getDoc, setDoc, onSnapshot, increment } from 'firebase/firestore';
 
@@ -54,6 +55,7 @@ const StarButton = ({ projectId }) => {
 
 const ProjectDetail = () => {
   const { id } = useParams();
+  useVisitTracker(id);
   const { getProject, loading } = useProjects();
   const project = getProject(id);
 
