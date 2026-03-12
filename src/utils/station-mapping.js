@@ -185,13 +185,13 @@ export const STATION_DEFS = [
     dataLabel: 'event logs', url: '/activity',
   },
   {
-    id: 'fabstats', label: 'FaB Stats', color: '#D9A05B', icon: 'shield', category: 'data',
+    id: 'fabstats', label: 'FaB Stats', color: '#D9A05B', agent: 'fabstats', icon: 'shield', category: 'app',
     desc: 'Flesh and Blood TCG tracker. Matches, heroes, tournaments, minigames.',
     actions: ['Tracking matches', 'Meta analysis', 'Daily minigames'],
     dataLabel: 'FaB data', url: 'https://fabstats.net',
   },
   {
-    id: 'fabstatsbot', label: 'FaB Bot', color: '#c9a84c', icon: 'chat', category: 'app',
+    id: 'fabstatsbot', label: 'FaB Bot', color: '#c9a84c', agent: 'fabstatsbot', icon: 'chat', category: 'app',
     desc: 'Discord bot for FaB Stats — player stats, leaderboards, puzzle results.',
     actions: ['Player lookups', 'Leaderboards', 'Puzzle results'],
     dataLabel: 'Discord data',
@@ -206,6 +206,9 @@ export const AGENT_IDLE = {
   gaming:       { bobSpeed: 3600, bobAmt: 2.0, breathSpeed: 3000, breathAmt: 0.018, lean: 0.01 },
   social:       { bobSpeed: 2000, bobAmt: 3.0, breathSpeed: 2200, breathAmt: 0.015, lean: -0.02 },
   rowing:       { bobSpeed: 3200, bobAmt: 3.0, breathSpeed: 3800, breathAmt: 0.008, lean: 0.01 },
+  oldways:      { bobSpeed: 3800, bobAmt: 1.5, breathSpeed: 3400, breathAmt: 0.01, lean: -0.01 },
+  fabstats:     { bobSpeed: 3400, bobAmt: 1.8, breathSpeed: 3200, breathAmt: 0.012, lean: 0.01 },
+  fabstatsbot:  { bobSpeed: 2600, bobAmt: 2.2, breathSpeed: 2800, breathAmt: 0.015, lean: -0.01 },
 };
 
 export const STATION_CONNECTIONS = {

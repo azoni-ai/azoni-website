@@ -361,12 +361,31 @@ function detectIntent(query) {
     return { intent: 'experience', confidence: 'HIGH', reason: 'work_pattern' };
   }
   
+  // PRIORITY 2.5: App-specific queries with live data
+  const fabStatsTriggers = ['fab stats', 'fabstats', 'flesh and blood', 'tcg', 'card game', 'fab bot'];
+  if (fabStatsTriggers.some(t => q.includes(t))) {
+    return { intent: 'fabstats', confidence: 'HIGH', reason: 'fabstats_keyword' };
+  }
+
+  const rowCrewTriggers = ['row crew', 'rowcrew', 'rowing', 'ergometer', 'concept2', 'erg '];
+  if (rowCrewTriggers.some(t => q.includes(t))) {
+    return { intent: 'rowcrew', confidence: 'HIGH', reason: 'rowcrew_keyword' };
+  }
+
+  const spellBrigadeTriggers = ['spell brigade', 'spellbrigade', 'wizard game', 'wizard combat'];
+  if (spellBrigadeTriggers.some(t => q.includes(t))) {
+    return { intent: 'spellbrigade', confidence: 'HIGH', reason: 'spellbrigade_keyword' };
+  }
+
+  const owtTriggers = ['old ways', 'oldways', 'non-toxic', 'non toxic', 'natural remedies'];
+  if (owtTriggers.some(t => q.includes(t))) {
+    return { intent: 'oldways', confidence: 'HIGH', reason: 'oldways_keyword' };
+  }
+
   // PRIORITY 3: Project name triggers → projects
   const projectTriggers = [
-    'old ways', 'oldways',
     'dumarket', 'du market',
     'dustbunny', 'dust bunny',
-    'row crew', 'rowcrew',
     'azoni',
     'prediction market',
     'nft',
@@ -516,6 +535,10 @@ async function retrieveChunks(query, intent, maxChunks = 5) {
     if (intent.intent === 'contact' && chunk.category === 'personal') score += catBonus;
     if (intent.intent === 'fitness' && (chunk.id === 'proj-benchpressonly' || chunk.category === 'fitness')) score += catBonus;
     if (intent.intent === 'moltbook' && (chunk.category === 'moltbook' || chunk.id?.includes('moltbook'))) score += catBonus;
+    if (intent.intent === 'fabstats' && (chunk.category === 'projects' || chunk.id?.includes('fabstats'))) score += catBonus;
+    if (intent.intent === 'rowcrew' && (chunk.category === 'projects' || chunk.id?.includes('rowcrew'))) score += catBonus;
+    if (intent.intent === 'spellbrigade' && (chunk.category === 'projects' || chunk.id?.includes('spell'))) score += catBonus;
+    if (intent.intent === 'oldways' && (chunk.category === 'projects' || chunk.id?.includes('oldways'))) score += catBonus;
     if (intent.intent === 'agents' && (chunk.category === 'agents' || chunk.category === 'moltbook')) score += catBonus;
     if (intent.intent === 'services' && (chunk.category === 'services' || chunk.category === 'personal')) score += catBonus;
     if (intent.intent === 'negotiation' && (chunk.category === 'negotiation' || chunk.category === 'experience' || chunk.category === 'bio')) score += catBonus;
@@ -726,7 +749,143 @@ async function getActivityContext(query) {
 
   return { context, toolsCalled };
 }
-function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], activityData = [], hasRealtimeChunk = false) {
+
+// ============ FAB STATS CONTEXT (from MCP) ============
+async function getFabStatsContext(query) {
+  const q = query.toLowerCase();
+  const context = [];
+  const toolsCalled = [];
+
+  try {
+    const community = await callMCPTool('/fabstats/community');
+    if (community && !community.error) {
+      context.push({ title: 'FaB Stats Community Overview', data: community });
+      toolsCalled.push('get_community_stats');
+    }
+
+    if (/leaderboard|ranking|top|best|elo/.test(q)) {
+      const lb = await callMCPTool('/fabstats/leaderboard');
+      if (lb && !lb.error) {
+        context.push({ title: 'FaB Stats Leaderboard', data: lb });
+        toolsCalled.push('get_leaderboard');
+      }
+    }
+
+    if (/minigame|puzzle|daily|fabdoku|crossword/.test(q)) {
+      const game = q.includes('crossword') ? 'crossword' : 'fabdoku';
+      const mg = await callMCPTool(`/fabstats/minigame/${game}`);
+      if (mg && !mg.error) {
+        context.push({ title: `Minigame Stats: ${game}`, data: mg });
+        toolsCalled.push('get_minigame_stats');
+      }
+    }
+  } catch (error) {
+    console.error('FaB Stats context error:', error);
+  }
+
+  return { context, toolsCalled };
+}
+
+// ============ ROWCREW CONTEXT (from MCP) ============
+async function getRowCrewContext() {
+  const context = [];
+  const toolsCalled = [];
+
+  try {
+    const stats = await callMCPTool('/rowcrew/stats');
+    if (stats && !stats.error) {
+      context.push({ title: 'RowCrew Rowing Stats', data: stats });
+      toolsCalled.push('get_rowing_stats');
+    }
+  } catch (error) {
+    console.error('RowCrew context error:', error);
+  }
+
+  return { context, toolsCalled };
+}
+
+// ============ SPELL BRIGADE CONTEXT (from MCP) ============
+async function getSpellBrigadeContext(query) {
+  const q = query.toLowerCase();
+  const context = [];
+  const toolsCalled = [];
+
+  try {
+    const status = await callMCPTool('/spellbrigade/status');
+    if (status && !status.error) {
+      context.push({ title: 'Spell Brigade Status', data: status });
+      toolsCalled.push('get_spellbrigade_status');
+    }
+
+    if (/leaderboard|ranking|top|best|winner/.test(q)) {
+      const lb = await callMCPTool('/spellbrigade/leaderboard');
+      if (lb && !lb.error) {
+        context.push({ title: 'Spell Brigade Leaderboard', data: lb });
+        toolsCalled.push('get_spellbrigade_leaderboard');
+      }
+    }
+  } catch (error) {
+    console.error('Spell Brigade context error:', error);
+  }
+
+  return { context, toolsCalled };
+}
+
+// ============ MOLTBOOK CONTEXT (from MCP) ============
+async function getMoltbookContext(query) {
+  const q = query.toLowerCase();
+  const context = [];
+  const toolsCalled = [];
+
+  try {
+    const status = await callMCPTool('/moltbook/status');
+    if (status && !status.error) {
+      context.push({ title: 'Moltbook Agent Status', data: status });
+      toolsCalled.push('get_moltbook_status');
+    }
+
+    if (/feed|post|content|recent|what.*post/.test(q)) {
+      const feed = await callMCPTool('/moltbook/feed');
+      if (feed && !feed.error) {
+        context.push({ title: 'Moltbook Recent Feed', data: feed });
+        toolsCalled.push('get_moltbook_feed');
+      }
+    }
+  } catch (error) {
+    console.error('Moltbook context error:', error);
+  }
+
+  return { context, toolsCalled };
+}
+
+// ============ OLD WAYS TODAY CONTEXT (from MCP) ============
+async function getOWTContext(query) {
+  const q = query.toLowerCase();
+  const context = [];
+  const toolsCalled = [];
+
+  try {
+    const health = await callMCPTool('/oldwaystoday/health');
+    if (health && !health.error) {
+      context.push({ title: 'Old Ways Today Health', data: health });
+      toolsCalled.push('get_owt_health');
+    }
+
+    if (/stats|usage|request|token|traffic/.test(q)) {
+      const stats = await callMCPTool('/oldwaystoday/stats');
+      if (stats && !stats.error) {
+        context.push({ title: 'Old Ways Today Usage Stats', data: stats });
+        toolsCalled.push('get_owt_stats');
+      }
+    }
+  } catch (error) {
+    console.error('OWT context error:', error);
+  }
+
+  return { context, toolsCalled };
+}
+
+function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], activityData = [], appData = [], hasRealtimeChunk = false) {
   const toneInstructions = {
     professional: 'Be professional, concise, and highlight relevant qualifications.',
     friendly: 'Be warm and approachable while remaining informative.',
@@ -744,6 +903,10 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], acti
 
   const activitySection = activityData.length > 0
     ? `\n\nLIVE AI ACTIVITY DATA (real-time from across all apps - BenchPressOnly, Spell Brigade, Moltbook Agent):\n${activityData.map(a => `--- ${a.title} ---\n${JSON.stringify(a.data, null, 2)}`).join('\n\n')}`
+    : '';
+
+  const appDataSection = appData.length > 0
+    ? `\n\nLIVE APP DATA (real-time from portfolio apps - use these real numbers):\n${appData.map(a => `--- ${a.title} ---\n${JSON.stringify(a.data, null, 2)}`).join('\n\n')}`
     : '';
 
   return `You are Azoni AI, the portfolio chatbot for Charlton Smith, a software engineer in Seattle. You are part of a multi-agent AI system that Charlton built — you serve as the user-facing interface while a central orchestrator coordinates blog writing, social posting, fitness tracking, and gaming agents behind the scenes.
@@ -765,7 +928,7 @@ General rule: If the question makes sense for an AI chatbot to answer about itse
 TONE: ${toneInstructions[mode] || toneInstructions.professional}
 
 CRITICAL RULES - YOU MUST FOLLOW THESE:
-1. ONLY use information from the RETRIEVED CONTEXT and LIVE FITNESS DATA and LIVE AI ACTIVITY DATA below. Do not make up details.
+1. ONLY use information from the RETRIEVED CONTEXT, LIVE FITNESS DATA, LIVE AI ACTIVITY DATA, and LIVE APP DATA below. Do not make up details.
 2. If the context doesn't contain specific information about what the user is asking, say "I don't have detailed information about that in my knowledge base" and suggest they contact Charlton directly.
 3. NEVER invent dates, job titles, company names, or responsibilities that aren't in the context.
 4. NEVER fabricate project details, technologies, or achievements.
@@ -773,6 +936,7 @@ CRITICAL RULES - YOU MUST FOLLOW THESE:
 6. For fitness questions, use the LIVE FITNESS DATA to give specific, real numbers. This data is pulled in real-time from Charlton's BenchPressOnly app.
 7. When discussing fitness data, mention that this is live data from his actual training log.
 8. For AI activity questions, use the LIVE AI ACTIVITY DATA to give specific numbers about costs, token usage, and activity across apps. This is real-time data from Charlton's AI systems.
+9. For app-specific questions (FaB Stats, RowCrew, Spell Brigade, Moltbook, Old Ways Today), use the LIVE APP DATA when available. This is real-time data pulled from those live services.
 
 HANDLING RECRUITER & SENSITIVE QUESTIONS:
 These are common questions from recruiters and hiring managers. Handle them thoughtfully — never just say "I don't have that information." Use the context below and these guidelines:
@@ -791,6 +955,7 @@ Vary your responses to these questions — don't give the same canned answer eve
 ${contextSection}
 ${fitnessSection}
 ${activitySection}
+${appDataSection}
 
 BASIC INFO (always available):
 - Name: Charlton Smith
@@ -914,9 +1079,28 @@ exports.handler = async (event, context) => {
       activityContext = activityResult.context;
       activityToolsCalled = activityResult.toolsCalled;
     }
-    
+
+    // Fetch app-specific live data
+    let appData = [];
+    if (intent.intent === 'fabstats') {
+      const result = await getFabStatsContext(latestUserMessage);
+      appData = result.context;
+    } else if (intent.intent === 'rowcrew') {
+      const result = await getRowCrewContext();
+      appData = result.context;
+    } else if (intent.intent === 'spellbrigade') {
+      const result = await getSpellBrigadeContext(latestUserMessage);
+      appData = result.context;
+    } else if (intent.intent === 'moltbook') {
+      const result = await getMoltbookContext(latestUserMessage);
+      appData = result.context;
+    } else if (intent.intent === 'oldways') {
+      const result = await getOWTContext(latestUserMessage);
+      appData = result.context;
+    }
+
     // Build system prompt with context
-    let finalSystemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext, activityContext, !!realtimeChunk);
+    let finalSystemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext, activityContext, appData, !!realtimeChunk);
 
     // Inject interview-specific context when called from the Autoenhance batch downloader page
     if (requestContext === 'autoenhance-interview') {
