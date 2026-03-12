@@ -154,7 +154,7 @@ export const STATION_DEFS = [
     dataLabel: 'social content', url: '/moltbook',
   },
   {
-    id: 'oldwaystoday', label: 'Old Ways Today', color: '#d97706', icon: 'leaf', category: 'app',
+    id: 'oldwaystoday', label: 'Old Ways Today', color: '#d97706', agent: 'oldways', icon: 'leaf', category: 'agent',
     desc: 'AI wellness platform — RAG chatbot + auto-blog for natural remedies.',
     actions: ['Curating remedies', 'Auto-blogging', 'RAG retrieval'],
     dataLabel: 'recipes', url: 'https://oldwaystoday.com',
