@@ -711,25 +711,27 @@
 
 .aw-count {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--station-color);
 }
 
 .aw-count small {
-  color: var(--text-muted, #6b6b65);
-  font-size: 0.55rem;
+  color: var(--text-secondary, #a8a8a0);
+  font-size: 0.6rem;
+  font-weight: 500;
 }
 
 .aw-visit-count {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  color: var(--text-muted, #6b6b65);
-  opacity: 0.7;
+  gap: 3px;
+  color: var(--text-secondary, #a8a8a0);
+  opacity: 1;
 }
 
 .aw-visit-count svg {
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 /* ═══════════════════════════════════════════════════════
