@@ -75,6 +75,7 @@ export const TYPE_TO_STATION = {
   'owt_blog': 'oldwaystoday',
   'owt_blog_viewed': 'oldwaystoday',
   'owt_comment': 'oldwaystoday',
+  'owt_social_post': 'oldwaystoday',
   // RowCrew
   'rowing_session': 'rowcrew',
   'row_completed': 'rowcrew',
