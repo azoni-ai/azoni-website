@@ -20,6 +20,7 @@ export const SOURCE_TO_STATION = {
   'azoni-mcp': 'mcp',
   'embedroute': 'embedroute',
   'embed-route': 'embedroute',
+  'admin': 'orchestrator',
 };
 
 export const TYPE_TO_STATION = {
@@ -57,6 +58,10 @@ export const TYPE_TO_STATION = {
   'progress_analyzed': 'benchpressonly',
   'ai_coaching': 'benchpressonly',
   'form_check': 'benchpressonly',
+  'form-check': 'benchpressonly',
+  'assistant_greeting': 'benchpressonly',
+  'workout_queued': 'benchpressonly',
+  'group_workout_queued': 'benchpressonly',
   'exercise_swapped': 'benchpressonly',
   'program_generated': 'benchpressonly',
   'fitness_synced': 'benchpressonly',
@@ -199,6 +204,21 @@ export const AGENT_IDLE = {
   gaming:       { bobSpeed: 3600, bobAmt: 2.0, breathSpeed: 3000, breathAmt: 0.018, lean: 0.01 },
   social:       { bobSpeed: 2000, bobAmt: 3.0, breathSpeed: 2200, breathAmt: 0.015, lean: -0.02 },
   rowing:       { bobSpeed: 3200, bobAmt: 3.0, breathSpeed: 3800, breathAmt: 0.008, lean: 0.01 },
+};
+
+export const STATION_CONNECTIONS = {
+  orchestrator: ['blog', 'chatbot', 'moltbook', 'mcp'],
+  blog: ['mcp', 'moltbook'],
+  chatbot: ['mcp', 'embedroute'],
+  spellbrigade: ['mcp'],
+  benchpressonly: ['mcp'],
+  moltbook: ['mcp'],
+  oldwaystoday: ['mcp', 'embedroute'],
+  rowcrew: ['mcp'],
+  fabstats: ['mcp'],
+  fabstatsbot: ['mcp', 'fabstats'],
+  embedroute: ['mcp'],
+  activity: ['mcp'],
 };
 
 export function mapSourceToStation(source, type) {

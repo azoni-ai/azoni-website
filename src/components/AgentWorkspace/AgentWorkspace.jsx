@@ -1,13 +1,14 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAgentActivity } from '../../hooks/useAgentActivity';
 import { useMCPHealth } from '../../hooks/useMCPHealth';
-import { STATION_DEFS, CATEGORY_STYLES, formatTimeAgo } from '../../utils/station-mapping';
+import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, formatTimeAgo } from '../../utils/station-mapping';
 import { avatars } from '../../data/agents';
 import WorkstationCard from './WorkstationCard';
 import MCPHub from './MCPHub';
 import WorkspaceTicker from './WorkspaceTicker';
 import StationDetailPanel from './StationDetailPanel';
+import WorkspaceLegend from './WorkspaceLegend';
 import '../../styles/agent-workspace.css';
 
 // ─── Building floor plan: 5-col grid ───
@@ -58,12 +59,34 @@ function calcWaypoints(floorRect, cellRect, lobbyRect) {
 }
 
 function AgentWorkspace() {
-  const { stationEvents, tickerEvents, activityCounts, stationHistory, flashingStations, activityHistory } = useAgentActivity();
+  const { stationEvents, tickerEvents, activityCounts, errorCounts, stationHistory, flashingStations, activityHistory } = useAgentActivity();
   const { health, totalTools } = useMCPHealth();
 
   const [selectedStation, setSelectedStation] = useState(null);
   const [hoverDelayId, setHoverDelayId] = useState(null);
   const [tooltipStation, setTooltipStation] = useState(null);
+  const [showLegend, setShowLegend] = useState(() => !localStorage.getItem('aw-legend-dismissed'));
+  const [hallwayActive, setHallwayActive] = useState(false);
+  const hallwayTimerRef = useRef(null);
+
+  // Compute idle levels and highlighted stations
+  const { idleLevels, highlightedSet } = useMemo(() => {
+    const now = Date.now();
+    const levels = {};
+    nonHubStations.forEach(s => {
+      const lastMs = stationEvents[s.id]?.receivedAt || 0;
+      const diff = now - lastMs;
+      if (!lastMs || diff > 86400000) levels[s.id] = 2;
+      else if (diff > 3600000) levels[s.id] = 1;
+      else levels[s.id] = 0;
+    });
+    const highlighted = new Set();
+    if (tooltipStation && STATION_CONNECTIONS[tooltipStation]) {
+      STATION_CONNECTIONS[tooltipStation].forEach(id => highlighted.add(id));
+      highlighted.add(tooltipStation);
+    }
+    return { idleLevels: levels, highlightedSet: highlighted };
+  }, [stationEvents, tooltipStation]);
 
   // Replay state
   const [replayProgress, setReplayProgress] = useState(null);
@@ -124,11 +147,19 @@ function AgentWorkspace() {
   useEffect(() => {
     const prev = prevFlashRef.current;
     const combined = { ...flashingStations, ...replayFlashes };
+    let newFlash = false;
 
     for (const stationId of Object.keys(combined)) {
       if (!prev[stationId]) {
         startWalkRef.current(stationId);
+        newFlash = true;
       }
+    }
+
+    if (newFlash) {
+      setHallwayActive(true);
+      if (hallwayTimerRef.current) clearTimeout(hallwayTimerRef.current);
+      hallwayTimerRef.current = setTimeout(() => setHallwayActive(false), 3000);
     }
 
     prevFlashRef.current = combined;
@@ -231,6 +262,13 @@ function AgentWorkspace() {
             </svg>
             24h
           </button>
+          <button
+            className="aw-replay-btn"
+            onClick={() => setShowLegend(true)}
+            title="What am I looking at?"
+          >
+            ?
+          </button>
         </div>
       </div>
 
@@ -263,7 +301,7 @@ function AgentWorkspace() {
         {HALLWAY_CELLS.map((h, i) => (
           <div
             key={`hall-${i}`}
-            className="aw-hallway"
+            className={`aw-hallway${hallwayActive ? ' aw-hallway-active' : ''}`}
             style={{ gridColumn: h.col, gridRow: h.row }}
           />
         ))}
@@ -296,6 +334,10 @@ function AgentWorkspace() {
                 activityCounts={activityCounts[station.id]}
                 isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
                 isWalking={!!walkingAgents[station.id]}
+                idleLevel={idleLevels[station.id] || 0}
+                errorCount={errorCounts[station.id] || 0}
+                isHighlighted={highlightedSet.has(station.id)}
+                isDimmedByHover={highlightedSet.size > 0 && !highlightedSet.has(station.id)}
                 onClick={handleStationClick}
                 index={i}
                 roomNumber={pos.room}
@@ -377,7 +419,7 @@ function AgentWorkspace() {
       </div>
 
       {/* Event ticker */}
-      <WorkspaceTicker events={tickerEvents} />
+      <WorkspaceTicker events={tickerEvents} stationHistory={stationHistory} />
 
       {/* Detail panel (portal) */}
       <StationDetailPanel
@@ -386,6 +428,15 @@ function AgentWorkspace() {
         activityCounts={selectedStation ? activityCounts[selectedStation.id] : null}
         health={health}
         onClose={() => setSelectedStation(null)}
+      />
+
+      {/* Onboarding legend */}
+      <WorkspaceLegend
+        show={showLegend}
+        onDismiss={() => {
+          setShowLegend(false);
+          localStorage.setItem('aw-legend-dismissed', '1');
+        }}
       />
     </div>
   );

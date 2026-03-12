@@ -9,6 +9,10 @@ function WorkstationCard({
   activityCounts = {},
   isFlashing,
   isWalking,
+  isHighlighted,
+  isDimmedByHover,
+  idleLevel = 0,
+  errorCount = 0,
   onClick,
   index = 0,
   roomNumber,
@@ -20,11 +24,22 @@ function WorkstationCard({
   const eventMs = lastEvent?.receivedAt || 0;
   const h1 = activityCounts.h1 || 0;
   const h24 = activityCounts.h24 || 0;
+  const intensity = Math.min(h24 / 20, 1);
+
+  // Status LED: green (active <1h), yellow (1-24h), gray (>24h), red (errors)
+  const statusColor = errorCount > 0 ? '#f87171' : idleLevel === 0 ? '#4ade80' : idleLevel === 1 ? '#facc15' : '#6b6b65';
+
+  const idleClass = idleLevel === 2 ? ' aw-station-idle-2' : idleLevel === 1 ? ' aw-station-idle-1' : '';
+  const highlightClass = isHighlighted ? ' aw-station-highlighted' : '';
+  const dimClass = isDimmedByHover ? ' aw-station-dim-hover' : '';
 
   return (
     <motion.div
-      className={`aw-station-card aw-theme-${station.id}${isFlashing ? ' aw-station-active' : ''}${isWalking ? ' aw-agent-walking' : ''}`}
-      style={{ '--station-color': station.color }}
+      className={`aw-station-card aw-theme-${station.id}${isFlashing ? ' aw-station-active' : ''}${isWalking ? ' aw-agent-walking' : ''}${idleClass}${highlightClass}${dimClass}`}
+      style={{
+        '--station-color': station.color,
+        '--activity-intensity': intensity,
+      }}
       data-door={door}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -36,6 +51,11 @@ function WorkstationCard({
     >
       {/* Room number badge */}
       {roomNumber && <span className="aw-room-badge">R-{String(roomNumber).padStart(2, '0')}</span>}
+
+      {/* Error badge */}
+      {errorCount > 0 && (
+        <span className="aw-error-badge">{errorCount}</span>
+      )}
 
       {/* Scene area with workspace illustration */}
       <div className="aw-station-scene">
@@ -70,15 +90,19 @@ function WorkstationCard({
       {/* Info area */}
       <div className="aw-station-info">
         <div className="aw-station-header">
-          <span className="aw-station-dot" style={{ background: station.color }} />
+          <span className="aw-status-led" style={{ background: statusColor }} />
           <span className="aw-station-name">{station.label}</span>
           {cat && <span className="aw-station-cat" style={{ color: cat.color }}>{cat.label}</span>}
         </div>
 
-        {lastEvent && (
+        {lastEvent ? (
           <div className="aw-station-event">
             <span className="aw-event-title">{lastEvent.title || lastEvent.type}</span>
             <span className="aw-event-time">{formatTimeAgo(eventMs)}</span>
+          </div>
+        ) : (
+          <div className="aw-station-event">
+            <span className="aw-event-title aw-event-idle">No recent activity</span>
           </div>
         )}
 

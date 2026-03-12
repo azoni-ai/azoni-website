@@ -40,13 +40,20 @@ export function useAgentActivity() {
       const sHist = {};
       snap.docs.forEach(doc => {
         const data = doc.data();
-        const sid = mapSourceToStation(data.source, data.type);
+        const sid = mapSourceToStation(data.source, data.type) || 'activity';
         const ts = data.timestamp;
         const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
-        if (sid && ms) {
+        if (ms) {
+          const entry = { title: data.title || data.type, type: data.type, source: data.source, ms };
           hist.push({ stationId: sid, ms });
           if (!sHist[sid]) sHist[sid] = [];
-          sHist[sid].push({ title: data.title || data.type, type: data.type, source: data.source, ms });
+          sHist[sid].push(entry);
+          // Activity feed gets ALL events
+          if (sid !== 'activity') {
+            hist.push({ stationId: 'activity', ms });
+            if (!sHist['activity']) sHist['activity'] = [];
+            sHist['activity'].push(entry);
+          }
         }
       });
       // Sort and cap
@@ -71,11 +78,15 @@ export function useAgentActivity() {
         const docs = snapshot.docs.map(d => d.data());
         const initial = {};
         docs.forEach(data => {
-          const sid = mapSourceToStation(data.source, data.type);
-          if (sid && !initial[sid]) {
-            const ts = data.timestamp;
-            const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+          const sid = mapSourceToStation(data.source, data.type) || 'activity';
+          const ts = data.timestamp;
+          const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+          if (!initial[sid]) {
             initial[sid] = { ...data, receivedAt: ms || Date.now() };
+          }
+          // Activity feed always gets the latest event
+          if (sid !== 'activity' && !initial['activity']) {
+            initial['activity'] = { ...data, receivedAt: ms || Date.now() };
           }
         });
         setStationEvents(initial);
@@ -87,37 +98,61 @@ export function useAgentActivity() {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added') {
           const data = change.doc.data();
-          const stationId = mapSourceToStation(data.source, data.type);
-          if (stationId) {
-            const ts = data.timestamp;
-            const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
-            setActivityHistory(prev => [...prev, { stationId, ms: ms || Date.now() }]);
-            setStationHistory(prev => {
-              const arr = [{ title: data.title || data.type, type: data.type, source: data.source, ms: Date.now() }, ...(prev[stationId] || [])];
-              if (arr.length > 20) arr.length = 20;
-              return { ...prev, [stationId]: arr };
-            });
-            setStationEvents(prev => ({ ...prev, [stationId]: { ...data, receivedAt: Date.now() } }));
-            setTickerEvents(prev => [data, ...prev].slice(0, 5));
-            flashStationRef.current(stationId);
-          }
+          const stationId = mapSourceToStation(data.source, data.type) || 'activity';
+          const ts = data.timestamp;
+          const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
+          const now = Date.now();
+          const entry = { title: data.title || data.type, type: data.type, source: data.source, ms: now };
+          // Update the mapped station
+          setActivityHistory(prev => {
+            const next = [...prev, { stationId, ms: ms || now }];
+            if (stationId !== 'activity') next.push({ stationId: 'activity', ms: ms || now });
+            return next;
+          });
+          setStationHistory(prev => {
+            const updated = { ...prev };
+            const arr = [entry, ...(prev[stationId] || [])];
+            if (arr.length > 20) arr.length = 20;
+            updated[stationId] = arr;
+            // Activity feed gets all events
+            if (stationId !== 'activity') {
+              const actArr = [entry, ...(prev['activity'] || [])];
+              if (actArr.length > 20) actArr.length = 20;
+              updated['activity'] = actArr;
+            }
+            return updated;
+          });
+          setStationEvents(prev => ({
+            ...prev,
+            [stationId]: { ...data, receivedAt: now },
+            activity: { ...data, receivedAt: now },
+          }));
+          setTickerEvents(prev => [data, ...prev].slice(0, 5));
+          flashStationRef.current(stationId);
+          if (stationId !== 'activity') flashStationRef.current('activity');
         }
       });
     });
     return () => unsub();
   }, []);
 
-  // Compute counts from activity history
-  const activityCounts = useMemo(() => {
+  // Compute counts + error counts from activity history
+  const { activityCounts, errorCounts } = useMemo(() => {
     const now = Date.now();
     const counts = {};
+    const errors = {};
     activityHistory.forEach(e => {
       if (!counts[e.stationId]) counts[e.stationId] = { h1: 0, h24: 0 };
       if (now - e.ms < 86400000) counts[e.stationId].h24++;
       if (now - e.ms < 3600000) counts[e.stationId].h1++;
     });
-    return counts;
-  }, [activityHistory]);
+    // Count errors from station history (has type info)
+    Object.entries(stationHistory).forEach(([sid, events]) => {
+      const errCount = events.filter(e => e.type === 'error_logged').length;
+      if (errCount > 0) errors[sid] = errCount;
+    });
+    return { activityCounts: counts, errorCounts: errors };
+  }, [activityHistory, stationHistory]);
 
-  return { stationEvents, tickerEvents, activityCounts, stationHistory, flashingStations, activityHistory };
+  return { stationEvents, tickerEvents, activityCounts, errorCounts, stationHistory, flashingStations, activityHistory };
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AGENTS } from '../../data/agents';
@@ -6,7 +6,15 @@ import { CATEGORY_STYLES, DOMAIN_TO_STATION, formatTimeAgo } from '../../utils/s
 
 const AGENT_KEY_MAP = { wellness: 'oldways', oldwaystoday: 'oldways' };
 
+const TABS = [
+  { key: 'activity', label: 'Activity' },
+  { key: 'about', label: 'About' },
+  { key: 'tech', label: 'Tech' },
+];
+
 function StationDetailPanel({ station, stationHistory, activityCounts, health, onClose }) {
+  const [activeTab, setActiveTab] = useState('activity');
+
   return createPortal(
     <AnimatePresence>
       {station && (() => {
@@ -62,78 +70,103 @@ function StationDetailPanel({ station, stationHistory, activityCounts, health, o
                   {statusText}
                 </div>
 
-                {/* Activity stats */}
-                <div className="aw-detail-stats">
-                  <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
-                    <div className="aw-detail-stat-num" style={{ color: station.color }}>{h1}</div>
-                    <div className="aw-detail-stat-label">last hour</div>
-                  </div>
-                  <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
-                    <div className="aw-detail-stat-num" style={{ color: station.color }}>{h24}</div>
-                    <div className="aw-detail-stat-label">last 24h</div>
-                  </div>
+                {/* Tabs */}
+                <div className="aw-detail-tabs">
+                  {TABS.map(tab => (
+                    <button
+                      key={tab.key}
+                      className={`aw-detail-tab${activeTab === tab.key ? ' aw-detail-tab-active' : ''}`}
+                      style={activeTab === tab.key ? { '--tab-color': station.color } : undefined}
+                      onClick={() => setActiveTab(tab.key)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Recent events */}
-                <div className="aw-detail-section">
-                  <div className="aw-detail-section-title">Recent Activity</div>
-                  {events.length > 0 ? (
-                    <div className="aw-detail-events">
-                      {events.map((evt, i) => (
-                        <div key={i} className="aw-detail-event">
-                          <span className="aw-detail-event-title">{evt.title || evt.type}</span>
-                          <span className="aw-detail-event-ago">{formatTimeAgo(evt.ms)}</span>
+                {/* Tab content */}
+                <div className="aw-detail-tab-content">
+                  {activeTab === 'activity' && (
+                    <>
+                      {/* Activity stats */}
+                      <div className="aw-detail-stats">
+                        <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
+                          <div className="aw-detail-stat-num" style={{ color: station.color }}>{h1}</div>
+                          <div className="aw-detail-stat-label">last hour</div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="aw-detail-empty">No events recorded yet</div>
+                        <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
+                          <div className="aw-detail-stat-num" style={{ color: station.color }}>{h24}</div>
+                          <div className="aw-detail-stat-label">last 24h</div>
+                        </div>
+                      </div>
+
+                      {/* Recent events */}
+                      <div className="aw-detail-section">
+                        <div className="aw-detail-section-title">Recent Activity</div>
+                        {events.length > 0 ? (
+                          <div className="aw-detail-events">
+                            {events.map((evt, i) => (
+                              <div key={i} className="aw-detail-event">
+                                <span className="aw-detail-event-title">{evt.title || evt.type}</span>
+                                <span className="aw-detail-event-ago">{formatTimeAgo(evt.ms)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="aw-detail-empty">No events recorded yet</div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {activeTab === 'about' && (
+                    <>
+                      {(agentData?.whatItIs || station.desc) && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">About</div>
+                          <div className="aw-detail-text">{agentData?.whatItIs || station.desc}</div>
+                        </div>
+                      )}
+                      {agentData?.cycle && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">How It Works</div>
+                          <ol className="aw-detail-cycle">
+                            {agentData.cycle.map((step, i) => (
+                              <li key={i}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+                      {agentData?.data && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Data Sources</div>
+                          <ul className="aw-detail-data-list">
+                            {agentData.data.map((d, i) => (
+                              <li key={i}>{d}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {activeTab === 'tech' && (
+                    <>
+                      {agentData?.tech ? (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Tech Stack</div>
+                          <div className="aw-detail-tags">
+                            {agentData.tech.map((t, i) => (
+                              <span key={i} className="aw-detail-tag" style={{ borderColor: `${station.color}40`, color: station.color }}>{t}</span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="aw-detail-empty">No tech info available</div>
+                      )}
+                    </>
                   )}
                 </div>
-
-                {/* About */}
-                {(agentData?.whatItIs || station.desc) && (
-                  <div className="aw-detail-section">
-                    <div className="aw-detail-section-title">About</div>
-                    <div className="aw-detail-text">{agentData?.whatItIs || station.desc}</div>
-                  </div>
-                )}
-
-                {/* Tech stack */}
-                {agentData?.tech && (
-                  <div className="aw-detail-section">
-                    <div className="aw-detail-section-title">Tech Stack</div>
-                    <div className="aw-detail-tags">
-                      {agentData.tech.map((t, i) => (
-                        <span key={i} className="aw-detail-tag" style={{ borderColor: `${station.color}40`, color: station.color }}>{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* How it works */}
-                {agentData?.cycle && (
-                  <div className="aw-detail-section">
-                    <div className="aw-detail-section-title">How It Works</div>
-                    <ol className="aw-detail-cycle">
-                      {agentData.cycle.map((step, i) => (
-                        <li key={i}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {/* Data sources */}
-                {agentData?.data && (
-                  <div className="aw-detail-section">
-                    <div className="aw-detail-section-title">Data Sources</div>
-                    <ul className="aw-detail-data-list">
-                      {agentData.data.map((d, i) => (
-                        <li key={i}>{d}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </motion.div>
             </motion.div>
           </>
