@@ -11,6 +11,8 @@ export function useAgentActivity() {
   const [flashingStations, setFlashingStations] = useState({});
   const [flashTargets, setFlashTargets] = useState({});
   const isFirstLoadRef = useRef(true);
+  const walkQueueRef = useRef({});
+  const lastEventTypeRef = useRef({});
 
   // Flash a station when a new event arrives
   const flashStation = useCallback((stationId) => {
@@ -113,6 +115,7 @@ export function useAgentActivity() {
         if (change.type === 'added') {
           const data = change.doc.data();
           const stationId = mapSourceToStation(data.source, data.type) || 'activity';
+          lastEventTypeRef.current[stationId] = data.type;
           const ts = data.timestamp;
           const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
           const now = Date.now();
@@ -165,6 +168,10 @@ export function useAgentActivity() {
               });
             }, 15000);
           }
+          // Walk queue for sequential walks (e.g., blog visiting stations)
+          if (data.type === 'blog_generated' && data.metadata?.visitedStations?.length) {
+            walkQueueRef.current[stationId] = [...data.metadata.visitedStations];
+          }
         }
       });
     });
@@ -197,5 +204,5 @@ export function useAgentActivity() {
     return { activityCounts: counts, errorCounts: errors, visitCounts: visits };
   }, [activityHistory, stationHistory]);
 
-  return { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory };
+  return { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef };
 }

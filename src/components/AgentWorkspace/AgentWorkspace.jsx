@@ -2,10 +2,11 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAgentActivity } from '../../hooks/useAgentActivity';
 import { useMCPHealth } from '../../hooks/useMCPHealth';
-import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, formatTimeAgo } from '../../utils/station-mapping';
+import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, INFRASTRUCTURE_HUBS, DEFAULT_WALK_TARGETS, getEventImportance, formatTimeAgo } from '../../utils/station-mapping';
 import { avatars } from '../../data/agents';
 import WorkstationCard from './WorkstationCard';
 import MCPHub from './MCPHub';
+import SecondaryHub from './SecondaryHub';
 import WorkspaceTicker from './WorkspaceTicker';
 import StationDetailPanel from './StationDetailPanel';
 import WorkspaceLegend from './WorkspaceLegend';
@@ -19,14 +20,25 @@ const GRID_PLACEMENT = {
   moltbook:       { col: 5, row: 2, room: 3,  door: 'left' },
   blog:           { col: 7, row: 2, room: 4,  door: 'left' },
   benchpressonly: { col: 1, row: 3, room: 5,  door: 'right' },
-  activity:       { col: 3, row: 3, room: 6,  door: 'right' },
+  orchestrator:   { col: 3, row: 3, room: 6,  door: 'right' },
   fabstatsbot:    { col: 5, row: 3, room: 7,  door: 'left' },
   rowcrew:        { col: 7, row: 3, room: 8,  door: 'left' },
   oldwaystoday:   { col: 1, row: 4, room: 9,  door: 'right' },
-  orchestrator:   { col: 3, row: 4, room: 10, door: 'right' },
-  embedroute:     { col: 5, row: 4, room: 11, door: 'left' },
-  fabstats:       { col: 7, row: 4, room: 12, door: 'left' },
+  fabstats:       { col: 3, row: 4, room: 10, door: 'right' },
 };
+
+// Secondary hubs — infrastructure destinations agents walk TO
+const HUB_PLACEMENT = {
+  embedroute: { cols: '5 / 8', row: 4, walkCol: 5, door: 'left' },
+  activity:   { cols: '1 / -1', row: 5, walkCol: 4, door: 'left' },
+};
+
+function getWalkPosition(stationId) {
+  if (GRID_PLACEMENT[stationId]) return GRID_PLACEMENT[stationId];
+  const hub = HUB_PLACEMENT[stationId];
+  if (hub) return { col: hub.walkCol, door: hub.door, row: hub.row };
+  return null;
+}
 
 const HALLWAY_CELLS = [
   { col: 4, row: 2 },
@@ -36,10 +48,11 @@ const HALLWAY_CELLS = [
 
 const SIDE_HALLWAY_CELLS = [
   { col: 2, row: 2 }, { col: 2, row: 3 }, { col: 2, row: 4 },
-  { col: 6, row: 2 }, { col: 6, row: 3 }, { col: 6, row: 4 },
+  { col: 6, row: 2 }, { col: 6, row: 3 },
 ];
 
-const nonHubStations = STATION_DEFS.filter(s => !s.isHub);
+const workstationStations = STATION_DEFS.filter(s => !s.isHub && !INFRASTRUCTURE_HUBS.has(s.id));
+const secondaryHubStations = STATION_DEFS.filter(s => INFRASTRUCTURE_HUBS.has(s.id));
 const mcpStation = STATION_DEFS.find(s => s.isHub);
 const stationById = Object.fromEntries(STATION_DEFS.map(s => [s.id, s]));
 
@@ -210,7 +223,7 @@ function calcStationToStationWaypoints(floorRect, srcCell, destCell, srcDoor, de
 }
 
 function AgentWorkspace() {
-  const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory } = useAgentActivity();
+  const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef } = useAgentActivity();
   const { health, totalTools } = useMCPHealth();
 
   const [selectedStation, setSelectedStation] = useState(null);
@@ -224,7 +237,7 @@ function AgentWorkspace() {
   const { idleLevels, highlightedSet } = useMemo(() => {
     const now = Date.now();
     const levels = {};
-    nonHubStations.forEach(s => {
+    workstationStations.forEach(s => {
       const lastMs = stationEvents[s.id]?.receivedAt || 0;
       const diff = now - lastMs;
       if (!lastMs || diff > 86400000) levels[s.id] = 2;
@@ -272,17 +285,41 @@ function AgentWorkspace() {
     if (hoverDelayId) clearTimeout(hoverDelayId);
   }, [hoverDelayId]);
 
-  // ─── Watch flashes and trigger agent walks ───
-  // Default walk targets: stations that always walk to a specific partner
-  const DEFAULT_WALK_TARGETS = { fabstatsbot: 'fabstats' };
+  // ─── Data particles (site visits → Activity Feed) ───
+  const [particles, setParticles] = useState([]);
+  const emitParticlesRef = useRef(null);
+  emitParticlesRef.current = (fromStationId, toStationId) => {
+    const floorEl = floorRef.current;
+    const fromEl = cellRefs.current[fromStationId];
+    const toEl = cellRefs.current[toStationId];
+    if (!floorEl || !fromEl || !toEl) return;
+    const floorRect = floorEl.getBoundingClientRect();
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    const station = stationById[fromStationId];
+    const id = `p-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setParticles(prev => [...prev, {
+      id,
+      fromX: fromRect.left + fromRect.width / 2 - floorRect.left,
+      fromY: fromRect.top + fromRect.height / 2 - floorRect.top,
+      toX: toRect.left + toRect.width / 2 - floorRect.left,
+      toY: toRect.top + toRect.height / 2 - floorRect.top,
+      color: station?.color || '#fff',
+    }]);
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => p.id !== id));
+    }, 2000);
+  };
 
+  // ─── Watch flashes and trigger agent walks ───
   const startWalkRef = useRef(null);
-  startWalkRef.current = (stationId) => {
+  startWalkRef.current = (stationId, eventType) => {
     const station = stationById[stationId];
     if (!station?.agent || !avatars[station.agent]) return;
+    if (INFRASTRUCTURE_HUBS.has(stationId)) return; // hubs don't walk
     if (walkingAgents[stationId]) return; // already walking
 
-    const pos = GRID_PLACEMENT[stationId];
+    const pos = getWalkPosition(stationId);
     if (!pos) return;
 
     const floorEl = floorRef.current;
@@ -294,17 +331,46 @@ function AgentWorkspace() {
     const cellRect = cellEl.getBoundingClientRect();
     const lobbyRect = lobbyEl.getBoundingClientRect();
 
-    // Check for targeted walk: metadata target → default target → MCP
-    const targetId = flashTargets[stationId] || DEFAULT_WALK_TARGETS[stationId] || null;
-    const targetPos = targetId ? GRID_PLACEMENT[targetId] : null;
+    // Walk target priority:
+    // 1. flashTargets (event metadata)
+    // 2. walkQueue (blog sequential visits)
+    // 3. DEFAULT_WALK_TARGETS (hardcoded partnerships)
+    // 4. Important/medium event → walk to Activity Feed
+    // 5. site_visit → particle only (no avatar walk)
+    // 6. Default → walk to MCP
+    const importance = eventType ? getEventImportance(eventType) : 'low';
+    let targetId = flashTargets[stationId]
+      || (walkQueueRef.current[stationId]?.length ? walkQueueRef.current[stationId][0] : null)
+      || DEFAULT_WALK_TARGETS[stationId]
+      || null;
+
+    if (!targetId && stationId !== 'activity') {
+      if (importance === 'important' || importance === 'medium') {
+        targetId = 'activity';
+      } else if (eventType === 'site_visit') {
+        emitParticlesRef.current(stationId, 'activity');
+        return;
+      }
+    }
+
+    const targetPos = targetId ? getWalkPosition(targetId) : null;
     const targetCell = targetId ? cellRefs.current[targetId] : null;
 
     let data;
     if (targetPos && targetCell) {
       const targetRect = targetCell.getBoundingClientRect();
       data = calcStationToStationWaypoints(floorRect, cellRect, targetRect, pos.door, targetPos.door, pos.col, targetPos.col, lobbyRect);
+      // Blog queue walks: longer duration, more time at destination
+      if (walkQueueRef.current[stationId]?.length > 0) {
+        data.duration = data.duration * 1.5;
+      }
     } else {
       data = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door, pos.col);
+    }
+
+    // Faster walks for medium-importance events to Activity Feed
+    if (targetId === 'activity' && importance === 'medium') {
+      data.duration = Math.max(6, data.duration * 0.7);
     }
 
     setWalkingAgents(prev => ({
@@ -320,7 +386,8 @@ function AgentWorkspace() {
 
     for (const stationId of Object.keys(combined)) {
       if (!prev[stationId]) {
-        startWalkRef.current(stationId);
+        const evtType = lastEventTypeRef.current[stationId] || null;
+        startWalkRef.current(stationId, evtType);
         newFlash = true;
       }
     }
@@ -332,7 +399,7 @@ function AgentWorkspace() {
     }
 
     prevFlashRef.current = combined;
-  }, [flashingStations, replayFlashes]);
+  }, [flashingStations, replayFlashes, lastEventTypeRef]);
 
   const removeWalkingAgent = useCallback((stationId) => {
     setWalkingAgents(prev => {
@@ -340,7 +407,23 @@ function AgentWorkspace() {
       delete next[stationId];
       return next;
     });
-  }, []);
+
+    // Advance walk queue for sequential walks (e.g., blog visiting stations)
+    const queue = walkQueueRef.current[stationId];
+    if (queue && queue.length > 0) {
+      walkQueueRef.current = {
+        ...walkQueueRef.current,
+        [stationId]: queue.slice(1),
+      };
+      if (queue.length > 1) {
+        setTimeout(() => {
+          startWalkRef.current(stationId);
+        }, 2000);
+      } else {
+        delete walkQueueRef.current[stationId];
+      }
+    }
+  }, [walkQueueRef]);
 
   // ─── 24h Replay ───
   const startReplay = useCallback(() => {
@@ -419,7 +502,7 @@ function AgentWorkspace() {
         </div>
         <div className="aw-header-right">
           <span className="aw-header-stat">{totalTools || 37} tools</span>
-          <span className="aw-header-stat">{nonHubStations.length} stations</span>
+          <span className="aw-header-stat">{workstationStations.length} stations</span>
           <button
             className="aw-replay-btn"
             onClick={startReplay}
@@ -443,7 +526,7 @@ function AgentWorkspace() {
 
       {/* Building floor plan */}
       <div className="aw-floor" ref={floorRef}>
-        <span className="aw-building-label">FL-01 · AZONI HQ</span>
+        <span className="aw-building-label">MCP SERVER · AZONI PLATFORM</span>
 
         {/* Replay progress bar */}
         {isReplaying && (
@@ -485,7 +568,7 @@ function AgentWorkspace() {
         ))}
 
         {/* Station rooms */}
-        {nonHubStations.map((station, i) => {
+        {workstationStations.map((station, i) => {
           const pos = GRID_PLACEMENT[station.id];
           if (!pos) return null;
           return (
@@ -516,6 +599,45 @@ function AgentWorkspace() {
             </div>
           );
         })}
+
+        {/* Secondary hubs — infrastructure destinations */}
+        {secondaryHubStations.map((station) => {
+          const hub = HUB_PLACEMENT[station.id];
+          if (!hub) return null;
+          return (
+            <div
+              key={station.id}
+              ref={(el) => setCellRef(station.id, el)}
+              className="aw-grid-cell aw-secondary-cell"
+              style={{ gridColumn: hub.cols, gridRow: hub.row }}
+              onMouseEnter={() => handleStationEnter(station.id)}
+              onMouseLeave={handleStationLeave}
+            >
+              <SecondaryHub
+                station={station}
+                isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
+                lastEvent={stationEvents[station.id]}
+                activityCounts={activityCounts[station.id]}
+                visitCount={visitCounts[station.id] || 0}
+                onClick={handleStationClick}
+              />
+            </div>
+          );
+        })}
+
+        {/* Data particles (site visits flowing to Activity Feed) */}
+        <AnimatePresence>
+          {particles.map(p => (
+            <motion.div
+              key={p.id}
+              className="aw-particle-flow"
+              style={{ background: p.color }}
+              initial={{ x: p.fromX, y: p.fromY, opacity: 0.7, scale: 1 }}
+              animate={{ x: p.toX, y: p.toY, opacity: 0, scale: 0.3 }}
+              transition={{ duration: 1.5, ease: 'easeIn' }}
+            />
+          ))}
+        </AnimatePresence>
 
         {/* Walking agent avatars */}
         <AnimatePresence>

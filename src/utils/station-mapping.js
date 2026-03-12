@@ -241,6 +241,52 @@ export const STATION_TO_PROJECT = {
   mcp: 'azoni-mcp',
 };
 
+// Infrastructure hubs — destinations agents walk TO, never walk FROM
+export const INFRASTRUCTURE_HUBS = new Set(['embedroute', 'activity']);
+
+// Default walk targets for known station partnerships
+export const DEFAULT_WALK_TARGETS = {
+  fabstatsbot: 'fabstats',
+};
+
+// GitHub repo name → station ID (for blog visitedStations)
+export const REPO_TO_STATION = {
+  'azoni-website': 'chatbot',
+  'azoni-ai': 'chatbot',
+  'spell-brigade': 'spellbrigade',
+  'moltbook-agent': 'moltbook',
+  'old-ways-today': 'oldwaystoday',
+  'oldways-app': 'oldwaystoday',
+  'bench-only': 'benchpressonly',
+  'benchonly': 'benchpressonly',
+  'embedroute': 'embedroute',
+  'row-crew': 'rowcrew',
+  'rowing-tracker': 'rowcrew',
+  'fab-stats': 'fabstats',
+  'fab-stats-bot': 'fabstatsbot',
+  'azoni-mcp': 'mcp',
+};
+
+// Event importance tiers for Activity Feed walk rules
+export const IMPORTANT_EVENTS = new Set([
+  'blog_generated', 'blog_published', 'orchestrator_summary',
+  'error_logged', 'error_reviewed', 'health_alert',
+  'self_assessment', 'reactive_trigger',
+]);
+
+export const MEDIUM_EVENTS = new Set([
+  'assistant_chat', 'knowledge_generated', 'moltbook_post',
+  'owt_blog', 'owt_blog_viewed', 'owt_chat',
+  'workout_generated', 'program_generated', 'rowing_session',
+  'wizard_created', 'match_logged', 'discord_command',
+]);
+
+export function getEventImportance(type) {
+  if (IMPORTANT_EVENTS.has(type)) return 'important';
+  if (MEDIUM_EVENTS.has(type)) return 'medium';
+  return 'low';
+}
+
 export function mapSourceToStation(source, type) {
   if (SOURCE_TO_STATION[source]) return SOURCE_TO_STATION[source];
   if (TYPE_TO_STATION[type]) return TYPE_TO_STATION[type];

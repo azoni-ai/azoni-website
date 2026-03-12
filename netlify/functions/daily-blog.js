@@ -601,6 +601,20 @@ exports.handler = async (event, context) => {
       
       reasoning += `Generated title "${blogPost.title}" to capture the day's main theme.`;
 
+      // Map repo names to workspace station IDs for Scribe walk animations
+      const REPO_TO_STATION = {
+        'azoni-website': 'chatbot', 'azoni-ai': 'chatbot',
+        'spell-brigade': 'spellbrigade', 'moltbook-agent': 'moltbook',
+        'old-ways-today': 'oldwaystoday', 'oldways-app': 'oldwaystoday',
+        'bench-only': 'benchpressonly', 'benchonly': 'benchpressonly',
+        'embedroute': 'embedroute', 'row-crew': 'rowcrew',
+        'fab-stats': 'fabstats', 'fab-stats-bot': 'fabstatsbot',
+        'azoni-mcp': 'mcp',
+      };
+      const visitedStations = [...new Set(
+        repoNames.map(r => REPO_TO_STATION[r]).filter(Boolean).filter(s => s !== 'blog' && s !== 'mcp')
+      )];
+
       await db.collection('agent_activity').add({
         type: 'blog_generated',
         title: `Published: ${blogPost.title}`,
@@ -610,7 +624,8 @@ exports.handler = async (event, context) => {
           id: result.id,
           slug: result.slug,
           totalCommits,
-          repos: repoNames
+          repos: repoNames,
+          visitedStations,
         },
         source: 'daily-blog',
         timestamp: admin.firestore.FieldValue.serverTimestamp()
