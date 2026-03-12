@@ -40,21 +40,39 @@ const mcpStation = STATION_DEFS.find(s => s.isHub);
 const stationById = Object.fromEntries(STATION_DEFS.map(s => [s.id, s]));
 
 // ─── Waypoint calculation for walking path ───
-function calcWaypoints(floorRect, cellRect, lobbyRect) {
+function calcWaypoints(floorRect, cellRect, lobbyRect, door) {
   const startX = cellRect.left + cellRect.width / 2 - floorRect.left;
   const startY = cellRect.top + cellRect.height * 0.55 - floorRect.top;
   const hallX = floorRect.width / 2;
   const mcpX = lobbyRect.left + lobbyRect.width / 2 - floorRect.left;
   const mcpY = lobbyRect.top + lobbyRect.height / 2 - floorRect.top;
 
+  // Doorway — edge of cell toward hallway
+  const doorX = door === 'right'
+    ? cellRect.right - floorRect.left + 6
+    : cellRect.left - floorRect.left - 6;
+
+  // Slight hallway wander for natural movement
+  const sway = door === 'right' ? -5 : 5;
+
+  // Intermediate hallway positions (evenly spaced along corridor)
+  const hallY1 = startY + (mcpY - startY) * 0.35;
+  const hallY2 = startY + (mcpY - startY) * 0.7;
+
   return [
-    { x: startX, y: startY },
-    { x: hallX,  y: startY },
-    { x: hallX,  y: mcpY },
-    { x: mcpX,   y: mcpY },
-    { x: hallX,  y: mcpY },
-    { x: hallX,  y: startY },
-    { x: startX, y: startY },
+    { x: startX, y: startY },           // In room
+    { x: doorX,  y: startY },           // Step through doorway
+    { x: hallX,  y: startY },           // Enter hallway
+    { x: hallX + sway, y: hallY1 },     // Walk hallway (slight wander)
+    { x: hallX, y: hallY2 },            // Continue down hallway
+    { x: hallX, y: mcpY },              // Reach MCP level
+    { x: mcpX,  y: mcpY },              // Arrive at MCP lobby
+    { x: hallX, y: mcpY },              // Exit MCP back to hallway
+    { x: hallX + sway, y: hallY2 },     // Return hallway segment
+    { x: hallX, y: hallY1 },            // Continue back
+    { x: hallX, y: startY },            // Back at station level
+    { x: doorX, y: startY },            // Re-enter doorway
+    { x: startX, y: startY },           // Back in room
   ];
 }
 
@@ -128,6 +146,9 @@ function AgentWorkspace() {
     if (!station?.agent || !avatars[station.agent]) return;
     if (walkingAgents[stationId]) return; // already walking
 
+    const pos = GRID_PLACEMENT[stationId];
+    if (!pos) return;
+
     const floorEl = floorRef.current;
     const lobbyEl = lobbyRef.current;
     const cellEl = cellRefs.current[stationId];
@@ -136,7 +157,7 @@ function AgentWorkspace() {
     const floorRect = floorEl.getBoundingClientRect();
     const cellRect = cellEl.getBoundingClientRect();
     const lobbyRect = lobbyEl.getBoundingClientRect();
-    const waypoints = calcWaypoints(floorRect, cellRect, lobbyRect);
+    const waypoints = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door);
 
     setWalkingAgents(prev => ({
       ...prev,
@@ -159,7 +180,7 @@ function AgentWorkspace() {
     if (newFlash) {
       setHallwayActive(true);
       if (hallwayTimerRef.current) clearTimeout(hallwayTimerRef.current);
-      hallwayTimerRef.current = setTimeout(() => setHallwayActive(false), 3000);
+      hallwayTimerRef.current = setTimeout(() => setHallwayActive(false), 10000);
     }
 
     prevFlashRef.current = combined;
@@ -360,8 +381,8 @@ function AgentWorkspace() {
                 y: data.waypoints.map(w => w.y),
               }}
               transition={{
-                duration: 3.4,
-                times: [0, 0.18, 0.41, 0.5, 0.59, 0.82, 1],
+                duration: 10,
+                times: [0, 0.04, 0.08, 0.20, 0.32, 0.42, 0.50, 0.58, 0.68, 0.80, 0.92, 0.96, 1],
                 ease: 'easeInOut',
               }}
               onAnimationComplete={() => removeWalkingAgent(stationId)}
