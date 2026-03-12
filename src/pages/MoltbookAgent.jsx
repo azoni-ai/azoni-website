@@ -87,12 +87,19 @@ const Icons = {
   )
 };
 
+const fetchWithTimeout = (url, ms = 15000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+};
+
 const MoltbookAgent = () => {
   useVisitTracker('moltbook-agent');
   const [status, setStatus] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [waking, setWaking] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -100,11 +107,11 @@ const MoltbookAgent = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (retry = true) => {
     try {
       const [statusRes, activityRes] = await Promise.all([
-        fetch(`${AGENT_API_URL}/status`),
-        fetch(`${AGENT_API_URL}/activity?limit=20`)
+        fetchWithTimeout(`${AGENT_API_URL}/status`),
+        fetchWithTimeout(`${AGENT_API_URL}/activity?limit=20`)
       ]);
 
       if (statusRes.ok) {
@@ -115,9 +122,30 @@ const MoltbookAgent = () => {
         setActivity(data.activity || []);
       }
       setError(null);
+      setWaking(false);
     } catch (err) {
-      console.error('Failed to fetch agent data:', err);
-      setError('Unable to connect to agent');
+      if (retry) {
+        // Render free tier cold start — show waking message and retry with longer timeout
+        setWaking(true);
+        try {
+          const [statusRes, activityRes] = await Promise.all([
+            fetchWithTimeout(`${AGENT_API_URL}/status`, 60000),
+            fetchWithTimeout(`${AGENT_API_URL}/activity?limit=20`, 60000)
+          ]);
+          if (statusRes.ok) setStatus(await statusRes.json());
+          if (activityRes.ok) {
+            const data = await activityRes.json();
+            setActivity(data.activity || []);
+          }
+          setError(null);
+          setWaking(false);
+        } catch {
+          setError('Unable to connect to agent');
+          setWaking(false);
+        }
+      } else {
+        setError('Unable to connect to agent');
+      }
     } finally {
       setLoading(false);
     }
@@ -193,7 +221,7 @@ const MoltbookAgent = () => {
           <div className="moltbook-status-card">
             <h2>Agent Status</h2>
             {loading ? (
-              <div className="moltbook-loading">Loading status...</div>
+              <div className="moltbook-loading">{waking ? 'Waking up agent server...' : 'Loading status...'}</div>
             ) : error ? (
               <div className="moltbook-error">{error}</div>
             ) : (
@@ -275,7 +303,7 @@ const MoltbookAgent = () => {
           <div className="moltbook-activity">
             <h2>Recent Activity</h2>
             {loading ? (
-              <div className="moltbook-loading">Loading activity...</div>
+              <div className="moltbook-loading">{waking ? 'Waking up agent server...' : 'Loading activity...'}</div>
             ) : activity.length === 0 ? (
               <div className="moltbook-empty">No activity yet. Check back soon!</div>
             ) : (
