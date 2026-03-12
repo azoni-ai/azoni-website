@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -21,6 +21,13 @@ const Activity = lazy(() => import("./pages/Activity"));
 const Commits = lazy(() => import("./pages/Commits"));
 
 const App = () => {
+  useEffect(() => {
+    if (!sessionStorage.getItem('_av')) {
+      sessionStorage.setItem('_av', '1');
+      fetch('/.netlify/functions/log-visit', { method: 'POST' }).catch(() => {});
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <AppProvider>
