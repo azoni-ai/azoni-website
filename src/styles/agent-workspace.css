@@ -2077,6 +2077,338 @@
 }
 
 /* ═══════════════════════════════════════════════════════
+   Activity Elements (hover/active reveals)
+   ═══════════════════════════════════════════════════════ */
+
+/* Hidden by default, revealed on hover or active */
+.aw-activity {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.aw-station-card:hover .aw-activity,
+.aw-station-active .aw-activity {
+  opacity: 1;
+}
+
+/* Pause all scene animations when deeply idle */
+.aw-station-idle-2 .aw-scene-props * {
+  animation-play-state: paused !important;
+}
+
+/* ─── Fitness Activity: Barbell reps + sweat ─── */
+.aw-fitness-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-fitness-rep-bar {
+  position: absolute;
+  right: 14px;
+  bottom: 40px;
+  width: 30px;
+  height: 3px;
+  background: rgba(74, 222, 128, 0.5);
+  border-radius: 1px;
+  animation: awRep 1.2s ease-in-out infinite;
+}
+
+.aw-fitness-rep-bar::before,
+.aw-fitness-rep-bar::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  width: 5px;
+  height: 13px;
+  background: rgba(74, 222, 128, 0.4);
+  border-radius: 1px;
+}
+
+.aw-fitness-rep-bar::before { left: 0; }
+.aw-fitness-rep-bar::after { right: 0; }
+
+.aw-fitness-sweat {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.5);
+  animation: awSweatDrop 2s ease-out infinite;
+}
+
+.aw-fitness-sweat:first-of-type {
+  right: 36px;
+  bottom: 52px;
+}
+
+.aw-fitness-sweat-2 {
+  right: 28px;
+  bottom: 56px;
+  animation-delay: 0.7s !important;
+}
+
+/* ─── Gaming Activity: Magic sparkles ─── */
+.aw-gaming-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-gaming-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #c084fc;
+  box-shadow: 0 0 6px #c084fc;
+  animation: awSparkle 2s ease-out infinite;
+}
+
+.aw-gaming-spark:first-child {
+  left: 35%;
+  bottom: 40px;
+}
+
+.aw-gaming-spark-2 {
+  left: 55%;
+  bottom: 35px;
+  animation-delay: 0.6s !important;
+}
+
+.aw-gaming-spark-3 {
+  left: 45%;
+  bottom: 45px;
+  animation-delay: 1.2s !important;
+}
+
+/* ─── Blog Activity: Quill writing + ink ─── */
+.aw-blog-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-blog-quill {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  width: 2px;
+  height: 14px;
+  background: linear-gradient(to bottom, rgba(251, 191, 36, 0.6), rgba(251, 191, 36, 0.2));
+  transform-origin: bottom center;
+  transform: rotate(-15deg);
+  animation: awWriting 1.5s ease-in-out infinite;
+}
+
+.aw-blog-quill::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -1px;
+  width: 4px;
+  height: 4px;
+  background: rgba(251, 191, 36, 0.5);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+.aw-blog-ink {
+  position: absolute;
+  left: 46%;
+  bottom: 32px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.4);
+  animation: awInkDrip 3s ease-out infinite;
+}
+
+/* ─── Orchestrator Activity: Signal pulses ─── */
+.aw-orch-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-orch-signal {
+  position: absolute;
+  left: 30px;
+  top: 40px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(167, 139, 250, 0.6);
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.4);
+  animation: awSignalPulse 2s ease-in-out infinite;
+}
+
+.aw-orch-signal-2 {
+  left: auto !important;
+  right: 30px;
+  top: 44px !important;
+  animation-delay: 1s !important;
+}
+
+/* ─── Chat Activity: Typing bubble ─── */
+.aw-chat-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-chat-bubble {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 8px 8px 2px 8px;
+  padding: 4px 6px;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.aw-chat-bubble span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.6);
+  animation: awTypingDots 1.4s ease-in-out infinite;
+}
+
+.aw-chat-bubble span:nth-child(2) { animation-delay: 0.2s; }
+.aw-chat-bubble span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ─── Social Activity: Floating notifications + sound waves ─── */
+.aw-social-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-social-notif {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(251, 146, 60, 0.5);
+  animation: awFloatUp 2.5s ease-out infinite;
+}
+
+.aw-social-notif:first-child {
+  left: 40%;
+  bottom: 50px;
+}
+
+.aw-social-notif-2 {
+  left: 55%;
+  bottom: 45px;
+  animation-delay: 1s !important;
+}
+
+.aw-social-wave {
+  position: absolute;
+  left: 16px;
+  bottom: 38px;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid rgba(251, 146, 60, 0.2);
+  border-radius: 50%;
+  animation: awSoundWave 2s ease-out infinite;
+}
+
+/* ─── Wellness Activity: Aroma steam + floating leaf ─── */
+.aw-wellness-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-wellness-aroma {
+  position: absolute;
+  right: 18px;
+  bottom: 36px;
+  width: 3px;
+  height: 10px;
+  background: rgba(217, 119, 6, 0.3);
+  border-radius: 2px;
+  animation: awSteamRise 2s ease-out infinite;
+}
+
+.aw-wellness-aroma-2 {
+  right: 22px !important;
+  animation-delay: 0.8s !important;
+}
+
+.aw-wellness-leaf-float {
+  position: absolute;
+  left: 40%;
+  bottom: 50px;
+  width: 6px;
+  height: 4px;
+  background: rgba(74, 222, 128, 0.4);
+  border-radius: 50% 0 50% 50%;
+  animation: awLeafDrift 3s ease-in-out infinite;
+}
+
+/* ─── Rowing Activity: Splashes ─── */
+.aw-rowing-action {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-rowing-splash {
+  position: absolute;
+  bottom: 22px;
+  width: 8px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(52, 211, 153, 0.3);
+  animation: awSplash 1.8s ease-out infinite;
+}
+
+.aw-rowing-splash:first-child {
+  left: 40%;
+}
+
+.aw-rowing-splash-2 {
+  left: 55%;
+  animation-delay: 0.9s !important;
+}
+
+/* ─── Data Activity: Flowing particles ─── */
+.aw-data-action {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aw-data-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: awDataFlow 2s ease-in-out infinite;
+}
+
+.aw-data-particle:first-child {
+  top: 20%;
+  left: 20%;
+}
+
+.aw-data-particle-2 {
+  top: 30%;
+  right: 20%;
+  animation-delay: 0.7s !important;
+}
+
+.aw-data-particle-3 {
+  bottom: 25%;
+  left: 30%;
+  animation-delay: 1.4s !important;
+}
+
+/* ═══════════════════════════════════════════════════════
    Animations
    ═══════════════════════════════════════════════════════ */
 
@@ -2147,6 +2479,83 @@
 @keyframes awErrorPulse {
   0%, 100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
   50% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
+}
+
+/* ─── Activity Animations ─── */
+@keyframes awRep {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-12px); }
+  60% { transform: translateY(-12px); }
+}
+
+@keyframes awSweatDrop {
+  0% { opacity: 0; transform: translate(0, 0) scale(1); }
+  20% { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(8px, -18px) scale(0.4); }
+}
+
+@keyframes awSparkle {
+  0% { opacity: 0; transform: scale(0) translateY(0); }
+  30% { opacity: 1; transform: scale(1.2) translateY(-8px); }
+  100% { opacity: 0; transform: scale(0) translateY(-24px); }
+}
+
+@keyframes awWriting {
+  0%, 100% { transform: rotate(-15deg) translateX(0); }
+  25% { transform: rotate(-10deg) translateX(4px); }
+  50% { transform: rotate(-18deg) translateX(-2px); }
+  75% { transform: rotate(-12deg) translateX(3px); }
+}
+
+@keyframes awInkDrip {
+  0%, 80% { opacity: 0; transform: scale(0); }
+  85% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes awSignalPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); box-shadow: 0 0 12px rgba(167, 139, 250, 0.6); }
+}
+
+@keyframes awTypingDots {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
+@keyframes awFloatUp {
+  0% { opacity: 0; transform: translateY(0) scale(1); }
+  20% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-30px) scale(0.5); }
+}
+
+@keyframes awSoundWave {
+  0% { transform: scale(0.5); opacity: 0.4; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes awSteamRise {
+  0% { opacity: 0; transform: translateY(0) scaleX(1); }
+  30% { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-16px) scaleX(1.5); }
+}
+
+@keyframes awLeafDrift {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  20% { opacity: 0.6; }
+  100% { opacity: 0; transform: translate(12px, -20px) rotate(120deg); }
+}
+
+@keyframes awSplash {
+  0% { opacity: 0; transform: scale(0.5) translateY(0); }
+  30% { opacity: 0.6; transform: scale(1) translateY(-4px); }
+  100% { opacity: 0; transform: scale(1.5) translateY(-10px); }
+}
+
+@keyframes awDataFlow {
+  0% { opacity: 0; transform: translate(0, 0) scale(1); }
+  30% { opacity: 0.6; }
+  100% { opacity: 0; transform: translate(calc(50% - 20px), calc(50% - 20px)) scale(0.3); }
 }
 
 /* ═══════════════════════════════════════════════════════

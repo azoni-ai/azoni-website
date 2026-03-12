@@ -167,6 +167,11 @@ function ChatWorkspace({ color }) {
           <span /><span /><span />
         </div>
       </div>
+      <div className="aw-activity aw-chat-action">
+        <div className="aw-chat-bubble">
+          <span /><span /><span />
+        </div>
+      </div>
     </div>
   );
 }
@@ -188,6 +193,10 @@ function BlogWorkspace({ color }) {
       <div className="aw-blog-candle">
         <div className="aw-blog-flame" />
         <div className="aw-blog-wax" />
+      </div>
+      <div className="aw-activity aw-blog-action">
+        <div className="aw-blog-quill" />
+        <div className="aw-blog-ink" />
       </div>
     </div>
   );
@@ -215,6 +224,10 @@ function OrchestratorWorkspace({ color }) {
           <span key={i} className="aw-orch-dot" style={{ '--i': i }} />
         ))}
       </div>
+      <div className="aw-activity aw-orch-action">
+        <div className="aw-orch-signal" />
+        <div className="aw-orch-signal aw-orch-signal-2" />
+      </div>
     </div>
   );
 }
@@ -227,6 +240,11 @@ function GamingWorkspace({ color }) {
       <div className="aw-gaming-crystal aw-gaming-crystal-l" />
       <div className="aw-gaming-crystal aw-gaming-crystal-r" />
       <div className="aw-gaming-book" />
+      <div className="aw-activity aw-gaming-action">
+        <div className="aw-gaming-spark" />
+        <div className="aw-gaming-spark aw-gaming-spark-2" />
+        <div className="aw-gaming-spark aw-gaming-spark-3" />
+      </div>
     </div>
   );
 }
@@ -244,6 +262,11 @@ function SocialWorkspace({ color }) {
           <span key={i} className="aw-social-bar" style={{ '--i': i }} />
         ))}
       </div>
+      <div className="aw-activity aw-social-action">
+        <div className="aw-social-notif" />
+        <div className="aw-social-notif aw-social-notif-2" />
+        <div className="aw-social-wave" />
+      </div>
     </div>
   );
 }
@@ -257,6 +280,11 @@ function WellnessWorkspace({ color }) {
       <div className="aw-wellness-plant aw-wellness-plant-2" />
       <div className="aw-wellness-plant aw-wellness-plant-3" />
       <div className="aw-wellness-mortar" />
+      <div className="aw-activity aw-wellness-action">
+        <div className="aw-wellness-aroma" />
+        <div className="aw-wellness-aroma aw-wellness-aroma-2" />
+        <div className="aw-wellness-leaf-float" />
+      </div>
     </div>
   );
 }
@@ -277,6 +305,11 @@ function FitnessWorkspace({ color }) {
         <div className="aw-fitness-bar" />
         <div className="aw-fitness-weight" />
       </div>
+      <div className="aw-activity aw-fitness-action">
+        <div className="aw-fitness-rep-bar" />
+        <div className="aw-fitness-sweat" />
+        <div className="aw-fitness-sweat aw-fitness-sweat-2" />
+      </div>
     </div>
   );
 }
@@ -291,6 +324,10 @@ function RowingWorkspace({ color }) {
       </div>
       <div className="aw-rowing-dock" />
       <div className="aw-rowing-oar" />
+      <div className="aw-activity aw-rowing-action">
+        <div className="aw-rowing-splash" />
+        <div className="aw-rowing-splash aw-rowing-splash-2" />
+      </div>
     </div>
   );
 }
@@ -301,6 +338,11 @@ function DataWorkspace({ icon, color }) {
     <div className="aw-props-data">
       <div className="aw-data-glow" style={{ background: `radial-gradient(circle, ${color}15 0%, transparent 70%)` }} />
       <div className="aw-data-ring" style={{ borderColor: `${color}30` }} />
+      <div className="aw-activity aw-data-action">
+        <div className="aw-data-particle" style={{ background: color }} />
+        <div className="aw-data-particle aw-data-particle-2" style={{ background: color }} />
+        <div className="aw-data-particle aw-data-particle-3" style={{ background: color }} />
+      </div>
     </div>
   );
 }
