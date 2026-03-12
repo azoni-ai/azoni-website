@@ -59,7 +59,7 @@ function calcWaypoints(floorRect, cellRect, lobbyRect) {
 }
 
 function AgentWorkspace() {
-  const { stationEvents, tickerEvents, activityCounts, errorCounts, stationHistory, flashingStations, activityHistory } = useAgentActivity();
+  const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, activityHistory } = useAgentActivity();
   const { health, totalTools } = useMCPHealth();
 
   const [selectedStation, setSelectedStation] = useState(null);
@@ -332,6 +332,7 @@ function AgentWorkspace() {
                 station={station}
                 lastEvent={stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
+                visitCount={visitCounts[station.id] || 0}
                 isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
                 isWalking={!!walkingAgents[station.id]}
                 idleLevel={idleLevels[station.id] || 0}
@@ -379,6 +380,7 @@ function AgentWorkspace() {
             const cat = CATEGORY_STYLES[station.category];
             const lastEvent = stationEvents[tooltipStation];
             const counts = activityCounts[tooltipStation] || {};
+            const visits = visitCounts[tooltipStation] || 0;
             const eventMs = lastEvent?.receivedAt || 0;
 
             const tooltipCol = pos.col <= 2 ? pos.col + 1 : pos.col >= 4 ? pos.col - 1 : pos.col;
@@ -406,10 +408,11 @@ function AgentWorkspace() {
                     <span className="aw-tooltip-event-time">{formatTimeAgo(eventMs)}</span>
                   </div>
                 )}
-                {(counts.h1 > 0 || counts.h24 > 0) && (
+                {(counts.h1 > 0 || counts.h24 > 0 || visits > 0) && (
                   <div className="aw-tooltip-counts">
                     {counts.h1 > 0 && <span>{counts.h1} /1h</span>}
                     {counts.h24 > 0 && <span>{counts.h24} /24h</span>}
+                    {visits > 0 && <span>{visits} visits</span>}
                   </div>
                 )}
               </motion.div>
@@ -426,6 +429,7 @@ function AgentWorkspace() {
         station={selectedStation}
         stationHistory={selectedStation ? stationHistory[selectedStation.id] : null}
         activityCounts={selectedStation ? activityCounts[selectedStation.id] : null}
+        visitCount={selectedStation ? (visitCounts[selectedStation.id] || 0) : 0}
         health={health}
         onClose={() => setSelectedStation(null)}
       />

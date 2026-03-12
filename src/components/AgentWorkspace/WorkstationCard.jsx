@@ -7,6 +7,7 @@ function WorkstationCard({
   station,
   lastEvent,
   activityCounts = {},
+  visitCount = 0,
   isFlashing,
   isWalking,
   isHighlighted,
@@ -106,10 +107,19 @@ function WorkstationCard({
           </div>
         )}
 
-        {(h1 > 0 || h24 > 0) && (
+        {(h1 > 0 || h24 > 0 || visitCount > 0) && (
           <div className="aw-station-counts">
             {h1 > 0 && <span className="aw-count">{h1}<small>/1h</small></span>}
             {h24 > 0 && <span className="aw-count">{h24}<small>/24h</small></span>}
+            {visitCount > 0 && (
+              <span className="aw-count aw-visit-count" title={`${visitCount} visits (24h)`}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {visitCount}
+              </span>
+            )}
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ function WorkspaceTicker({ events, stationHistory = {} }) {
     Object.entries(stationHistory).forEach(([sid, evts]) => {
       if (sid === 'activity') return; // skip catch-all to avoid dupes
       (evts || []).forEach(evt => {
+        if (evt.type === 'site_visit') return; // visits tracked separately
         const key = `${evt.type}-${evt.ms}-${sid}`;
         if (!seen.has(key)) {
           seen.add(key);
@@ -51,7 +52,7 @@ function WorkspaceTicker({ events, stationHistory = {} }) {
       {/* Live events (always visible) */}
       <div className="aw-ticker-events">
         <AnimatePresence mode="popLayout">
-          {events.map((evt, i) => {
+          {events.filter(e => e.type !== 'site_visit').map((evt, i) => {
             const sid = mapSourceToStation(evt.source, evt.type);
             const station = stationMap[sid];
             const ts = evt.timestamp;

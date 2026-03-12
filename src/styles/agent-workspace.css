@@ -672,6 +672,18 @@
   font-size: 0.55rem;
 }
 
+.aw-visit-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-muted, #6b6b65);
+  opacity: 0.7;
+}
+
+.aw-visit-count svg {
+  opacity: 0.6;
+}
+
 /* ═══════════════════════════════════════════════════════
    Ticker
    ═══════════════════════════════════════════════════════ */

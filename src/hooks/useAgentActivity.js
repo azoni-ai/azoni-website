@@ -45,12 +45,12 @@ export function useAgentActivity() {
         const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
         if (ms) {
           const entry = { title: data.title || data.type, type: data.type, source: data.source, ms };
-          hist.push({ stationId: sid, ms });
+          hist.push({ stationId: sid, ms, type: data.type });
           if (!sHist[sid]) sHist[sid] = [];
           sHist[sid].push(entry);
           // Activity feed gets ALL events
           if (sid !== 'activity') {
-            hist.push({ stationId: 'activity', ms });
+            hist.push({ stationId: 'activity', ms, type: data.type });
             if (!sHist['activity']) sHist['activity'] = [];
             sHist['activity'].push(entry);
           }
@@ -81,16 +81,16 @@ export function useAgentActivity() {
           const sid = mapSourceToStation(data.source, data.type) || 'activity';
           const ts = data.timestamp;
           const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
-          if (!initial[sid]) {
+          // Skip site_visit for "last event" display on cards
+          if (data.type !== 'site_visit' && !initial[sid]) {
             initial[sid] = { ...data, receivedAt: ms || Date.now() };
           }
-          // Activity feed always gets the latest event
-          if (sid !== 'activity' && !initial['activity']) {
+          if (data.type !== 'site_visit' && sid !== 'activity' && !initial['activity']) {
             initial['activity'] = { ...data, receivedAt: ms || Date.now() };
           }
         });
         setStationEvents(initial);
-        setTickerEvents(docs.slice(0, 5));
+        setTickerEvents(docs.filter(d => d.type !== 'site_visit').slice(0, 5));
         isFirstLoadRef.current = false;
         return;
       }
@@ -102,11 +102,12 @@ export function useAgentActivity() {
           const ts = data.timestamp;
           const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
           const now = Date.now();
+          const isVisit = data.type === 'site_visit';
           const entry = { title: data.title || data.type, type: data.type, source: data.source, ms: now };
-          // Update the mapped station
+          // Always update history (for counts)
           setActivityHistory(prev => {
-            const next = [...prev, { stationId, ms: ms || now }];
-            if (stationId !== 'activity') next.push({ stationId: 'activity', ms: ms || now });
+            const next = [...prev, { stationId, ms: ms || now, type: data.type }];
+            if (stationId !== 'activity') next.push({ stationId: 'activity', ms: ms || now, type: data.type });
             return next;
           });
           setStationHistory(prev => {
@@ -114,7 +115,6 @@ export function useAgentActivity() {
             const arr = [entry, ...(prev[stationId] || [])];
             if (arr.length > 20) arr.length = 20;
             updated[stationId] = arr;
-            // Activity feed gets all events
             if (stationId !== 'activity') {
               const actArr = [entry, ...(prev['activity'] || [])];
               if (actArr.length > 20) actArr.length = 20;
@@ -122,37 +122,48 @@ export function useAgentActivity() {
             }
             return updated;
           });
-          setStationEvents(prev => ({
-            ...prev,
-            [stationId]: { ...data, receivedAt: now },
-            activity: { ...data, receivedAt: now },
-          }));
-          setTickerEvents(prev => [data, ...prev].slice(0, 5));
-          flashStationRef.current(stationId);
-          if (stationId !== 'activity') flashStationRef.current('activity');
+          // Skip visits for card display, ticker, and flash
+          if (!isVisit) {
+            setStationEvents(prev => ({
+              ...prev,
+              [stationId]: { ...data, receivedAt: now },
+              activity: { ...data, receivedAt: now },
+            }));
+            setTickerEvents(prev => [data, ...prev].slice(0, 5));
+            flashStationRef.current(stationId);
+            if (stationId !== 'activity') flashStationRef.current('activity');
+          }
         }
       });
     });
     return () => unsub();
   }, []);
 
-  // Compute counts + error counts from activity history
-  const { activityCounts, errorCounts } = useMemo(() => {
+  // Compute counts (excluding visits) + visit counts + error counts
+  const { activityCounts, errorCounts, visitCounts } = useMemo(() => {
     const now = Date.now();
     const counts = {};
     const errors = {};
+    const visits = {};
     activityHistory.forEach(e => {
-      if (!counts[e.stationId]) counts[e.stationId] = { h1: 0, h24: 0 };
-      if (now - e.ms < 86400000) counts[e.stationId].h24++;
-      if (now - e.ms < 3600000) counts[e.stationId].h1++;
+      if (e.type === 'site_visit') {
+        if (now - e.ms < 86400000) {
+          if (!visits[e.stationId]) visits[e.stationId] = 0;
+          visits[e.stationId]++;
+        }
+      } else {
+        if (!counts[e.stationId]) counts[e.stationId] = { h1: 0, h24: 0 };
+        if (now - e.ms < 86400000) counts[e.stationId].h24++;
+        if (now - e.ms < 3600000) counts[e.stationId].h1++;
+      }
     });
     // Count errors from station history (has type info)
     Object.entries(stationHistory).forEach(([sid, events]) => {
       const errCount = events.filter(e => e.type === 'error_logged').length;
       if (errCount > 0) errors[sid] = errCount;
     });
-    return { activityCounts: counts, errorCounts: errors };
+    return { activityCounts: counts, errorCounts: errors, visitCounts: visits };
   }, [activityHistory, stationHistory]);
 
-  return { stationEvents, tickerEvents, activityCounts, errorCounts, stationHistory, flashingStations, activityHistory };
+  return { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, activityHistory };
 }

@@ -14,7 +14,7 @@ const TABS = [
   { key: 'tech', label: 'Tech' },
 ];
 
-function StationDetailPanel({ station, stationHistory, activityCounts, health, onClose }) {
+function StationDetailPanel({ station, stationHistory, activityCounts, visitCount = 0, health, onClose }) {
   const [activeTab, setActiveTab] = useState('activity');
 
   return createPortal(
@@ -25,7 +25,7 @@ function StationDetailPanel({ station, stationHistory, activityCounts, health, o
         const cat = CATEGORY_STYLES[station.category];
         const h1 = activityCounts?.h1 || 0;
         const h24 = activityCounts?.h24 || 0;
-        const events = (stationHistory || []).slice(0, 10);
+        const events = (stationHistory || []).filter(e => e.type !== 'site_visit').slice(0, 10);
         const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === station.id)?.[0];
         const mcpStatus = domain && health?.[domain];
         const statusText = mcpStatus === true ? 'online' : mcpStatus === false ? 'offline' : station.isHub ? 'hub' : 'connected';
@@ -115,6 +115,12 @@ function StationDetailPanel({ station, stationHistory, activityCounts, health, o
                           <div className="aw-detail-stat-num" style={{ color: station.color }}>{h24}</div>
                           <div className="aw-detail-stat-label">last 24h</div>
                         </div>
+                        {visitCount > 0 && (
+                          <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
+                            <div className="aw-detail-stat-num" style={{ color: station.color }}>{visitCount}</div>
+                            <div className="aw-detail-stat-label">visits (24h)</div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Recent events */}
