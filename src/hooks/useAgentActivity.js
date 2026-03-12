@@ -9,6 +9,7 @@ export function useAgentActivity() {
   const [activityHistory, setActivityHistory] = useState([]);
   const [stationHistory, setStationHistory] = useState({});
   const [flashingStations, setFlashingStations] = useState({});
+  const [flashTargets, setFlashTargets] = useState({});
   const isFirstLoadRef = useRef(true);
 
   // Flash a station when a new event arrives
@@ -153,6 +154,17 @@ export function useAgentActivity() {
           }
           flashStationRef.current(stationId);
           if (stationId !== 'activity') flashStationRef.current('activity');
+          // Track walk targets for station-to-station walking (e.g., chatbot → app)
+          if (data.metadata?.targetStation) {
+            setFlashTargets(prev => ({ ...prev, [stationId]: data.metadata.targetStation }));
+            setTimeout(() => {
+              setFlashTargets(prev => {
+                const next = { ...prev };
+                delete next[stationId];
+                return next;
+              });
+            }, 15000);
+          }
         }
       });
     });
@@ -185,5 +197,5 @@ export function useAgentActivity() {
     return { activityCounts: counts, errorCounts: errors, visitCounts: visits };
   }, [activityHistory, stationHistory]);
 
-  return { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, activityHistory };
+  return { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory };
 }

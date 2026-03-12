@@ -173,7 +173,7 @@ export const STATION_DEFS = [
     dataLabel: 'embeddings', url: 'https://www.embedroute.com',
   },
   {
-    id: 'rowcrew', label: 'RowCrew', color: '#34d399', icon: 'waves', category: 'app',
+    id: 'rowcrew', label: 'RowCrew', color: '#34d399', agent: 'rowing', icon: 'waves', category: 'app',
     desc: 'AI rowing tracker — Claude Vision verifies workout photos, extracts data.',
     actions: ['Logging sessions', 'Stroke analysis', 'Progress tracking'],
     dataLabel: 'rowing data', url: 'https://rowcrew.netlify.app',
@@ -208,6 +208,7 @@ export const AGENT_IDLE = {
   oldways:      { bobSpeed: 3800, bobAmt: 1.5, breathSpeed: 3400, breathAmt: 0.01, lean: -0.01 },
   fabstats:     { bobSpeed: 3400, bobAmt: 1.8, breathSpeed: 3200, breathAmt: 0.012, lean: 0.01 },
   fabstatsbot:  { bobSpeed: 2600, bobAmt: 2.2, breathSpeed: 2800, breathAmt: 0.015, lean: -0.01 },
+  rowing:       { bobSpeed: 3200, bobAmt: 2.0, breathSpeed: 3000, breathAmt: 0.015, lean: 0 },
 };
 
 export const STATION_CONNECTIONS = {

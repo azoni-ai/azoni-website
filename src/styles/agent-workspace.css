@@ -90,7 +90,7 @@
 .aw-floor {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 28px 1fr 48px 1fr 28px 1fr;
+  grid-template-columns: 1fr 34px 1fr 56px 1fr 34px 1fr;
   grid-template-rows: auto auto auto auto;
   gap: 0;
   min-height: 600px;
@@ -608,7 +608,7 @@
 /* ─── Scene Area ─── */
 .aw-station-scene {
   position: relative;
-  height: 120px;
+  height: 96px;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
@@ -645,7 +645,7 @@
 
 /* ─── Info Area ─── */
 .aw-station-info {
-  padding: 10px 12px 12px;
+  padding: 8px 10px 10px;
 }
 
 .aw-station-header {
@@ -2153,7 +2153,7 @@
 
 @media (max-width: 1100px) {
   .aw-floor {
-    grid-template-columns: 1fr 22px 1fr 40px 1fr 22px 1fr;
+    grid-template-columns: 1fr 26px 1fr 44px 1fr 26px 1fr;
   }
 
   .aw-station-scene {

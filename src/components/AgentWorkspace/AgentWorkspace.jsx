@@ -43,8 +43,8 @@ const nonHubStations = STATION_DEFS.filter(s => !s.isHub);
 const mcpStation = STATION_DEFS.find(s => s.isHub);
 const stationById = Object.fromEntries(STATION_DEFS.map(s => [s.id, s]));
 
-// ─── Waypoint calculation for walking path ───
-// Returns { points, times, duration } — outer offices route through side hallway
+// ─── Waypoint calculation for walking to MCP ───
+// Outer offices walk UP the side hallway (never crossing other rooms)
 function calcWaypoints(floorRect, cellRect, lobbyRect, door, col) {
   const startX = cellRect.left + cellRect.width / 2 - floorRect.left;
   const startY = cellRect.top + cellRect.height * 0.55 - floorRect.top;
@@ -57,43 +57,39 @@ function calcWaypoints(floorRect, cellRect, lobbyRect, door, col) {
     ? cellRect.right - floorRect.left + 6
     : cellRect.left - floorRect.left - 6;
 
-  // Side hallway center X (outer offices only)
-  const sideHallX = col === 1
-    ? cellRect.right - floorRect.left + 14
-    : col === 7
-      ? cellRect.left - floorRect.left - 14
-      : null;
-
-  const sway = door === 'right' ? -4 : 4;
-  const hallY1 = startY + (mcpY - startY) * 0.35;
-  const hallY2 = startY + (mcpY - startY) * 0.7;
-
   if (isOuter) {
-    // Outer offices walk: room → side hall → center hall → MCP → back
+    // Side hallway center X
+    const sideHallX = col === 1
+      ? cellRect.right - floorRect.left + 17
+      : cellRect.left - floorRect.left - 17;
+    const sway = col === 1 ? 3 : -3;
+    const midY = startY + (mcpY - startY) * 0.5;
+
+    // Outer offices: room → side hall → UP side hall → across lobby → MCP → back
     return {
       points: [
-        { x: startX, y: startY },         // In room
-        { x: doorX, y: startY },           // Step through doorway
-        { x: sideHallX, y: startY },       // Enter side hallway
-        { x: hallX, y: startY },           // Cross to center hallway
-        { x: hallX + sway, y: hallY1 },    // Walk center hallway
-        { x: hallX, y: hallY2 },           // Continue down hallway
-        { x: hallX, y: mcpY },             // Reach MCP level
-        { x: mcpX, y: mcpY },              // Arrive at MCP lobby
-        { x: hallX, y: mcpY },             // Exit MCP
-        { x: hallX + sway, y: hallY2 },    // Return hallway
-        { x: hallX, y: hallY1 },           // Continue back
-        { x: hallX, y: startY },           // Back at junction
-        { x: sideHallX, y: startY },       // Side hallway
-        { x: doorX, y: startY },           // Re-enter doorway
-        { x: startX, y: startY },          // Back in room
+        { x: startX, y: startY },             // In room
+        { x: doorX, y: startY },               // Step through doorway
+        { x: sideHallX, y: startY },           // Enter side hallway
+        { x: sideHallX + sway, y: midY },      // Walk up side hallway (sway)
+        { x: sideHallX, y: mcpY },             // Reach MCP lobby level
+        { x: mcpX, y: mcpY },                  // Walk across to MCP center
+        { x: sideHallX, y: mcpY },             // Leave MCP, back to side hall
+        { x: sideHallX + sway, y: midY },      // Walk down side hallway (sway)
+        { x: sideHallX, y: startY },           // Back at room level
+        { x: doorX, y: startY },               // Re-enter doorway
+        { x: startX, y: startY },              // Back in room
       ],
-      times: [0, 0.03, 0.06, 0.12, 0.22, 0.32, 0.42, 0.50, 0.58, 0.68, 0.78, 0.88, 0.94, 0.97, 1],
+      times: [0, 0.04, 0.08, 0.20, 0.38, 0.50, 0.62, 0.80, 0.92, 0.96, 1],
       duration: 12,
     };
   }
 
-  // Inner offices walk: room → center hall → MCP → back
+  // Inner offices: step directly into center hallway (no room crossings)
+  const sway = door === 'right' ? -4 : 4;
+  const hallY1 = startY + (mcpY - startY) * 0.35;
+  const hallY2 = startY + (mcpY - startY) * 0.7;
+
   return {
     points: [
       { x: startX, y: startY },
@@ -115,8 +111,106 @@ function calcWaypoints(floorRect, cellRect, lobbyRect, door, col) {
   };
 }
 
+// ─── Station-to-station waypoints (e.g., chatbot → specific app) ───
+// Routes through side hallways + MCP lobby level to never cross other rooms
+function calcStationToStationWaypoints(floorRect, srcCell, destCell, srcDoor, destDoor, srcCol, destCol, lobbyRect) {
+  const srcX = srcCell.left + srcCell.width / 2 - floorRect.left;
+  const srcY = srcCell.top + srcCell.height * 0.55 - floorRect.top;
+  const destX = destCell.left + destCell.width / 2 - floorRect.left;
+  const destY = destCell.top + destCell.height * 0.55 - floorRect.top;
+  const hallX = floorRect.width / 2;
+  const mcpY = lobbyRect.top + lobbyRect.height / 2 - floorRect.top;
+
+  const srcIsOuter = srcCol === 1 || srcCol === 7;
+  const destIsOuter = destCol === 1 || destCol === 7;
+  const sameSide = (srcCol <= 3 && destCol <= 3) || (srcCol >= 5 && destCol >= 5);
+
+  const srcDoorX = srcDoor === 'right'
+    ? srcCell.right - floorRect.left + 6
+    : srcCell.left - floorRect.left - 6;
+  const destDoorX = destDoor === 'right'
+    ? destCell.right - floorRect.left + 6
+    : destCell.left - floorRect.left - 6;
+
+  const srcSideX = srcCol === 1 ? srcCell.right - floorRect.left + 17
+    : srcCol === 7 ? srcCell.left - floorRect.left - 17 : null;
+  const destSideX = destCol === 1 ? destCell.right - floorRect.left + 17
+    : destCol === 7 ? destCell.left - floorRect.left - 17 : null;
+
+  // Build forward path — never cross through another room
+  const forward = [];
+  forward.push({ x: srcX, y: srcY });       // In source room
+  forward.push({ x: srcDoorX, y: srcY });   // Source doorway
+
+  if (srcIsOuter && destIsOuter && sameSide) {
+    // Same-side outer-to-outer: walk vertically in side hallway
+    forward.push({ x: srcSideX, y: srcY });
+    if (Math.abs(srcY - destY) > 10) {
+      forward.push({ x: srcSideX + 3, y: (srcY + destY) / 2 });
+    }
+    forward.push({ x: destSideX, y: destY });
+  } else if (srcIsOuter && !destIsOuter && sameSide) {
+    // Outer to inner, same side: up side hall → lobby → center hall → down
+    forward.push({ x: srcSideX, y: srcY });
+    forward.push({ x: srcSideX, y: mcpY });
+    forward.push({ x: hallX, y: mcpY });
+    forward.push({ x: hallX, y: destY });
+  } else if (!srcIsOuter && destIsOuter && sameSide) {
+    // Inner to outer, same side: center hall → up → lobby → side hall → down
+    forward.push({ x: hallX, y: srcY });
+    forward.push({ x: hallX, y: mcpY });
+    forward.push({ x: destSideX, y: mcpY });
+    forward.push({ x: destSideX, y: destY });
+  } else if (!srcIsOuter && !destIsOuter) {
+    // Both inner: walk center hallway vertically
+    forward.push({ x: hallX, y: srcY });
+    if (Math.abs(srcY - destY) > 10) {
+      forward.push({ x: hallX + 3, y: (srcY + destY) / 2 });
+    }
+    forward.push({ x: hallX, y: destY });
+  } else if (srcIsOuter) {
+    // Outer to other side: up side hall → across lobby → down
+    forward.push({ x: srcSideX, y: srcY });
+    forward.push({ x: srcSideX, y: mcpY });
+    if (destIsOuter) {
+      forward.push({ x: destSideX, y: mcpY });
+      forward.push({ x: destSideX, y: destY });
+    } else {
+      forward.push({ x: hallX, y: mcpY });
+      forward.push({ x: hallX, y: destY });
+    }
+  } else {
+    // Inner to other side outer: center hall → up → across lobby → side hall → down
+    forward.push({ x: hallX, y: srcY });
+    forward.push({ x: hallX, y: mcpY });
+    forward.push({ x: destSideX, y: mcpY });
+    forward.push({ x: destSideX, y: destY });
+  }
+
+  forward.push({ x: destDoorX, y: destY }); // Dest doorway
+  forward.push({ x: destX, y: destY });     // In dest room
+
+  // Return path (reverse, skip last point to avoid duplicate)
+  const backward = [...forward].slice(0, -1).reverse();
+
+  // Full path: forward → pause at dest → backward
+  const destPoint = forward[forward.length - 1];
+  const allPoints = [...forward, destPoint, ...backward];
+
+  // Times: 45% going, 10% pause, 45% returning
+  const nFwd = forward.length;
+  const nBwd = backward.length;
+  const times = [];
+  for (let i = 0; i < nFwd; i++) times.push((i / (nFwd - 1)) * 0.45);
+  times.push(0.55); // pause at destination
+  for (let i = 0; i < nBwd; i++) times.push(0.55 + ((i + 1) / nBwd) * 0.45);
+
+  const duration = Math.max(10, (nFwd + nBwd) * 0.85);
+  return { points: allPoints, times, duration };
+}
+
 function AgentWorkspace() {
-  const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, activityHistory } = useAgentActivity();
+  const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory } = useAgentActivity();
   const { health, totalTools } = useMCPHealth();
 
   const [selectedStation, setSelectedStation] = useState(null);
@@ -179,6 +273,9 @@ function AgentWorkspace() {
   }, [hoverDelayId]);
 
   // ─── Watch flashes and trigger agent walks ───
+  // Default walk targets: stations that always walk to a specific partner
+  const DEFAULT_WALK_TARGETS = { fabstatsbot: 'fabstats' };
+
   const startWalkRef = useRef(null);
   startWalkRef.current = (stationId) => {
     const station = stationById[stationId];
@@ -196,11 +293,23 @@ function AgentWorkspace() {
     const floorRect = floorEl.getBoundingClientRect();
     const cellRect = cellEl.getBoundingClientRect();
     const lobbyRect = lobbyEl.getBoundingClientRect();
-    const { points, times, duration } = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door, pos.col);
+
+    // Check for targeted walk: metadata target → default target → MCP
+    const targetId = flashTargets[stationId] || DEFAULT_WALK_TARGETS[stationId] || null;
+    const targetPos = targetId ? GRID_PLACEMENT[targetId] : null;
+    const targetCell = targetId ? cellRefs.current[targetId] : null;
+
+    let data;
+    if (targetPos && targetCell) {
+      const targetRect = targetCell.getBoundingClientRect();
+      data = calcStationToStationWaypoints(floorRect, cellRect, targetRect, pos.door, targetPos.door, pos.col, targetPos.col, lobbyRect);
+    } else {
+      data = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door, pos.col);
+    }
 
     setWalkingAgents(prev => ({
       ...prev,
-      [stationId]: { points, times, duration, agent: station.agent },
+      [stationId]: { points: data.points, times: data.times, duration: data.duration, agent: station.agent },
     }));
   };
 

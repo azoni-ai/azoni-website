@@ -1249,6 +1249,10 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       }).catch(err => console.error('[chat] Failed to log conversation:', err.message));
 
       // Log to agent_activity so the Live System Map visualization reacts
+      const INTENT_TO_STATION = {
+        fitness: 'benchpressonly', fabstats: 'fabstats', rowcrew: 'rowcrew',
+        spellbrigade: 'spellbrigade', moltbook: 'moltbook', oldways: 'oldwaystoday', activity: 'activity',
+      };
       db.collection('agent_activity').add({
         type: 'assistant_chat',
         title: `Chat: ${latestUserMessage.slice(0, 60)}`,
@@ -1257,7 +1261,7 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
         model,
         tokens: data.usage ? { prompt: data.usage.prompt_tokens, completion: data.usage.completion_tokens, total: data.usage.total_tokens } : {},
         cost: totalCost,
-        metadata: { intent: intent.intent, chunksUsed: topChunks.length, context: requestContext || null },
+        metadata: { intent: intent.intent, targetStation: INTENT_TO_STATION[intent.intent] || null, chunksUsed: topChunks.length, context: requestContext || null },
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       }).catch(err => console.error('[chat] Failed to log chat activity:', err.message));
     } catch (gapErr) {
