@@ -840,6 +840,13 @@
   line-height: 1.5;
 }
 
+.aw-detail-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
 .aw-detail-status {
   display: flex;
   align-items: center;
@@ -847,7 +854,6 @@
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 0.65rem;
   color: var(--text-secondary, #a8a8a0);
-  margin-bottom: 16px;
 }
 
 .aw-detail-status-dot {
@@ -855,6 +861,19 @@
   height: 6px;
   border-radius: 50%;
 }
+
+.aw-detail-visit-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #0f0f1a;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.aw-detail-visit-link:hover { opacity: 0.85; }
 
 .aw-detail-stats {
   display: flex;
@@ -965,6 +984,33 @@
   line-height: 1.8;
   margin: 0;
 }
+
+.aw-detail-highlights {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #a8a8a0);
+  padding-left: 18px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.aw-detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aw-detail-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.aw-detail-link:hover { opacity: 0.75; }
 
 /* ═══════════════════════════════════════════════════════
    Workstation Themes — Scene Illustrations

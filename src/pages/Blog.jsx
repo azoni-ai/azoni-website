@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import useVisitTracker from '../hooks/useVisitTracker';
 import { db } from '../config/firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
 const Blog = () => {
+  useVisitTracker('daily-blog');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 

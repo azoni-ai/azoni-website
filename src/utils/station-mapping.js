@@ -126,13 +126,13 @@ export const STATION_DEFS = [
     id: 'chatbot', label: 'Azoni AI', color: '#60a5fa', agent: 'chat', icon: 'chat', category: 'agent',
     desc: 'RAG chatbot — queries knowledge base, generates missing knowledge on the fly.',
     actions: ['Answering queries', 'Vector searching', 'Building context'],
-    dataLabel: 'queries',
+    dataLabel: 'queries', url: '/chat',
   },
   {
     id: 'blog', label: 'The Scribe', color: '#fbbf24', agent: 'blog', icon: 'pen', category: 'agent',
     desc: 'Daily autonomous blog agent — reads commits, writes analysis, publishes.',
     actions: ['Analyzing commits', 'Writing article', 'Publishing post'],
-    dataLabel: 'blog content',
+    dataLabel: 'blog content', url: '/blog',
   },
   {
     id: 'orchestrator', label: 'The Conductor', color: '#a78bfa', agent: 'orchestrator', icon: 'gear', category: 'agent',
@@ -144,49 +144,49 @@ export const STATION_DEFS = [
     id: 'spellbrigade', label: 'Spell Brigade', color: '#c084fc', agent: 'gaming', icon: 'wand', category: 'app',
     desc: 'Multiplayer wizard combat game. AI generates characters with unique abilities.',
     actions: ['Generating wizards', 'Running battles', 'AI enemies active'],
-    dataLabel: 'game data',
+    dataLabel: 'game data', url: '/game',
   },
   {
     id: 'moltbook', label: 'Moltbook', color: '#fb923c', agent: 'social', icon: 'megaphone', category: 'agent',
     desc: 'Autonomous social platform. LLM generates posts, comments, and engagement.',
     actions: ['Crafting posts', 'Scheduling content', 'Engaging users'],
-    dataLabel: 'social content',
+    dataLabel: 'social content', url: '/moltbook',
   },
   {
     id: 'oldwaystoday', label: 'Old Ways Today', color: '#d97706', icon: 'leaf', category: 'app',
     desc: 'AI wellness platform — RAG chatbot + auto-blog for natural remedies.',
     actions: ['Curating remedies', 'Auto-blogging', 'RAG retrieval'],
-    dataLabel: 'recipes',
+    dataLabel: 'recipes', url: 'https://oldwaystoday.com',
   },
   {
     id: 'benchpressonly', label: 'BenchPress', color: '#4ade80', agent: 'fitness', icon: 'dumbbell', category: 'app',
     desc: 'AI fitness app. Generates personalized workouts, tracks PRs.',
     actions: ['Tracking workouts', 'AI coaching', 'Analyzing PRs'],
-    dataLabel: 'fitness data',
+    dataLabel: 'fitness data', url: 'https://benchpressonly.com',
   },
   {
     id: 'embedroute', label: 'EmbedRoute', color: '#20d9d2', icon: 'nodes', category: 'data',
     desc: 'Unified embedding API — routes to OpenAI, Cohere, Voyage, and more.',
     actions: ['Routing embeddings', 'Multi-provider', 'Serving vectors'],
-    dataLabel: 'embeddings',
+    dataLabel: 'embeddings', url: 'https://www.embedroute.com',
   },
   {
     id: 'rowcrew', label: 'RowCrew', color: '#34d399', icon: 'waves', agent: 'rowing', category: 'agent',
     desc: 'AI rowing tracker — Claude Vision verifies workout photos, extracts data.',
     actions: ['Logging sessions', 'Stroke analysis', 'Progress tracking'],
-    dataLabel: 'rowing data',
+    dataLabel: 'rowing data', url: 'https://rowcrew.netlify.app',
   },
   {
     id: 'activity', label: 'Activity Feed', color: '#f87171', icon: 'pulse', category: 'data',
     desc: 'Firestore agent_activity — single source of truth for all services.',
     actions: ['Logging events', 'Cross-app tracking', 'Agent monitoring'],
-    dataLabel: 'event logs',
+    dataLabel: 'event logs', url: '/activity',
   },
   {
     id: 'fabstats', label: 'FaB Stats', color: '#D9A05B', icon: 'shield', category: 'data',
     desc: 'Flesh and Blood TCG tracker. Matches, heroes, tournaments, minigames.',
     actions: ['Tracking matches', 'Meta analysis', 'Daily minigames'],
-    dataLabel: 'FaB data',
+    dataLabel: 'FaB data', url: 'https://fabstats.net',
   },
   {
     id: 'fabstatsbot', label: 'FaB Bot', color: '#c9a84c', icon: 'chat', category: 'app',
@@ -219,6 +219,21 @@ export const STATION_CONNECTIONS = {
   fabstatsbot: ['mcp', 'fabstats'],
   embedroute: ['mcp'],
   activity: ['mcp'],
+};
+
+export const STATION_TO_PROJECT = {
+  chatbot: 'azoni-ai',
+  blog: 'azoni-ai',
+  orchestrator: 'azoni-ai',
+  spellbrigade: 'spell-brigade',
+  moltbook: 'moltbook-agent',
+  oldwaystoday: 'old-ways-today',
+  benchpressonly: 'bench-only',
+  embedroute: 'embedroute',
+  rowcrew: 'row-crew',
+  fabstats: 'fab-stats',
+  fabstatsbot: 'fab-stats-bot',
+  mcp: 'azoni-mcp',
 };
 
 export function mapSourceToStation(source, type) {

@@ -8,6 +8,7 @@ import { COLORS, DEFAULT_CLASSES, DEFAULT_SKINS, SERVER_URL } from './constants/
 import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, BUILDING_DATA, QUEST_NPCS, SANCTUARY_FEATURES, pointInPolygon, getZoneAtPosition } from './constants/zones';
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
+import useVisitTracker from '../../hooks/useVisitTracker';
 
 // Extracted UI Components
 import { GlobalStyles, LoadingScreen, AuthScreen, DeathScreen, TitleScreen, GameModals } from './components';
@@ -15,6 +16,7 @@ import { GlobalStyles, LoadingScreen, AuthScreen, DeathScreen, TitleScreen, Game
 // MAIN COMPONENT
 // ===========================================
 export default function SpellBrigade() {
+  useVisitTracker('spell-brigade');
   // Refs
   const canvasRef = useRef(null);
   const minimapRef = useRef(null);

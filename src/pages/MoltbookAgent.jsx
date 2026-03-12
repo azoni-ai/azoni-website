@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import useVisitTracker from '../hooks/useVisitTracker';
 
 const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 const MOLTBOOK_PROFILE_URL = 'https://www.moltbook.com/u/Azoni-AI';
@@ -87,6 +88,7 @@ const Icons = {
 };
 
 const MoltbookAgent = () => {
+  useVisitTracker('moltbook-agent');
   const [status, setStatus] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);

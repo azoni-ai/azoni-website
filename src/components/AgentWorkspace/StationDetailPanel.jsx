@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AGENTS } from '../../data/agents';
-import { CATEGORY_STYLES, DOMAIN_TO_STATION, formatTimeAgo } from '../../utils/station-mapping';
+import { getProjectById } from '../../data/projects';
+import { CATEGORY_STYLES, DOMAIN_TO_STATION, STATION_TO_PROJECT, formatTimeAgo } from '../../utils/station-mapping';
 
 const AGENT_KEY_MAP = { wellness: 'oldways', oldwaystoday: 'oldways' };
 
@@ -28,6 +30,8 @@ function StationDetailPanel({ station, stationHistory, activityCounts, health, o
         const mcpStatus = domain && health?.[domain];
         const statusText = mcpStatus === true ? 'online' : mcpStatus === false ? 'offline' : station.isHub ? 'hub' : 'connected';
         const statusColor = mcpStatus === true ? '#4ade80' : mcpStatus === false ? '#f87171' : '#60a5fa';
+        const project = getProjectById(STATION_TO_PROJECT[station.id]);
+        const isExternal = station.url && station.url.startsWith('http');
 
         return (
           <>
@@ -65,9 +69,22 @@ function StationDetailPanel({ station, stationHistory, activityCounts, health, o
                 {(agentData?.quote || station.desc) && (
                   <div className="aw-detail-quote">{agentData?.quote || station.desc}</div>
                 )}
-                <div className="aw-detail-status">
-                  <span className="aw-detail-status-dot" style={{ background: statusColor }} />
-                  {statusText}
+                <div className="aw-detail-status-row">
+                  <div className="aw-detail-status">
+                    <span className="aw-detail-status-dot" style={{ background: statusColor }} />
+                    {statusText}
+                  </div>
+                  {station.url && (
+                    isExternal ? (
+                      <a href={station.url} target="_blank" rel="noopener noreferrer" className="aw-detail-visit-link" style={{ background: station.color }}>
+                        Visit ↗
+                      </a>
+                    ) : (
+                      <Link to={station.url} className="aw-detail-visit-link" style={{ background: station.color }}>
+                        Visit
+                      </Link>
+                    )
+                  )}
                 </div>
 
                 {/* Tabs */}
@@ -145,6 +162,33 @@ function StationDetailPanel({ station, stationHistory, activityCounts, health, o
                               <li key={i}>{d}</li>
                             ))}
                           </ul>
+                        </div>
+                      )}
+                      {project?.highlights && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Highlights</div>
+                          <ul className="aw-detail-highlights">
+                            {project.highlights.map((h, i) => (
+                              <li key={i}>{h}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {project?.links && (project.links.live || project.links.github) && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Links</div>
+                          <div className="aw-detail-links">
+                            {project.links.live && (
+                              <a href={project.links.live} target="_blank" rel="noopener noreferrer" className="aw-detail-link" style={{ borderColor: `${station.color}40`, color: station.color }}>
+                                Live Site ↗
+                              </a>
+                            )}
+                            {project.links.github && (
+                              <a href={project.links.github} target="_blank" rel="noopener noreferrer" className="aw-detail-link" style={{ borderColor: `${station.color}40`, color: station.color }}>
+                                GitHub ↗
+                              </a>
+                            )}
+                          </div>
                         </div>
                       )}
                     </>

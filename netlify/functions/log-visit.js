@@ -11,12 +11,15 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: '{"error":"POST only"}' };
 
+  let source = "azoni";
+  try { const b = JSON.parse(event.body || "{}"); if (b.source) source = b.source; } catch {}
+
   if (MCP_KEY) {
     try {
       await fetch(`${MCP_URL}/activity/log`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${MCP_KEY}` },
-        body: JSON.stringify({ type: "site_visit", title: "Site visit", source: "azoni" }),
+        body: JSON.stringify({ type: "site_visit", title: "Site visit", source }),
       });
     } catch {}
   }
