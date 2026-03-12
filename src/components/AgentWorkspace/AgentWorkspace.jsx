@@ -11,69 +11,108 @@ import StationDetailPanel from './StationDetailPanel';
 import WorkspaceLegend from './WorkspaceLegend';
 import '../../styles/agent-workspace.css';
 
-// ─── Building floor plan: 5-col grid ───
+// ─── Building floor plan: 7-col grid with side corridors ───
+// Col layout: office | side-hall | office | center-hall | office | side-hall | office
 const GRID_PLACEMENT = {
   chatbot:        { col: 1, row: 2, room: 1,  door: 'right' },
-  spellbrigade:   { col: 2, row: 2, room: 2,  door: 'right' },
-  moltbook:       { col: 4, row: 2, room: 3,  door: 'left' },
-  blog:           { col: 5, row: 2, room: 4,  door: 'left' },
+  spellbrigade:   { col: 3, row: 2, room: 2,  door: 'right' },
+  moltbook:       { col: 5, row: 2, room: 3,  door: 'left' },
+  blog:           { col: 7, row: 2, room: 4,  door: 'left' },
   benchpressonly: { col: 1, row: 3, room: 5,  door: 'right' },
-  activity:       { col: 2, row: 3, room: 6,  door: 'right' },
-  fabstatsbot:    { col: 4, row: 3, room: 7,  door: 'left' },
-  rowcrew:        { col: 5, row: 3, room: 8,  door: 'left' },
+  activity:       { col: 3, row: 3, room: 6,  door: 'right' },
+  fabstatsbot:    { col: 5, row: 3, room: 7,  door: 'left' },
+  rowcrew:        { col: 7, row: 3, room: 8,  door: 'left' },
   oldwaystoday:   { col: 1, row: 4, room: 9,  door: 'right' },
-  orchestrator:   { col: 2, row: 4, room: 10, door: 'right' },
-  embedroute:     { col: 4, row: 4, room: 11, door: 'left' },
-  fabstats:       { col: 5, row: 4, room: 12, door: 'left' },
+  orchestrator:   { col: 3, row: 4, room: 10, door: 'right' },
+  embedroute:     { col: 5, row: 4, room: 11, door: 'left' },
+  fabstats:       { col: 7, row: 4, room: 12, door: 'left' },
 };
 
 const HALLWAY_CELLS = [
-  { col: 3, row: 2 },
-  { col: 3, row: 3 },
-  { col: 3, row: 4 },
+  { col: 4, row: 2 },
+  { col: 4, row: 3 },
+  { col: 4, row: 4 },
 ];
 
-const EMPTY_CELLS = [];
+const SIDE_HALLWAY_CELLS = [
+  { col: 2, row: 2 }, { col: 2, row: 3 }, { col: 2, row: 4 },
+  { col: 6, row: 2 }, { col: 6, row: 3 }, { col: 6, row: 4 },
+];
 
 const nonHubStations = STATION_DEFS.filter(s => !s.isHub);
 const mcpStation = STATION_DEFS.find(s => s.isHub);
 const stationById = Object.fromEntries(STATION_DEFS.map(s => [s.id, s]));
 
 // ─── Waypoint calculation for walking path ───
-function calcWaypoints(floorRect, cellRect, lobbyRect, door) {
+// Returns { points, times, duration } — outer offices route through side hallway
+function calcWaypoints(floorRect, cellRect, lobbyRect, door, col) {
   const startX = cellRect.left + cellRect.width / 2 - floorRect.left;
   const startY = cellRect.top + cellRect.height * 0.55 - floorRect.top;
   const hallX = floorRect.width / 2;
   const mcpX = lobbyRect.left + lobbyRect.width / 2 - floorRect.left;
   const mcpY = lobbyRect.top + lobbyRect.height / 2 - floorRect.top;
 
-  // Doorway — edge of cell toward hallway
+  const isOuter = col === 1 || col === 7;
   const doorX = door === 'right'
     ? cellRect.right - floorRect.left + 6
     : cellRect.left - floorRect.left - 6;
 
-  // Slight hallway wander for natural movement
-  const sway = door === 'right' ? -5 : 5;
+  // Side hallway center X (outer offices only)
+  const sideHallX = col === 1
+    ? cellRect.right - floorRect.left + 14
+    : col === 7
+      ? cellRect.left - floorRect.left - 14
+      : null;
 
-  // Intermediate hallway positions (evenly spaced along corridor)
+  const sway = door === 'right' ? -4 : 4;
   const hallY1 = startY + (mcpY - startY) * 0.35;
   const hallY2 = startY + (mcpY - startY) * 0.7;
 
-  return [
-    { x: startX, y: startY },           // In room
-    { x: doorX,  y: startY },           // Step through doorway
-    { x: hallX,  y: startY },           // Enter hallway
-    { x: hallX + sway, y: hallY1 },     // Walk hallway (slight wander)
-    { x: hallX, y: hallY2 },            // Continue down hallway
-    { x: hallX, y: mcpY },              // Reach MCP level
-    { x: mcpX,  y: mcpY },              // Arrive at MCP lobby
-    { x: hallX, y: mcpY },              // Exit MCP back to hallway
-    { x: hallX + sway, y: hallY2 },     // Return hallway segment
-    { x: hallX, y: hallY1 },            // Continue back
-    { x: hallX, y: startY },            // Back at station level
-    { x: doorX, y: startY },            // Re-enter doorway
-    { x: startX, y: startY },           // Back in room
-  ];
+  if (isOuter) {
+    // Outer offices walk: room → side hall → center hall → MCP → back
+    return {
+      points: [
+        { x: startX, y: startY },         // In room
+        { x: doorX, y: startY },           // Step through doorway
+        { x: sideHallX, y: startY },       // Enter side hallway
+        { x: hallX, y: startY },           // Cross to center hallway
+        { x: hallX + sway, y: hallY1 },    // Walk center hallway
+        { x: hallX, y: hallY2 },           // Continue down hallway
+        { x: hallX, y: mcpY },             // Reach MCP level
+        { x: mcpX, y: mcpY },              // Arrive at MCP lobby
+        { x: hallX, y: mcpY },             // Exit MCP
+        { x: hallX + sway, y: hallY2 },    // Return hallway
+        { x: hallX, y: hallY1 },           // Continue back
+        { x: hallX, y: startY },           // Back at junction
+        { x: sideHallX, y: startY },       // Side hallway
+        { x: doorX, y: startY },           // Re-enter doorway
+        { x: startX, y: startY },          // Back in room
+      ],
+      times: [0, 0.03, 0.06, 0.12, 0.22, 0.32, 0.42, 0.50, 0.58, 0.68, 0.78, 0.88, 0.94, 0.97, 1],
+      duration: 12,
+    };
+  }
+
+  // Inner offices walk: room → center hall → MCP → back
+  return {
+    points: [
+      { x: startX, y: startY },
+      { x: doorX, y: startY },
+      { x: hallX, y: startY },
+      { x: hallX + sway, y: hallY1 },
+      { x: hallX, y: hallY2 },
+      { x: hallX, y: mcpY },
+      { x: mcpX, y: mcpY },
+      { x: hallX, y: mcpY },
+      { x: hallX + sway, y: hallY2 },
+      { x: hallX, y: hallY1 },
+      { x: hallX, y: startY },
+      { x: doorX, y: startY },
+      { x: startX, y: startY },
+    ],
+    times: [0, 0.04, 0.08, 0.20, 0.32, 0.42, 0.50, 0.58, 0.68, 0.80, 0.92, 0.96, 1],
+    duration: 10,
+  };
 }
 
 function AgentWorkspace() {
@@ -157,11 +196,11 @@ function AgentWorkspace() {
     const floorRect = floorEl.getBoundingClientRect();
     const cellRect = cellEl.getBoundingClientRect();
     const lobbyRect = lobbyEl.getBoundingClientRect();
-    const waypoints = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door);
+    const { points, times, duration } = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door, pos.col);
 
     setWalkingAgents(prev => ({
       ...prev,
-      [stationId]: { waypoints, agent: station.agent },
+      [stationId]: { points, times, duration, agent: station.agent },
     }));
   };
 
@@ -180,7 +219,7 @@ function AgentWorkspace() {
     if (newFlash) {
       setHallwayActive(true);
       if (hallwayTimerRef.current) clearTimeout(hallwayTimerRef.current);
-      hallwayTimerRef.current = setTimeout(() => setHallwayActive(false), 10000);
+      hallwayTimerRef.current = setTimeout(() => setHallwayActive(false), 12000);
     }
 
     prevFlashRef.current = combined;
@@ -270,7 +309,7 @@ function AgentWorkspace() {
           <span className="aw-header-title">Agent Workspace</span>
         </div>
         <div className="aw-header-right">
-          <span className="aw-header-stat">{totalTools || 33} tools</span>
+          <span className="aw-header-stat">{totalTools || 37} tools</span>
           <span className="aw-header-stat">{nonHubStations.length} stations</span>
           <button
             className="aw-replay-btn"
@@ -327,12 +366,12 @@ function AgentWorkspace() {
           />
         ))}
 
-        {/* Empty floor cells */}
-        {EMPTY_CELLS.map((e, i) => (
+        {/* Side corridors */}
+        {SIDE_HALLWAY_CELLS.map((h, i) => (
           <div
-            key={`empty-${i}`}
-            className="aw-empty-floor"
-            style={{ gridColumn: e.col, gridRow: e.row }}
+            key={`side-hall-${i}`}
+            className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
+            style={{ gridColumn: h.col, gridRow: h.row }}
           />
         ))}
 
@@ -375,15 +414,15 @@ function AgentWorkspace() {
             <motion.div
               key={`walk-${stationId}`}
               className="aw-walking-agent"
-              initial={{ x: data.waypoints[0].x, y: data.waypoints[0].y }}
+              initial={{ x: data.points[0].x, y: data.points[0].y }}
               animate={{
-                x: data.waypoints.map(w => w.x),
-                y: data.waypoints.map(w => w.y),
+                x: data.points.map(w => w.x),
+                y: data.points.map(w => w.y),
               }}
               transition={{
-                duration: 10,
-                times: [0, 0.04, 0.08, 0.20, 0.32, 0.42, 0.50, 0.58, 0.68, 0.80, 0.92, 0.96, 1],
-                ease: 'easeInOut',
+                duration: data.duration,
+                times: data.times,
+                ease: 'linear',
               }}
               onAnimationComplete={() => removeWalkingAgent(stationId)}
             >
@@ -404,7 +443,7 @@ function AgentWorkspace() {
             const visits = visitCounts[tooltipStation] || 0;
             const eventMs = lastEvent?.receivedAt || 0;
 
-            const tooltipCol = pos.col <= 2 ? pos.col + 1 : pos.col >= 4 ? pos.col - 1 : pos.col;
+            const tooltipCol = pos.col <= 2 ? pos.col + 2 : pos.col >= 6 ? pos.col - 2 : pos.col <= 3 ? pos.col + 1 : pos.col - 1;
             const tooltipRow = pos.row;
 
             return (

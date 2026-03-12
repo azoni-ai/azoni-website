@@ -121,8 +121,8 @@ export const CATEGORY_STYLES = {
 export const STATION_DEFS = [
   {
     id: 'mcp', label: 'MCP Server', color: '#ff7a5c', isHub: true, category: 'data',
-    desc: 'Tool registry and data gateway — exposes 33 tools across 9 domains.',
-    actions: ['Routing requests', 'Serving 33 tools', 'Health monitoring'],
+    desc: 'Tool registry and data gateway — exposes 37 tools across 9 domains.',
+    actions: ['Routing requests', 'Serving 37 tools', 'Health monitoring'],
   },
   {
     id: 'chatbot', label: 'Azoni AI', color: '#60a5fa', agent: 'chat', icon: 'chat', category: 'agent',
@@ -161,7 +161,7 @@ export const STATION_DEFS = [
     dataLabel: 'recipes', url: 'https://oldwaystoday.com',
   },
   {
-    id: 'benchpressonly', label: 'BenchPress', color: '#4ade80', agent: 'fitness', icon: 'dumbbell', category: 'app',
+    id: 'benchpressonly', label: 'BenchPress', color: '#4ade80', agent: 'fitness', icon: 'dumbbell', category: 'agent',
     desc: 'AI fitness app. Generates personalized workouts, tracks PRs.',
     actions: ['Tracking workouts', 'AI coaching', 'Analyzing PRs'],
     dataLabel: 'fitness data', url: 'https://benchpressonly.com',
@@ -173,7 +173,7 @@ export const STATION_DEFS = [
     dataLabel: 'embeddings', url: 'https://www.embedroute.com',
   },
   {
-    id: 'rowcrew', label: 'RowCrew', color: '#34d399', icon: 'waves', agent: 'rowing', category: 'agent',
+    id: 'rowcrew', label: 'RowCrew', color: '#34d399', icon: 'waves', category: 'app',
     desc: 'AI rowing tracker — Claude Vision verifies workout photos, extracts data.',
     actions: ['Logging sessions', 'Stroke analysis', 'Progress tracking'],
     dataLabel: 'rowing data', url: 'https://rowcrew.netlify.app',
@@ -205,7 +205,6 @@ export const AGENT_IDLE = {
   fitness:      { bobSpeed: 2200, bobAmt: 2.5, breathSpeed: 2000, breathAmt: 0.02, lean: 0 },
   gaming:       { bobSpeed: 3600, bobAmt: 2.0, breathSpeed: 3000, breathAmt: 0.018, lean: 0.01 },
   social:       { bobSpeed: 2000, bobAmt: 3.0, breathSpeed: 2200, breathAmt: 0.015, lean: -0.02 },
-  rowing:       { bobSpeed: 3200, bobAmt: 3.0, breathSpeed: 3800, breathAmt: 0.008, lean: 0.01 },
   oldways:      { bobSpeed: 3800, bobAmt: 1.5, breathSpeed: 3400, breathAmt: 0.01, lean: -0.01 },
   fabstats:     { bobSpeed: 3400, bobAmt: 1.8, breathSpeed: 3200, breathAmt: 0.012, lean: 0.01 },
   fabstatsbot:  { bobSpeed: 2600, bobAmt: 2.2, breathSpeed: 2800, breathAmt: 0.015, lean: -0.01 },

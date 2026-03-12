@@ -90,8 +90,8 @@
 .aw-floor {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr 56px 1fr 1fr;
-  grid-template-rows: auto auto auto auto auto;
+  grid-template-columns: 1fr 28px 1fr 48px 1fr 28px 1fr;
+  grid-template-rows: auto auto auto auto;
   gap: 0;
   min-height: 600px;
 
@@ -297,6 +297,40 @@
 @keyframes awHallwayFlow {
   from { background-position: 0 100%; }
   to { background-position: 0 -100%; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Side Corridors — Columns 2 & 6
+   ═══════════════════════════════════════════════════════ */
+.aw-side-hallway {
+  position: relative;
+  background: rgba(255, 255, 255, 0.008);
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  min-height: 160px;
+}
+
+/* Dashed center line */
+.aw-side-hallway::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05) 0px,
+    rgba(255, 255, 255, 0.05) 4px,
+    transparent 4px,
+    transparent 14px
+  );
+  pointer-events: none;
+}
+
+/* Active glow when agents are walking */
+.aw-side-hallway-active {
+  background: rgba(255, 122, 92, 0.03);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2119,7 +2153,7 @@
 
 @media (max-width: 1100px) {
   .aw-floor {
-    grid-template-columns: 1fr 1fr 48px 1fr 1fr;
+    grid-template-columns: 1fr 22px 1fr 40px 1fr 22px 1fr;
   }
 
   .aw-station-scene {
@@ -2176,6 +2210,7 @@
 
   /* Hide building elements on tablet */
   .aw-hallway { display: none; }
+  .aw-side-hallway { display: none; }
   .aw-empty-floor { display: none; }
   .aw-tooltip { display: none; }
   .aw-building-label { display: none; }
