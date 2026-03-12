@@ -11,6 +11,7 @@ export const SOURCE_TO_STATION = {
   'old-ways-today': 'oldwaystoday',
   'orchestrator': 'orchestrator',
   'daily-blog': 'blog',
+  'azoni': 'chatbot',
   'azoni-ai': 'chatbot',
   'fabstats': 'fabstats',
   'fab-stats': 'fabstats',
