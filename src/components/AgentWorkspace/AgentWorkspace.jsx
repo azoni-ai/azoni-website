@@ -346,6 +346,7 @@ function AgentWorkspace({ appStats, githubStats }) {
   const isPatrolWalkRef = useRef(false);
   const [inspectedStation, setInspectedStation] = useState(null);
   const inspectedTimerRef = useRef(null);
+  const [patrolEvents, setPatrolEvents] = useState([]);
 
   const setCellRef = useCallback((id, el) => {
     if (el) cellRefs.current[id] = el;
@@ -474,22 +475,29 @@ function AgentWorkspace({ appStats, githubStats }) {
         const midpointMs = data.duration * 0.45 * 1000;
         setTimeout(() => {
           const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === dest)?.[0];
-          if (domain) {
-            fetch(`${MCP_URL}/health`).then(r => r.json()).then(h => {
-              const status = h[domain] === true ? 'online' : h[domain] === false ? 'offline' : 'unknown';
-              setInspectedStation({ id: dest, status });
-              if (inspectedTimerRef.current) clearTimeout(inspectedTimerRef.current);
-              inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 5000);
-            }).catch(() => {
-              setInspectedStation({ id: dest, status: 'offline' });
-              if (inspectedTimerRef.current) clearTimeout(inspectedTimerRef.current);
-              inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 5000);
-            });
-          } else {
-            // Non-MCP stations: visual-only inspection
-            setInspectedStation({ id: dest, status: 'checked' });
+          const destStation = stationById[dest];
+          const destLabel = destStation?.label || dest;
+          const logInspection = (status) => {
+            setInspectedStation({ id: dest, status });
             if (inspectedTimerRef.current) clearTimeout(inspectedTimerRef.current);
             inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 5000);
+            const evt = {
+              type: 'health_check',
+              title: `Inspected ${destLabel} — ${status}`,
+              source: 'orchestrator',
+              receivedAt: Date.now(),
+            };
+            setPatrolEvents(prev => [evt, ...prev].slice(0, 10));
+          };
+
+          if (domain) {
+            fetch(`${MCP_URL}/health`).then(r => r.json()).then(h => {
+              logInspection(h[domain] === true ? 'online' : h[domain] === false ? 'offline' : 'unknown');
+            }).catch(() => {
+              logInspection('offline');
+            });
+          } else {
+            logInspection('checked');
           }
         }, midpointMs);
       }
@@ -826,7 +834,7 @@ function AgentWorkspace({ appStats, githubStats }) {
             >
               <WorkstationCard
                 station={station}
-                lastEvent={stationEvents[station.id]}
+                lastEvent={station.id === 'orchestrator' && patrolEvents[0] && (!stationEvents[station.id] || patrolEvents[0].receivedAt > stationEvents[station.id].receivedAt) ? patrolEvents[0] : stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
                 visitCount={visitCounts[station.id] || 0}
                 isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
@@ -968,7 +976,7 @@ function AgentWorkspace({ appStats, githubStats }) {
       </div>
 
       {/* Event ticker */}
-      <WorkspaceTicker events={tickerEvents} stationHistory={stationHistory} />
+      <WorkspaceTicker events={[...patrolEvents, ...tickerEvents].sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0)).slice(0, 5)} stationHistory={stationHistory} />
 
       {/* Detail panel (portal) */}
       <StationDetailPanel
