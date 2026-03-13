@@ -198,6 +198,11 @@ export const STATION_DEFS = [
     actions: ['Player lookups', 'Leaderboards', 'Puzzle results'],
     dataLabel: 'Discord data',
   },
+  {
+    id: 'medic', label: 'The Medic', color: '#f87171', agent: 'medic', icon: 'shield', category: 'data',
+    desc: 'Office medic — makes rounds checking station health and uptime. Reports status changes.',
+    actions: ['Health checkups', 'Making rounds', 'Status alerts'],
+  },
 ];
 
 export const AGENT_IDLE = {
@@ -211,6 +216,7 @@ export const AGENT_IDLE = {
   fabstats:     { bobSpeed: 3400, bobAmt: 1.8, breathSpeed: 3200, breathAmt: 0.012, lean: 0.01 },
   fabstatsbot:  { bobSpeed: 2600, bobAmt: 2.2, breathSpeed: 2800, breathAmt: 0.015, lean: -0.01 },
   rowing:       { bobSpeed: 3200, bobAmt: 2.0, breathSpeed: 3000, breathAmt: 0.015, lean: 0 },
+  medic:        { bobSpeed: 3000, bobAmt: 2.0, breathSpeed: 2800, breathAmt: 0.015, lean: 0 },
 };
 
 export const STATION_CONNECTIONS = {
@@ -226,6 +232,7 @@ export const STATION_CONNECTIONS = {
   fabstatsbot: ['mcp', 'fabstats'],
   embedroute: ['mcp'],
   activity: ['mcp'],
+  medic: ['mcp', 'activity'],
 };
 
 export const STATION_TO_PROJECT = {
@@ -241,6 +248,7 @@ export const STATION_TO_PROJECT = {
   fabstats: 'fab-stats',
   fabstatsbot: 'fab-stats-bot',
   mcp: 'azoni-mcp',
+  medic: 'azoni-ai',
 };
 
 // Infrastructure hubs — destinations agents walk TO, never walk FROM

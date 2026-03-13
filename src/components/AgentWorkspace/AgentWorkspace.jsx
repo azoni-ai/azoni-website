@@ -28,6 +28,7 @@ const GRID_PLACEMENT = {
   // ─── THE GYM · OPS CENTER (Row 7) ───
   benchpressonly: { col: 1, row: 7, room: 9,  door: 'right' },
   rowcrew:        { col: 3, row: 7, room: 10, door: 'right' },
+  medic:       { col: 5, row: 7, room: 11, door: 'left' },
   activity:       { col: 7, row: 7, room: 12, door: 'left' },
   // ─── THE BASEMENT (Row 10) ───
   spellbrigade:   { col: 3, row: 10, room: null, door: 'right', basement: true },
@@ -45,7 +46,6 @@ const ZONE_LABELS = [
 // Vacant cells (where basement stations used to be)
 const VACANT_CELLS = [
   { col: 3, row: 5, zone: 'aw-zone-creative' },
-  { col: 5, row: 7, zone: 'aw-zone-ops' },
 ];
 
 // Zone classes for subtle background textures
@@ -55,7 +55,7 @@ const ZONE_CLASSES = {
   oldwaystoday: 'aw-zone-wellness',
   fabstats: 'aw-zone-creative', fabstatsbot: 'aw-zone-creative',
   benchpressonly: 'aw-zone-gym', rowcrew: 'aw-zone-gym',
-  activity: 'aw-zone-ops',
+  medic: 'aw-zone-ops', activity: 'aw-zone-ops',
   spellbrigade: 'aw-zone-basement', embedroute: 'aw-zone-basement',
 };
 
@@ -405,15 +405,8 @@ function AgentWorkspace({ appStats, githubStats }) {
     if (!station?.agent || !avatars[station.agent]) return;
     if (INFRASTRUCTURE_HUBS.has(stationId)) return; // hubs don't walk
     if (walkingAgents[stationId]) {
-      // Real events interrupt patrol walks
-      if (stationId === 'orchestrator' && isPatrolWalkRef.current && eventType !== 'patrol' && eventType !== 'health_check') {
-        setWalkingAgents(prev => { const next = { ...prev }; delete next[stationId]; return next; });
-        isPatrolWalkRef.current = false;
-        setChatBubbleStation(null);
-      } else {
-        triggerPaceRef.current(stationId);
-        return;
-      }
+      triggerPaceRef.current(stationId);
+      return;
     }
 
     const pos = GRID_PLACEMENT[stationId];
@@ -440,11 +433,11 @@ function AgentWorkspace({ appStats, githubStats }) {
     let targetId = flashTargets[stationId]
       || (walkQueueRef.current[stationId]?.length ? walkQueueRef.current[stationId][0] : null)
       || DEFAULT_WALK_TARGETS[stationId]
-      || (stationId === 'orchestrator' && patrolTargetRef.current)
+      || (stationId === 'medic' && patrolTargetRef.current)
       || null;
 
     // Consume patrol target after reading it
-    if (stationId === 'orchestrator' && patrolTargetRef.current) {
+    if (stationId === 'medic' && patrolTargetRef.current) {
       patrolTargetRef.current = null;
     }
 
@@ -517,7 +510,7 @@ function AgentWorkspace({ appStats, githubStats }) {
             const evt = {
               type: 'health_check',
               title: `Inspected ${destLabel} — ${status}`,
-              source: 'orchestrator',
+              source: 'medic',
               receivedAt: Date.now(),
             };
             setPatrolEvents(prev => [evt, ...prev].slice(0, 10));
@@ -591,18 +584,18 @@ function AgentWorkspace({ appStats, githubStats }) {
     }
   }, [walkQueueRef]);
 
-  // ─── Conductor patrol walks ───
+  // ─── Medic patrol walks ───
   useEffect(() => {
     const PATROL_STATIONS = ['chatbot', 'blog', 'moltbook', 'benchpressonly', 'rowcrew', 'oldwaystoday', 'fabstats', 'fabstatsbot'];
     let lastIdx = -1;
 
     const patrol = () => {
-      if (walkingAgentsRef.current['orchestrator']) return;
+      if (walkingAgentsRef.current['medic']) return;
       let idx;
       do { idx = Math.floor(Math.random() * PATROL_STATIONS.length); } while (idx === lastIdx && PATROL_STATIONS.length > 1);
       lastIdx = idx;
       patrolTargetRef.current = PATROL_STATIONS[idx];
-      startWalkRef.current('orchestrator', 'patrol');
+      startWalkRef.current('medic', 'patrol');
     };
 
     const initial = setTimeout(patrol, 30000);
@@ -610,7 +603,7 @@ function AgentWorkspace({ appStats, githubStats }) {
     return () => { clearTimeout(initial); clearInterval(interval); };
   }, []);
 
-  // ─── Conductor health-check walks ───
+  // ─── Medic health-check walks ───
   useEffect(() => {
     if (!health) {
       prevHealthRef.current = health;
@@ -624,9 +617,9 @@ function AgentWorkspace({ appStats, githubStats }) {
       const prev = prevHealthRef.current[domain];
       if (prev !== undefined && prev !== status) {
         const stationId = DOMAIN_TO_STATION[domain];
-        if (stationId && !walkingAgentsRef.current['orchestrator']) {
+        if (stationId && !walkingAgentsRef.current['medic']) {
           patrolTargetRef.current = stationId;
-          startWalkRef.current('orchestrator', 'health_check');
+          startWalkRef.current('medic', 'health_check');
           break;
         }
       }
@@ -868,7 +861,7 @@ function AgentWorkspace({ appStats, githubStats }) {
             >
               <WorkstationCard
                 station={station}
-                lastEvent={station.id === 'orchestrator' && patrolEvents[0] && (!stationEvents[station.id] || patrolEvents[0].receivedAt > stationEvents[station.id].receivedAt) ? patrolEvents[0] : stationEvents[station.id]}
+                lastEvent={station.id === 'medic' && patrolEvents[0] && (!stationEvents[station.id] || patrolEvents[0].receivedAt > stationEvents[station.id].receivedAt) ? patrolEvents[0] : stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
                 visitCount={visitCounts[station.id] || 0}
                 mcpStatus={(() => { const d = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === station.id)?.[0]; return d && health ? health[d] : undefined; })()}
@@ -1018,7 +1011,7 @@ function AgentWorkspace({ appStats, githubStats }) {
       <StationDetailPanel
         station={selectedStation}
         stationHistory={selectedStation ? (
-          selectedStation.id === 'orchestrator'
+          selectedStation.id === 'medic'
             ? [...(stationHistory[selectedStation.id] || []), ...patrolEvents.map(e => ({ ...e, ms: e.receivedAt }))].sort((a, b) => (b.ms || 0) - (a.ms || 0))
             : stationHistory[selectedStation.id]
         ) : null}

@@ -184,6 +184,7 @@ function WorkspaceProps({ stationId, color }) {
     case 'activity': return <DataWorkspace icon="pulse" color={color} />;
     case 'fabstats': return <FaBStatsWorkspace color={color} />;
     case 'fabstatsbot': return <FaBBotWorkspace color={color} />;
+    case 'medic': return <MedicWorkspace color={color} />;
     default: return null;
   }
 }
@@ -452,6 +453,23 @@ function FaBBotWorkspace({ color }) {
       </div>
       {/* Notification bell */}
       <div className="aw-fbot-bell" />
+    </div>
+  );
+}
+
+// ─── Medic: Health station with monitors, first-aid cross, status light ───
+function MedicWorkspace() {
+  return (
+    <div className="aw-props-medic">
+      <div className="aw-medic-monitors">
+        <div className="aw-medic-mon" />
+        <div className="aw-medic-mon" />
+      </div>
+      <div className="aw-medic-cross" />
+      <div className="aw-medic-light" />
+      <div className="aw-activity aw-medic-action">
+        <div className="aw-medic-pulse" />
+      </div>
     </div>
   );
 }
