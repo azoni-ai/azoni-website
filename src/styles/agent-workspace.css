@@ -91,7 +91,7 @@
   position: relative;
   display: grid;
   grid-template-columns: 1fr 34px 1fr 56px 1fr 34px 1fr;
-  grid-template-rows: auto auto auto auto auto;
+  grid-template-rows: auto auto auto auto;
   gap: 0;
   min-height: 600px;
 
@@ -2559,32 +2559,23 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   Secondary Hubs — Infrastructure destinations
+   Secondary Hubs — Infrastructure hub cards (vertical)
    ═══════════════════════════════════════════════════════ */
 .aw-secondary-hub {
   position: relative;
   width: 100%;
-  padding: 12px 16px;
+  flex: 1;
   background: rgba(255, 255, 255, 0.015);
   border: 1.5px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0;
   cursor: pointer;
   overflow: hidden;
   transition: background 0.3s ease;
+  /* Hub distinction: subtle persistent glow */
+  box-shadow: 0 0 8px color-mix(in srgb, var(--hub-color) 10%, transparent);
 }
 
-.aw-secondary-hub:hover {
-  background: rgba(255, 255, 255, 0.035);
-}
-
-.aw-secondary-hub.aw-station-active {
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 0 0 2px var(--hub-color),
-    0 0 20px color-mix(in srgb, var(--hub-color) 20%, transparent),
-    inset 0 0 30px color-mix(in srgb, var(--hub-color) 8%, transparent);
-  animation: awFlash 2s ease-out;
-}
-
+/* Hub nameplate — colored accent strip at top */
 .aw-secondary-hub::after {
   content: '';
   position: absolute;
@@ -2593,99 +2584,200 @@
   right: 0;
   height: 2px;
   background: var(--hub-color);
-  opacity: 0.5;
+  opacity: 0.6;
   z-index: 4;
   pointer-events: none;
 }
 
-.aw-secondary-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Doorway indicators for hubs */
+.aw-secondary-hub[data-door="right"]::before {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 22px;
+  background: var(--hub-color);
+  opacity: 0.35;
+  border-radius: 1px 0 0 1px;
+  z-index: 5;
 }
 
-.aw-secondary-icon {
-  flex-shrink: 0;
+.aw-secondary-hub[data-door="left"]::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 22px;
+  background: var(--hub-color);
+  opacity: 0.35;
+  border-radius: 0 1px 1px 0;
+  z-index: 5;
+}
+
+.aw-secondary-hub:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.aw-secondary-hub:hover::after {
+  opacity: 0.8;
+}
+
+.aw-secondary-hub.aw-station-active {
+  background: rgba(255, 255, 255, 0.04) !important;
+  box-shadow:
+    inset 0 0 0 2px var(--hub-color),
+    0 0 20px color-mix(in srgb, var(--hub-color) 20%, transparent),
+    inset 0 0 30px color-mix(in srgb, var(--hub-color) 8%, transparent) !important;
+  animation: awFlash 2s ease-out;
+}
+
+/* HUB badge in header */
+.aw-hub-badge {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--hub-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--hub-color) 25%, transparent);
+  color: var(--hub-color);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-left: auto;
+}
+
+/* ─── EmbedRoute Hub Scene ─── */
+.aw-props-embed {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-embed-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 1.5px solid;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.aw-embed-core {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: awPulse 3s ease-in-out infinite;
+}
+
+.aw-embed-line {
+  position: absolute;
+  height: 1.5px;
+  transform-origin: left center;
+}
+
+.aw-embed-line-1 {
+  top: 30%;
+  left: 50%;
   width: 32px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  transform: rotate(-30deg);
 }
 
-.aw-secondary-info {
-  flex: 1;
-  min-width: 0;
+.aw-embed-line-2 {
+  top: 50%;
+  left: 16%;
+  width: 28px;
+  transform: rotate(10deg);
 }
 
-.aw-secondary-label {
-  font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-primary, #fafaf9);
+.aw-embed-line-3 {
+  top: 68%;
+  left: 50%;
+  width: 30px;
+  transform: rotate(25deg);
 }
 
-.aw-secondary-desc {
-  font-size: 0.6rem;
-  color: var(--text-secondary, #a8a8a0);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.aw-embed-node {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: awPulse 3s ease-in-out infinite;
 }
 
-.aw-secondary-stats {
+.aw-embed-node-1 { top: 18%; right: 16%; animation-delay: 0s; }
+.aw-embed-node-2 { top: 48%; left: 12%; animation-delay: 1s; }
+.aw-embed-node-3 { bottom: 18%; right: 14%; animation-delay: 2s; }
+
+.aw-embed-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 1px solid;
+  border-radius: 50%;
+  animation: awRipple 4s ease-out infinite;
+}
+
+/* ─── Activity Feed Hub Scene ─── */
+.aw-props-activity {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  justify-content: center;
 }
 
-.aw-secondary-stat {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--hub-color);
+.aw-activity-log {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 70%;
+  max-width: 80px;
 }
 
-.aw-secondary-stat small {
-  color: var(--text-secondary, #a8a8a0);
-  font-size: 0.55rem;
-  font-weight: 500;
-}
-
-.aw-secondary-ago {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.55rem;
-  color: var(--text-muted, #6b6b65);
-}
-
-.aw-secondary-badge {
+.aw-log-line {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.5rem;
-  font-weight: 600;
-  color: var(--text-muted, #6b6b65);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  animation: awLogFade 3s ease-in-out infinite;
+}
+
+.aw-log-line:nth-child(2) { animation-delay: 0.5s; }
+.aw-log-line:nth-child(3) { animation-delay: 1s; }
+.aw-log-line:nth-child(4) { animation-delay: 1.5s; }
+
+.aw-log-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.aw-secondary-badge-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.aw-log-bar {
+  height: 2px;
+  border-radius: 1px;
+}
+
+.aw-activity-pulse-line {
+  position: absolute;
+  bottom: 14px;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+}
+
+@keyframes awLogFade {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2762,13 +2854,15 @@
     height: 90px;
   }
 
-  .aw-secondary-cell {
-    grid-column: span 3 !important;
-    grid-row: auto !important;
+  .aw-secondary-hub {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    flex: initial;
+    box-shadow: none;
   }
 
-  .aw-secondary-hub {
-    border-radius: 10px;
+  .aw-secondary-hub::before {
+    display: none;
   }
 
   /* Hide building elements on tablet */
@@ -2787,10 +2881,6 @@
   }
 
   .aw-lobby {
-    grid-column: span 2 !important;
-  }
-
-  .aw-secondary-cell {
     grid-column: span 2 !important;
   }
 

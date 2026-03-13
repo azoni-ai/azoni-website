@@ -25,20 +25,9 @@ const GRID_PLACEMENT = {
   rowcrew:        { col: 7, row: 3, room: 8,  door: 'left' },
   oldwaystoday:   { col: 1, row: 4, room: 9,  door: 'right' },
   fabstats:       { col: 3, row: 4, room: 10, door: 'right' },
+  embedroute:     { col: 5, row: 4, room: 11, door: 'left' },
+  activity:       { col: 7, row: 4, room: 12, door: 'left' },
 };
-
-// Secondary hubs — infrastructure destinations agents walk TO
-const HUB_PLACEMENT = {
-  embedroute: { cols: '5 / 8', row: 4, walkCol: 5, door: 'left' },
-  activity:   { cols: '1 / -1', row: 5, walkCol: 4, door: 'left' },
-};
-
-function getWalkPosition(stationId) {
-  if (GRID_PLACEMENT[stationId]) return GRID_PLACEMENT[stationId];
-  const hub = HUB_PLACEMENT[stationId];
-  if (hub) return { col: hub.walkCol, door: hub.door, row: hub.row };
-  return null;
-}
 
 const HALLWAY_CELLS = [
   { col: 4, row: 2 },
@@ -48,7 +37,7 @@ const HALLWAY_CELLS = [
 
 const SIDE_HALLWAY_CELLS = [
   { col: 2, row: 2 }, { col: 2, row: 3 }, { col: 2, row: 4 },
-  { col: 6, row: 2 }, { col: 6, row: 3 },
+  { col: 6, row: 2 }, { col: 6, row: 3 }, { col: 6, row: 4 },
 ];
 
 const workstationStations = STATION_DEFS.filter(s => !s.isHub && !INFRASTRUCTURE_HUBS.has(s.id));
@@ -237,7 +226,7 @@ function AgentWorkspace() {
   const { idleLevels, highlightedSet } = useMemo(() => {
     const now = Date.now();
     const levels = {};
-    workstationStations.forEach(s => {
+    [...workstationStations, ...secondaryHubStations].forEach(s => {
       const lastMs = stationEvents[s.id]?.receivedAt || 0;
       const diff = now - lastMs;
       if (!lastMs || diff > 86400000) levels[s.id] = 2;
@@ -319,7 +308,7 @@ function AgentWorkspace() {
     if (INFRASTRUCTURE_HUBS.has(stationId)) return; // hubs don't walk
     if (walkingAgents[stationId]) return; // already walking
 
-    const pos = getWalkPosition(stationId);
+    const pos = GRID_PLACEMENT[stationId];
     if (!pos) return;
 
     const floorEl = floorRef.current;
@@ -353,7 +342,7 @@ function AgentWorkspace() {
       }
     }
 
-    const targetPos = targetId ? getWalkPosition(targetId) : null;
+    const targetPos = targetId ? GRID_PLACEMENT[targetId] : null;
     const targetCell = targetId ? cellRefs.current[targetId] : null;
 
     let data;
@@ -601,15 +590,15 @@ function AgentWorkspace() {
         })}
 
         {/* Secondary hubs — infrastructure destinations */}
-        {secondaryHubStations.map((station) => {
-          const hub = HUB_PLACEMENT[station.id];
-          if (!hub) return null;
+        {secondaryHubStations.map((station, i) => {
+          const pos = GRID_PLACEMENT[station.id];
+          if (!pos) return null;
           return (
             <div
               key={station.id}
               ref={(el) => setCellRef(station.id, el)}
-              className="aw-grid-cell aw-secondary-cell"
-              style={{ gridColumn: hub.cols, gridRow: hub.row }}
+              className="aw-grid-cell"
+              style={{ gridColumn: pos.col, gridRow: pos.row }}
               onMouseEnter={() => handleStationEnter(station.id)}
               onMouseLeave={handleStationLeave}
             >
@@ -619,7 +608,12 @@ function AgentWorkspace() {
                 lastEvent={stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
                 visitCount={visitCounts[station.id] || 0}
+                idleLevel={idleLevels[station.id] || 0}
+                isHighlighted={highlightedSet.has(station.id)}
+                isDimmedByHover={highlightedSet.size > 0 && !highlightedSet.has(station.id)}
                 onClick={handleStationClick}
+                roomNumber={pos.room}
+                door={pos.door}
               />
             </div>
           );
