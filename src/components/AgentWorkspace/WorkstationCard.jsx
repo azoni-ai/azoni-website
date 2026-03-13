@@ -3,6 +3,12 @@ import { motion } from 'framer-motion';
 import { avatars } from '../../data/agents';
 import { CATEGORY_STYLES, AGENT_IDLE, formatTimeAgo } from '../../utils/station-mapping';
 
+const AVATAR_LABELS = {
+  orchestrator: 'Conductor', chat: 'Azoni AI', blog: 'Scribe', social: 'Moltbook',
+  fitness: 'BenchPress', rowing: 'RowCrew', gaming: 'Spell Brigade', oldways: 'Old Ways',
+  fabstats: 'FaB Stats', fabstatsbot: 'FaB Bot', medic: 'Medic',
+};
+
 function WorkstationCard({
   station,
   lastEvent,
@@ -86,29 +92,35 @@ function WorkstationCard({
         {/* Avatar(s) */}
         {hasAvatar && (
           <div className={`aw-station-avatars${station.secondAgent ? ' aw-dual-avatar' : ''}`}>
-            <motion.div
-              className={`aw-station-avatar${isPacing ? ' aw-avatar-pacing' : ''}`}
-              animate={{ y: [0, -(idle?.bobAmt || 2), 0] }}
-              transition={{
-                duration: (idle?.bobSpeed || 3000) / 1000,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            >
-              {avatars[station.agent](station.secondAgent ? 40 : 56)}
-            </motion.div>
-            {station.secondAgent && avatars[station.secondAgent] && (
+            <div className="aw-avatar-col">
+              <span className="aw-avatar-label">{AVATAR_LABELS[station.agent]}</span>
               <motion.div
-                className="aw-station-avatar"
-                animate={{ y: [0, -(idle2?.bobAmt || 2), 0] }}
+                className={`aw-station-avatar${isPacing ? ' aw-avatar-pacing' : ''}`}
+                animate={{ y: [0, -(idle?.bobAmt || 2), 0] }}
                 transition={{
-                  duration: (idle2?.bobSpeed || 3000) / 1000,
+                  duration: (idle?.bobSpeed || 3000) / 1000,
                   repeat: Infinity,
                   ease: 'easeInOut',
                 }}
               >
-                {avatars[station.secondAgent](40)}
+                {avatars[station.agent](station.secondAgent ? 40 : 56)}
               </motion.div>
+            </div>
+            {station.secondAgent && avatars[station.secondAgent] && (
+              <div className="aw-avatar-col">
+                <span className="aw-avatar-label">{AVATAR_LABELS[station.secondAgent]}</span>
+                <motion.div
+                  className="aw-station-avatar"
+                  animate={{ y: [0, -(idle2?.bobAmt || 2), 0] }}
+                  transition={{
+                    duration: (idle2?.bobSpeed || 3000) / 1000,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                >
+                  {avatars[station.secondAgent](40)}
+                </motion.div>
+              </div>
             )}
           </div>
         )}
@@ -184,61 +196,41 @@ function WorkstationCard({
 // ─── Themed workspace props for each station ───
 function WorkspaceProps({ stationId, color }) {
   switch (stationId) {
-    case 'chatbot': return <ChatWorkspace color={color} />;
-    case 'blog': return <BlogWorkspace color={color} />;
-    case 'orchestrator': return <OrchestratorWorkspace color={color} />;
+    case 'hq': return <HQWorkspace color={color} />;
+    case 'content': return <ContentWorkspace color={color} />;
     case 'spellbrigade': return <GamingWorkspace color={color} />;
-    case 'moltbook': return <SocialWorkspace color={color} />;
     case 'oldwaystoday': return <WellnessWorkspace color={color} />;
     case 'gym': return <GymWorkspace color={color} />;
-    case 'embedroute': return <DataWorkspace icon="nodes" color={color} />;
-    case 'activity': return <DataWorkspace icon="pulse" color={color} />;
-    case 'fabstats': return <FaBStatsWorkspace color={color} />;
-    case 'fabstatsbot': return <FaBBotWorkspace color={color} />;
+    case 'fab': return <FaBWorkspace color={color} />;
+    case 'tools': return <ToolsWorkspace color={color} />;
     case 'medic': return <MedicWorkspace color={color} />;
     default: return null;
   }
 }
 
-// ─── Chat: Terminal desk with monitor, keyboard, coffee ───
-function ChatWorkspace({ color }) {
+// ─── HQ: Conductor monitors + Azoni AI chat terminal ───
+function HQWorkspace({ color }) {
   return (
-    <div className="aw-props-chat">
-      <div className="aw-chat-monitor" style={{ '--glow': color }}>
+    <div className="aw-props-hq">
+      <div className="aw-orch-monitor aw-orch-monitor-c" style={{ '--mon-color': '#4ade80' }}>
+        <div className="aw-orch-screen-line" />
+        <div className="aw-orch-screen-line" style={{ width: '50%' }} />
+      </div>
+      <div className="aw-chat-monitor" style={{ '--glow': '#60a5fa' }}>
         <div className="aw-chat-screen">
           <div className="aw-chat-line" style={{ width: '70%' }} />
-          <div className="aw-chat-line" style={{ width: '50%' }} />
           <div className="aw-chat-line aw-chat-line-cursor" style={{ width: '30%' }} />
         </div>
       </div>
-      <div className="aw-chat-keyboard">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="aw-chat-key" />
-        ))}
-      </div>
-      <div className="aw-chat-mug">
-        <div className="aw-chat-steam">
-          <span /><span /><span />
-        </div>
-      </div>
-      {/* Nameplate */}
-      <div className="aw-personal-nameplate" style={{ '--plate-color': color }}>AZONI</div>
-      {/* Post-it notes */}
-      <div className="aw-personal-postit aw-postit-1" />
-      <div className="aw-personal-postit aw-postit-2" />
-      <div className="aw-activity aw-chat-action">
-        <div className="aw-chat-bubble">
-          <span /><span /><span />
-        </div>
-      </div>
+      <div className="aw-chat-mug"><div className="aw-chat-steam"><span /><span /><span /></div></div>
     </div>
   );
 }
 
-// ─── Blog: Writer's study with books, parchment, candle ───
-function BlogWorkspace({ color }) {
+// ─── Content: Scribe books + Moltbook mic ───
+function ContentWorkspace({ color }) {
   return (
-    <div className="aw-props-blog">
+    <div className="aw-props-content">
       <div className="aw-blog-books">
         <div className="aw-blog-book" style={{ background: '#c084fc' }} />
         <div className="aw-blog-book" style={{ background: '#f59e0b' }} />
@@ -247,75 +239,22 @@ function BlogWorkspace({ color }) {
       <div className="aw-blog-parchment">
         <div className="aw-blog-text-line" style={{ width: '80%' }} />
         <div className="aw-blog-text-line" style={{ width: '60%' }} />
-        <div className="aw-blog-text-line" style={{ width: '70%' }} />
       </div>
-      <div className="aw-blog-candle">
-        <div className="aw-blog-flame" />
-        <div className="aw-blog-wax" />
-      </div>
-      {/* Ink well */}
-      <div className="aw-blog-inkwell" />
-      {/* Manuscript stack */}
-      <div className="aw-blog-manuscripts" />
-      <div className="aw-activity aw-blog-action">
-        <div className="aw-blog-quill" />
-        <div className="aw-blog-ink" />
-      </div>
-    </div>
-  );
-}
-
-// ─── Orchestrator: Open standing desk with monitors ───
-function OrchestratorWorkspace({ color }) {
-  return (
-    <div className="aw-props-orch">
-      {/* Floor mat under desk */}
-      <div className="aw-orch-mat" />
-      {/* Standing desk surface */}
-      <div className="aw-orch-desk" />
-      {/* Three monitors in arc */}
-      <div className="aw-orch-monitor aw-orch-monitor-l" style={{ '--mon-color': '#60a5fa' }}>
-        <div className="aw-orch-screen-line" />
-        <div className="aw-orch-screen-line" style={{ width: '60%' }} />
-      </div>
-      <div className="aw-orch-monitor aw-orch-monitor-c" style={{ '--mon-color': '#4ade80' }}>
-        <div className="aw-orch-screen-line" />
-        <div className="aw-orch-screen-line" style={{ width: '50%' }} />
-        <div className="aw-orch-screen-line" style={{ width: '70%' }} />
-      </div>
-      <div className="aw-orch-monitor aw-orch-monitor-r" style={{ '--mon-color': '#fbbf24' }}>
-        <div className="aw-orch-screen-line" style={{ width: '80%' }} />
-        <div className="aw-orch-screen-line" />
-      </div>
-      {/* Coffee thermos */}
-      <div className="aw-orch-thermos" />
-      {/* Papers */}
-      <div className="aw-orch-papers" />
-      {/* Orbital ring kept for identity */}
-      <div className="aw-orch-ring">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <span key={i} className="aw-orch-dot" style={{ '--i': i }} />
-        ))}
-      </div>
-      <div className="aw-activity aw-orch-action">
-        <div className="aw-orch-signal" />
-        <div className="aw-orch-signal aw-orch-signal-2" />
-      </div>
+      <div className="aw-social-mic" />
+      <div className="aw-blog-candle"><div className="aw-blog-flame" /><div className="aw-blog-wax" /></div>
     </div>
   );
 }
 
 // ─── Gaming: Magic circle, crystals, spell book ───
-function GamingWorkspace({ color }) {
+function GamingWorkspace() {
   return (
     <div className="aw-props-gaming">
       <div className="aw-gaming-circle" />
       <div className="aw-gaming-crystal aw-gaming-crystal-l" />
       <div className="aw-gaming-crystal aw-gaming-crystal-r" />
       <div className="aw-gaming-book" />
-      {/* Dice */}
       <div className="aw-gaming-dice" />
-      {/* Potion */}
       <div className="aw-gaming-potion" />
       <div className="aw-activity aw-gaming-action">
         <div className="aw-gaming-spark" />
@@ -326,32 +265,8 @@ function GamingWorkspace({ color }) {
   );
 }
 
-// ─── Social: Broadcast stage with mic, speakers, sound bars ───
-function SocialWorkspace({ color }) {
-  return (
-    <div className="aw-props-social">
-      <div className="aw-social-stage" />
-      <div className="aw-social-speaker aw-social-speaker-l" />
-      <div className="aw-social-speaker aw-social-speaker-r" />
-      <div className="aw-social-mic" />
-      {/* Ring light */}
-      <div className="aw-social-ringlight" />
-      <div className="aw-social-bars">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <span key={i} className="aw-social-bar" style={{ '--i': i }} />
-        ))}
-      </div>
-      <div className="aw-activity aw-social-action">
-        <div className="aw-social-notif" />
-        <div className="aw-social-notif aw-social-notif-2" />
-        <div className="aw-social-wave" />
-      </div>
-    </div>
-  );
-}
-
 // ─── Wellness: Herb garden with plants, mortar ───
-function WellnessWorkspace({ color }) {
+function WellnessWorkspace() {
   return (
     <div className="aw-props-wellness">
       <div className="aw-wellness-bed" />
@@ -359,9 +274,7 @@ function WellnessWorkspace({ color }) {
       <div className="aw-wellness-plant aw-wellness-plant-2" />
       <div className="aw-wellness-plant aw-wellness-plant-3" />
       <div className="aw-wellness-mortar" />
-      {/* Meditation cushion */}
       <div className="aw-wellness-cushion" />
-      {/* Incense */}
       <div className="aw-wellness-incense" />
       <div className="aw-activity aw-wellness-action">
         <div className="aw-wellness-aroma" />
@@ -372,7 +285,7 @@ function WellnessWorkspace({ color }) {
   );
 }
 
-// ─── Gym: Combined bench press area + rowing area ───
+// ─── Gym: Bench press + rowing area ───
 function GymWorkspace() {
   return (
     <div className="aw-props-gym">
@@ -389,7 +302,6 @@ function GymWorkspace() {
           <div className="aw-fitness-weight" />
         </div>
       </div>
-      <div className="aw-gym-divider" />
       <div className="aw-gym-rowing-area">
         <div className="aw-rowing-water">
           <div className="aw-rowing-ripple" />
@@ -401,49 +313,47 @@ function GymWorkspace() {
   );
 }
 
-// ─── FaB Stats: Card game table with stats ───
-function FaBStatsWorkspace({ color }) {
+// ─── FaB: Card table + Discord headset ───
+function FaBWorkspace() {
   return (
-    <div className="aw-props-fabstats">
-      {/* Playmat */}
+    <div className="aw-props-fab">
       <div className="aw-fab-playmat" />
-      {/* Card spread */}
       <div className="aw-fab-cards">
         <div className="aw-fab-card aw-fab-card-1" />
         <div className="aw-fab-card aw-fab-card-2" />
         <div className="aw-fab-card aw-fab-card-3" />
       </div>
-      {/* Stat chart */}
       <div className="aw-fab-chart">
         <div className="aw-fab-bar" style={{ height: '60%' }} />
         <div className="aw-fab-bar" style={{ height: '85%' }} />
         <div className="aw-fab-bar" style={{ height: '45%' }} />
-        <div className="aw-fab-bar" style={{ height: '70%' }} />
       </div>
-      {/* Trophy */}
-      <div className="aw-fab-trophy" />
+      <div className="aw-fbot-headset" />
     </div>
   );
 }
 
-// ─── FaB Bot: Discord setup with headset ───
-function FaBBotWorkspace({ color }) {
+// ─── Tools: Activity log + EmbedRoute nodes ───
+function ToolsWorkspace({ color }) {
   return (
-    <div className="aw-props-fabbot">
-      {/* Chat window */}
-      <div className="aw-fbot-chat">
-        <div className="aw-fbot-msg aw-fbot-msg-1" />
-        <div className="aw-fbot-msg aw-fbot-msg-2" />
-        <div className="aw-fbot-msg aw-fbot-msg-3" />
+    <div className="aw-props-tools">
+      <div className="aw-activity-log">
+        <div className="aw-log-line" style={{ '--log-color': color }}>
+          <span className="aw-log-dot" style={{ background: '#4ade80' }} />
+          <span className="aw-log-bar" style={{ width: '70%', background: `${color}25` }} />
+        </div>
+        <div className="aw-log-line" style={{ '--log-color': color }}>
+          <span className="aw-log-dot" style={{ background: '#60a5fa' }} />
+          <span className="aw-log-bar" style={{ width: '50%', background: `${color}25` }} />
+        </div>
+        <div className="aw-log-line" style={{ '--log-color': color }}>
+          <span className="aw-log-dot" style={{ background: '#fbbf24' }} />
+          <span className="aw-log-bar" style={{ width: '85%', background: `${color}25` }} />
+        </div>
       </div>
-      {/* Headset on hook */}
-      <div className="aw-fbot-headset" />
-      {/* Command prompt */}
-      <div className="aw-fbot-prompt">
-        <span className="aw-fbot-cursor" />
+      <div className="aw-embed-center" style={{ borderColor: `${color}40` }}>
+        <div className="aw-embed-core" style={{ background: `${color}60` }} />
       </div>
-      {/* Notification bell */}
-      <div className="aw-fbot-bell" />
     </div>
   );
 }
@@ -460,21 +370,6 @@ function MedicWorkspace() {
       <div className="aw-medic-light" />
       <div className="aw-activity aw-medic-action">
         <div className="aw-medic-pulse" />
-      </div>
-    </div>
-  );
-}
-
-// ─── Data stations: Simple icon-focused ───
-function DataWorkspace({ icon, color }) {
-  return (
-    <div className="aw-props-data">
-      <div className="aw-data-glow" style={{ background: `radial-gradient(circle, ${color}15 0%, transparent 70%)` }} />
-      <div className="aw-data-ring" style={{ borderColor: `${color}30` }} />
-      <div className="aw-activity aw-data-action">
-        <div className="aw-data-particle" style={{ background: color }} />
-        <div className="aw-data-particle aw-data-particle-2" style={{ background: color }} />
-        <div className="aw-data-particle aw-data-particle-3" style={{ background: color }} />
       </div>
     </div>
   );

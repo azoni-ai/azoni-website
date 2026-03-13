@@ -13,7 +13,7 @@ function WorkspaceTicker({ events, stationHistory = {} }) {
     const seen = new Set();
     const all = [];
     Object.entries(stationHistory).forEach(([sid, evts]) => {
-      if (sid === 'activity') return; // skip catch-all to avoid dupes
+      if (sid === 'tools') return; // skip catch-all to avoid dupes
       (evts || []).forEach(evt => {
         if (evt.type === 'site_visit') return; // visits tracked separately
         const key = `${evt.type}-${evt.ms}-${sid}`;

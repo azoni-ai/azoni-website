@@ -1051,75 +1051,70 @@ const avatars = {
         <linearGradient id="row-skin" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#fcd9a8"/><stop offset="100%" stopColor="#f0c48a"/>
         </linearGradient>
-        <linearGradient id="row-hull" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#1e293b"/><stop offset="50%" stopColor="#334155"/><stop offset="100%" stopColor="#1e293b"/>
-        </linearGradient>
-        <linearGradient id="row-water" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0d9488" stopOpacity="0.15"/><stop offset="100%" stopColor="#134e4a" stopOpacity="0.08"/>
-        </linearGradient>
       </defs>
-      {/* Water surface */}
-      <ellipse cx="50" cy="78" rx="46" ry="12" fill="url(#row-water)"/>
-      <ellipse cx="50" cy="78" rx="46" ry="12" fill="none" stroke="#34d399" strokeWidth="0.5" opacity="0.2"/>
-      {/* Water ripples */}
-      <ellipse cx="50" cy="80" rx="36" ry="6" fill="none" stroke="#34d399" strokeWidth="0.4" opacity="0.15"/>
-      <ellipse cx="50" cy="82" rx="26" ry="4" fill="none" stroke="#34d399" strokeWidth="0.3" opacity="0.1"/>
-      {/* Racing shell hull */}
-      <path d="M8 72 Q14 66 30 65 L70 65 Q86 66 92 72 Q86 76 70 76 L30 76 Q14 76 8 72 Z"
-            fill="url(#row-hull)" stroke="rgba(52,211,153,0.4)" strokeWidth="0.8"/>
-      {/* Teal racing stripe */}
-      <line x1="14" y1="71" x2="86" y2="71" stroke="#34d399" strokeWidth="1" opacity="0.5"/>
-      {/* Stern point */}
-      <path d="M8 72 L2 71.5 L8 71" fill="#1e293b" stroke="rgba(52,211,153,0.3)" strokeWidth="0.5"/>
-      {/* Bow point */}
-      <path d="M92 72 L98 71.5 L92 71" fill="#1e293b" stroke="rgba(52,211,153,0.3)" strokeWidth="0.5"/>
-      {/* Outriggers */}
-      <line x1="42" y1="65" x2="36" y2="58" stroke="#6b7280" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="58" y1="65" x2="64" y2="58" stroke="#6b7280" strokeWidth="1.2" strokeLinecap="round"/>
-      {/* Oar — port side (left, angled out and back) */}
-      <line x1="36" y1="58" x2="6" y2="48" stroke="#c4a86c" strokeWidth="1.5" strokeLinecap="round"/>
-      <rect x="2" y="46" width="6" height="4" rx="1" fill="#34d399" opacity="0.8" transform="rotate(-12 5 48)"/>
-      {/* Oar — starboard side (right, angled out and back) */}
-      <line x1="64" y1="58" x2="94" y2="48" stroke="#c4a86c" strokeWidth="1.5" strokeLinecap="round"/>
-      <rect x="92" y="46" width="6" height="4" rx="1" fill="#34d399" opacity="0.8" transform="rotate(12 95 48)"/>
-      {/* Seat / sliding track */}
-      <rect x="40" y="62" width="20" height="3" rx="1.5" fill="#475569"/>
-      <rect x="44" y="61" width="12" height="5" rx="2" fill="#64748b"/>
-      {/* Torso — seated, leaning back slightly */}
-      <path d="M42 62 Q40 52 42 44 L58 44 Q60 52 58 62 Z"
+      {/* Erg rail / monorail */}
+      <rect x="12" y="78" width="76" height="3" rx="1.5" fill="#334155"/>
+      <rect x="12" y="76" width="76" height="2" rx="1" fill="#475569"/>
+      {/* Erg front legs */}
+      <line x1="18" y1="81" x2="14" y2="92" stroke="#475569" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="28" y1="81" x2="32" y2="92" stroke="#475569" strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Erg rear legs */}
+      <line x1="72" y1="81" x2="68" y2="92" stroke="#475569" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="82" y1="81" x2="86" y2="92" stroke="#475569" strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Floor shadow */}
+      <ellipse cx="50" cy="93" rx="40" ry="4" fill="rgba(0,0,0,0.08)"/>
+      {/* Flywheel housing (front) */}
+      <rect x="14" y="64" width="16" height="14" rx="3" fill="#1e293b" stroke="#34d399" strokeWidth="0.6" opacity="0.9"/>
+      <circle cx="22" cy="71" r="4" fill="none" stroke="#34d399" strokeWidth="1" opacity="0.5"/>
+      <circle cx="22" cy="71" r="1.5" fill="#34d399" opacity="0.6"/>
+      {/* Performance monitor */}
+      <rect x="15" y="56" width="14" height="9" rx="2" fill="#0f172a" stroke="#34d399" strokeWidth="0.5"/>
+      <rect x="16.5" y="57.5" width="11" height="6" rx="1" fill="#022c22"/>
+      <text x="22" y="62.5" textAnchor="middle" fontFamily="monospace" fontSize="4" fill="#34d399">500m</text>
+      {/* Monitor arm */}
+      <line x1="22" y1="64" x2="22" y2="56" stroke="#475569" strokeWidth="1.5"/>
+      {/* Handle chain/cord */}
+      <line x1="30" y1="71" x2="42" y2="58" stroke="#94a3b8" strokeWidth="1" strokeDasharray="2 1"/>
+      {/* Sliding seat on rail */}
+      <rect x="48" y="72" width="14" height="4" rx="2" fill="#64748b"/>
+      <circle cx="52" cy="78" r="2" fill="#475569"/><circle cx="58" cy="78" r="2" fill="#475569"/>
+      {/* Foot stretchers */}
+      <rect x="32" y="72" width="8" height="6" rx="1.5" fill="#1e293b" stroke="#34d399" strokeWidth="0.5" opacity="0.7"/>
+      {/* Torso — seated, leaning slightly forward in drive */}
+      <path d="M48 72 Q47 60 50 50 L58 50 Q61 60 60 72 Z"
             fill="url(#row-uni)" stroke="#059669" strokeWidth="0.8"/>
-      {/* Arms reaching forward to oar handles */}
-      <path d="M42 50 Q36 54 36 58" fill="none" stroke="url(#row-skin)" strokeWidth="5" strokeLinecap="round"/>
-      <path d="M58 50 Q64 54 64 58" fill="none" stroke="url(#row-skin)" strokeWidth="5" strokeLinecap="round"/>
-      {/* Hands gripping outrigger/oarlock */}
-      <circle cx="36" cy="58" r="3" fill="#fcd9a8" stroke="#d4a574" strokeWidth="0.6"/>
-      <circle cx="64" cy="58" r="3" fill="#fcd9a8" stroke="#d4a574" strokeWidth="0.6"/>
-      {/* Legs — bent in rowing position, feet in stretchers */}
-      <path d="M44 62 Q42 68 38 70" fill="none" stroke="url(#row-skin)" strokeWidth="4.5" strokeLinecap="round"/>
-      <path d="M56 62 Q58 68 62 70" fill="none" stroke="url(#row-skin)" strokeWidth="4.5" strokeLinecap="round"/>
-      {/* Feet in stretchers */}
-      <rect x="35" y="68" width="7" height="4" rx="2" fill="#059669"/>
-      <rect x="58" y="68" width="7" height="4" rx="2" fill="#059669"/>
+      {/* Arms pulling handle */}
+      <path d="M50 56 Q46 56 42 58" fill="none" stroke="url(#row-skin)" strokeWidth="4.5" strokeLinecap="round"/>
+      <path d="M58 56 Q54 56 42 58" fill="none" stroke="url(#row-skin)" strokeWidth="4.5" strokeLinecap="round"/>
+      {/* Handle grip */}
+      <rect x="38" y="55" width="8" height="4" rx="2" fill="#94a3b8"/>
+      {/* Hands */}
+      <circle cx="40" cy="57" r="2.5" fill="#fcd9a8" stroke="#d4a574" strokeWidth="0.5"/>
+      <circle cx="44" cy="57" r="2.5" fill="#fcd9a8" stroke="#d4a574" strokeWidth="0.5"/>
+      {/* Legs — bent, feet in stretchers */}
+      <path d="M50 72 Q44 72 36 75" fill="none" stroke="url(#row-skin)" strokeWidth="4.5" strokeLinecap="round"/>
+      <path d="M58 72 Q52 72 40 75" fill="none" stroke="url(#row-skin)" strokeWidth="4.5" strokeLinecap="round"/>
+      {/* Shoes in stretchers */}
+      <rect x="33" y="73" width="6" height="3.5" rx="1.5" fill="#059669"/>
       {/* Head */}
-      <circle cx="50" cy="30" r="14" fill="url(#row-skin)"/>
+      <circle cx="54" cy="36" r="14" fill="url(#row-skin)"/>
       {/* Hair — short athletic */}
-      <path d="M36 26 Q38 16 50 14 Q62 16 64 26 Q63 21 57 18 Q50 16 43 18 Q37 21 36 26Z" fill="#4a3728"/>
-      {/* Sunvisor */}
-      <path d="M35 24 Q50 20 65 24" fill="none" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
-      <path d="M33 24 L30 22.5 Q31.5 21 34 22" fill="#34d399"/>
+      <path d="M40 32 Q42 22 54 20 Q66 22 68 32 Q67 27 61 24 Q54 22 47 24 Q41 27 40 32Z" fill="#4a3728"/>
+      {/* Headband */}
+      <path d="M39 30 Q54 26 69 30" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round"/>
       {/* Eyes — focused */}
-      <ellipse cx="44" cy="30" rx="3.8" ry="4.2" fill="white" stroke="#1a1a2e" strokeWidth="0.7"/>
-      <ellipse cx="56" cy="30" rx="3.8" ry="4.2" fill="white" stroke="#1a1a2e" strokeWidth="0.7"/>
-      <ellipse cx="45" cy="31" rx="2.5" ry="3" fill="#059669"/>
-      <ellipse cx="57" cy="31" rx="2.5" ry="3" fill="#059669"/>
-      <circle cx="45.8" cy="30" r="1" fill="white"/><circle cx="57.8" cy="30" r="1" fill="white"/>
+      <ellipse cx="48" cy="36" rx="3.8" ry="4.2" fill="white" stroke="#1a1a2e" strokeWidth="0.7"/>
+      <ellipse cx="60" cy="36" rx="3.8" ry="4.2" fill="white" stroke="#1a1a2e" strokeWidth="0.7"/>
+      <ellipse cx="49" cy="37" rx="2.5" ry="3" fill="#059669"/>
+      <ellipse cx="61" cy="37" rx="2.5" ry="3" fill="#059669"/>
+      <circle cx="49.8" cy="36" r="1" fill="white"/><circle cx="61.8" cy="36" r="1" fill="white"/>
       {/* Brows — determined */}
-      <path d="M40 25 Q44 23 48 25.5" fill="none" stroke="#1a1a2e" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M52 25.5 Q56 23 60 25" fill="none" stroke="#1a1a2e" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M44 31 Q48 29 52 31.5" fill="none" stroke="#1a1a2e" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M56 31.5 Q60 29 64 31" fill="none" stroke="#1a1a2e" strokeWidth="1.5" strokeLinecap="round"/>
       {/* Confident grin */}
-      <path d="M45 37 Q50 40 55 37" fill="none" stroke="#92400e" strokeWidth="1" strokeLinecap="round"/>
+      <path d="M49 43 Q54 46 59 43" fill="none" stroke="#92400e" strokeWidth="1" strokeLinecap="round"/>
       {/* RC on chest */}
-      <text x="50" y="56" textAnchor="middle" fontFamily="sans-serif"
+      <text x="54" y="62" textAnchor="middle" fontFamily="sans-serif"
             fontWeight="bold" fontSize="7" fill="#022c22" opacity="0.35">RC</text>
     </svg>
   ),

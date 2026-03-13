@@ -5,48 +5,53 @@ export const MCP_URL = 'https://azoni-mcp.onrender.com';
 export const SOURCE_TO_STATION = {
   'benchpressonly': 'gym',
   'spell-brigade': 'spellbrigade',
-  'moltbook-agent': 'moltbook',
+  'moltbook-agent': 'content',
   'rowcrew': 'gym',
   'oldwaystoday': 'oldwaystoday',
   'old-ways-today': 'oldwaystoday',
-  'orchestrator': 'orchestrator',
-  'daily-blog': 'blog',
-  'azoni': 'chatbot',
-  'azoni-ai': 'chatbot',
-  'fabstats': 'fabstats',
-  'fab-stats': 'fabstats',
-  'fab-stats-bot': 'fabstatsbot',
-  'discord-bot': 'fabstatsbot',
+  'orchestrator': 'hq',
+  'daily-blog': 'content',
+  'azoni': 'hq',
+  'azoni-ai': 'hq',
+  'fabstats': 'fab',
+  'fab-stats': 'fab',
+  'fab-stats-bot': 'fab',
+  'discord-bot': 'fab',
   'mcp-server': 'mcp',
   'azoni-mcp': 'mcp',
-  'embedroute': 'embedroute',
-  'embed-route': 'embedroute',
-  'admin': 'orchestrator',
+  'embedroute': 'tools',
+  'embed-route': 'tools',
+  'admin': 'hq',
 };
 
 export const TYPE_TO_STATION = {
-  // Orchestrator
-  'agent_observing': 'orchestrator',
-  'agent_deciding': 'orchestrator',
-  'agent_drafting': 'orchestrator',
-  'orchestrator_summary': 'orchestrator',
-  'self_assessment': 'orchestrator',
-  'error_reviewed': 'orchestrator',
-  'project_updated': 'orchestrator',
-  'project_created': 'orchestrator',
-  'pr_detected': 'orchestrator',
-  'reactive_trigger': 'orchestrator',
-  // Activity feed
-  'health_alert': 'activity',
-  // Blog / Scribe
-  'blog_published': 'blog',
-  'blog_generated': 'blog',
-  'scribe_reading': 'blog',
-  'scribe_drafting': 'blog',
-  // Chatbot
-  'knowledge_generated': 'chatbot',
-  'assistant_chat': 'chatbot',
-  'chat_answered': 'chatbot',
+  // HQ (Orchestrator + Chatbot)
+  'agent_observing': 'hq',
+  'agent_deciding': 'hq',
+  'agent_drafting': 'hq',
+  'orchestrator_summary': 'hq',
+  'self_assessment': 'hq',
+  'error_reviewed': 'hq',
+  'project_updated': 'hq',
+  'project_created': 'hq',
+  'pr_detected': 'hq',
+  'reactive_trigger': 'hq',
+  'knowledge_generated': 'hq',
+  'assistant_chat': 'hq',
+  'chat_answered': 'hq',
+  // Tools (Activity + EmbedRoute)
+  'health_alert': 'tools',
+  'embed_request': 'tools',
+  'rag_chunk_created': 'tools',
+  'rag_chunk_updated': 'tools',
+  // Content (Blog + Moltbook)
+  'blog_published': 'content',
+  'blog_generated': 'content',
+  'scribe_reading': 'content',
+  'scribe_drafting': 'content',
+  'moltbook_post': 'content',
+  'moltbook_comment': 'content',
+  'moltbook_upvote': 'content',
   // Spell Brigade
   'wizard_created': 'spellbrigade',
   'dungeon_created': 'spellbrigade',
@@ -68,16 +73,6 @@ export const TYPE_TO_STATION = {
   'exercise_swapped': 'gym',
   'program_generated': 'gym',
   'fitness_synced': 'gym',
-  // Moltbook
-  'moltbook_post': 'moltbook',
-  'moltbook_comment': 'moltbook',
-  'moltbook_upvote': 'moltbook',
-  // Old Ways Today
-  'owt_chat': 'oldwaystoday',
-  'owt_blog': 'oldwaystoday',
-  'owt_blog_viewed': 'oldwaystoday',
-  'owt_comment': 'oldwaystoday',
-  'owt_social_post': 'oldwaystoday',
   'rowing_session': 'gym',
   'row_completed': 'gym',
   'row_verified': 'gym',
@@ -85,32 +80,33 @@ export const TYPE_TO_STATION = {
   'group_joined': 'gym',
   'challenge_created': 'gym',
   'admin_transferred': 'gym',
-  // EmbedRoute
-  'embed_request': 'embedroute',
-  'rag_chunk_created': 'embedroute',
-  'rag_chunk_updated': 'embedroute',
+  // Old Ways Today
+  'owt_chat': 'oldwaystoday',
+  'owt_blog': 'oldwaystoday',
+  'owt_blog_viewed': 'oldwaystoday',
+  'owt_comment': 'oldwaystoday',
+  'owt_social_post': 'oldwaystoday',
   // MCP
   'mcp_request': 'mcp',
-  // FabStats
-  'fabstats_activity': 'fabstats',
-  'match_logged': 'fabstats',
-  'matches_imported': 'fabstats',
-  'minigame_completed': 'fabstats',
-  'fab_match': 'fabstats',
-  'fab_match_tracked': 'fabstats',
-  // FaB Bot
-  'discord_command': 'fabstatsbot',
+  // FaB (FabStats + FaB Bot)
+  'fabstats_activity': 'fab',
+  'match_logged': 'fab',
+  'matches_imported': 'fab',
+  'minigame_completed': 'fab',
+  'fab_match': 'fab',
+  'fab_match_tracked': 'fab',
+  'discord_command': 'fab',
 };
 
 export const DOMAIN_TO_STATION = {
   benchpressonly: 'gym',
-  activity: 'activity',
+  activity: 'tools',
   spellbrigade: 'spellbrigade',
   oldwaystoday: 'oldwaystoday',
-  moltbook: 'moltbook',
-  embedroute: 'embedroute',
+  moltbook: 'content',
+  embedroute: 'tools',
   rowcrew: 'gym',
-  fabstats: 'fabstats',
+  fabstats: 'fab',
 };
 
 export const CATEGORY_STYLES = {
@@ -126,34 +122,22 @@ export const STATION_DEFS = [
     actions: ['Routing requests', 'Serving 37 tools', 'Health monitoring'],
   },
   {
-    id: 'chatbot', label: 'Azoni AI', color: '#60a5fa', agent: 'chat', icon: 'chat', category: 'agent',
-    desc: 'RAG chatbot — queries knowledge base, generates missing knowledge on the fly.',
-    actions: ['Answering queries', 'Vector searching', 'Building context'],
-    dataLabel: 'queries', url: '/chat',
+    id: 'hq', label: 'HQ', color: '#a78bfa', agent: 'orchestrator', secondAgent: 'chat', icon: 'gear', category: 'agent',
+    desc: 'Central command — Conductor orchestration + Azoni AI chatbot.',
+    actions: ['Gathering sources', 'LLM deciding', 'Answering queries'],
+    dataLabel: 'queries + state', url: '/chat',
   },
   {
-    id: 'blog', label: 'The Scribe', color: '#fbbf24', agent: 'blog', icon: 'pen', category: 'agent',
-    desc: 'Daily autonomous blog agent — reads commits, writes analysis, publishes.',
-    actions: ['Reading commits', 'Analyzing changes', 'Formulating post', 'Writing article', 'Publishing post'],
-    dataLabel: 'blog content', url: '/blog',
-  },
-  {
-    id: 'orchestrator', label: 'The Conductor', color: '#a78bfa', agent: 'orchestrator', icon: 'gear', category: 'agent',
-    desc: 'Central brain. Wakes every 3h, reads state, decides actions, executes.',
-    actions: ['Gathering 11 sources', 'LLM deciding', 'Executing actions'],
-    dataLabel: 'health + state',
+    id: 'content', label: 'Content', color: '#fbbf24', agent: 'blog', secondAgent: 'social', icon: 'pen', category: 'agent',
+    desc: 'Content engine — Scribe daily blog + Moltbook social posts.',
+    actions: ['Writing articles', 'Publishing posts', 'Crafting content'],
+    dataLabel: 'content', url: '/blog',
   },
   {
     id: 'spellbrigade', label: 'Spell Brigade', color: '#c084fc', agent: 'gaming', icon: 'wand', category: 'app',
     desc: 'Multiplayer wizard combat game. AI generates characters with unique abilities.',
     actions: ['Generating wizards', 'Running battles', 'AI enemies active'],
     dataLabel: 'game data', url: '/game',
-  },
-  {
-    id: 'moltbook', label: 'Moltbook', color: '#fb923c', agent: 'social', icon: 'megaphone', category: 'agent',
-    desc: 'Autonomous social platform. LLM generates posts, comments, and engagement.',
-    actions: ['Crafting posts', 'Scheduling content', 'Engaging users'],
-    dataLabel: 'social content', url: '/moltbook',
   },
   {
     id: 'oldwaystoday', label: 'Old Ways Today', color: '#d97706', agent: 'oldways', icon: 'leaf', category: 'agent',
@@ -168,28 +152,16 @@ export const STATION_DEFS = [
     dataLabel: 'fitness data',
   },
   {
-    id: 'embedroute', label: 'EmbedRoute', color: '#20d9d2', icon: 'nodes', category: 'data',
-    desc: 'Unified embedding API — routes to OpenAI, Cohere, Voyage, and more.',
-    actions: ['Routing embeddings', 'Multi-provider', 'Serving vectors'],
-    dataLabel: 'embeddings', url: 'https://www.embedroute.com',
-  },
-  {
-    id: 'activity', label: 'Activity Feed', color: '#f87171', icon: 'pulse', category: 'data',
-    desc: 'Firestore agent_activity — single source of truth for all services.',
-    actions: ['Logging events', 'Cross-app tracking', 'Agent monitoring'],
-    dataLabel: 'event logs', url: '/activity',
-  },
-  {
-    id: 'fabstats', label: 'FaB Stats', color: '#D9A05B', agent: 'fabstats', icon: 'shield', category: 'app',
-    desc: 'Flesh and Blood TCG tracker. Matches, heroes, tournaments, minigames.',
-    actions: ['Tracking matches', 'Meta analysis', 'Daily minigames'],
+    id: 'fab', label: 'FaB', color: '#D9A05B', agent: 'fabstats', secondAgent: 'fabstatsbot', icon: 'shield', category: 'app',
+    desc: 'Flesh and Blood ecosystem — FaB Stats tracker + Discord bot.',
+    actions: ['Tracking matches', 'Player lookups', 'Daily minigames'],
     dataLabel: 'FaB data', url: 'https://fabstats.net',
   },
   {
-    id: 'fabstatsbot', label: 'FaB Bot', color: '#c9a84c', agent: 'fabstatsbot', icon: 'chat', category: 'app',
-    desc: 'Discord bot for FaB Stats — player stats, leaderboards, puzzle results.',
-    actions: ['Player lookups', 'Leaderboards', 'Puzzle results'],
-    dataLabel: 'Discord data',
+    id: 'tools', label: 'Tools', color: '#20d9d2', icon: 'nodes', category: 'data',
+    desc: 'Infrastructure tools — Activity Feed event logs + EmbedRoute embedding API.',
+    actions: ['Logging events', 'Routing embeddings', 'Multi-provider vectors'],
+    dataLabel: 'events + embeddings',
   },
   {
     id: 'medic', label: 'The Medic', color: '#f87171', agent: 'medic', icon: 'shield', category: 'data',
@@ -213,62 +185,50 @@ export const AGENT_IDLE = {
 };
 
 export const STATION_CONNECTIONS = {
-  orchestrator: ['blog', 'chatbot', 'moltbook', 'mcp'],
-  blog: ['mcp', 'moltbook'],
-  chatbot: ['mcp', 'embedroute'],
+  hq: ['content', 'mcp'],
+  content: ['mcp'],
   spellbrigade: ['mcp'],
   gym: ['mcp'],
-  moltbook: ['mcp'],
-  oldwaystoday: ['mcp', 'embedroute'],
-  fabstats: ['mcp'],
-  fabstatsbot: ['mcp', 'fabstats'],
-  embedroute: ['mcp'],
-  activity: ['mcp'],
-  medic: ['mcp', 'activity'],
+  oldwaystoday: ['mcp', 'tools'],
+  fab: ['mcp'],
+  tools: ['mcp'],
+  medic: ['mcp', 'tools'],
 };
 
 export const STATION_TO_PROJECT = {
-  chatbot: 'azoni-ai',
-  blog: 'azoni-ai',
-  orchestrator: 'azoni-ai',
+  hq: 'azoni-ai',
+  content: 'azoni-ai',
   spellbrigade: 'spell-brigade',
-  moltbook: 'moltbook-agent',
   oldwaystoday: 'old-ways-today',
   gym: 'bench-only',
-  embedroute: 'embedroute',
-  fabstats: 'fab-stats',
-  fabstatsbot: 'fab-stats-bot',
+  tools: 'embedroute',
+  fab: 'fab-stats',
   mcp: 'azoni-mcp',
   medic: 'azoni-ai',
 };
 
-// Infrastructure hubs — destinations agents walk TO, never walk FROM
-export const INFRASTRUCTURE_HUBS = new Set(['embedroute', 'activity']);
-
 // Default walk targets for known station partnerships
-export const DEFAULT_WALK_TARGETS = {
-  fabstatsbot: 'fabstats',
-};
+export const DEFAULT_WALK_TARGETS = {};
 
 // GitHub repo name → station ID (for blog visitedStations)
 export const REPO_TO_STATION = {
-  'azoni-website': 'chatbot',
-  'azoni-ai': 'chatbot',
+  'azoni-website': 'hq',
+  'azoni-ai': 'hq',
   'spell-brigade': 'spellbrigade',
-  'moltbook-agent': 'moltbook',
+  'moltbook-agent': 'content',
   'old-ways-today': 'oldwaystoday',
   'oldways-app': 'oldwaystoday',
   'bench-only': 'gym',
   'benchonly': 'gym',
-  'embedroute': 'embedroute',
+  'embedroute': 'tools',
   'row-crew': 'gym',
   'rowing-tracker': 'gym',
-  'fab-stats': 'fabstats',
-  'fab-stats-bot': 'fabstatsbot',
+  'fab-stats': 'fab',
+  'fab-stats-bot': 'fab',
   'azoni-mcp': 'mcp',
 };
 
-// Event importance tiers for Activity Feed walk rules
+// Event importance tiers for walk rules
 export const IMPORTANT_EVENTS = new Set([
   'blog_generated', 'blog_published', 'orchestrator_summary',
   'error_logged', 'error_reviewed', 'health_alert',

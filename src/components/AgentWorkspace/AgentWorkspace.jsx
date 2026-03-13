@@ -2,11 +2,10 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAgentActivity } from '../../hooks/useAgentActivity';
 import { useMCPHealth } from '../../hooks/useMCPHealth';
-import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, INFRASTRUCTURE_HUBS, DEFAULT_WALK_TARGETS, DOMAIN_TO_STATION, getEventImportance, formatTimeAgo } from '../../utils/station-mapping';
+import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, DOMAIN_TO_STATION, getEventImportance, formatTimeAgo } from '../../utils/station-mapping';
 import { avatars } from '../../data/agents';
 import WorkstationCard from './WorkstationCard';
 import MCPHub from './MCPHub';
-import SecondaryHub from './SecondaryHub';
 import WorkspaceTicker from './WorkspaceTicker';
 import StationDetailPanel from './StationDetailPanel';
 import WorkspaceLegend from './WorkspaceLegend';
@@ -16,50 +15,33 @@ import '../../styles/agent-workspace.css';
 // Col layout: office | side-hall | office | center-hall | office | side-hall | office
 // Rows: lobby | label | stations | label | stations | label | stations
 const GRID_PLACEMENT = {
-  // ─── PRODUCT OFFICES (Row 3) ───
-  chatbot:        { col: 1, row: 3, room: 1,  door: 'right' },
-  orchestrator:   { col: 3, row: 3, room: null, door: 'none', openDesk: true },
-  blog:           { col: 5, row: 3, room: 3,  door: 'left' },
-  moltbook:       { col: 7, row: 3, room: 4,  door: 'left' },
-  // ─── WELLNESS · GAME ROOM (Row 5) ───
-  oldwaystoday:   { col: 1, row: 5, room: 5,  door: 'right' },
-  fabstats:       { col: 5, row: 5, room: 7,  door: 'left' },
-  fabstatsbot:    { col: 7, row: 5, room: 8,  door: 'left' },
-  // ─── THE GYM · OPS CENTER (Row 7) ───
-  gym:            { col: 1, row: 7, room: 9, door: 'right', colSpan: 3 },
-  medic:       { col: 5, row: 7, room: 11, door: 'left' },
-  activity:       { col: 7, row: 7, room: 12, door: 'left' },
-  // ─── THE BASEMENT (Row 10) ───
-  spellbrigade:   { col: 3, row: 10, room: null, door: 'right', basement: true },
-  embedroute:     { col: 5, row: 10, room: null, door: 'left',  basement: true },
+  // ─── COMMAND CENTER (Row 3) ───
+  hq:             { col: 1, row: 3, room: 1,  door: 'right' },
+  content:        { col: 3, row: 3, room: 2,  door: 'right' },
+  oldwaystoday:   { col: 5, row: 3, room: 3,  door: 'left' },
+  fab:            { col: 7, row: 3, room: 4,  door: 'left' },
+  // ─── STATIONS (Row 5) ───
+  gym:            { col: 1, row: 5, room: 5,  door: 'right' },
+  spellbrigade:   { col: 3, row: 5, room: 6,  door: 'right' },
+  tools:          { col: 5, row: 5, room: 7,  door: 'left' },
+  medic:          { col: 7, row: 5, room: 8,  door: 'left' },
 };
 
 // Zone labels between station rows
 const ZONE_LABELS = [
-  { row: 2, label: 'PRODUCT OFFICES', color: '#60a5fa' },
-  { row: 4, left: 'WELLNESS', right: 'GAME ROOM', color: '#c084fc' },
-  { row: 6, left: 'THE GYM', right: 'OPS CENTER', color: '#4ade80' },
-  { row: 9, label: 'THE BASEMENT', color: '#6b7280' },
-];
-
-// Vacant cells (where basement stations used to be)
-const VACANT_CELLS = [
-  { col: 3, row: 5, zone: 'aw-zone-creative' },
+  { row: 2, label: 'COMMAND CENTER', color: '#a78bfa' },
+  { row: 4, label: 'STATIONS', color: '#4ade80' },
 ];
 
 // Zone classes for subtle background textures
 const ZONE_CLASSES = {
-  chatbot: 'aw-zone-products', orchestrator: 'aw-zone-products',
-  blog: 'aw-zone-products', moltbook: 'aw-zone-products',
-  oldwaystoday: 'aw-zone-wellness',
-  fabstats: 'aw-zone-creative', fabstatsbot: 'aw-zone-creative',
-  gym: 'aw-zone-gym',
-  medic: 'aw-zone-ops', activity: 'aw-zone-ops',
-  spellbrigade: 'aw-zone-basement', embedroute: 'aw-zone-basement',
+  hq: 'aw-zone-products', content: 'aw-zone-products',
+  oldwaystoday: 'aw-zone-wellness', fab: 'aw-zone-creative',
+  gym: 'aw-zone-gym', spellbrigade: 'aw-zone-basement',
+  tools: 'aw-zone-ops', medic: 'aw-zone-ops',
 };
 
-const workstationStations = STATION_DEFS.filter(s => !s.isHub && !INFRASTRUCTURE_HUBS.has(s.id));
-const secondaryHubStations = STATION_DEFS.filter(s => INFRASTRUCTURE_HUBS.has(s.id));
+const workstationStations = STATION_DEFS.filter(s => !s.isHub);
 const mcpStation = STATION_DEFS.find(s => s.isHub);
 const stationById = Object.fromEntries(STATION_DEFS.map(s => [s.id, s]));
 
@@ -238,7 +220,7 @@ function getStationMetrics(stationId, appStats, githubStats) {
     return n >= 10000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString();
   };
   switch (stationId) {
-    case 'fabstats': {
+    case 'fab': {
       const s = appStats?.fabstats;
       if (!s) return null;
       const m = [];
@@ -265,7 +247,7 @@ function getStationMetrics(stationId, appStats, githubStats) {
       if (fmt(s.requests)) m.push({ value: fmt(s.requests), label: 'requests' });
       return m.length ? m : null;
     }
-    case 'blog': {
+    case 'content': {
       const today = githubStats?.today || 0;
       return today > 0 ? [{ value: String(today), label: 'commits today' }] : null;
     }
@@ -291,7 +273,7 @@ function AgentWorkspace({ appStats, githubStats }) {
   const { idleLevels, highlightedSet } = useMemo(() => {
     const now = Date.now();
     const levels = {};
-    [...workstationStations, ...secondaryHubStations].forEach(s => {
+    workstationStations.forEach(s => {
       if (s.id === 'medic') { levels[s.id] = 0; return; } // Medic is always on rounds
       const lastMs = stationEvents[s.id]?.receivedAt || 0;
       const diff = now - lastMs;
@@ -398,7 +380,6 @@ function AgentWorkspace({ appStats, githubStats }) {
   startWalkRef.current = (stationId, eventType) => {
     const station = stationById[stationId];
     if (!station?.agent || !avatars[station.agent]) return;
-    if (INFRASTRUCTURE_HUBS.has(stationId)) return; // hubs don't walk
     if (walkingAgents[stationId]) {
       triggerPaceRef.current(stationId);
       return;
@@ -419,15 +400,14 @@ function AgentWorkspace({ appStats, githubStats }) {
     // Walk target priority:
     // 1. flashTargets (event metadata)
     // 2. walkQueue (blog sequential visits)
-    // 3. DEFAULT_WALK_TARGETS (hardcoded partnerships)
-    // 4. Important/medium event → walk to Activity Feed
+    // 3. Medic patrol target
+    // 4. Important/medium event → walk to Tools
     // 5. site_visit → particle only (no avatar walk)
     // 6. Default → walk to MCP
     const importance = eventType ? getEventImportance(eventType) : 'low';
     const isPatrol = eventType === 'patrol' || eventType === 'health_check';
     let targetId = flashTargets[stationId]
       || (walkQueueRef.current[stationId]?.length ? walkQueueRef.current[stationId][0] : null)
-      || DEFAULT_WALK_TARGETS[stationId]
       || (stationId === 'medic' && patrolTargetRef.current)
       || null;
 
@@ -436,11 +416,11 @@ function AgentWorkspace({ appStats, githubStats }) {
       patrolTargetRef.current = null;
     }
 
-    if (!targetId && stationId !== 'activity') {
+    if (!targetId && stationId !== 'tools') {
       if (importance === 'important' || importance === 'medium') {
-        targetId = 'activity';
+        targetId = 'tools';
       } else if (eventType === 'site_visit') {
-        emitParticlesRef.current(stationId, 'activity');
+        emitParticlesRef.current(stationId, 'tools');
         triggerPaceRef.current(stationId);
         return;
       }
@@ -461,8 +441,8 @@ function AgentWorkspace({ appStats, githubStats }) {
       data = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door, pos.col);
     }
 
-    // Faster walks for medium-importance events to Activity Feed
-    if (targetId === 'activity' && importance === 'medium') {
+    // Faster walks for medium-importance events to Tools
+    if (targetId === 'tools' && importance === 'medium') {
       data.duration = Math.max(6, data.duration * 0.7);
     }
 
@@ -582,7 +562,7 @@ function AgentWorkspace({ appStats, githubStats }) {
 
   // ─── Medic patrol walks ───
   useEffect(() => {
-    const PATROL_STATIONS = ['chatbot', 'blog', 'moltbook', 'gym', 'oldwaystoday', 'fabstats', 'fabstatsbot'];
+    const PATROL_STATIONS = ['hq', 'content', 'gym', 'oldwaystoday', 'fab', 'spellbrigade', 'tools'];
     let lastIdx = -1;
 
     const patrol = () => {
@@ -769,7 +749,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Central hallway — spans all station rows */}
         <div
           className={`aw-hallway${hallwayActive ? ' aw-hallway-active' : ''}`}
-          style={{ gridColumn: 4, gridRow: '2 / 11' }}
+          style={{ gridColumn: 4, gridRow: '2 / 6' }}
         >
           {/* Water cooler — products zone */}
           <div className="aw-hall-decor aw-decor-top">
@@ -788,7 +768,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Left side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 2, gridRow: '2 / 8' }}
+          style={{ gridColumn: 2, gridRow: '2 / 6' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-plant" />
@@ -804,7 +784,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Right side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 6, gridRow: '2 / 8' }}
+          style={{ gridColumn: 6, gridRow: '2 / 6' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-umbrella" />
@@ -816,29 +796,6 @@ function AgentWorkspace({ appStats, githubStats }) {
             <div className="aw-decor-serverrack" />
           </div>
         </div>
-
-        {/* Staircase separator — between main floor and basement */}
-        <div className="aw-staircase" style={{ gridColumn: '1 / -1', gridRow: 8 }}>
-          <div className="aw-staircase-steps" />
-          <div className="aw-staircase-label">
-            <span className="aw-staircase-arrow">&#x25BE;</span>
-            STAIRS
-            <span className="aw-staircase-arrow">&#x25BE;</span>
-          </div>
-        </div>
-
-        {/* Vacant rooms — where basement stations used to be */}
-        {VACANT_CELLS.map((cell, i) => (
-          <div
-            key={`vacant-${i}`}
-            className={`aw-grid-cell aw-vacant-cell ${cell.zone}`}
-            style={{ gridColumn: cell.col, gridRow: cell.row }}
-          >
-            <div className="aw-vacant-room">
-              <span className="aw-vacant-label">VACANT</span>
-            </div>
-          </div>
-        ))}
 
         {/* Station rooms */}
         {workstationStations.map((station, i) => {
@@ -882,38 +839,7 @@ function AgentWorkspace({ appStats, githubStats }) {
           );
         })}
 
-        {/* Secondary hubs — infrastructure destinations */}
-        {secondaryHubStations.map((station, i) => {
-          const pos = GRID_PLACEMENT[station.id];
-          if (!pos) return null;
-          const zoneClass = ZONE_CLASSES[station.id] || '';
-          return (
-            <div
-              key={station.id}
-              ref={(el) => setCellRef(station.id, el)}
-              className={`aw-grid-cell${zoneClass ? ` ${zoneClass}` : ''}`}
-              style={{ gridColumn: pos.col, gridRow: pos.row }}
-              onMouseEnter={() => handleStationEnter(station.id)}
-              onMouseLeave={handleStationLeave}
-            >
-              <SecondaryHub
-                station={station}
-                isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
-                lastEvent={stationEvents[station.id]}
-                activityCounts={activityCounts[station.id]}
-                visitCount={visitCounts[station.id] || 0}
-                idleLevel={idleLevels[station.id] || 0}
-                isHighlighted={highlightedSet.has(station.id)}
-                isDimmedByHover={highlightedSet.size > 0 && !highlightedSet.has(station.id)}
-                onClick={handleStationClick}
-                roomNumber={pos.room}
-                door={pos.door}
-              />
-            </div>
-          );
-        })}
-
-        {/* Data particles (site visits flowing to Activity Feed) */}
+        {/* Data particles (site visits flowing to Tools) */}
         <AnimatePresence>
           {particles.map(p => (
             <motion.div
