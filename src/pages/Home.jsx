@@ -32,6 +32,7 @@ const Home = () => {
   const [healthStatus, setHealthStatus] = useState(null);
   const [appStats, setAppStats] = useState(null);
   const [fabUserCount, setFabUserCount] = useState(0);
+  const [fabMatchCount, setFabMatchCount] = useState(0);
 
   const heroRef = useRef(null);
 
@@ -154,8 +155,8 @@ const Home = () => {
   // Enrich appStats with FabStats user count (comes from separate Firebase)
   const enrichedStats = useMemo(() => ({
     ...appStats,
-    fabstats: { ...appStats?.fabstats, users: fabUserCount },
-  }), [appStats, fabUserCount]);
+    fabstats: { ...appStats?.fabstats, users: fabUserCount, matches: fabMatchCount },
+  }), [appStats, fabUserCount, fabMatchCount]);
 
   return (
     <Layout>
@@ -272,7 +273,7 @@ const Home = () => {
             { value: 'fabstats.net', label: '' }
           ]}
         >
-          <FabStatsShowcase onStats={({ users }) => setFabUserCount(users)} />
+          <FabStatsShowcase onStats={({ users, matches }) => { setFabUserCount(users); setFabMatchCount(matches || 0); }} />
         </CollapsibleSection>
 
         {/* ===== 3. FITNESS PLATFORM ===== */}

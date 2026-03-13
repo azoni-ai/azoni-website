@@ -45,7 +45,7 @@ const FabStatsShowcase = ({ onStats } = {}) => {
           matches: matchSnap.data().total,
           heroes: heroSnap.data().count,
         });
-        if (onStatsRef.current) onStatsRef.current({ users: userCount });
+        if (onStatsRef.current) onStatsRef.current({ users: userCount, matches: matchSnap.data().total });
       } catch (err) {
         console.error('FabStats fetch error:', err);
       } finally {
