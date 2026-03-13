@@ -91,7 +91,7 @@
   position: relative;
   display: grid;
   grid-template-columns: 1fr 34px 1fr 56px 1fr 34px 1fr;
-  grid-template-rows: auto 20px auto 20px auto;
+  grid-template-rows: auto 20px auto 20px auto 20px auto;
   gap: 0;
   min-height: 600px;
 
@@ -2477,33 +2477,6 @@
   transform: rotate(-20deg);
 }
 
-/* ─── Fitness: Home Gym ─── */
-/* ─── Gym: Combined bench + rowing layout ─── */
-.aw-props-gym {
-  position: absolute;
-  inset: 0;
-  display: flex;
-}
-
-.aw-gym-bench-area {
-  flex: 1;
-  position: relative;
-}
-
-.aw-gym-rowing-area {
-  flex: 1;
-  position: relative;
-}
-
-.aw-gym-divider {
-  position: absolute;
-  top: 20%;
-  bottom: 20%;
-  left: 50%;
-  width: 1px;
-  background: rgba(74, 222, 128, 0.1);
-}
-
 /* ─── Dual avatar layout ─── */
 .aw-dual-avatar {
   display: flex;
@@ -2530,9 +2503,11 @@
   white-space: nowrap;
 }
 
-/* ─── Combined workspace scenes ─── */
-.aw-props-hq,
-.aw-props-content,
+/* ─── Workspace scene base ─── */
+.aw-props-conductor,
+.aw-props-chatbot,
+.aw-props-scribe,
+.aw-props-moltbook,
 .aw-props-fab {
   position: absolute;
   inset: 0;
@@ -2543,69 +2518,59 @@
   padding-bottom: 4px;
 }
 
-.aw-props-tools {
+/* ─── Activity Feed workspace ─── */
+.aw-props-activity {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: stretch;
-  justify-content: center;
-  gap: 0;
-  padding: 6px 4px 4px;
-}
-
-.aw-tools-service {
-  flex: 1;
-  display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  min-width: 0;
+  padding: 8px;
 }
 
-.aw-tools-label {
-  font-size: 6.5px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.aw-tools-icon-wrap {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+/* ─── EmbedRoute workspace ─── */
+.aw-props-embedroute {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.aw-tools-mini-log {
+/* ─── BenchPress workspace ─── */
+.aw-props-benchpress {
+  position: absolute;
+  inset: 0;
+}
+
+/* ─── RowCrew workspace ─── */
+.aw-props-rowcrew {
+  position: absolute;
+  inset: 0;
+}
+
+/* ─── Small stations row ─── */
+.aw-small-stations-row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 90%;
+  gap: 10px;
+  justify-content: center;
+  padding: 0 10px;
 }
 
-.aw-tools-mini-log .aw-log-line {
-  height: 4px;
+.aw-small-stations-row .aw-station-card {
+  flex: 1;
+  max-width: 180px;
 }
 
-.aw-tools-mini-log .aw-log-dot {
-  width: 3px;
-  height: 3px;
+.aw-small-stations-row .aw-station-scene {
+  min-height: 90px;
 }
 
-.aw-tools-divider {
-  width: 1px;
-  align-self: stretch;
-  margin: 4px 2px;
-  border-radius: 1px;
-  flex-shrink: 0;
+.aw-station-small .aw-station-avatar {
+  transform: scale(0.85);
+  transform-origin: bottom center;
 }
 
 .aw-props-fitness {
@@ -3284,13 +3249,17 @@
 }
 
 /* ─── Scene background tints per theme ─── */
-.aw-theme-hq .aw-station-scene { background: linear-gradient(to bottom, rgba(167, 139, 250, 0.03), transparent); }
-.aw-theme-content .aw-station-scene { background: linear-gradient(to bottom, rgba(251, 191, 36, 0.03), transparent); }
+.aw-theme-conductor .aw-station-scene { background: linear-gradient(to bottom, rgba(167, 139, 250, 0.03), transparent); }
+.aw-theme-chatbot .aw-station-scene { background: linear-gradient(to bottom, rgba(96, 165, 250, 0.03), transparent); }
+.aw-theme-scribe .aw-station-scene { background: linear-gradient(to bottom, rgba(251, 191, 36, 0.03), transparent); }
+.aw-theme-moltbook .aw-station-scene { background: linear-gradient(to bottom, rgba(251, 146, 60, 0.03), transparent); }
 .aw-theme-spellbrigade .aw-station-scene { background: linear-gradient(to bottom, rgba(192, 132, 252, 0.03), transparent); }
 .aw-theme-oldwaystoday .aw-station-scene { background: linear-gradient(to bottom, rgba(217, 119, 6, 0.03), transparent); }
-.aw-theme-gym .aw-station-scene { background: linear-gradient(to bottom, rgba(74, 222, 128, 0.03), transparent); }
+.aw-theme-benchpress .aw-station-scene { background: linear-gradient(to bottom, rgba(74, 222, 128, 0.03), transparent); }
+.aw-theme-rowcrew .aw-station-scene { background: linear-gradient(to bottom, rgba(52, 211, 153, 0.03), transparent); }
 .aw-theme-fab .aw-station-scene { background: linear-gradient(to bottom, rgba(217, 160, 91, 0.03), transparent); }
-.aw-theme-tools .aw-station-scene { background: linear-gradient(to bottom, rgba(32, 217, 210, 0.03), transparent); }
+.aw-theme-activity .aw-station-scene { background: linear-gradient(to bottom, rgba(248, 113, 113, 0.03), transparent); }
+.aw-theme-embedroute .aw-station-scene { background: linear-gradient(to bottom, rgba(32, 217, 210, 0.03), transparent); }
 .aw-theme-medic .aw-station-scene { background: linear-gradient(to bottom, rgba(248, 113, 113, 0.03), transparent); }
 
 /* ═══════════════════════════════════════════════════════
@@ -3339,13 +3308,17 @@
 /* ═══════════════════════════════════════════════════════
    Avatar Personality — per-station idle animations
    ═══════════════════════════════════════════════════════ */
-.aw-theme-hq .aw-station-avatar { animation: awIdleScan 6s ease-in-out infinite; }
-.aw-theme-content .aw-station-avatar { animation: awIdleTilt 4s ease-in-out infinite; }
+.aw-theme-conductor .aw-station-avatar { animation: awIdleScan 6s ease-in-out infinite; }
+.aw-theme-chatbot .aw-station-avatar { animation: awIdleTilt 4s ease-in-out infinite; }
+.aw-theme-scribe .aw-station-avatar { animation: awIdleTilt 4.2s ease-in-out infinite; }
+.aw-theme-moltbook .aw-station-avatar { animation: awIdleBouncy 2.8s ease-in-out infinite; }
 .aw-theme-spellbrigade .aw-station-avatar { animation: awIdleSway 3.5s ease-in-out infinite; }
 .aw-theme-oldwaystoday .aw-station-avatar { animation: awIdleBreathe 4.5s ease-in-out infinite; }
-.aw-theme-gym .aw-station-avatar { animation: awIdleLean 2.5s ease-in-out infinite; }
+.aw-theme-benchpress .aw-station-avatar { animation: awIdleLean 2.5s ease-in-out infinite; }
+.aw-theme-rowcrew .aw-station-avatar { animation: awIdleSway 3s ease-in-out infinite; }
 .aw-theme-fab .aw-station-avatar { animation: awIdleTilt 3.4s ease-in-out infinite; }
-.aw-theme-tools .aw-station-avatar { animation: awIdleBouncy 2.6s ease-in-out infinite; }
+.aw-theme-activity .aw-station-avatar { animation: awIdleBouncy 2.6s ease-in-out infinite; }
+.aw-theme-embedroute .aw-station-avatar { animation: awIdleBouncy 2.6s ease-in-out infinite; }
 .aw-theme-medic .aw-station-avatar { animation: awIdleBreathe 3s ease-in-out infinite; }
 
 @keyframes awIdleLean {

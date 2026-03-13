@@ -32,6 +32,7 @@ function WorkstationCard({
   isPacing,
   showChatBubble,
   mcpStatus,
+  small,
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -51,7 +52,7 @@ function WorkstationCard({
 
   return (
     <motion.div
-      className={`aw-station-card aw-theme-${station.id}${openDesk ? ' aw-open-desk' : ''}${basement ? ' aw-basement-station' : ''}${isFlashing ? ' aw-station-active' : ''}${idleClass}${highlightClass}${dimClass}`}
+      className={`aw-station-card aw-theme-${station.id}${small ? ' aw-station-small' : ''}${openDesk ? ' aw-open-desk' : ''}${basement ? ' aw-basement-station' : ''}${isFlashing ? ' aw-station-active' : ''}${idleClass}${highlightClass}${dimClass}`}
       style={{
         '--station-color': station.color,
         '--activity-intensity': intensity,
@@ -199,26 +200,42 @@ function WorkstationCard({
 // ─── Themed workspace props for each station ───
 function WorkspaceProps({ stationId, color }) {
   switch (stationId) {
-    case 'hq': return <HQWorkspace color={color} />;
-    case 'content': return <ContentWorkspace color={color} />;
+    case 'conductor': return <ConductorWorkspace color={color} />;
+    case 'chatbot': return <ChatbotWorkspace color={color} />;
+    case 'scribe': return <ScribeWorkspace color={color} />;
+    case 'moltbook': return <MoltbookWorkspace color={color} />;
     case 'spellbrigade': return <GamingWorkspace color={color} />;
     case 'oldwaystoday': return <WellnessWorkspace color={color} />;
-    case 'gym': return <GymWorkspace color={color} />;
+    case 'benchpress': return <BenchPressWorkspace color={color} />;
+    case 'rowcrew': return <RowCrewWorkspace color={color} />;
     case 'fab': return <FaBWorkspace color={color} />;
-    case 'tools': return <ToolsWorkspace color={color} />;
+    case 'activity': return <ActivityWorkspace color={color} />;
+    case 'embedroute': return <EmbedRouteWorkspace color={color} />;
     case 'medic': return <MedicWorkspace color={color} />;
     default: return null;
   }
 }
 
-// ─── HQ: Conductor monitors + Azoni AI chat terminal ───
-function HQWorkspace({ color }) {
+// ─── Conductor: Command monitors ───
+function ConductorWorkspace() {
   return (
-    <div className="aw-props-hq">
+    <div className="aw-props-conductor">
       <div className="aw-orch-monitor aw-orch-monitor-c" style={{ '--mon-color': '#4ade80' }}>
         <div className="aw-orch-screen-line" />
         <div className="aw-orch-screen-line" style={{ width: '50%' }} />
       </div>
+      <div className="aw-orch-monitor" style={{ '--mon-color': '#a78bfa' }}>
+        <div className="aw-orch-screen-line" />
+        <div className="aw-orch-screen-line" style={{ width: '40%' }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Chatbot: Chat terminal + coffee mug ───
+function ChatbotWorkspace() {
+  return (
+    <div className="aw-props-chatbot">
       <div className="aw-chat-monitor" style={{ '--glow': '#60a5fa' }}>
         <div className="aw-chat-screen">
           <div className="aw-chat-line" style={{ width: '70%' }} />
@@ -230,10 +247,10 @@ function HQWorkspace({ color }) {
   );
 }
 
-// ─── Content: Scribe books + Moltbook mic ───
-function ContentWorkspace({ color }) {
+// ─── Scribe: Books, parchment, candle ───
+function ScribeWorkspace() {
   return (
-    <div className="aw-props-content">
+    <div className="aw-props-scribe">
       <div className="aw-blog-books">
         <div className="aw-blog-book" style={{ background: '#c084fc' }} />
         <div className="aw-blog-book" style={{ background: '#f59e0b' }} />
@@ -243,8 +260,20 @@ function ContentWorkspace({ color }) {
         <div className="aw-blog-text-line" style={{ width: '80%' }} />
         <div className="aw-blog-text-line" style={{ width: '60%' }} />
       </div>
-      <div className="aw-social-mic" />
       <div className="aw-blog-candle"><div className="aw-blog-flame" /><div className="aw-blog-wax" /></div>
+    </div>
+  );
+}
+
+// ─── Moltbook: Microphone + social post bubbles ───
+function MoltbookWorkspace() {
+  return (
+    <div className="aw-props-moltbook">
+      <div className="aw-social-mic" />
+      <div className="aw-blog-parchment" style={{ right: '10px', left: 'auto', width: '50px' }}>
+        <div className="aw-blog-text-line" style={{ width: '90%' }} />
+        <div className="aw-blog-text-line" style={{ width: '65%' }} />
+      </div>
     </div>
   );
 }
@@ -288,30 +317,34 @@ function WellnessWorkspace() {
   );
 }
 
-// ─── Gym: Bench press + rowing area ───
-function GymWorkspace() {
+// ─── BenchPress: Squat rack + barbell ───
+function BenchPressWorkspace() {
   return (
-    <div className="aw-props-gym">
-      <div className="aw-gym-bench-area">
-        <div className="aw-fitness-rack">
-          <div className="aw-fitness-post" />
-          <div className="aw-fitness-post" />
-          <div className="aw-fitness-plate" />
-          <div className="aw-fitness-plate aw-fitness-plate-2" />
-        </div>
-        <div className="aw-fitness-barbell">
-          <div className="aw-fitness-weight" />
-          <div className="aw-fitness-bar" />
-          <div className="aw-fitness-weight" />
-        </div>
+    <div className="aw-props-benchpress">
+      <div className="aw-fitness-rack">
+        <div className="aw-fitness-post" />
+        <div className="aw-fitness-post" />
+        <div className="aw-fitness-plate" />
+        <div className="aw-fitness-plate aw-fitness-plate-2" />
       </div>
-      <div className="aw-gym-rowing-area">
-        <div className="aw-rowing-water">
-          <div className="aw-rowing-ripple" />
-          <div className="aw-rowing-ripple aw-rowing-ripple-2" />
-        </div>
-        <div className="aw-rowing-oar" />
+      <div className="aw-fitness-barbell">
+        <div className="aw-fitness-weight" />
+        <div className="aw-fitness-bar" />
+        <div className="aw-fitness-weight" />
       </div>
+    </div>
+  );
+}
+
+// ─── RowCrew: Water + oar ───
+function RowCrewWorkspace() {
+  return (
+    <div className="aw-props-rowcrew">
+      <div className="aw-rowing-water">
+        <div className="aw-rowing-ripple" />
+        <div className="aw-rowing-ripple aw-rowing-ripple-2" />
+      </div>
+      <div className="aw-rowing-oar" />
     </div>
   );
 }
@@ -336,37 +369,24 @@ function FaBWorkspace() {
   );
 }
 
-// ─── Tools: Activity Feed + EmbedRoute — clearly labeled sub-services ───
-function ToolsWorkspace({ color }) {
+// ─── Activity Feed: Event log lines ───
+function ActivityWorkspace() {
   return (
-    <div className="aw-props-tools">
-      {/* Activity Feed side */}
-      <div className="aw-tools-service">
-        <span className="aw-tools-label">Activity Feed</span>
-        <div className="aw-tools-icon-wrap" style={{ '--svc-color': '#f87171' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-        </div>
-        <div className="aw-tools-mini-log">
-          <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#4ade80' }} /><span className="aw-log-bar" style={{ width: '70%', background: 'rgba(248,113,113,0.2)' }} /></div>
-          <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#60a5fa' }} /><span className="aw-log-bar" style={{ width: '50%', background: 'rgba(248,113,113,0.2)' }} /></div>
-          <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#fbbf24' }} /><span className="aw-log-bar" style={{ width: '85%', background: 'rgba(248,113,113,0.2)' }} /></div>
-        </div>
-      </div>
-      {/* Divider */}
-      <div className="aw-tools-divider" style={{ background: `${color}20` }} />
-      {/* EmbedRoute side */}
-      <div className="aw-tools-service">
-        <span className="aw-tools-label">EmbedRoute</span>
-        <div className="aw-tools-icon-wrap" style={{ '--svc-color': color }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="6" cy="6" r="3" /><circle cx="18" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 9v6M8.5 7.5l7 7M15.5 7.5l-7 7" />
-          </svg>
-        </div>
-        <div className="aw-embed-center" style={{ borderColor: `${color}40` }}>
-          <div className="aw-embed-core" style={{ background: `${color}60` }} />
-        </div>
+    <div className="aw-props-activity">
+      <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#4ade80' }} /><span className="aw-log-bar" style={{ width: '70%', background: 'rgba(248,113,113,0.2)' }} /></div>
+      <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#60a5fa' }} /><span className="aw-log-bar" style={{ width: '50%', background: 'rgba(248,113,113,0.2)' }} /></div>
+      <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#fbbf24' }} /><span className="aw-log-bar" style={{ width: '85%', background: 'rgba(248,113,113,0.2)' }} /></div>
+      <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#a78bfa' }} /><span className="aw-log-bar" style={{ width: '60%', background: 'rgba(248,113,113,0.2)' }} /></div>
+    </div>
+  );
+}
+
+// ─── EmbedRoute: Vector node graph ───
+function EmbedRouteWorkspace({ color }) {
+  return (
+    <div className="aw-props-embedroute">
+      <div className="aw-embed-center" style={{ borderColor: `${color}40` }}>
+        <div className="aw-embed-core" style={{ background: `${color}60` }} />
       </div>
     </div>
   );

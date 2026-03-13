@@ -43,7 +43,7 @@ export function useAgentActivity() {
       const sHist = {};
       snap.docs.forEach(doc => {
         const data = doc.data();
-        const sid = mapSourceToStation(data.source, data.type) || 'tools';
+        const sid = mapSourceToStation(data.source, data.type) || 'activity';
         const ts = data.timestamp;
         const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
         if (ms) {
@@ -52,10 +52,10 @@ export function useAgentActivity() {
           if (!sHist[sid]) sHist[sid] = [];
           sHist[sid].push(entry);
           // Activity feed gets ALL events
-          if (sid !== 'tools') {
-            hist.push({ stationId: 'tools', ms, type: data.type });
-            if (!sHist['tools']) sHist['tools'] = [];
-            sHist['tools'].push(entry);
+          if (sid !== 'activity') {
+            hist.push({ stationId: 'activity', ms, type: data.type });
+            if (!sHist['activity']) sHist['activity'] = [];
+            sHist['activity'].push(entry);
           }
         }
       });
@@ -85,17 +85,17 @@ export function useAgentActivity() {
         const latestAt = {};   // stationId → most recent timestamp
         const display = {};    // stationId → first non-visit event data
         docs.forEach(data => {
-          const sid = mapSourceToStation(data.source, data.type) || 'tools';
+          const sid = mapSourceToStation(data.source, data.type) || 'activity';
           const ts = data.timestamp;
           const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
           const recAt = ms || Date.now();
           // Track most recent timestamp (any event type)
           if (!latestAt[sid]) latestAt[sid] = recAt;
-          if (sid !== 'tools' && !latestAt['tools']) latestAt['tools'] = recAt;
+          if (sid !== 'activity' && !latestAt['activity']) latestAt['activity'] = recAt;
           // Track first non-visit event for display
           if (data.type !== 'site_visit') {
             if (!display[sid]) display[sid] = data;
-            if (sid !== 'tools' && !display['tools']) display['tools'] = data;
+            if (sid !== 'activity' && !display['activity']) display['activity'] = data;
           }
         });
         // Merge: display data with visit-aware receivedAt
@@ -114,7 +114,7 @@ export function useAgentActivity() {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added') {
           const data = change.doc.data();
-          const stationId = mapSourceToStation(data.source, data.type) || 'tools';
+          const stationId = mapSourceToStation(data.source, data.type) || 'activity';
           lastEventTypeRef.current[stationId] = data.type;
           const ts = data.timestamp;
           const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
@@ -124,7 +124,7 @@ export function useAgentActivity() {
           // Always update history (for counts)
           setActivityHistory(prev => {
             const next = [...prev, { stationId, ms: ms || now, type: data.type }];
-            if (stationId !== 'tools') next.push({ stationId: 'tools', ms: ms || now, type: data.type });
+            if (stationId !== 'activity') next.push({ stationId: 'activity', ms: ms || now, type: data.type });
             return next;
           });
           setStationHistory(prev => {
@@ -132,10 +132,10 @@ export function useAgentActivity() {
             const arr = [entry, ...(prev[stationId] || [])];
             if (arr.length > 20) arr.length = 20;
             updated[stationId] = arr;
-            if (stationId !== 'tools') {
-              const actArr = [entry, ...(prev['tools'] || [])];
+            if (stationId !== 'activity') {
+              const actArr = [entry, ...(prev['activity'] || [])];
               if (actArr.length > 20) actArr.length = 20;
-              updated['tools'] = actArr;
+              updated['activity'] = actArr;
             }
             return updated;
           });
@@ -144,19 +144,19 @@ export function useAgentActivity() {
             setStationEvents(prev => ({
               ...prev,
               [stationId]: { ...(prev[stationId] || {}), receivedAt: now },
-              tools: { ...(prev['tools'] || {}), receivedAt: now },
+              activity: { ...(prev['activity'] || {}), receivedAt: now },
             }));
           } else {
             // Non-visits: full update including display data + ticker
             setStationEvents(prev => ({
               ...prev,
               [stationId]: { ...data, receivedAt: now },
-              tools: { ...data, receivedAt: now },
+              activity: { ...data, receivedAt: now },
             }));
             setTickerEvents(prev => [data, ...prev].slice(0, 5));
           }
           flashStationRef.current(stationId);
-          if (stationId !== 'tools') flashStationRef.current('tools');
+          if (stationId !== 'activity') flashStationRef.current('activity');
           // Track walk targets for station-to-station walking (e.g., chatbot → app)
           if (data.metadata?.targetStation) {
             setFlashTargets(prev => ({ ...prev, [stationId]: data.metadata.targetStation }));

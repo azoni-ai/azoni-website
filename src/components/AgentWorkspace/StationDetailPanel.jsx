@@ -6,7 +6,7 @@ import { AGENTS } from '../../data/agents';
 import { getProjectById } from '../../data/projects';
 import { CATEGORY_STYLES, DOMAIN_TO_STATION, STATION_TO_PROJECT, formatTimeAgo } from '../../utils/station-mapping';
 
-const AGENT_KEY_MAP = { wellness: 'oldways', oldwaystoday: 'oldways', hq: 'orchestrator', content: 'blog', fab: 'fabstats' };
+const AGENT_KEY_MAP = { wellness: 'oldways', oldwaystoday: 'oldways', conductor: 'orchestrator', chatbot: 'chat', scribe: 'blog', moltbook: 'social', fab: 'fabstats' };
 
 const TABS = [
   { key: 'activity', label: 'Activity' },
@@ -166,22 +166,33 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                           </div>
                         </div>
                       )}
-                      {station.id === 'gym' && (appStats?.benchpressonly || appStats?.rowcrew) && (() => {
-                        const bpUsers = Number(appStats.benchpressonly?.users) || 0;
-                        const rcUsers = Number(appStats.rowcrew?.users || appStats.rowcrew?.totalUsers) || 0;
-                        const totalUsers = bpUsers + rcUsers;
-                        const workouts = Number(appStats.benchpressonly?.workoutsLogged) || 0;
-                        const meters = Number(appStats.rowcrew?.meters) || 0;
-                        return (
+                      {station.id === 'benchpress' && appStats?.benchpressonly && (() => {
+                        const bp = appStats.benchpressonly;
+                        const users = Number(bp.users) || 0;
+                        const workouts = Number(bp.workoutsLogged) || 0;
+                        return (users > 0 || workouts > 0) ? (
                           <div className="aw-detail-section">
                             <div className="aw-detail-section-title">Live Stats</div>
                             <div className="aw-detail-stats">
-                              {totalUsers > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{totalUsers.toLocaleString()}</div><div className="aw-detail-stat-label">users</div></div>}
+                              {users > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{users.toLocaleString()}</div><div className="aw-detail-stat-label">users</div></div>}
                               {workouts > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{workouts.toLocaleString()}</div><div className="aw-detail-stat-label">workouts</div></div>}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                      {station.id === 'rowcrew' && appStats?.rowcrew && (() => {
+                        const rc = appStats.rowcrew;
+                        const meters = Number(rc.meters) || 0;
+                        const users = Number(rc.users || rc.totalUsers) || 0;
+                        return (meters > 0 || users > 0) ? (
+                          <div className="aw-detail-section">
+                            <div className="aw-detail-section-title">Live Stats</div>
+                            <div className="aw-detail-stats">
+                              {users > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{users.toLocaleString()}</div><div className="aw-detail-stat-label">rowers</div></div>}
                               {meters > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{meters.toLocaleString()}</div><div className="aw-detail-stat-label">meters rowed</div></div>}
                             </div>
                           </div>
-                        );
+                        ) : null;
                       })()}
                       {station.id === 'oldwaystoday' && appStats?.oldwaystoday && (
                         <div className="aw-detail-section">
@@ -193,7 +204,7 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                       )}
 
                       {/* Scribe — recent commits from git activity */}
-                      {station.id === 'content' && githubStats?.recentCommits?.length > 0 && (
+                      {station.id === 'scribe' && githubStats?.recentCommits?.length > 0 && (
                         <div className="aw-detail-section">
                           <div className="aw-detail-section-title">Recent Commits</div>
                           <div className="aw-detail-events">

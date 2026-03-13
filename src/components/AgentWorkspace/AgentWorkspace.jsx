@@ -15,30 +15,32 @@ import '../../styles/agent-workspace.css';
 // Col layout: office | side-hall | office | center-hall | office | side-hall | office
 // Rows: lobby | label | stations | label | stations | label | stations
 const GRID_PLACEMENT = {
-  // ─── COMMAND CENTER (Row 3) ───
-  hq:             { col: 1, row: 3, room: 1,  door: 'right' },
-  content:        { col: 3, row: 3, room: 2,  door: 'right' },
-  oldwaystoday:   { col: 5, row: 3, room: 3,  door: 'left' },
-  fab:            { col: 7, row: 3, room: 4,  door: 'left' },
-  // ─── STATIONS (Row 5) ───
-  gym:            { col: 1, row: 5, room: 5,  door: 'right' },
-  spellbrigade:   { col: 3, row: 5, room: 6,  door: 'right' },
-  tools:          { col: 5, row: 5, room: 7,  door: 'left' },
-  medic:          { col: 7, row: 5, room: 8,  door: 'left' },
+  // ─── COMMAND (Row 3) ───
+  conductor:    { col: 1, row: 3, room: 1,  door: 'right' },
+  chatbot:      { col: 3, row: 3, room: 2,  door: 'right' },
+  scribe:       { col: 5, row: 3, room: 3,  door: 'left' },
+  moltbook:     { col: 7, row: 3, room: 4,  door: 'left' },
+  // ─── APPS (Row 5) ───
+  benchpress:   { col: 1, row: 5, room: 5,  door: 'right' },
+  oldwaystoday: { col: 3, row: 5, room: 6,  door: 'right' },
+  fab:          { col: 5, row: 5, room: 7,  door: 'left' },
 };
+// Small stations rendered in flex sub-row (row 7)
+const SMALL_STATIONS = ['rowcrew', 'spellbrigade', 'activity', 'embedroute', 'medic'];
 
 // Zone labels between station rows
 const ZONE_LABELS = [
-  { row: 2, label: 'COMMAND CENTER', color: '#a78bfa' },
-  { row: 4, label: 'STATIONS', color: '#4ade80' },
+  { row: 2, label: 'COMMAND', color: '#a78bfa' },
+  { row: 4, label: 'APPS', color: '#4ade80' },
+  { row: 6, label: 'SUPPORT', color: '#6b6b65' },
 ];
 
 // Zone classes for subtle background textures
 const ZONE_CLASSES = {
-  hq: 'aw-zone-products', content: 'aw-zone-products',
-  oldwaystoday: 'aw-zone-wellness', fab: 'aw-zone-creative',
-  gym: 'aw-zone-gym', spellbrigade: 'aw-zone-basement',
-  tools: 'aw-zone-ops', medic: 'aw-zone-ops',
+  conductor: 'aw-zone-products', chatbot: 'aw-zone-products',
+  scribe: 'aw-zone-products', moltbook: 'aw-zone-products',
+  benchpress: 'aw-zone-gym', oldwaystoday: 'aw-zone-wellness',
+  fab: 'aw-zone-creative',
 };
 
 const workstationStations = STATION_DEFS.filter(s => !s.isHub);
@@ -228,15 +230,19 @@ function getStationMetrics(stationId, appStats, githubStats) {
       if (fmt(s.matches)) m.push({ value: fmt(s.matches), label: 'matches' });
       return m.length ? m : null;
     }
-    case 'gym': {
+    case 'benchpress': {
       const bp = appStats?.benchpressonly;
-      const rc = appStats?.rowcrew;
-      if (!bp && !rc) return null;
+      if (!bp) return null;
       const m = [];
-      const totalUsers = (Number(bp?.users) || 0) + (Number(rc?.users || rc?.totalUsers) || 0);
-      if (fmt(totalUsers)) m.push({ value: fmt(totalUsers), label: 'users' });
-      if (bp && fmt(bp.workoutsLogged)) m.push({ value: fmt(bp.workoutsLogged), label: 'workouts' });
-      const meters = Number(rc?.meters || 0);
+      if (fmt(bp.users)) m.push({ value: fmt(bp.users), label: 'users' });
+      if (fmt(bp.workoutsLogged)) m.push({ value: fmt(bp.workoutsLogged), label: 'workouts' });
+      return m.length ? m : null;
+    }
+    case 'rowcrew': {
+      const rc = appStats?.rowcrew;
+      if (!rc) return null;
+      const m = [];
+      const meters = Number(rc.meters || 0);
       if (meters > 0) {
         const display = meters >= 1000000 ? `${(meters / 1000000).toFixed(1)}M` : meters >= 1000 ? `${(meters / 1000).toFixed(0)}k` : String(meters);
         m.push({ value: display, label: 'meters' });
@@ -250,7 +256,7 @@ function getStationMetrics(stationId, appStats, githubStats) {
       if (fmt(s.requests)) m.push({ value: fmt(s.requests), label: 'requests' });
       return m.length ? m : null;
     }
-    case 'content': {
+    case 'scribe': {
       const today = githubStats?.today || 0;
       return today > 0 ? [{ value: String(today), label: 'commits today' }] : null;
     }
@@ -378,16 +384,8 @@ function AgentWorkspace({ appStats, githubStats }) {
     }, 2000);
   };
 
-  // ─── Map event types to secondary agents (unmapped = primary agent) ───
+  // ─── Map event types to secondary agents (only FaB has dual agents now) ───
   const EVENT_TO_SECOND_AGENT = useMemo(() => ({
-    // HQ: chat agent
-    assistant_chat: 'chat', chat_answered: 'chat',
-    // Content: social agent
-    moltbook_post: 'social', moltbook_comment: 'social', moltbook_upvote: 'social',
-    // Gym: rowing agent
-    rowing_session: 'rowing', row_completed: 'rowing', row_verified: 'rowing',
-    group_created: 'rowing', group_joined: 'rowing', challenge_created: 'rowing',
-    // FaB: fabstatsbot agent
     discord_command: 'fabstatsbot',
   }), []);
 
@@ -439,11 +437,11 @@ function AgentWorkspace({ appStats, githubStats }) {
       patrolTargetRef.current = null;
     }
 
-    if (!targetId && stationId !== 'tools') {
+    if (!targetId && stationId !== 'activity') {
       if (importance === 'important' || importance === 'medium') {
-        targetId = 'tools';
+        targetId = 'activity';
       } else if (eventType === 'site_visit') {
-        emitParticlesRef.current(stationId, 'tools');
+        emitParticlesRef.current(stationId, 'activity');
         triggerPaceRef.current(stationId);
         return;
       }
@@ -465,7 +463,7 @@ function AgentWorkspace({ appStats, githubStats }) {
     }
 
     // Faster walks for medium-importance events to Tools
-    if (targetId === 'tools' && importance === 'medium') {
+    if (targetId === 'activity' && importance === 'medium') {
       data.duration = Math.max(6, data.duration * 0.7);
     }
 
@@ -586,7 +584,7 @@ function AgentWorkspace({ appStats, githubStats }) {
 
   // ─── Medic patrol walks ───
   useEffect(() => {
-    const PATROL_STATIONS = ['hq', 'content', 'gym', 'oldwaystoday', 'fab', 'spellbrigade', 'tools'];
+    const PATROL_STATIONS = ['conductor', 'chatbot', 'scribe', 'moltbook', 'benchpress', 'oldwaystoday', 'fab', 'spellbrigade', 'rowcrew', 'activity', 'embedroute'];
     let lastIdx = -1;
 
     const patrol = () => {
@@ -773,7 +771,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Central hallway — spans all station rows */}
         <div
           className={`aw-hallway${hallwayActive ? ' aw-hallway-active' : ''}`}
-          style={{ gridColumn: 4, gridRow: '2 / 6' }}
+          style={{ gridColumn: 4, gridRow: '2 / 8' }}
         >
           {/* Water cooler — products zone */}
           <div className="aw-hall-decor aw-decor-top">
@@ -792,7 +790,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Left side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 2, gridRow: '2 / 6' }}
+          style={{ gridColumn: 2, gridRow: '2 / 8' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-plant" />
@@ -808,7 +806,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Right side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 6, gridRow: '2 / 6' }}
+          style={{ gridColumn: 6, gridRow: '2 / 8' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-umbrella" />
@@ -821,18 +819,52 @@ function AgentWorkspace({ appStats, githubStats }) {
           </div>
         </div>
 
-        {/* Station rooms */}
-        {workstationStations.map((station, i) => {
+        {/* Station rooms (grid-placed) */}
+        {workstationStations.filter(s => GRID_PLACEMENT[s.id]).map((station, i) => {
           const pos = GRID_PLACEMENT[station.id];
-          if (!pos) return null;
           const zoneClass = ZONE_CLASSES[station.id] || '';
-          const basementClass = pos.basement ? ' aw-basement-cell' : '';
           return (
             <div
               key={station.id}
               ref={(el) => setCellRef(station.id, el)}
-              className={`aw-grid-cell${zoneClass ? ` ${zoneClass}` : ''}${basementClass}`}
-              style={{ gridColumn: pos.colSpan ? `${pos.col} / span ${pos.colSpan}` : pos.col, gridRow: pos.row }}
+              className={`aw-grid-cell${zoneClass ? ` ${zoneClass}` : ''}`}
+              style={{ gridColumn: pos.col, gridRow: pos.row }}
+              onMouseEnter={() => handleStationEnter(station.id)}
+              onMouseLeave={handleStationLeave}
+            >
+              <WorkstationCard
+                station={station}
+                lastEvent={stationEvents[station.id]}
+                activityCounts={activityCounts[station.id]}
+                visitCount={visitCounts[station.id] || 0}
+                mcpStatus={(() => { const ds = Object.entries(DOMAIN_TO_STATION).filter(([, v]) => v === station.id).map(([d]) => d); if (!ds.length || !health) return undefined; if (ds.some(d => health[d] === false)) return false; if (ds.every(d => health[d] === true)) return true; return undefined; })()}
+                isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
+                walkingAgent={walkingAgents[station.id]?.agent || null}
+                walkingAgent2={walkingAgents[`${station.id}:2`]?.agent || null}
+                idleLevel={idleLevels[station.id] || 0}
+                errorCount={errorCounts[station.id] || 0}
+                isHighlighted={highlightedSet.has(station.id)}
+                isDimmedByHover={highlightedSet.size > 0 && !highlightedSet.has(station.id)}
+                onClick={handleStationClick}
+                index={i}
+                roomNumber={pos.room}
+                door={pos.door}
+                metrics={getStationMetrics(station.id, appStats, githubStats)}
+                inspection={inspectedStation?.id === station.id ? inspectedStation : null}
+                isPacing={!!pacingStations[station.id]}
+                showChatBubble={chatBubbleStation === station.id}
+              />
+            </div>
+          );
+        })}
+
+        {/* Small stations row */}
+        <div className="aw-small-stations-row" style={{ gridColumn: '1 / -1', gridRow: 7 }}>
+          {workstationStations.filter(s => SMALL_STATIONS.includes(s.id)).map((station, i) => (
+            <div
+              key={station.id}
+              ref={(el) => setCellRef(station.id, el)}
+              className="aw-small-cell"
               onMouseEnter={() => handleStationEnter(station.id)}
               onMouseLeave={handleStationLeave}
             >
@@ -851,18 +883,16 @@ function AgentWorkspace({ appStats, githubStats }) {
                 isDimmedByHover={highlightedSet.size > 0 && !highlightedSet.has(station.id)}
                 onClick={handleStationClick}
                 index={i}
-                roomNumber={pos.room}
-                door={pos.door}
-                openDesk={pos.openDesk}
-                basement={pos.basement}
+                small
+                roomNumber={8 + i}
                 metrics={getStationMetrics(station.id, appStats, githubStats)}
                 inspection={inspectedStation?.id === station.id ? inspectedStation : null}
                 isPacing={station.id === 'medic' ? !walkingAgents['medic'] : !!pacingStations[station.id]}
                 showChatBubble={chatBubbleStation === station.id}
               />
             </div>
-          );
-        })}
+          ))}
+        </div>
 
         {/* Data particles (site visits flowing to Tools) */}
         <AnimatePresence>
