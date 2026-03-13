@@ -959,28 +959,18 @@ function AgentWorkspace({ appStats, githubStats }) {
         <AnimatePresence>
           {tooltipStation && !isReplaying && (() => {
             const station = stationById[tooltipStation];
+            if (!station) return null;
             const pos = GRID_PLACEMENT[tooltipStation];
-            if (!station || !pos) return null;
+            const isSmall = SMALL_STATIONS.includes(tooltipStation);
+            if (!pos && !isSmall) return null;
             const cat = CATEGORY_STYLES[station.category];
             const lastEvent = stationEvents[tooltipStation];
             const counts = activityCounts[tooltipStation] || {};
             const visits = visitCounts[tooltipStation] || 0;
             const eventMs = lastEvent?.receivedAt || 0;
 
-            const colNum = pos.colStart || pos.col;
-            const tooltipCol = colNum <= 2 ? colNum + 2 : colNum >= 6 ? colNum - 2 : colNum <= 3 ? colNum + 1 : colNum - 1;
-            const tooltipRow = pos.row;
-
-            return (
-              <motion.div
-                key="tooltip"
-                className="aw-tooltip"
-                style={{ gridColumn: tooltipCol, gridRow: tooltipRow, '--tip-color': station.color }}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.15 }}
-              >
+            const tooltipContent = (
+              <>
                 <div className="aw-tooltip-header">
                   <span className="aw-tooltip-dot" style={{ background: station.color }} />
                   <span className="aw-tooltip-name">{station.label}</span>
@@ -1000,6 +990,41 @@ function AgentWorkspace({ appStats, githubStats }) {
                     {visits > 0 && <span>{visits} visits</span>}
                   </div>
                 )}
+              </>
+            );
+
+            if (isSmall) {
+              // Small stations: render tooltip above the small stations row
+              return (
+                <motion.div
+                  key="tooltip"
+                  className="aw-tooltip aw-tooltip-small"
+                  style={{ gridColumn: '1 / -1', gridRow: 6, '--tip-color': station.color }}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {tooltipContent}
+                </motion.div>
+              );
+            }
+
+            const colNum = pos.colStart || pos.col;
+            const tooltipCol = colNum <= 2 ? colNum + 2 : colNum >= 6 ? colNum - 2 : colNum <= 3 ? colNum + 1 : colNum - 1;
+            const tooltipRow = pos.row;
+
+            return (
+              <motion.div
+                key="tooltip"
+                className="aw-tooltip"
+                style={{ gridColumn: tooltipCol, gridRow: tooltipRow, '--tip-color': station.color }}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+              >
+                {tooltipContent}
               </motion.div>
             );
           })()}

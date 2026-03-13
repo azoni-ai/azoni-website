@@ -1322,6 +1322,12 @@
   color: var(--text-muted, #6b6b65);
 }
 
+.aw-tooltip-small {
+  justify-self: center;
+  align-self: end;
+  margin-bottom: 4px;
+}
+
 /* ─── Grid Cell — rooms fill their allotted space ─── */
 .aw-grid-cell {
   display: flex;
@@ -3725,7 +3731,8 @@
 }
 
 .aw-detail-tab-content {
-  min-height: 320px;
+  height: 320px;
+  overflow-y: auto;
 }
 
 /* ═══════════════════════════════════════════════════════
