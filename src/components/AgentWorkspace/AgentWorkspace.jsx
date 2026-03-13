@@ -1013,7 +1013,11 @@ function AgentWorkspace({ appStats, githubStats }) {
       {/* Detail panel (portal) */}
       <StationDetailPanel
         station={selectedStation}
-        stationHistory={selectedStation ? stationHistory[selectedStation.id] : null}
+        stationHistory={selectedStation ? (
+          selectedStation.id === 'orchestrator'
+            ? [...(stationHistory[selectedStation.id] || []), ...patrolEvents.map(e => ({ ...e, ms: e.receivedAt }))].sort((a, b) => (b.ms || 0) - (a.ms || 0))
+            : stationHistory[selectedStation.id]
+        ) : null}
         activityCounts={selectedStation ? activityCounts[selectedStation.id] : null}
         visitCount={selectedStation ? (visitCounts[selectedStation.id] || 0) : 0}
         health={health}
