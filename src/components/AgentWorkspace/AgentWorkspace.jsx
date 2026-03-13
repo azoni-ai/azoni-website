@@ -14,31 +14,50 @@ import '../../styles/agent-workspace.css';
 
 // ─── Building floor plan: 7-col grid with side corridors ───
 // Col layout: office | side-hall | office | center-hall | office | side-hall | office
+// Rows: lobby | label | stations | label | stations | label | stations
 const GRID_PLACEMENT = {
-  chatbot:        { col: 1, row: 2, room: 1,  door: 'right' },
-  spellbrigade:   { col: 3, row: 2, room: 2,  door: 'right' },
-  moltbook:       { col: 5, row: 2, room: 3,  door: 'left' },
-  blog:           { col: 7, row: 2, room: 4,  door: 'left' },
-  benchpressonly: { col: 1, row: 3, room: 5,  door: 'right' },
-  orchestrator:   { col: 3, row: 3, room: 6,  door: 'right' },
-  fabstatsbot:    { col: 5, row: 3, room: 7,  door: 'left' },
-  rowcrew:        { col: 7, row: 3, room: 8,  door: 'left' },
-  oldwaystoday:   { col: 1, row: 4, room: 9,  door: 'right' },
-  fabstats:       { col: 3, row: 4, room: 10, door: 'right' },
-  embedroute:     { col: 5, row: 4, room: 11, door: 'left' },
-  activity:       { col: 7, row: 4, room: 12, door: 'left' },
+  // ─── PRODUCT OFFICES (Row 3) ───
+  chatbot:        { col: 1, row: 3, room: 1,  door: 'right' },
+  orchestrator:   { col: 3, row: 3, room: null, door: 'none', openDesk: true },
+  blog:           { col: 5, row: 3, room: 3,  door: 'left' },
+  moltbook:       { col: 7, row: 3, room: 4,  door: 'left' },
+  // ─── WELLNESS · GAME ROOM (Row 5) ───
+  oldwaystoday:   { col: 1, row: 5, room: 5,  door: 'right' },
+  fabstats:       { col: 5, row: 5, room: 7,  door: 'left' },
+  fabstatsbot:    { col: 7, row: 5, room: 8,  door: 'left' },
+  // ─── THE GYM · OPS CENTER (Row 7) ───
+  benchpressonly: { col: 1, row: 7, room: 9,  door: 'right' },
+  rowcrew:        { col: 3, row: 7, room: 10, door: 'right' },
+  activity:       { col: 7, row: 7, room: 12, door: 'left' },
+  // ─── THE BASEMENT (Row 10) ───
+  spellbrigade:   { col: 3, row: 10, room: null, door: 'right', basement: true },
+  embedroute:     { col: 5, row: 10, room: null, door: 'left',  basement: true },
 };
 
-const HALLWAY_CELLS = [
-  { col: 4, row: 2 },
-  { col: 4, row: 3 },
-  { col: 4, row: 4 },
+// Zone labels between station rows
+const ZONE_LABELS = [
+  { row: 2, label: 'PRODUCT OFFICES', color: '#60a5fa' },
+  { row: 4, left: 'WELLNESS', right: 'GAME ROOM', color: '#c084fc' },
+  { row: 6, left: 'THE GYM', right: 'OPS CENTER', color: '#4ade80' },
+  { row: 9, label: 'THE BASEMENT', color: '#6b7280' },
 ];
 
-const SIDE_HALLWAY_CELLS = [
-  { col: 2, row: 2 }, { col: 2, row: 3 }, { col: 2, row: 4 },
-  { col: 6, row: 2 }, { col: 6, row: 3 }, { col: 6, row: 4 },
+// Vacant cells (where basement stations used to be)
+const VACANT_CELLS = [
+  { col: 3, row: 5, zone: 'aw-zone-creative' },
+  { col: 5, row: 7, zone: 'aw-zone-ops' },
 ];
+
+// Zone classes for subtle background textures
+const ZONE_CLASSES = {
+  chatbot: 'aw-zone-products', orchestrator: 'aw-zone-products',
+  blog: 'aw-zone-products', moltbook: 'aw-zone-products',
+  oldwaystoday: 'aw-zone-wellness',
+  fabstats: 'aw-zone-creative', fabstatsbot: 'aw-zone-creative',
+  benchpressonly: 'aw-zone-gym', rowcrew: 'aw-zone-gym',
+  activity: 'aw-zone-ops',
+  spellbrigade: 'aw-zone-basement', embedroute: 'aw-zone-basement',
+};
 
 const workstationStations = STATION_DEFS.filter(s => !s.isHub && !INFRASTRUCTURE_HUBS.has(s.id));
 const secondaryHubStations = STATION_DEFS.filter(s => INFRASTRUCTURE_HUBS.has(s.id));
@@ -538,33 +557,110 @@ function AgentWorkspace() {
           />
         </div>
 
-        {/* Central hallway */}
-        {HALLWAY_CELLS.map((h, i) => (
+        {/* Zone labels */}
+        {ZONE_LABELS.map((z, i) => (
           <div
-            key={`hall-${i}`}
-            className={`aw-hallway${hallwayActive ? ' aw-hallway-active' : ''}`}
-            style={{ gridColumn: h.col, gridRow: h.row }}
-          />
+            key={`zone-${i}`}
+            className="aw-zone-label"
+            style={{ gridColumn: '1 / -1', gridRow: z.row, '--zone-color': z.color }}
+          >
+            {z.label ? (
+              <span className="aw-zone-text">{z.label}</span>
+            ) : (
+              <>
+                <span className="aw-zone-text aw-zone-left">{z.left}</span>
+                <span className="aw-zone-divider" />
+                <span className="aw-zone-text aw-zone-right">{z.right}</span>
+              </>
+            )}
+          </div>
         ))}
 
-        {/* Side corridors */}
-        {SIDE_HALLWAY_CELLS.map((h, i) => (
+        {/* Central hallway — spans all station rows */}
+        <div
+          className={`aw-hallway${hallwayActive ? ' aw-hallway-active' : ''}`}
+          style={{ gridColumn: 4, gridRow: '2 / 11' }}
+        >
+          {/* Water cooler — products zone */}
+          <div className="aw-hall-decor aw-decor-top">
+            <div className="aw-decor-watercooler" />
+          </div>
+          {/* Bulletin board — game room zone */}
+          <div className="aw-hall-decor aw-decor-mid">
+            <div className="aw-decor-bulletin" />
+          </div>
+          {/* Coffee machine — gym/ops zone */}
+          <div className="aw-hall-decor aw-decor-bot">
+            <div className="aw-decor-coffee" />
+          </div>
+        </div>
+
+        {/* Left side corridor */}
+        <div
+          className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
+          style={{ gridColumn: 2, gridRow: '2 / 8' }}
+        >
+          <div className="aw-hall-decor aw-decor-top">
+            <div className="aw-decor-plant" />
+          </div>
+          <div className="aw-hall-decor aw-decor-mid">
+            <div className="aw-decor-bench" />
+          </div>
+          <div className="aw-hall-decor aw-decor-bot">
+            <div className="aw-decor-shoes" />
+          </div>
+        </div>
+
+        {/* Right side corridor */}
+        <div
+          className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
+          style={{ gridColumn: 6, gridRow: '2 / 8' }}
+        >
+          <div className="aw-hall-decor aw-decor-top">
+            <div className="aw-decor-umbrella" />
+          </div>
+          <div className="aw-hall-decor aw-decor-mid">
+            <div className="aw-decor-vending" />
+          </div>
+          <div className="aw-hall-decor aw-decor-bot">
+            <div className="aw-decor-serverrack" />
+          </div>
+        </div>
+
+        {/* Staircase separator — between main floor and basement */}
+        <div className="aw-staircase" style={{ gridColumn: '1 / -1', gridRow: 8 }}>
+          <div className="aw-staircase-steps" />
+          <div className="aw-staircase-label">
+            <span className="aw-staircase-arrow">&#x25BE;</span>
+            STAIRS
+            <span className="aw-staircase-arrow">&#x25BE;</span>
+          </div>
+        </div>
+
+        {/* Vacant rooms — where basement stations used to be */}
+        {VACANT_CELLS.map((cell, i) => (
           <div
-            key={`side-hall-${i}`}
-            className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-            style={{ gridColumn: h.col, gridRow: h.row }}
-          />
+            key={`vacant-${i}`}
+            className={`aw-grid-cell aw-vacant-cell ${cell.zone}`}
+            style={{ gridColumn: cell.col, gridRow: cell.row }}
+          >
+            <div className="aw-vacant-room">
+              <span className="aw-vacant-label">VACANT</span>
+            </div>
+          </div>
         ))}
 
         {/* Station rooms */}
         {workstationStations.map((station, i) => {
           const pos = GRID_PLACEMENT[station.id];
           if (!pos) return null;
+          const zoneClass = ZONE_CLASSES[station.id] || '';
+          const basementClass = pos.basement ? ' aw-basement-cell' : '';
           return (
             <div
               key={station.id}
               ref={(el) => setCellRef(station.id, el)}
-              className="aw-grid-cell"
+              className={`aw-grid-cell${zoneClass ? ` ${zoneClass}` : ''}${basementClass}`}
               style={{ gridColumn: pos.col, gridRow: pos.row }}
               onMouseEnter={() => handleStationEnter(station.id)}
               onMouseLeave={handleStationLeave}
@@ -584,6 +680,8 @@ function AgentWorkspace() {
                 index={i}
                 roomNumber={pos.room}
                 door={pos.door}
+                openDesk={pos.openDesk}
+                basement={pos.basement}
               />
             </div>
           );
@@ -593,11 +691,12 @@ function AgentWorkspace() {
         {secondaryHubStations.map((station, i) => {
           const pos = GRID_PLACEMENT[station.id];
           if (!pos) return null;
+          const zoneClass = ZONE_CLASSES[station.id] || '';
           return (
             <div
               key={station.id}
               ref={(el) => setCellRef(station.id, el)}
-              className="aw-grid-cell"
+              className={`aw-grid-cell${zoneClass ? ` ${zoneClass}` : ''}`}
               style={{ gridColumn: pos.col, gridRow: pos.row }}
               onMouseEnter={() => handleStationEnter(station.id)}
               onMouseLeave={handleStationLeave}

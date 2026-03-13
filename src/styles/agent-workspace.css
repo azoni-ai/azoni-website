@@ -91,7 +91,7 @@
   position: relative;
   display: grid;
   grid-template-columns: 1fr 34px 1fr 56px 1fr 34px 1fr;
-  grid-template-rows: auto auto auto auto;
+  grid-template-rows: auto 20px auto 20px auto 20px auto 60px 20px auto;
   gap: 0;
   min-height: 600px;
 
@@ -238,6 +238,99 @@
   animation: awFlash 2s ease-out;
 }
 
+/* ─── MCP Reception enhancements ─── */
+.aw-mcp-sublabel {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.45rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: rgba(255, 122, 92, 0.35);
+  text-transform: uppercase;
+}
+
+.aw-mcp-desk {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 160px;
+  height: 8px;
+  margin-left: -80px;
+  background: rgba(180, 160, 120, 0.06);
+  border: 1px solid rgba(180, 160, 120, 0.06);
+  border-radius: 2px 2px 0 0;
+  z-index: 0;
+}
+
+.aw-mcp-lobby-plant {
+  position: absolute;
+  bottom: 8px;
+  left: 16px;
+  width: 10px;
+  height: 14px;
+  z-index: 2;
+}
+
+.aw-mcp-lobby-plant::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  margin-left: -4px;
+  width: 8px;
+  height: 5px;
+  background: rgba(180, 160, 120, 0.1);
+  border-radius: 0 0 2px 2px;
+}
+
+.aw-mcp-lobby-plant::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  margin-left: -5px;
+  width: 10px;
+  height: 9px;
+  background: rgba(74, 222, 128, 0.12);
+  border-radius: 50%;
+}
+
+.aw-mcp-clock {
+  position: absolute;
+  bottom: 10px;
+  right: 16px;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.aw-mcp-clock-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.aw-mcp-clock-hour {
+  width: 1px;
+  height: 4px;
+  transform: rotate(30deg);
+}
+
+.aw-mcp-clock-min {
+  width: 1px;
+  height: 5px;
+  transform: rotate(150deg);
+  animation: awClockSpin 120s linear infinite;
+}
+
+@keyframes awClockSpin {
+  from { transform: rotate(150deg); }
+  to { transform: rotate(510deg); }
+}
+
 /* ═══════════════════════════════════════════════════════
    Central Hallway — Column 3
    ═══════════════════════════════════════════════════════ */
@@ -334,6 +427,311 @@
 }
 
 /* ═══════════════════════════════════════════════════════
+   Hallway Decorations — office furniture in corridors
+   ═══════════════════════════════════════════════════════ */
+.aw-hall-decor {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.aw-decor-top { top: 16%; }
+.aw-decor-mid { top: 50%; }
+.aw-decor-bot { top: 82%; }
+
+/* ─── Water Cooler (center hallway, top) ─── */
+.aw-decor-watercooler {
+  width: 10px;
+  height: 20px;
+  position: relative;
+}
+
+.aw-decor-watercooler::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  margin-left: -4px;
+  width: 8px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+}
+
+.aw-decor-watercooler::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  margin-left: -3px;
+  width: 6px;
+  height: 8px;
+  background: rgba(96, 165, 250, 0.15);
+  border-radius: 2px 2px 0 0;
+  border: 1px solid rgba(96, 165, 250, 0.12);
+}
+
+/* ─── Bulletin Board (center hallway, mid) ─── */
+.aw-decor-bulletin {
+  width: 18px;
+  height: 14px;
+  background: rgba(180, 160, 120, 0.08);
+  border: 1px solid rgba(180, 160, 120, 0.12);
+  border-radius: 1px;
+  position: relative;
+}
+
+.aw-decor-bulletin::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 5px;
+  height: 4px;
+  background: rgba(251, 191, 36, 0.2);
+  border-radius: 1px;
+  transform: rotate(-5deg);
+}
+
+.aw-decor-bulletin::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 6px;
+  height: 3px;
+  background: rgba(96, 165, 250, 0.2);
+  border-radius: 1px;
+  transform: rotate(3deg);
+}
+
+/* ─── Coffee Machine (center hallway, bottom) ─── */
+.aw-decor-coffee {
+  width: 12px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  position: relative;
+}
+
+.aw-decor-coffee::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  margin-left: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 122, 92, 0.25);
+  box-shadow: 0 0 3px rgba(255, 122, 92, 0.2);
+}
+
+.aw-decor-coffee::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  margin-left: -1px;
+  width: 2px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  animation: awSteam 2s ease-in-out infinite;
+}
+
+/* ─── Potted Plant (left hallway, top) ─── */
+.aw-decor-plant {
+  width: 10px;
+  height: 16px;
+  position: relative;
+}
+
+.aw-decor-plant::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  margin-left: -4px;
+  width: 8px;
+  height: 6px;
+  background: rgba(180, 160, 120, 0.12);
+  border-radius: 0 0 2px 2px;
+}
+
+.aw-decor-plant::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  margin-left: -5px;
+  width: 10px;
+  height: 10px;
+  background: rgba(74, 222, 128, 0.15);
+  border-radius: 50%;
+  animation: awPlantSway 3s ease-in-out infinite;
+}
+
+/* ─── Bench with book (left hallway, mid) ─── */
+.aw-decor-bench {
+  width: 14px;
+  height: 8px;
+  background: rgba(180, 160, 120, 0.1);
+  border: 1px solid rgba(180, 160, 120, 0.08);
+  border-radius: 1px;
+  position: relative;
+}
+
+.aw-decor-bench::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: 1px;
+  width: 5px;
+  height: 3px;
+  background: rgba(96, 165, 250, 0.15);
+  border-radius: 1px;
+  transform: rotate(5deg);
+}
+
+/* ─── Shoe Rack (left hallway, bottom) ─── */
+.aw-decor-shoes {
+  width: 12px;
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1px;
+  position: relative;
+}
+
+.aw-decor-shoes::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 4px;
+  height: 3px;
+  background: rgba(74, 222, 128, 0.15);
+  border-radius: 1px 1px 0 0;
+}
+
+.aw-decor-shoes::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 4px;
+  height: 3px;
+  background: rgba(52, 211, 153, 0.15);
+  border-radius: 1px 1px 0 0;
+}
+
+/* ─── Umbrella Stand (right hallway, top) ─── */
+.aw-decor-umbrella {
+  width: 8px;
+  height: 18px;
+  position: relative;
+}
+
+.aw-decor-umbrella::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  margin-left: -4px;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 2px 2px;
+}
+
+.aw-decor-umbrella::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 2px;
+  height: 14px;
+  background: rgba(96, 165, 250, 0.2);
+  border-radius: 1px;
+  transform: rotate(-8deg);
+}
+
+/* ─── Vending Machine (right hallway, mid) ─── */
+.aw-decor-vending {
+  width: 12px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1px;
+  position: relative;
+}
+
+.aw-decor-vending::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 2px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(248, 113, 113, 0.3);
+  box-shadow:
+    5px 0 0 rgba(74, 222, 128, 0.3),
+    0 5px 0 rgba(251, 191, 36, 0.3),
+    5px 5px 0 rgba(96, 165, 250, 0.3);
+}
+
+.aw-decor-vending::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  margin-left: -3px;
+  width: 6px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+}
+
+/* ─── Mini Server Rack (right hallway, bottom) ─── */
+.aw-decor-serverrack {
+  width: 10px;
+  height: 18px;
+  background: rgba(32, 217, 210, 0.04);
+  border: 1px solid rgba(32, 217, 210, 0.1);
+  border-radius: 1px;
+  position: relative;
+}
+
+.aw-decor-serverrack::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  width: 3px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.4);
+  box-shadow: 0 5px 0 rgba(74, 222, 128, 0.3), 0 10px 0 rgba(74, 222, 128, 0.2);
+  animation: awPulse 2s ease-in-out infinite;
+}
+
+.aw-decor-serverrack::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 2px;
+  width: 4px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 5px 0 rgba(255, 255, 255, 0.08), 0 10px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════
    Empty Floor Cells — Unoccupied building space
    ═══════════════════════════════════════════════════════ */
 .aw-empty-floor {
@@ -357,6 +755,334 @@
       rgba(255, 255, 255, 0.012) 13px
     );
   pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Zone Labels — between station rows
+   ═══════════════════════════════════════════════════════ */
+.aw-zone-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--zone-color) 3%, transparent) 20%,
+    color-mix(in srgb, var(--zone-color) 4%, transparent) 50%,
+    color-mix(in srgb, var(--zone-color) 3%, transparent) 80%,
+    transparent 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.aw-zone-text {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--zone-color);
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.aw-zone-left {
+  margin-right: auto;
+  padding-left: 12px;
+}
+
+.aw-zone-right {
+  margin-left: auto;
+  padding-right: 12px;
+}
+
+.aw-zone-divider {
+  width: 1px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
+/* ─── Zone background textures ─── */
+.aw-zone-products {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(96, 165, 250, 0.012) 7px, rgba(96, 165, 250, 0.012) 8px);
+}
+
+.aw-zone-wellness {
+  background-image:
+    radial-gradient(circle, rgba(217, 119, 6, 0.018) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+
+.aw-zone-creative {
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(192, 132, 252, 0.012) 8px, rgba(192, 132, 252, 0.012) 9px),
+    repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(192, 132, 252, 0.012) 8px, rgba(192, 132, 252, 0.012) 9px);
+}
+
+.aw-zone-gym {
+  background-image:
+    radial-gradient(circle, rgba(74, 222, 128, 0.02) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+.aw-zone-ops {
+  background-image:
+    linear-gradient(0deg, rgba(32, 217, 210, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32, 217, 210, 0.015) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+/* Basement zone — bare industrial, no fun texture */
+.aw-zone-basement {
+  background-color: rgba(0, 0, 0, 0.12);
+  background-image:
+    linear-gradient(0deg, rgba(107, 114, 128, 0.02) 1px, transparent 1px);
+  background-size: 100% 8px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Staircase — Floor separator between main office & basement
+   ═══════════════════════════════════════════════════════ */
+.aw-staircase {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 16, 0.3) 0%,
+    rgba(5, 5, 10, 0.7) 100%
+  );
+  z-index: 3;
+  overflow: hidden;
+}
+
+/* Step pattern — descending stairs */
+.aw-staircase-steps {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 10px,
+      rgba(255, 255, 255, 0.03) 10px,
+      rgba(255, 255, 255, 0.03) 12px
+    );
+  /* Stair risers — offset stepped rectangles */
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,1));
+}
+
+/* Left side steps */
+.aw-staircase::before {
+  content: '';
+  position: absolute;
+  left: 10%;
+  top: 20%;
+  width: 28%;
+  height: 60%;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.04) 0px,
+      rgba(255, 255, 255, 0.04) 18px,
+      transparent 18px,
+      transparent 22px
+    );
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+/* Right side steps */
+.aw-staircase::after {
+  content: '';
+  position: absolute;
+  right: 10%;
+  top: 20%;
+  width: 28%;
+  height: 60%;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.04) 0px,
+      rgba(255, 255, 255, 0.04) 18px,
+      transparent 18px,
+      transparent 22px
+    );
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.aw-staircase-label {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.45rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(107, 114, 128, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+}
+
+.aw-staircase-arrow {
+  font-size: 0.5rem;
+  opacity: 0.6;
+  animation: awStairsArrow 2s ease-in-out infinite;
+}
+
+@keyframes awStairsArrow {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(3px); opacity: 0.8; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Vacant Rooms — Empty cells with construction tape
+   ═══════════════════════════════════════════════════════ */
+.aw-vacant-cell {
+  pointer-events: none;
+}
+
+.aw-vacant-room {
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0px,
+      transparent 8px,
+      rgba(234, 179, 8, 0.02) 8px,
+      rgba(234, 179, 8, 0.02) 10px,
+      transparent 10px,
+      transparent 18px,
+      rgba(30, 30, 30, 0.03) 18px,
+      rgba(30, 30, 30, 0.03) 20px
+    );
+}
+
+.aw-vacant-label {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Basement Station Styling — Outcasted, dim, flickering
+   ═══════════════════════════════════════════════════════ */
+.aw-basement-cell {
+  position: relative;
+}
+
+.aw-basement-station {
+  opacity: 0.72;
+  border: 1px solid rgba(255, 255, 255, 0.03) !important;
+  filter: saturate(0.5);
+  animation: awFlickerLight 8s ease-in-out infinite;
+}
+
+.aw-basement-station::after {
+  background: linear-gradient(
+    to bottom,
+    rgba(107, 114, 128, 0.08) 0%,
+    transparent 4px
+  ) !important;
+  border-radius: 0 !important;
+}
+
+/* No room badge for basement stations */
+.aw-basement-station .aw-room-badge {
+  display: none;
+}
+
+/* No door indicator for basement */
+.aw-basement-station::before {
+  opacity: 0.3 !important;
+}
+
+/* Flickering light — faulty fluorescent */
+@keyframes awFlickerLight {
+  0%, 100% { opacity: 0.72; }
+  45% { opacity: 0.72; }
+  47% { opacity: 0.58; }
+  49% { opacity: 0.72; }
+  50% { opacity: 0.55; }
+  51% { opacity: 0.72; }
+  85% { opacity: 0.72; }
+  86% { opacity: 0.62; }
+  87% { opacity: 0.72; }
+}
+
+/* Cobweb + grime overlay on basement scenes */
+.aw-basement-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Cobweb in top-right corner */
+.aw-basement-overlay::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  width: 24px;
+  height: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    linear-gradient(135deg, transparent 60%, rgba(255, 255, 255, 0.02) 100%),
+    linear-gradient(160deg, transparent 50%, rgba(255, 255, 255, 0.015) 100%);
+  border-radius: 0 4px 0 0;
+  opacity: 0.8;
+}
+
+/* Dust/grime gradient from bottom */
+.aw-basement-overlay::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: linear-gradient(
+    to top,
+    rgba(60, 50, 40, 0.08) 0%,
+    transparent 100%
+  );
+}
+
+/* Basement avatar shiver animation */
+.aw-basement-station .aw-station-avatar {
+  animation: awBasementShiver 5s ease-in-out infinite !important;
+}
+
+@keyframes awBasementShiver {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(0deg); }
+  32% { transform: rotate(-1.5deg) scaleX(0.98); }
+  34% { transform: rotate(1deg); }
+  36% { transform: rotate(-0.5deg); }
+  38% { transform: rotate(0deg); }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -603,6 +1329,26 @@
 
 .aw-station-card:hover::after {
   opacity: 0.8;
+}
+
+/* ─── Open Desk — Conductor's workstation (no walls) ─── */
+.aw-station-card.aw-open-desk {
+  border: 1px dashed rgba(167, 139, 250, 0.2);
+  border-radius: 6px;
+  background: rgba(167, 139, 250, 0.02);
+}
+
+.aw-station-card.aw-open-desk::after {
+  /* Move accent to bottom instead of top nameplate */
+  top: auto;
+  bottom: 0;
+  height: 1px;
+  opacity: 0.3;
+}
+
+.aw-station-card.aw-open-desk::before {
+  /* No door indicators */
+  display: none;
 }
 
 /* ─── Scene Area ─── */
@@ -1257,46 +2003,113 @@
   opacity: 0.7;
 }
 
-/* ─── Orchestrator: Command Center ─── */
+/* ─── Orchestrator: Open Standing Desk ─── */
 .aw-props-orch {
   position: absolute;
   inset: 0;
 }
 
-.aw-orch-hex {
+/* Floor mat */
+.aw-orch-mat {
   position: absolute;
-  bottom: 18px;
+  bottom: 8px;
   left: 50%;
-  width: 80px;
-  height: 40px;
-  margin-left: -40px;
-  background: rgba(167, 139, 250, 0.06);
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  border: 1px solid rgba(167, 139, 250, 0.15);
-}
-
-.aw-orch-panel {
-  position: absolute;
-  top: 20px;
-  width: 32px;
-  height: 48px;
+  width: 85%;
+  height: 24px;
+  margin-left: -42.5%;
   background: rgba(167, 139, 250, 0.04);
-  border: 1px solid rgba(167, 139, 250, 0.12);
   border-radius: 3px;
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  padding: 4px 3px;
 }
 
-.aw-orch-panel-l { left: 10px; }
-.aw-orch-panel-r { right: 10px; }
+/* Standing desk surface */
+.aw-orch-desk {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  width: 78%;
+  height: 6px;
+  margin-left: -39%;
+  background: rgba(180, 160, 120, 0.15);
+  border: 1px solid rgba(180, 160, 120, 0.1);
+  border-radius: 1px;
+}
 
-.aw-orch-bar {
-  flex: 1;
-  background: rgba(167, 139, 250, 0.25);
+/* Monitors */
+.aw-orch-monitor {
+  position: absolute;
+  bottom: 34px;
+  width: 22px;
+  height: 28px;
+  background: rgba(167, 139, 250, 0.04);
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: 2px;
+  padding: 3px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+}
+
+.aw-orch-monitor-l { left: 14%; transform: rotate(-5deg); }
+.aw-orch-monitor-c { left: 50%; margin-left: -11px; width: 26px; height: 32px; bottom: 35px; }
+.aw-orch-monitor-r { right: 14%; transform: rotate(5deg); }
+
+.aw-orch-screen-line {
+  width: 80%;
+  height: 2px;
+  background: var(--mon-color, rgba(167, 139, 250, 0.3));
+  opacity: 0.4;
+  border-radius: 1px;
+  animation: awPulse 3s ease-in-out infinite;
+}
+
+.aw-orch-monitor-c .aw-orch-screen-line { opacity: 0.5; }
+
+/* Coffee thermos */
+.aw-orch-thermos {
+  position: absolute;
+  bottom: 28px;
+  right: 10%;
+  width: 5px;
+  height: 14px;
+  background: rgba(167, 139, 250, 0.15);
+  border-radius: 1px 1px 2px 2px;
+  border: 1px solid rgba(167, 139, 250, 0.12);
+}
+
+.aw-orch-thermos::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(167, 139, 250, 0.2);
   border-radius: 1px 1px 0 0;
-  min-height: 4px;
+}
+
+/* Scattered papers */
+.aw-orch-papers {
+  position: absolute;
+  bottom: 28px;
+  left: 10%;
+  width: 12px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 1px;
+  transform: rotate(-8deg);
+}
+
+.aw-orch-papers::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 3px;
+  width: 10px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1px;
+  transform: rotate(12deg);
 }
 
 .aw-orch-ring {
@@ -1312,14 +2125,14 @@
 
 .aw-orch-dot {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: #a78bfa;
-  opacity: 0.3;
+  opacity: 0.2;
   top: 50%;
   left: 50%;
-  transform: rotate(calc(var(--i) * 45deg)) translateX(38px) translateY(-2px);
+  transform: rotate(calc(var(--i) * 45deg)) translateX(38px) translateY(-1.5px);
 }
 
 /* ─── Gaming: Arcane Arena ─── */
@@ -1724,6 +2537,415 @@
   opacity: 0.3;
 }
 
+/* ─── FaB Stats: Card Game Table ─── */
+.aw-props-fabstats {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-fab-playmat {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  margin-left: -40px;
+  width: 80px;
+  height: 28px;
+  background: rgba(217, 160, 91, 0.05);
+  border: 1px solid rgba(217, 160, 91, 0.1);
+  border-radius: 2px;
+}
+
+.aw-fab-cards {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  margin-left: -18px;
+}
+
+.aw-fab-card {
+  position: absolute;
+  width: 12px;
+  height: 18px;
+  background: rgba(217, 160, 91, 0.08);
+  border: 1px solid rgba(217, 160, 91, 0.2);
+  border-radius: 1px;
+}
+
+.aw-fab-card-1 { left: 0; transform: rotate(-10deg); }
+.aw-fab-card-2 { left: 12px; transform: rotate(0deg); }
+.aw-fab-card-3 { left: 24px; transform: rotate(10deg); }
+
+.aw-fab-chart {
+  position: absolute;
+  top: 14px;
+  right: 10px;
+  width: 28px;
+  height: 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 2px;
+  background: rgba(217, 160, 91, 0.04);
+  border: 1px solid rgba(217, 160, 91, 0.08);
+  border-radius: 2px;
+}
+
+.aw-fab-bar {
+  flex: 1;
+  background: rgba(217, 160, 91, 0.25);
+  border-radius: 1px 1px 0 0;
+  min-height: 3px;
+}
+
+.aw-fab-trophy {
+  position: absolute;
+  top: 16px;
+  left: 12px;
+  width: 8px;
+  height: 12px;
+  position: absolute;
+}
+
+.aw-fab-trophy::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 7px;
+  border: 1.5px solid rgba(251, 191, 36, 0.3);
+  border-bottom: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.aw-fab-trophy::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 2px;
+  width: 4px;
+  height: 4px;
+  background: rgba(251, 191, 36, 0.15);
+  border-radius: 0 0 1px 1px;
+}
+
+/* ─── FaB Bot: Discord Chat Setup ─── */
+.aw-props-fabbot {
+  position: absolute;
+  inset: 0;
+}
+
+.aw-fbot-chat {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  margin-left: -28px;
+  width: 56px;
+  height: 38px;
+  background: rgba(201, 168, 76, 0.04);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-radius: 3px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.aw-fbot-msg {
+  height: 3px;
+  border-radius: 2px;
+}
+
+.aw-fbot-msg-1 { width: 70%; background: rgba(96, 165, 250, 0.2); }
+.aw-fbot-msg-2 { width: 55%; background: rgba(74, 222, 128, 0.2); margin-left: auto; }
+.aw-fbot-msg-3 { width: 60%; background: rgba(201, 168, 76, 0.25); }
+
+.aw-fbot-headset {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  width: 14px;
+  height: 12px;
+  border: 1.5px solid rgba(201, 168, 76, 0.2);
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+}
+
+.aw-fbot-headset::before,
+.aw-fbot-headset::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  width: 4px;
+  height: 5px;
+  background: rgba(201, 168, 76, 0.15);
+  border-radius: 1px;
+}
+
+.aw-fbot-headset::before { left: -1px; }
+.aw-fbot-headset::after { right: -1px; }
+
+.aw-fbot-prompt {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  margin-left: -20px;
+  width: 40px;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-radius: 1px;
+  padding: 1px 3px;
+}
+
+.aw-fbot-cursor {
+  display: block;
+  width: 4px;
+  height: 4px;
+  background: rgba(201, 168, 76, 0.5);
+  animation: awBlink 1s step-end infinite;
+}
+
+.aw-fbot-bell {
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid rgba(251, 191, 36, 0.25);
+  border-radius: 0 0 4px 4px;
+  border-top: none;
+}
+
+.aw-fbot-bell::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  margin-left: -1px;
+  width: 2px;
+  height: 4px;
+  background: rgba(251, 191, 36, 0.2);
+}
+
+/* ─── Personal Items — shared across stations ─── */
+.aw-personal-nameplate {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.32rem;
+  letter-spacing: 0.1em;
+  color: var(--plate-color, rgba(255, 255, 255, 0.2));
+  opacity: 0.3;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1px 6px;
+  border-radius: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.aw-personal-postit {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 0;
+}
+
+.aw-postit-1 {
+  top: 10px;
+  right: 22px;
+  background: rgba(251, 191, 36, 0.2);
+  transform: rotate(5deg);
+}
+
+.aw-postit-2 {
+  top: 16px;
+  right: 16px;
+  background: rgba(96, 165, 250, 0.2);
+  transform: rotate(-3deg);
+}
+
+/* Blog: Ink well & manuscripts */
+.aw-blog-inkwell {
+  position: absolute;
+  bottom: 22px;
+  right: 16px;
+  width: 7px;
+  height: 7px;
+  background: rgba(30, 20, 10, 0.4);
+  border-radius: 50%;
+  border: 1px solid rgba(100, 80, 50, 0.2);
+}
+
+.aw-blog-manuscripts {
+  position: absolute;
+  bottom: 12px;
+  left: 8px;
+  width: 14px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1px;
+}
+
+.aw-blog-manuscripts::before {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 1px;
+  width: 12px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 1px;
+}
+
+/* Wellness: Cushion & incense */
+.aw-wellness-cushion {
+  position: absolute;
+  bottom: 8px;
+  left: 14px;
+  width: 16px;
+  height: 8px;
+  background: rgba(217, 119, 6, 0.08);
+  border-radius: 50%;
+  border: 1px solid rgba(217, 119, 6, 0.06);
+}
+
+.aw-wellness-incense {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  width: 2px;
+  height: 12px;
+  background: rgba(180, 160, 120, 0.15);
+}
+
+.aw-wellness-incense::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -1px;
+  width: 4px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  animation: awSteam 2.5s ease-in-out infinite;
+}
+
+/* Fitness: Timer & water bottle */
+.aw-fitness-timer {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  width: 18px;
+  height: 10px;
+  background: rgba(74, 222, 128, 0.05);
+  border: 1px solid rgba(74, 222, 128, 0.1);
+  border-radius: 1px;
+}
+
+.aw-fitness-timer::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 8px;
+  height: 2px;
+  background: rgba(74, 222, 128, 0.3);
+  border-radius: 1px;
+}
+
+.aw-fitness-bottle {
+  position: absolute;
+  bottom: 12px;
+  left: 8px;
+  width: 5px;
+  height: 14px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 2px;
+  border: 1px solid rgba(96, 165, 250, 0.1);
+}
+
+/* Rowing: Pace display */
+.aw-rowing-pace {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 20px;
+  height: 12px;
+  background: rgba(52, 211, 153, 0.04);
+  border: 1px solid rgba(52, 211, 153, 0.1);
+  border-radius: 1px;
+}
+
+.aw-rowing-pace::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 10px;
+  height: 2px;
+  background: rgba(52, 211, 153, 0.3);
+  border-radius: 1px;
+}
+
+.aw-rowing-pace::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 3px;
+  width: 6px;
+  height: 2px;
+  background: rgba(52, 211, 153, 0.2);
+  border-radius: 1px;
+}
+
+/* Social: Ring light */
+.aw-social-ringlight {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 1.5px solid rgba(251, 146, 60, 0.08);
+  border-radius: 50%;
+}
+
+/* Gaming: Dice & potion */
+.aw-gaming-dice {
+  position: absolute;
+  top: 16px;
+  left: 10px;
+  width: 6px;
+  height: 6px;
+  background: rgba(192, 132, 252, 0.15);
+  border: 1px solid rgba(192, 132, 252, 0.2);
+  border-radius: 1px;
+  transform: rotate(15deg);
+}
+
+.aw-gaming-potion {
+  position: absolute;
+  bottom: 14px;
+  right: 10px;
+  width: 6px;
+  height: 10px;
+  background: rgba(74, 222, 128, 0.12);
+  border-radius: 0 0 3px 3px;
+  border: 1px solid rgba(74, 222, 128, 0.1);
+}
+
+.aw-gaming-potion::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 1px;
+  width: 4px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 1px 1px 0 0;
+}
+
 /* ─── Scene background tints per theme ─── */
 .aw-theme-chatbot .aw-station-scene { background: linear-gradient(to bottom, rgba(96, 165, 250, 0.03), transparent); }
 .aw-theme-blog .aw-station-scene { background: linear-gradient(to bottom, rgba(251, 191, 36, 0.03), transparent); }
@@ -1779,6 +3001,56 @@
   color: var(--text-muted, #6b6b65);
   font-style: italic;
   font-size: 0.62rem;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Avatar Personality — per-station idle animations
+   ═══════════════════════════════════════════════════════ */
+.aw-theme-benchpressonly .aw-station-avatar { animation: awIdleLean 2.5s ease-in-out infinite; }
+.aw-theme-moltbook .aw-station-avatar { animation: awIdleBouncy 1.8s ease-in-out infinite; }
+.aw-theme-blog .aw-station-avatar { animation: awIdleTilt 4s ease-in-out infinite; }
+.aw-theme-orchestrator .aw-station-avatar { animation: awIdleScan 6s ease-in-out infinite; }
+.aw-theme-spellbrigade .aw-station-avatar { animation: awIdleSway 3.5s ease-in-out infinite; }
+.aw-theme-oldwaystoday .aw-station-avatar { animation: awIdleBreathe 4.5s ease-in-out infinite; }
+.aw-theme-rowcrew .aw-station-avatar { animation: awIdlePull 3s ease-in-out infinite; }
+.aw-theme-fabstats .aw-station-avatar { animation: awIdleTilt 3.4s ease-in-out infinite; }
+.aw-theme-fabstatsbot .aw-station-avatar { animation: awIdleBouncy 2.6s ease-in-out infinite; }
+
+@keyframes awIdleLean {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(2deg); }
+}
+
+@keyframes awIdleBouncy {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.03); }
+}
+
+@keyframes awIdleTilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-1.5deg); }
+}
+
+@keyframes awIdleScan {
+  0%, 100% { transform: rotate(0deg) scaleX(1); }
+  30% { transform: rotate(1deg) scaleX(1); }
+  70% { transform: rotate(-1deg) scaleX(1); }
+}
+
+@keyframes awIdleSway {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(1.5deg); }
+  75% { transform: rotate(-1.5deg); }
+}
+
+@keyframes awIdleBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+
+@keyframes awIdlePull {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-1px); }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2871,6 +4143,13 @@
   .aw-empty-floor { display: none; }
   .aw-tooltip { display: none; }
   .aw-building-label { display: none; }
+  .aw-zone-label { display: none; }
+  .aw-staircase { display: none; }
+  .aw-vacant-cell { display: none; }
+
+  /* Reset basement styling for card layout */
+  .aw-basement-station { filter: none; opacity: 1; }
+  .aw-basement-cell { background: none; }
 }
 
 @media (max-width: 768px) {

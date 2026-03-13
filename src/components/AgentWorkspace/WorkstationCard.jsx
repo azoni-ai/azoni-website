@@ -18,6 +18,8 @@ function WorkstationCard({
   index = 0,
   roomNumber,
   door,
+  openDesk,
+  basement,
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -36,7 +38,7 @@ function WorkstationCard({
 
   return (
     <motion.div
-      className={`aw-station-card aw-theme-${station.id}${isFlashing ? ' aw-station-active' : ''}${isWalking ? ' aw-agent-walking' : ''}${idleClass}${highlightClass}${dimClass}`}
+      className={`aw-station-card aw-theme-${station.id}${openDesk ? ' aw-open-desk' : ''}${basement ? ' aw-basement-station' : ''}${isFlashing ? ' aw-station-active' : ''}${isWalking ? ' aw-agent-walking' : ''}${idleClass}${highlightClass}${dimClass}`}
       style={{
         '--station-color': station.color,
         '--activity-intensity': intensity,
@@ -64,6 +66,9 @@ function WorkstationCard({
         <div className="aw-scene-props">
           <WorkspaceProps stationId={station.id} color={station.color} />
         </div>
+
+        {/* Basement cobweb + flickering light overlay */}
+        {basement && <div className="aw-basement-overlay" />}
 
         {/* Avatar */}
         {hasAvatar && (
@@ -140,8 +145,8 @@ function WorkspaceProps({ stationId, color }) {
     case 'rowcrew': return <RowingWorkspace color={color} />;
     case 'embedroute': return <DataWorkspace icon="nodes" color={color} />;
     case 'activity': return <DataWorkspace icon="pulse" color={color} />;
-    case 'fabstats': return <DataWorkspace icon="shield" color={color} />;
-    case 'fabstatsbot': return <DataWorkspace icon="bot" color={color} />;
+    case 'fabstats': return <FaBStatsWorkspace color={color} />;
+    case 'fabstatsbot': return <FaBBotWorkspace color={color} />;
     default: return null;
   }
 }
@@ -167,6 +172,11 @@ function ChatWorkspace({ color }) {
           <span /><span /><span />
         </div>
       </div>
+      {/* Nameplate */}
+      <div className="aw-personal-nameplate" style={{ '--plate-color': color }}>AZONI</div>
+      {/* Post-it notes */}
+      <div className="aw-personal-postit aw-postit-1" />
+      <div className="aw-personal-postit aw-postit-2" />
       <div className="aw-activity aw-chat-action">
         <div className="aw-chat-bubble">
           <span /><span /><span />
@@ -194,6 +204,10 @@ function BlogWorkspace({ color }) {
         <div className="aw-blog-flame" />
         <div className="aw-blog-wax" />
       </div>
+      {/* Ink well */}
+      <div className="aw-blog-inkwell" />
+      {/* Manuscript stack */}
+      <div className="aw-blog-manuscripts" />
       <div className="aw-activity aw-blog-action">
         <div className="aw-blog-quill" />
         <div className="aw-blog-ink" />
@@ -202,23 +216,33 @@ function BlogWorkspace({ color }) {
   );
 }
 
-// ─── Orchestrator: Command center with hex platform, holo panels ───
+// ─── Orchestrator: Open standing desk with monitors ───
 function OrchestratorWorkspace({ color }) {
   return (
     <div className="aw-props-orch">
-      <div className="aw-orch-hex" />
-      <div className="aw-orch-panel aw-orch-panel-l">
-        <div className="aw-orch-bar" style={{ height: '60%' }} />
-        <div className="aw-orch-bar" style={{ height: '80%' }} />
-        <div className="aw-orch-bar" style={{ height: '40%' }} />
-        <div className="aw-orch-bar" style={{ height: '90%' }} />
+      {/* Floor mat under desk */}
+      <div className="aw-orch-mat" />
+      {/* Standing desk surface */}
+      <div className="aw-orch-desk" />
+      {/* Three monitors in arc */}
+      <div className="aw-orch-monitor aw-orch-monitor-l" style={{ '--mon-color': '#60a5fa' }}>
+        <div className="aw-orch-screen-line" />
+        <div className="aw-orch-screen-line" style={{ width: '60%' }} />
       </div>
-      <div className="aw-orch-panel aw-orch-panel-r">
-        <div className="aw-orch-bar" style={{ height: '50%' }} />
-        <div className="aw-orch-bar" style={{ height: '70%' }} />
-        <div className="aw-orch-bar" style={{ height: '85%' }} />
-        <div className="aw-orch-bar" style={{ height: '35%' }} />
+      <div className="aw-orch-monitor aw-orch-monitor-c" style={{ '--mon-color': '#4ade80' }}>
+        <div className="aw-orch-screen-line" />
+        <div className="aw-orch-screen-line" style={{ width: '50%' }} />
+        <div className="aw-orch-screen-line" style={{ width: '70%' }} />
       </div>
+      <div className="aw-orch-monitor aw-orch-monitor-r" style={{ '--mon-color': '#fbbf24' }}>
+        <div className="aw-orch-screen-line" style={{ width: '80%' }} />
+        <div className="aw-orch-screen-line" />
+      </div>
+      {/* Coffee thermos */}
+      <div className="aw-orch-thermos" />
+      {/* Papers */}
+      <div className="aw-orch-papers" />
+      {/* Orbital ring kept for identity */}
       <div className="aw-orch-ring">
         {Array.from({ length: 8 }).map((_, i) => (
           <span key={i} className="aw-orch-dot" style={{ '--i': i }} />
@@ -240,6 +264,10 @@ function GamingWorkspace({ color }) {
       <div className="aw-gaming-crystal aw-gaming-crystal-l" />
       <div className="aw-gaming-crystal aw-gaming-crystal-r" />
       <div className="aw-gaming-book" />
+      {/* Dice */}
+      <div className="aw-gaming-dice" />
+      {/* Potion */}
+      <div className="aw-gaming-potion" />
       <div className="aw-activity aw-gaming-action">
         <div className="aw-gaming-spark" />
         <div className="aw-gaming-spark aw-gaming-spark-2" />
@@ -257,6 +285,8 @@ function SocialWorkspace({ color }) {
       <div className="aw-social-speaker aw-social-speaker-l" />
       <div className="aw-social-speaker aw-social-speaker-r" />
       <div className="aw-social-mic" />
+      {/* Ring light */}
+      <div className="aw-social-ringlight" />
       <div className="aw-social-bars">
         {Array.from({ length: 4 }).map((_, i) => (
           <span key={i} className="aw-social-bar" style={{ '--i': i }} />
@@ -280,6 +310,10 @@ function WellnessWorkspace({ color }) {
       <div className="aw-wellness-plant aw-wellness-plant-2" />
       <div className="aw-wellness-plant aw-wellness-plant-3" />
       <div className="aw-wellness-mortar" />
+      {/* Meditation cushion */}
+      <div className="aw-wellness-cushion" />
+      {/* Incense */}
+      <div className="aw-wellness-incense" />
       <div className="aw-activity aw-wellness-action">
         <div className="aw-wellness-aroma" />
         <div className="aw-wellness-aroma aw-wellness-aroma-2" />
@@ -300,6 +334,10 @@ function FitnessWorkspace({ color }) {
         <div className="aw-fitness-plate" />
         <div className="aw-fitness-plate aw-fitness-plate-2" />
       </div>
+      {/* Timer display */}
+      <div className="aw-fitness-timer" />
+      {/* Water bottle */}
+      <div className="aw-fitness-bottle" />
       <div className="aw-fitness-barbell">
         <div className="aw-fitness-weight" />
         <div className="aw-fitness-bar" />
@@ -324,10 +362,59 @@ function RowingWorkspace({ color }) {
       </div>
       <div className="aw-rowing-dock" />
       <div className="aw-rowing-oar" />
+      {/* Pace display */}
+      <div className="aw-rowing-pace" />
       <div className="aw-activity aw-rowing-action">
         <div className="aw-rowing-splash" />
         <div className="aw-rowing-splash aw-rowing-splash-2" />
       </div>
+    </div>
+  );
+}
+
+// ─── FaB Stats: Card game table with stats ───
+function FaBStatsWorkspace({ color }) {
+  return (
+    <div className="aw-props-fabstats">
+      {/* Playmat */}
+      <div className="aw-fab-playmat" />
+      {/* Card spread */}
+      <div className="aw-fab-cards">
+        <div className="aw-fab-card aw-fab-card-1" />
+        <div className="aw-fab-card aw-fab-card-2" />
+        <div className="aw-fab-card aw-fab-card-3" />
+      </div>
+      {/* Stat chart */}
+      <div className="aw-fab-chart">
+        <div className="aw-fab-bar" style={{ height: '60%' }} />
+        <div className="aw-fab-bar" style={{ height: '85%' }} />
+        <div className="aw-fab-bar" style={{ height: '45%' }} />
+        <div className="aw-fab-bar" style={{ height: '70%' }} />
+      </div>
+      {/* Trophy */}
+      <div className="aw-fab-trophy" />
+    </div>
+  );
+}
+
+// ─── FaB Bot: Discord setup with headset ───
+function FaBBotWorkspace({ color }) {
+  return (
+    <div className="aw-props-fabbot">
+      {/* Chat window */}
+      <div className="aw-fbot-chat">
+        <div className="aw-fbot-msg aw-fbot-msg-1" />
+        <div className="aw-fbot-msg aw-fbot-msg-2" />
+        <div className="aw-fbot-msg aw-fbot-msg-3" />
+      </div>
+      {/* Headset on hook */}
+      <div className="aw-fbot-headset" />
+      {/* Command prompt */}
+      <div className="aw-fbot-prompt">
+        <span className="aw-fbot-cursor" />
+      </div>
+      {/* Notification bell */}
+      <div className="aw-fbot-bell" />
     </div>
   );
 }

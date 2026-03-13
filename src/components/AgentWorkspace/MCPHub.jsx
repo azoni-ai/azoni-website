@@ -16,6 +16,13 @@ function MCPHub({ totalTools, isFlashing, onClick }) {
     >
       <BorderBeam color="#ff7a5c" colorTo="#ffb347" duration={5} borderWidth={2} />
 
+      {/* Lobby decorations */}
+      <div className="aw-mcp-lobby-plant" />
+      <div className="aw-mcp-clock">
+        <div className="aw-mcp-clock-hand aw-mcp-clock-hour" />
+        <div className="aw-mcp-clock-hand aw-mcp-clock-min" />
+      </div>
+
       <div className="aw-mcp-content">
         {/* Orbital ring */}
         <div className="aw-mcp-orbit">
@@ -36,6 +43,7 @@ function MCPHub({ totalTools, isFlashing, onClick }) {
 
         <div className="aw-mcp-info">
           <div className="aw-mcp-label">MCP Server</div>
+          <div className="aw-mcp-sublabel">RECEPTION</div>
           <div className="aw-mcp-meta">
             <span className="aw-mcp-tools">{totalTools || 33} tools</span>
             <span className="aw-mcp-dot-sep" />
@@ -48,6 +56,9 @@ function MCPHub({ totalTools, isFlashing, onClick }) {
           hub
         </div>
       </div>
+
+      {/* Reception desk */}
+      <div className="aw-mcp-desk" />
     </motion.div>
   );
 }
