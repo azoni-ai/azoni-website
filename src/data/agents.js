@@ -1280,11 +1280,11 @@ const AGENTS = {
     borderColor: "#D9A05B30",
     quote: "Flesh and Blood TCG stats tracker with match logging, meta analysis, and 13 daily minigames.",
     whatItIs: "A full-featured stats platform at fabstats.net for the Flesh and Blood trading card game. Players log matches, track win rates by hero, analyze the competitive meta, and play daily puzzle minigames. Includes a Chrome extension for importing tournament results.",
-    whyUnique: "A real product with real users — 50+ active players tracking thousands of matches. Features include ELO ratings, head-to-head records, tournament top 8 tracking, hero matchup analysis, and 13 different daily minigames. MCP exposes community stats, leaderboards, and minigame data.",
+    whyUnique: "A real product with real users — 3,000+ players tracking over 1,000,000 matches. Features include ELO ratings, head-to-head records, tournament top 8 tracking, hero matchup analysis, and 13 different daily minigames. MCP exposes community stats, leaderboards, and minigame data.",
     tech: ["Next.js 16", "Firebase/Firestore", "Tailwind CSS v4", "Chrome Extension", "Netlify"],
     data: ["leaderboard — player stats + rankings", "matches — individual match records", "heroMatchups — community meta data", "14 minigame collections — daily puzzle stats"],
     cycle: ["Players log matches via web or Chrome extension", "Stats aggregate to leaderboard in real-time", "Meta analysis computes hero popularity + top 8 conversion", "Daily minigames generate unique puzzles from card data", "MCP exposes community stats for the agent ecosystem"],
-    code: `// Community data available via MCP:\n{\n  totalPlayers: 54,\n  totalMatches: 3200,\n  avgWinRate: "51.2%",\n  topHeroes: [\n    { hero: "Prism", players: 8 },\n    { hero: "Briar", players: 7 },\n  ],\n  minigames: 13\n}`,
+    code: `// Community data available via MCP:\n{\n  totalPlayers: 3000,\n  totalMatches: 1000000,\n  avgWinRate: "51.2%",\n  topHeroes: [\n    { hero: "Prism", players: 8 },\n    { hero: "Briar", players: 7 },\n  ],\n  minigames: 13\n}`,
     starters: ["How many players use FaB Stats?", "What's the most popular hero?", "What minigames do you have?", "How do you track tournaments?"],
   },
   activity: {

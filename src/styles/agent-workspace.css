@@ -3733,6 +3733,25 @@
 .aw-detail-tab-content {
   height: 320px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.aw-detail-tab-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.aw-detail-tab-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.aw-detail-tab-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.aw-detail-tab-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* ═══════════════════════════════════════════════════════

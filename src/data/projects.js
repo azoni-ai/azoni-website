@@ -3,14 +3,14 @@ export const projects = [
     id: 'fab-stats',
     title: 'FaB Stats',
     tagline: 'Competitive TCG Analytics Platform',
-    description: 'Full-stack analytics platform with 300+ registered users and 1,600+ tracked matches for the Flesh and Blood TCG competitive community.',
+    description: 'Full-stack analytics platform with 3,000+ registered users and 1,000,000+ tracked matches for the Flesh and Blood TCG competitive community.',
     longDescription: `FaB Stats is a production analytics platform serving the competitive Flesh and Blood community. Players track match results, explore hero-level performance data, compare matchup win rates, and climb leaderboards.
 
-The app includes player profiles, match history, head-to-head matchup tools, community features, and mini-games — all backed by real user data across 300+ accounts and 1,600+ logged matches.`,
+The app includes player profiles, match history, head-to-head matchup tools, community features, and mini-games — all backed by real user data across 3,000+ accounts and 1,000,000+ logged matches.`,
     tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Recharts'],
     highlights: [
-      '300+ registered users with active match tracking',
-      '1,600+ competitive matches logged and analyzed',
+      '3,000+ registered users with active match tracking',
+      '1,000,000+ competitive matches logged and analyzed',
       'Hero performance analytics and matchup win rates',
       'Leaderboards, player profiles, and community tools'
     ],
