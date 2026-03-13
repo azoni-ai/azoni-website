@@ -1590,6 +1590,127 @@
   letter-spacing: 0.05em;
 }
 
+/* ── Hero metrics (prominent display above station name) ── */
+.aw-hero-metrics {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.aw-hero-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.aw-hero-val {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--station-color);
+  line-height: 1.2;
+}
+
+.aw-hero-label {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.55rem;
+  font-weight: 500;
+  color: var(--text-secondary, #a8a8a0);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+/* ── Tagline ── */
+.aw-station-tagline {
+  font-size: 0.55rem;
+  color: var(--text-secondary, #a8a8a0);
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+/* ── Visit chip ── */
+.aw-visit-chip {
+  margin-top: 4px;
+}
+
+.aw-visit-chip a,
+.aw-visit-chip span {
+  display: inline-block;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: var(--chip-color, var(--station-color));
+  border: 1px solid color-mix(in srgb, var(--chip-color, var(--station-color)) 30%, transparent);
+  border-radius: 8px;
+  padding: 1px 8px;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: background 0.2s, color 0.2s;
+}
+
+.aw-visit-chip a:hover {
+  background: color-mix(in srgb, var(--chip-color, var(--station-color)) 15%, transparent);
+  color: #fff;
+}
+
+/* ── Detail panel — inline tech chips ── */
+.aw-detail-tech-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.aw-detail-tech-chip {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.55rem;
+  font-weight: 500;
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Detail panel — progress bar ── */
+.aw-detail-progress {
+  margin-top: 10px;
+}
+
+.aw-detail-progress-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary, #a8a8a0);
+  margin-bottom: 4px;
+}
+
+.aw-detail-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.aw-detail-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.aw-detail-progress-pct {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-secondary, #a8a8a0);
+  margin-top: 2px;
+  text-align: right;
+}
+
 /* ═══════════════════════════════════════════════════════
    Ticker
    ═══════════════════════════════════════════════════════ */

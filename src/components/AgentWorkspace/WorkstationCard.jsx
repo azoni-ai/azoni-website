@@ -147,12 +147,29 @@ function WorkstationCard({
 
       {/* Info area */}
       <div className="aw-station-info">
+        {/* Hero metrics — prominent display above station name */}
+        {!small && metrics && metrics.length > 0 && (
+          <div className="aw-hero-metrics">
+            {metrics.map((m, i) => (
+              <span key={i} className="aw-hero-metric">
+                <span className="aw-hero-val">{m.value}</span>
+                <span className="aw-hero-label">{m.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="aw-station-header">
           <span className="aw-status-led" style={{ background: statusColor }} />
           <span className="aw-station-name">{station.label}</span>
           {mcpStatus === false && <span className="aw-station-offline">OFFLINE</span>}
           {cat && mcpStatus !== false && <span className="aw-station-cat" style={{ color: cat.color }}>{cat.label}</span>}
         </div>
+
+        {/* Tagline */}
+        {!small && station.tagline && (
+          <div className="aw-station-tagline">{station.tagline}</div>
+        )}
 
         {lastEvent ? (
           <div className="aw-station-event">
@@ -181,8 +198,8 @@ function WorkstationCard({
           </div>
         )}
 
-        {/* Live app metrics */}
-        {metrics && metrics.length > 0 && (
+        {/* Small station metrics (compact) */}
+        {small && metrics && metrics.length > 0 && (
           <div className="aw-station-metrics">
             {metrics.map((m, i) => (
               <span key={i} className="aw-station-metric">
@@ -190,6 +207,17 @@ function WorkstationCard({
                 <span className="aw-metric-label">{m.label}</span>
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Visit link */}
+        {!small && station.url && (
+          <div className="aw-visit-chip" style={{ '--chip-color': station.color }}>
+            {station.url.startsWith('http') ? (
+              <a href={station.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>Visit ↗</a>
+            ) : (
+              <span>Visit</span>
+            )}
           </div>
         )}
       </div>

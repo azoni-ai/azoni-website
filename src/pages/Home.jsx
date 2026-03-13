@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import CollapsibleSection from '../components/CollapsibleSection';
 import AgentWorkspace from '../components/AgentWorkspace/AgentWorkspace';
-
-import FabStatsShowcase from '../components/FabStatsShowcase';
-import BenchRowCrewShowcase from '../components/BenchRowCrewShowcase';
-import OldWaysTodayShowcase from '../components/OldWaysTodayShowcase';
+import { useFabStats } from '../hooks/useFabStats';
 import '../styles/bento.css';
 
 
@@ -29,10 +26,8 @@ const Home = () => {
   const [githubStats, setGithubStats] = useState(null);
   const [profile, setProfile] = useState(null);
 
-  const [healthStatus, setHealthStatus] = useState(null);
   const [appStats, setAppStats] = useState(null);
-  const [fabUserCount, setFabUserCount] = useState(0);
-  const [fabMatchCount, setFabMatchCount] = useState(0);
+  const { users: fabUserCount, matches: fabMatchCount } = useFabStats();
 
   const heroRef = useRef(null);
 
@@ -67,34 +62,6 @@ const Home = () => {
       }
     };
     fetchGithubStats();
-  }, []);
-
-  // Fetch latest health check from orchestrator
-  useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const healthRef = collection(db, 'health_checks');
-        const q = query(healthRef, orderBy('timestamp', 'desc'), limit(1));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const data = snapshot.docs[0].data();
-          const status = {};
-          (data.services || []).forEach(s => {
-            if (s.name === 'Moltbook Agent') status.moltbook = s.status;
-            if (s.name === 'OWT Backend' || s.name === 'oldwaystoday.com') status.oldways = s.status;
-            if (s.name === 'MCP Server') status.mcp = s.status;
-          });
-          setHealthStatus(status);
-        }
-      } catch (err) {
-        // Permission is expected for some local/dev Firebase rule setups.
-        if (err?.code === 'permission-denied' || /insufficient permissions/i.test(err?.message || '')) {
-          return;
-        }
-        console.error('Failed to fetch health status:', err);
-      }
-    };
-    fetchHealth();
   }, []);
 
   // Fetch app metrics for homepage product cards
@@ -144,13 +111,6 @@ const Home = () => {
     const days = Math.floor(hours / 24);
     return `${days}d`;
   };
-
-  const formatCountOrLive = (value) => {
-    const num = Number(value);
-    return Number.isFinite(num) && num > 0 ? num.toLocaleString() : 'Live';
-  };
-
-  const combinedFitnessUsers = Number(appStats?.benchpressonly?.users || 0) + Number(appStats?.rowcrew?.uniqueRowers || 0);
 
   // Enrich appStats with FabStats user count (comes from separate Firebase)
   const enrichedStats = useMemo(() => ({
@@ -262,211 +222,8 @@ const Home = () => {
           </section>
         </CollapsibleSection>
 
-        {/* ===== 2. FABSTATS ===== */}
-        <CollapsibleSection
-          title="FaB Stats"
-          subtitle="Live match tracking platform for competitive Flesh and Blood players"
-          badge={fabUserCount > 0 ? `${fabUserCount.toLocaleString()} players` : 'Live'}
-          badgeType="live"
-          defaultOpen={true}
-          stats={[
-            { value: 'fabstats.net', label: '' }
-          ]}
-        >
-          <FabStatsShowcase onStats={({ users, matches }) => { setFabUserCount(users); setFabMatchCount(matches || 0); }} />
-        </CollapsibleSection>
 
-        {/* ===== 3. FITNESS PLATFORM ===== */}
-        <CollapsibleSection
-          title="BenchPressOnly + RowCrew"
-          subtitle="AI-powered strength training and rowing apps with real users"
-          badge={`${formatCountOrLive(combinedFitnessUsers)} users`}
-          badgeType="count"
-          defaultOpen={false}
-          stats={[
-            { value: formatCountOrLive(combinedFitnessUsers), label: 'users' },
-            { value: formatCountOrLive(appStats?.rowcrew?.sessions), label: 'rows' }
-          ]}
-        >
-          <BenchRowCrewShowcase stats={appStats} />
-        </CollapsibleSection>
-
-        {/* ===== 4. OLD WAYS TODAY ===== */}
-        <CollapsibleSection
-          title="Old Ways Today"
-          subtitle="Standalone AI wellness product — same agent architecture, different domain"
-          badge="Product"
-          badgeType="count"
-          defaultOpen={false}
-          stats={[
-            { value: formatCountOrLive(appStats?.oldwaystoday?.requests), label: 'requests' }
-          ]}
-        >
-          <OldWaysTodayShowcase stats={appStats} healthStatus={healthStatus} />
-        </CollapsibleSection>
-
-        {/* ===== 5. MORE PROJECTS (deduplicated — only Spell Brigade + Moltbook) ===== */}
-        <CollapsibleSection
-          title="More Projects"
-          subtitle="AI-powered gaming and autonomous social presence"
-          badge="2 Apps"
-          badgeType="count"
-          defaultOpen={false}
-        >
-        <section className="showcase-section">
-          <div className="container">
-            <div className="showcase-grid">
-
-              <div className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#c084fc' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(192,132,252,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>Spell Brigade</h3>
-                        <span className="showcase-status showcase-status-purple">Playable</span>
-                      </div>
-                      <span className="showcase-tagline">AI wizard combat game</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    Real-time multiplayer wizard combat. AI generates unique characters with custom abilities
-                    and backstories. Fight through dungeons with AI-driven enemies.
-                  </p>
-                  <div className="showcase-tech">
-                    <span>Canvas 2D</span>
-                    <span>Socket.io</span>
-                    <span>GPT-4o-mini</span>
-                    <span>Node.js</span>
-                  </div>
-                  <div className="showcase-actions">
-                    <Link to="/game" className="showcase-action showcase-action-primary">Play Now</Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className="showcase-card">
-                <div className="showcase-card-accent" style={{ background: '#fb923c' }} />
-                <div className="showcase-card-body">
-                  <div className="showcase-card-header">
-                    <div className="showcase-icon" style={{ background: 'rgba(251,146,60,0.12)' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-                    </div>
-                    <div>
-                      <div className="showcase-title-row">
-                        <h3>Moltbook</h3>
-                        {healthStatus?.moltbook === 'down' || healthStatus?.moltbook === 'degraded' ? (
-                          <span className="showcase-status showcase-status-red">Offline</span>
-                        ) : (
-                          <span className="showcase-status showcase-status-orange">Autonomous</span>
-                        )}
-                      </div>
-                      <span className="showcase-tagline">AI social presence</span>
-                    </div>
-                  </div>
-                  <p className="showcase-desc">
-                    The orchestrator decides when to post based on activity gaps and new content. LLM generates
-                    posts, comments, and engagement — all triggered autonomously, not on a fixed schedule.
-                  </p>
-                  <div className="showcase-tech">
-                    <span>Render</span>
-                    <span>Orchestrator</span>
-                    <span>LLM Content</span>
-                    <span>REST API</span>
-                  </div>
-                  <div className="showcase-actions">
-                    <Link to="/moltbook" className="showcase-action">View Agent</Link>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-        </CollapsibleSection>
-
-        {/* ===== 6. TOOLS & SERVICES ===== */}
-        <CollapsibleSection
-          title="Tools & Services"
-          subtitle="APIs powering the agent ecosystem — MCP data server, RAG chatbot, and unified embeddings"
-          badge="3 APIs"
-          badgeType="count"
-          defaultOpen={false}
-        >
-        <section className="services-section">
-          <div className="container">
-            <div className="section-header">
-              <h2>Services</h2>
-            </div>
-            <div className="services-grid">
-              <Link to="/projects/azoni-mcp" className="service-card">
-                <div className="service-card-accent" style={{ background: 'var(--accent-primary)' }} />
-                <div className="service-card-body">
-                  <div className="service-card-header">
-                    <div className="service-icon" style={{ background: 'rgba(255,122,92,0.12)' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    </div>
-                    <h3>MCP Data Server</h3>
-                    <span className="service-status">Live</span>
-                  </div>
-                  <p>Exposes live fitness data, project stats, and activity logs to AI agents and the orchestrator via Model Context Protocol.</p>
-                  <div className="service-tech">
-                    <span>Node.js</span>
-                    <span>REST API</span>
-                    <span>Firebase</span>
-                    <span>Render</span>
-                  </div>
-                </div>
-              </Link>
-
-              <Link to="/chat" className="service-card">
-                <div className="service-card-accent" style={{ background: '#8b5cf6' }} />
-                <div className="service-card-body">
-                  <div className="service-card-header">
-                    <div className="service-icon" style={{ background: 'rgba(139,92,246,0.12)' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                    </div>
-                    <h3>RAG Chatbot</h3>
-                    <span className="service-status">Live</span>
-                  </div>
-                  <p>Intent detection routes queries to RAG knowledge base or live MCP endpoints. Paste a job description for AI-powered fit analysis.</p>
-                  <div className="service-tech">
-                    <span>OpenRouter</span>
-                    <span>RAG</span>
-                    <span>MCP</span>
-                    <span>Firestore</span>
-                  </div>
-                </div>
-              </Link>
-
-              <a href="https://www.embedroute.com" target="_blank" rel="noopener noreferrer" className="service-card">
-                <div className="service-card-accent" style={{ background: '#22d3ee' }} />
-                <div className="service-card-body">
-                  <div className="service-card-header">
-                    <div className="service-icon" style={{ background: 'rgba(34,211,238,0.12)' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                    </div>
-                    <h3>EmbedRoute</h3>
-                    <span className="service-status">Live</span>
-                  </div>
-                  <p>Unified embedding API — one endpoint that routes to OpenAI, Cohere, Voyage, and more. Powers RAG and semantic search across all apps.</p>
-                  <div className="service-tech">
-                    <span>Node.js</span>
-                    <span>REST API</span>
-                    <span>Multi-provider</span>
-                    <span>Standalone SaaS</span>
-                  </div>
-                </div>
-              </a>
-            </div>
-          </div>
-        </section>
-        </CollapsibleSection>
-
-        {/* ===== 7. BACKGROUND (merged Experience + Earlier Work) ===== */}
+        {/* ===== 2. BACKGROUND (merged Experience + Earlier Work) ===== */}
         <CollapsibleSection
           title="Professional Experience"
           subtitle="7+ years at T-Mobile, Capital One, and startups — plus a 50-machine trading system and ACM publication"

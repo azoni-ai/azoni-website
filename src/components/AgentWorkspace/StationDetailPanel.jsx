@@ -70,6 +70,18 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                 {(agentData?.quote || station.desc) && (
                   <div className="aw-detail-quote">{agentData?.quote || station.desc}</div>
                 )}
+                {/* Inline tech chips (always visible) */}
+                {(() => {
+                  const techList = project?.tech || agentData?.tech;
+                  return techList && techList.length > 0 ? (
+                    <div className="aw-detail-tech-inline">
+                      {techList.slice(0, 5).map((t, i) => (
+                        <span key={i} className="aw-detail-tech-chip" style={{ borderColor: `${station.color}30`, color: station.color }}>{t}</span>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+
                 <div className="aw-detail-status-row">
                   <div className="aw-detail-status">
                     <span className="aw-detail-status-dot" style={{ background: statusColor }} />
@@ -183,7 +195,9 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                       {station.id === 'rowcrew' && appStats?.rowcrew && (() => {
                         const rc = appStats.rowcrew;
                         const meters = Number(rc.meters) || 0;
-                        const users = Number(rc.users || rc.totalUsers) || 0;
+                        const users = Number(rc.users || rc.totalUsers || rc.uniqueRowers) || 0;
+                        const progress = Number(rc.worldProgressPercent) || 0;
+                        const goalMeters = Number(rc.worldGoalMeters) || 40075000;
                         return (meters > 0 || users > 0) ? (
                           <div className="aw-detail-section">
                             <div className="aw-detail-section-title">Live Stats</div>
@@ -191,6 +205,15 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                               {users > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{users.toLocaleString()}</div><div className="aw-detail-stat-label">rowers</div></div>}
                               {meters > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{meters.toLocaleString()}</div><div className="aw-detail-stat-label">meters rowed</div></div>}
                             </div>
+                            {progress > 0 && (
+                              <div className="aw-detail-progress">
+                                <div className="aw-detail-progress-label">Around the World ({(goalMeters / 1000).toLocaleString()} km)</div>
+                                <div className="aw-detail-progress-bar">
+                                  <div className="aw-detail-progress-fill" style={{ width: `${Math.min(progress, 100)}%`, background: station.color }} />
+                                </div>
+                                <div className="aw-detail-progress-pct">{progress.toFixed(1)}%</div>
+                              </div>
+                            )}
                           </div>
                         ) : null;
                       })()}
@@ -226,6 +249,11 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                         <div className="aw-detail-section">
                           <div className="aw-detail-section-title">About</div>
                           <div className="aw-detail-text">{agentData?.whatItIs || station.desc}</div>
+                        </div>
+                      )}
+                      {project?.description && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-text">{project.description}</div>
                         </div>
                       )}
                       {agentData?.cycle && (
