@@ -46,6 +46,13 @@ export const useProjects = (initialCategory = 'all') => {
           id: doc.id,
           ...doc.data()
         }));
+        // Merge in any static projects missing from Firestore
+        const firestoreIds = new Set(projectsData.map(p => p.id));
+        for (const sp of staticProjects) {
+          if (!firestoreIds.has(sp.id)) {
+            projectsData.push(sp);
+          }
+        }
         // Sort by displayOrder (lower = first), then featured, then title
         projectsData.sort((a, b) => {
           // First by displayOrder if exists

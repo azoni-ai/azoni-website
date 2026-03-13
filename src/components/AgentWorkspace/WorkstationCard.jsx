@@ -5,7 +5,7 @@ import { CATEGORY_STYLES, AGENT_IDLE, formatTimeAgo } from '../../utils/station-
 
 const AVATAR_LABELS = {
   orchestrator: 'Conductor', chat: 'Azoni AI', blog: 'Scribe', social: 'Moltbook',
-  fitness: 'BenchPress', rowing: 'RowCrew', gaming: 'Spell Brigade', oldways: 'Old Ways',
+  fitness: 'Bench Only', rowing: 'RowCrew', gaming: 'Spell Brigade', oldways: 'Old Ways',
   fabstats: 'FaB Stats', fabstatsbot: 'FaB Bot', medic: 'Medic',
 };
 

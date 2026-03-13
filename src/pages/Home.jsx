@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
 import CollapsibleSection from '../components/CollapsibleSection';
 import AgentWorkspace from '../components/AgentWorkspace/AgentWorkspace';
+import { STATION_DEFS } from '../utils/station-mapping';
 import { useFabStats } from '../hooks/useFabStats';
 import '../styles/bento.css';
 
@@ -126,8 +127,8 @@ const Home = () => {
     const totalUsers = bpUsers + fabUsers + rcUsers;
     const stats = [];
     if (totalUsers > 0) stats.push({ value: totalUsers.toLocaleString(), label: 'users' });
-    const apps = 12;
-    stats.push({ value: String(apps), label: 'stations' });
+    const stationCount = STATION_DEFS.filter(s => !s.isHub).length;
+    stats.push({ value: String(stationCount), label: 'stations' });
     return stats;
   }, [appStats, fabUserCount]);
 
@@ -223,7 +224,7 @@ const Home = () => {
         {/* ===== 1. THE AGENT SYSTEM (merged map + agents) ===== */}
         <CollapsibleSection
           title="The Agent System"
-          subtitle="12 stations — 3 autonomous agents, 5 apps, and live infrastructure"
+          subtitle="3 autonomous agents, 5 apps, and 4 infrastructure services"
           badge="Live"
           badgeType="live"
           defaultOpen={true}

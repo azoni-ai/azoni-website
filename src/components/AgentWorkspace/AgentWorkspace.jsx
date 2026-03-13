@@ -30,9 +30,9 @@ const SMALL_STATIONS = ['rowcrew', 'spellbrigade', 'activity', 'embedroute', 'me
 
 // Zone labels between station rows
 const ZONE_LABELS = [
-  { row: 2, label: 'COMMAND', color: '#a78bfa' },
+  { row: 2, label: 'AGENTS', color: '#a78bfa' },
   { row: 4, label: 'APPS', color: '#4ade80' },
-  { row: 6, label: 'SUPPORT', color: '#6b6b65' },
+  { row: 6, label: 'MORE', color: '#6b6b65' },
 ];
 
 // Zone classes for subtle background textures
