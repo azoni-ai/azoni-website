@@ -23,6 +23,7 @@ function WorkstationCard({
   metrics,
   inspection,
   isPacing,
+  showChatBubble,
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -93,6 +94,18 @@ function WorkstationCard({
           >
             {avatars[station.agent](56)}
           </motion.div>
+        )}
+
+        {/* Chat bubbles — Conductor inspection conversation */}
+        {showChatBubble && (
+          <div className="aw-chat-bubbles">
+            <div className="aw-chat-bubble-left">
+              <span /><span /><span />
+            </div>
+            <div className="aw-chat-bubble-right">
+              <span /><span /><span />
+            </div>
+          </div>
         )}
 
         {/* Non-agent icon */}

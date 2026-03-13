@@ -347,6 +347,8 @@ function AgentWorkspace({ appStats, githubStats }) {
   const [inspectedStation, setInspectedStation] = useState(null);
   const inspectedTimerRef = useRef(null);
   const [patrolEvents, setPatrolEvents] = useState([]);
+  const [chatBubbleStation, setChatBubbleStation] = useState(null);
+  const chatBubbleTimerRef = useRef(null);
 
   const setCellRef = useCallback((id, el) => {
     if (el) cellRefs.current[id] = el;
@@ -400,7 +402,17 @@ function AgentWorkspace({ appStats, githubStats }) {
     const station = stationById[stationId];
     if (!station?.agent || !avatars[station.agent]) return;
     if (INFRASTRUCTURE_HUBS.has(stationId)) return; // hubs don't walk
-    if (walkingAgents[stationId]) { triggerPaceRef.current(stationId); return; } // already walking → pace instead
+    if (walkingAgents[stationId]) {
+      // Real events interrupt patrol walks
+      if (stationId === 'orchestrator' && isPatrolWalkRef.current && eventType !== 'patrol' && eventType !== 'health_check') {
+        setWalkingAgents(prev => { const next = { ...prev }; delete next[stationId]; return next; });
+        isPatrolWalkRef.current = false;
+        setChatBubbleStation(null);
+      } else {
+        triggerPaceRef.current(stationId);
+        return;
+      }
+    }
 
     const pos = GRID_PLACEMENT[stationId];
     if (!pos) return;
@@ -464,16 +476,35 @@ function AgentWorkspace({ appStats, githubStats }) {
       data.duration = Math.max(6, data.duration * 0.7);
     }
 
-    // Patrol/health-check walks: leisurely pace + midpoint health check
+    // Patrol/health-check walks: leisurely pace + longer pause at destination
     if (isPatrol) {
-      data.duration = data.duration * 1.3;
+      data.duration = data.duration * 1.8;
       isPatrolWalkRef.current = true;
 
-      // Schedule a real health check at the walk midpoint (~45% through)
+      // Remap times: 35% forward, 30% pause at dest, 35% return (vs normal 45/10/45)
+      if (data.times.length > 2) {
+        const pauseIdx = data.times.findIndex(t => t >= 0.45 && t <= 0.55);
+        if (pauseIdx > 0) {
+          const nFwd = pauseIdx;
+          const nBwd = data.times.length - pauseIdx - 1;
+          const remapped = [];
+          for (let i = 0; i < nFwd; i++) remapped.push((i / (nFwd - 1)) * 0.35);
+          remapped.push(0.65); // longer pause at destination
+          for (let i = 0; i < nBwd; i++) remapped.push(0.65 + ((i + 1) / nBwd) * 0.35);
+          data.times = remapped;
+        }
+      }
+
+      // Schedule a real health check when arriving at destination (~35% through)
       if (targetId) {
         const dest = targetId;
-        const midpointMs = data.duration * 0.45 * 1000;
+        const midpointMs = data.duration * 0.35 * 1000;
         setTimeout(() => {
+          // Show chat bubbles while inspecting
+          setChatBubbleStation(dest);
+          if (chatBubbleTimerRef.current) clearTimeout(chatBubbleTimerRef.current);
+          chatBubbleTimerRef.current = setTimeout(() => setChatBubbleStation(null), 4000);
+
           const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === dest)?.[0];
           const destStation = stationById[dest];
           const destLabel = destStation?.label || dest;
@@ -571,8 +602,8 @@ function AgentWorkspace({ appStats, githubStats }) {
       startWalkRef.current('orchestrator', 'patrol');
     };
 
-    const initial = setTimeout(patrol, 20000);
-    const interval = setInterval(patrol, 45000);
+    const initial = setTimeout(patrol, 30000);
+    const interval = setInterval(patrol, 120000);
     return () => { clearTimeout(initial); clearInterval(interval); };
   }, []);
 
@@ -852,6 +883,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 metrics={getStationMetrics(station.id, appStats, githubStats)}
                 inspection={inspectedStation?.id === station.id ? inspectedStation : null}
                 isPacing={!!pacingStations[station.id]}
+                showChatBubble={chatBubbleStation === station.id}
               />
             </div>
           );

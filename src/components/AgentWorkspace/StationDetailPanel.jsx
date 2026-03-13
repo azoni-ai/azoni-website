@@ -25,7 +25,8 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
         const cat = CATEGORY_STYLES[station.category];
         const h1 = activityCounts?.h1 || 0;
         const h24 = activityCounts?.h24 || 0;
-        const events = (stationHistory || []).filter(e => e.type !== 'site_visit').slice(0, 10);
+        const events = (stationHistory || []).filter(e => e.type !== 'site_visit' && e.type !== 'error_logged').slice(0, 10);
+        const errors = (stationHistory || []).filter(e => e.type === 'error_logged');
         const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === station.id)?.[0];
         const mcpStatus = domain && health?.[domain];
         const statusText = mcpStatus === true ? 'online' : mcpStatus === false ? 'offline' : station.isHub ? 'hub' : 'connected';
@@ -139,6 +140,21 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                           <div className="aw-detail-empty">No events recorded yet</div>
                         )}
                       </div>
+
+                      {/* Errors */}
+                      {errors.length > 0 && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title" style={{ color: '#f87171' }}>Errors ({errors.length})</div>
+                          <div className="aw-detail-events">
+                            {errors.slice(0, 10).map((err, i) => (
+                              <div key={i} className="aw-detail-event aw-detail-error-event">
+                                <span className="aw-detail-event-title">{err.title || err.description || err.type}</span>
+                                <span className="aw-detail-event-ago">{formatTimeAgo(err.ms)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Live app metrics */}
                       {station.id === 'fabstats' && appStats?.fabstats && (

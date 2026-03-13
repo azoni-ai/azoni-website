@@ -1115,6 +1115,70 @@
   80% { transform: translateX(10px); }
 }
 
+/* ─── Chat bubbles (Conductor inspection) ─── */
+.aw-chat-bubbles {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  pointer-events: none;
+  animation: awBubblesFadeIn 0.3s ease-out;
+}
+
+.aw-chat-bubble-left,
+.aw-chat-bubble-right {
+  display: flex;
+  gap: 2px;
+  padding: 3px 5px;
+  border-radius: 6px;
+  animation: awBubblePop 0.4s ease-out backwards;
+}
+
+.aw-chat-bubble-left {
+  background: rgba(167, 139, 250, 0.25);
+  animation-delay: 0.2s;
+}
+
+.aw-chat-bubble-right {
+  background: rgba(255, 255, 255, 0.12);
+  animation-delay: 0.8s;
+}
+
+.aw-chat-bubble-left span,
+.aw-chat-bubble-right span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  animation: awDotBounce 1.2s ease-in-out infinite;
+}
+
+.aw-chat-bubble-left span { background: rgba(167, 139, 250, 0.7); }
+.aw-chat-bubble-right span { background: rgba(255, 255, 255, 0.5); }
+
+.aw-chat-bubble-left span:nth-child(2),
+.aw-chat-bubble-right span:nth-child(2) { animation-delay: 0.15s; }
+.aw-chat-bubble-left span:nth-child(3),
+.aw-chat-bubble-right span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes awBubblePop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes awBubblesFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes awDotBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-2px); }
+}
+
 /* ─── Replay progress bar ─── */
 .aw-replay-bar {
   position: absolute;
@@ -1794,6 +1858,15 @@
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 0.6rem;
   color: var(--text-muted, #6b6b65);
+}
+
+.aw-detail-error-event {
+  background: rgba(248, 113, 113, 0.08);
+  border-left: 2px solid rgba(248, 113, 113, 0.4);
+}
+
+.aw-detail-error-event .aw-detail-event-title {
+  color: #fca5a5;
 }
 
 .aw-detail-empty {
