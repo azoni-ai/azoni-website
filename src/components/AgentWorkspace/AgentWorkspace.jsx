@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAgentActivity } from '../../hooks/useAgentActivity';
 import { useMCPHealth } from '../../hooks/useMCPHealth';
-import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, INFRASTRUCTURE_HUBS, DEFAULT_WALK_TARGETS, getEventImportance, formatTimeAgo } from '../../utils/station-mapping';
+import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, INFRASTRUCTURE_HUBS, DEFAULT_WALK_TARGETS, DOMAIN_TO_STATION, MCP_URL, getEventImportance, formatTimeAgo } from '../../utils/station-mapping';
 import { avatars } from '../../data/agents';
 import WorkstationCard from './WorkstationCard';
 import MCPHub from './MCPHub';
@@ -318,10 +318,34 @@ function AgentWorkspace({ appStats, githubStats }) {
 
   // Walking agents state
   const [walkingAgents, setWalkingAgents] = useState({});
+  const walkingAgentsRef = useRef(walkingAgents);
+  walkingAgentsRef.current = walkingAgents;
   const floorRef = useRef(null);
   const lobbyRef = useRef(null);
   const cellRefs = useRef({});
   const prevFlashRef = useRef({});
+
+  // Agent pacing state (minor activity → pace inside office)
+  const [pacingStations, setPacingStations] = useState({});
+  const triggerPace = useCallback((stationId) => {
+    setPacingStations(prev => ({ ...prev, [stationId]: Date.now() }));
+    setTimeout(() => {
+      setPacingStations(prev => {
+        const next = { ...prev };
+        delete next[stationId];
+        return next;
+      });
+    }, 4000);
+  }, []);
+  const triggerPaceRef = useRef(triggerPace);
+  triggerPaceRef.current = triggerPace;
+
+  // Conductor patrol + health check refs
+  const patrolTargetRef = useRef(null);
+  const prevHealthRef = useRef(null);
+  const isPatrolWalkRef = useRef(false);
+  const [inspectedStation, setInspectedStation] = useState(null);
+  const inspectedTimerRef = useRef(null);
 
   const setCellRef = useCallback((id, el) => {
     if (el) cellRefs.current[id] = el;
@@ -375,7 +399,7 @@ function AgentWorkspace({ appStats, githubStats }) {
     const station = stationById[stationId];
     if (!station?.agent || !avatars[station.agent]) return;
     if (INFRASTRUCTURE_HUBS.has(stationId)) return; // hubs don't walk
-    if (walkingAgents[stationId]) return; // already walking
+    if (walkingAgents[stationId]) { triggerPaceRef.current(stationId); return; } // already walking → pace instead
 
     const pos = GRID_PLACEMENT[stationId];
     if (!pos) return;
@@ -397,16 +421,24 @@ function AgentWorkspace({ appStats, githubStats }) {
     // 5. site_visit → particle only (no avatar walk)
     // 6. Default → walk to MCP
     const importance = eventType ? getEventImportance(eventType) : 'low';
+    const isPatrol = eventType === 'patrol' || eventType === 'health_check';
     let targetId = flashTargets[stationId]
       || (walkQueueRef.current[stationId]?.length ? walkQueueRef.current[stationId][0] : null)
       || DEFAULT_WALK_TARGETS[stationId]
+      || (stationId === 'orchestrator' && patrolTargetRef.current)
       || null;
+
+    // Consume patrol target after reading it
+    if (stationId === 'orchestrator' && patrolTargetRef.current) {
+      patrolTargetRef.current = null;
+    }
 
     if (!targetId && stationId !== 'activity') {
       if (importance === 'important' || importance === 'medium') {
         targetId = 'activity';
       } else if (eventType === 'site_visit') {
         emitParticlesRef.current(stationId, 'activity');
+        triggerPaceRef.current(stationId);
         return;
       }
     }
@@ -431,6 +463,40 @@ function AgentWorkspace({ appStats, githubStats }) {
       data.duration = Math.max(6, data.duration * 0.7);
     }
 
+    // Patrol/health-check walks: leisurely pace + midpoint health check
+    if (isPatrol) {
+      data.duration = data.duration * 1.3;
+      isPatrolWalkRef.current = true;
+
+      // Schedule a real health check at the walk midpoint (~45% through)
+      if (targetId) {
+        const dest = targetId;
+        const midpointMs = data.duration * 0.45 * 1000;
+        setTimeout(() => {
+          const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === dest)?.[0];
+          if (domain) {
+            fetch(`${MCP_URL}/health`).then(r => r.json()).then(h => {
+              const status = h[domain] === true ? 'online' : h[domain] === false ? 'offline' : 'unknown';
+              setInspectedStation({ id: dest, status });
+              if (inspectedTimerRef.current) clearTimeout(inspectedTimerRef.current);
+              inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 5000);
+            }).catch(() => {
+              setInspectedStation({ id: dest, status: 'offline' });
+              if (inspectedTimerRef.current) clearTimeout(inspectedTimerRef.current);
+              inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 5000);
+            });
+          } else {
+            // Non-MCP stations: visual-only inspection
+            setInspectedStation({ id: dest, status: 'checked' });
+            if (inspectedTimerRef.current) clearTimeout(inspectedTimerRef.current);
+            inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 5000);
+          }
+        }, midpointMs);
+      }
+    } else {
+      isPatrolWalkRef.current = false;
+    }
+
     setWalkingAgents(prev => ({
       ...prev,
       [stationId]: { points: data.points, times: data.times, duration: data.duration, agent: station.agent },
@@ -450,7 +516,7 @@ function AgentWorkspace({ appStats, githubStats }) {
       }
     }
 
-    if (newFlash) {
+    if (newFlash && !isPatrolWalkRef.current) {
       setHallwayActive(true);
       if (hallwayTimerRef.current) clearTimeout(hallwayTimerRef.current);
       hallwayTimerRef.current = setTimeout(() => setHallwayActive(false), 12000);
@@ -482,6 +548,49 @@ function AgentWorkspace({ appStats, githubStats }) {
       }
     }
   }, [walkQueueRef]);
+
+  // ─── Conductor patrol walks ───
+  useEffect(() => {
+    const PATROL_STATIONS = ['chatbot', 'blog', 'moltbook', 'benchpressonly', 'rowcrew', 'oldwaystoday', 'fabstats', 'fabstatsbot'];
+    let lastIdx = -1;
+
+    const patrol = () => {
+      if (walkingAgentsRef.current['orchestrator']) return;
+      let idx;
+      do { idx = Math.floor(Math.random() * PATROL_STATIONS.length); } while (idx === lastIdx && PATROL_STATIONS.length > 1);
+      lastIdx = idx;
+      patrolTargetRef.current = PATROL_STATIONS[idx];
+      startWalkRef.current('orchestrator', 'patrol');
+    };
+
+    const initial = setTimeout(patrol, 20000);
+    const interval = setInterval(patrol, 45000);
+    return () => { clearTimeout(initial); clearInterval(interval); };
+  }, []);
+
+  // ─── Conductor health-check walks ───
+  useEffect(() => {
+    if (!health) {
+      prevHealthRef.current = health;
+      return;
+    }
+    if (!prevHealthRef.current) {
+      prevHealthRef.current = health;
+      return;
+    }
+    for (const [domain, status] of Object.entries(health)) {
+      const prev = prevHealthRef.current[domain];
+      if (prev !== undefined && prev !== status) {
+        const stationId = DOMAIN_TO_STATION[domain];
+        if (stationId && !walkingAgentsRef.current['orchestrator']) {
+          patrolTargetRef.current = stationId;
+          startWalkRef.current('orchestrator', 'health_check');
+          break;
+        }
+      }
+    }
+    prevHealthRef.current = health;
+  }, [health]);
 
   // ─── 24h Replay ───
   const startReplay = useCallback(() => {
@@ -733,6 +842,8 @@ function AgentWorkspace({ appStats, githubStats }) {
                 openDesk={pos.openDesk}
                 basement={pos.basement}
                 metrics={getStationMetrics(station.id, appStats, githubStats)}
+                inspection={inspectedStation?.id === station.id ? inspectedStation : null}
+                isPacing={!!pacingStations[station.id]}
               />
             </div>
           );

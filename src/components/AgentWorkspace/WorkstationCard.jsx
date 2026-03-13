@@ -21,6 +21,8 @@ function WorkstationCard({
   openDesk,
   basement,
   metrics,
+  inspection,
+  isPacing,
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -61,6 +63,13 @@ function WorkstationCard({
         <span className="aw-error-badge">{errorCount}</span>
       )}
 
+      {/* Conductor inspection badge */}
+      {inspection && (
+        <span className={`aw-inspection-badge aw-inspection-${inspection.status}`}>
+          {inspection.status === 'online' ? '✓' : inspection.status === 'offline' ? '✗' : '•'}
+        </span>
+      )}
+
       {/* Scene area with workspace illustration */}
       <div className="aw-station-scene">
         {/* Themed workspace props (rendered via CSS) */}
@@ -74,7 +83,7 @@ function WorkstationCard({
         {/* Avatar */}
         {hasAvatar && (
           <motion.div
-            className="aw-station-avatar"
+            className={`aw-station-avatar${isPacing ? ' aw-avatar-pacing' : ''}`}
             animate={{ y: [0, -(idle?.bobAmt || 2), 0] }}
             transition={{
               duration: (idle?.bobSpeed || 3000) / 1000,

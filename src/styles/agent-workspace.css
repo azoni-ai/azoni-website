@@ -1102,6 +1102,19 @@
   transition: opacity 0.4s ease;
 }
 
+/* ─── Avatar pacing (minor activity) ─── */
+.aw-avatar-pacing {
+  animation: awAvatarPace 2s ease-in-out 2 !important;
+}
+
+@keyframes awAvatarPace {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(-10px) scaleX(-1); }
+  60% { transform: translateX(10px) scaleX(-1); }
+  80% { transform: translateX(10px); }
+}
+
 /* ─── Replay progress bar ─── */
 .aw-replay-bar {
   position: absolute;
@@ -3115,6 +3128,55 @@
   justify-content: center;
   line-height: 1;
   animation: awErrorPulse 2s ease-in-out infinite;
+}
+
+/* ─── Conductor inspection badge ─── */
+.aw-inspection-badge {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 6;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  animation: awInspectionPop 0.3s ease-out, awInspectionFade 5s ease-in forwards;
+  pointer-events: none;
+}
+
+.aw-inspection-online {
+  background: rgba(74, 222, 128, 0.9);
+  color: #052e16;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+.aw-inspection-offline {
+  background: rgba(248, 113, 113, 0.9);
+  color: #450a0a;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+}
+
+.aw-inspection-checked,
+.aw-inspection-unknown {
+  background: rgba(96, 165, 250, 0.9);
+  color: #1e3a5f;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+}
+
+@keyframes awInspectionPop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes awInspectionFade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ═══════════════════════════════════════════════════════
