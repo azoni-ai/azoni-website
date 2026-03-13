@@ -4,9 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import InteractiveBackground from '../components/InteractiveBackground';
-import CollapsibleSection from '../components/CollapsibleSection';
 import AgentWorkspace from '../components/AgentWorkspace/AgentWorkspace';
-import { STATION_DEFS } from '../utils/station-mapping';
 import { useFabStats } from '../hooks/useFabStats';
 import '../styles/bento.css';
 
@@ -119,18 +117,6 @@ const Home = () => {
     fabstats: { ...appStats?.fabstats, users: fabUserCount, matches: fabMatchCount },
   }), [appStats, fabUserCount, fabMatchCount]);
 
-  // Aggregate metrics for the collapsible section bar
-  const systemStats = useMemo(() => {
-    const bpUsers = Number(appStats?.benchpressonly?.users) || 0;
-    const fabUsers = fabUserCount || 0;
-    const rcUsers = Number(appStats?.rowcrew?.uniqueRowers) || 0;
-    const totalUsers = bpUsers + fabUsers + rcUsers;
-    const stats = [];
-    if (totalUsers > 0) stats.push({ value: totalUsers.toLocaleString(), label: 'users' });
-    const stationCount = STATION_DEFS.filter(s => !s.isHub).length;
-    stats.push({ value: String(stationCount), label: 'stations' });
-    return stats;
-  }, [appStats, fabUserCount]);
 
   return (
     <Layout>
@@ -218,37 +204,30 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ===== COLLAPSIBLE SECTIONS ===== */}
-        <div className="collapsible-wrapper">
-
-        {/* ===== 1. THE AGENT SYSTEM (merged map + agents) ===== */}
-        <CollapsibleSection
-          title="The Agent System"
-          subtitle="3 autonomous agents, 5 apps, and 4 infrastructure services"
-          badge="Live"
-          badgeType="live"
-          defaultOpen={true}
-          stats={systemStats}
-        >
-          <section className="showcase-section">
-            <div className="container">
-              <AgentWorkspace appStats={enrichedStats} githubStats={githubStats} />
-            </div>
-          </section>
-        </CollapsibleSection>
-
-
-        {/* ===== 2. BACKGROUND (merged Experience + Earlier Work) ===== */}
-        <CollapsibleSection
-          title="Professional Experience"
-          subtitle="7+ years at T-Mobile, Capital One, and startups — plus a 50-machine trading system and ACM publication"
-          badge="7+ yrs"
-          badgeType="count"
-          defaultOpen={true}
-        >
-        <section className="experience-section">
+        {/* ===== 1. THE AGENT SYSTEM ===== */}
+        <section className="home-section">
           <div className="container">
-            <div className="section-header"><h2>Experience</h2></div>
+            <div className="home-section-header">
+              <div className="home-section-header-left">
+                <h2 className="home-section-title">The Agent System</h2>
+                <span className="home-section-badge badge-live">Live</span>
+              </div>
+              <p className="home-section-subtitle">3 autonomous agents, 5 apps, and 4 infrastructure services</p>
+            </div>
+            <AgentWorkspace appStats={enrichedStats} githubStats={githubStats} />
+          </div>
+        </section>
+
+        {/* ===== 2. PROFESSIONAL EXPERIENCE ===== */}
+        <section className="home-section">
+          <div className="container">
+            <div className="home-section-header">
+              <div className="home-section-header-left">
+                <h2 className="home-section-title">Professional Experience</h2>
+                <span className="home-section-badge badge-count">7+ yrs</span>
+              </div>
+              <p className="home-section-subtitle">T-Mobile, Capital One, and startups — plus a 50-machine trading system and ACM publication</p>
+            </div>
             <div className="earlier-work-grid">
 
               <div className="earlier-card">
@@ -349,11 +328,13 @@ const Home = () => {
           </div>
         </section>
 
-        <section className="projects-section">
+        <section className="home-section">
           <div className="container">
-            <div className="section-header secondary">
-              <h2>Earlier Work</h2>
-              <Link to="/projects" className="view-all">All projects →</Link>
+            <div className="home-section-header">
+              <div className="home-section-header-left">
+                <h2 className="home-section-title">Earlier Work</h2>
+              </div>
+              <Link to="/projects" className="home-section-link">All projects →</Link>
             </div>
 
             <div className="earlier-work-grid">
@@ -462,9 +443,6 @@ const Home = () => {
             </div>
           </div>
         </section>
-        </CollapsibleSection>
-
-        </div>{/* end collapsible-wrapper */}
       </div>
     </Layout>
   );

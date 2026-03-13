@@ -791,7 +791,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Central hallway — spans all station rows */}
         <div
           className={`aw-hallway${hallwayActive ? ' aw-hallway-active' : ''}`}
-          style={{ gridColumn: 4, gridRow: '2 / 8' }}
+          style={{ gridColumn: 4, gridRow: '2 / 7' }}
         >
           {/* Water cooler — products zone */}
           <div className="aw-hall-decor aw-decor-top">
@@ -810,7 +810,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Left side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 2, gridRow: '2 / 8' }}
+          style={{ gridColumn: 2, gridRow: '2 / 7' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-plant" />
@@ -826,7 +826,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Right side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 6, gridRow: '2 / 8' }}
+          style={{ gridColumn: 6, gridRow: '2 / 7' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-umbrella" />
