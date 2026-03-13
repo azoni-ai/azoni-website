@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { io } from 'socket.io-client';
+import { Link } from 'react-router-dom';
 
 // Local imports
 import { SVG, CLASS_SVG, WIZARD_ICONS } from './constants/icons';
@@ -13733,6 +13734,16 @@ export default function SpellBrigade() {
   // ===========================================
   return (
     <div style={styles.container} onClick={initAudio} onTouchStart={initAudio}>
+      <Link to="/" style={{
+        position: 'fixed', top: 12, left: 12, zIndex: 9999,
+        color: '#aaa', fontSize: '0.75rem', textDecoration: 'none',
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '5px 10px', borderRadius: 6,
+        background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(4px)', opacity: 0.6,
+      }}>
+        &larr; Portfolio
+      </Link>
       <style>{`@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
       {/* Game Canvas */}
       <canvas 

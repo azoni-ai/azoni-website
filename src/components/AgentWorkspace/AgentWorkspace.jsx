@@ -214,8 +214,8 @@ function calcStationToStationWaypoints(floorRect, srcCell, destCell, srcDoor, de
 }
 
 // Maps station IDs to their live app metrics
-function getStationMetrics(stationId, appStats, githubStats) {
-  if (!appStats && !githubStats) return null;
+function getStationMetrics(stationId, appStats, githubStats, extra) {
+  if (!appStats && !githubStats && !extra) return null;
   const fmt = (v) => {
     const n = Number(v);
     if (!Number.isFinite(n) || n === 0) return null;
@@ -242,6 +242,8 @@ function getStationMetrics(stationId, appStats, githubStats) {
       const rc = appStats?.rowcrew;
       if (!rc) return null;
       const m = [];
+      const rowers = Number(rc.uniqueRowers || rc.users || rc.totalUsers || 0);
+      if (rowers > 0) m.push({ value: String(rowers), label: 'rowers' });
       const meters = Number(rc.meters || 0);
       if (meters > 0) {
         const display = meters >= 1000000 ? `${(meters / 1000000).toFixed(1)}M` : meters >= 1000 ? `${(meters / 1000).toFixed(0)}k` : String(meters);
@@ -259,6 +261,11 @@ function getStationMetrics(stationId, appStats, githubStats) {
     case 'scribe': {
       const today = githubStats?.today || 0;
       return today > 0 ? [{ value: String(today), label: 'commits today' }] : null;
+    }
+    case 'medic': {
+      const totalErrors = extra?.totalErrors || 0;
+      if (totalErrors > 0) return [{ value: String(totalErrors), label: 'issues 24h' }];
+      return null;
     }
     default:
       return null;
@@ -303,6 +310,19 @@ function AgentWorkspace({ appStats, githubStats }) {
   const [replayFlashes, setReplayFlashes] = useState({});
   const replayRef = useRef(null);
   const replayRafRef = useRef(null);
+
+  // Scribe commit flash — light up when new commits detected
+  const prevCommitCountRef = useRef(null);
+  useEffect(() => {
+    const today = githubStats?.today || 0;
+    if (prevCommitCountRef.current !== null && today > prevCommitCountRef.current) {
+      setReplayFlashes(prev => ({ ...prev, scribe: Date.now() }));
+      setTimeout(() => {
+        setReplayFlashes(prev => { const n = { ...prev }; delete n.scribe; return n; });
+      }, 8000);
+    }
+    prevCommitCountRef.current = today;
+  }, [githubStats?.today]);
 
   // Walking agents state
   const [walkingAgents, setWalkingAgents] = useState({});
@@ -849,7 +869,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 index={i}
                 roomNumber={pos.room}
                 door={pos.door}
-                metrics={getStationMetrics(station.id, appStats, githubStats)}
+                metrics={getStationMetrics(station.id, appStats, githubStats, { totalErrors: Object.values(errorCounts).reduce((s, n) => s + n, 0) })}
                 inspection={inspectedStation?.id === station.id ? inspectedStation : null}
                 isPacing={!!pacingStations[station.id]}
                 showChatBubble={chatBubbleStation === station.id}
@@ -886,7 +906,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 index={i}
                 small
                 roomNumber={8 + i}
-                metrics={getStationMetrics(station.id, appStats, githubStats)}
+                metrics={getStationMetrics(station.id, appStats, githubStats, { totalErrors: Object.values(errorCounts).reduce((s, n) => s + n, 0) })}
                 inspection={inspectedStation?.id === station.id ? inspectedStation : null}
                 isPacing={station.id === 'medic' ? !walkingAgents['medic'] : !!pacingStations[station.id]}
                 showChatBubble={chatBubbleStation === station.id}

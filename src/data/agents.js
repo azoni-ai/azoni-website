@@ -1287,6 +1287,30 @@ const AGENTS = {
     code: `// Community data available via MCP:\n{\n  totalPlayers: 54,\n  totalMatches: 3200,\n  avgWinRate: "51.2%",\n  topHeroes: [\n    { hero: "Prism", players: 8 },\n    { hero: "Briar", players: 7 },\n  ],\n  minigames: 13\n}`,
     starters: ["How many players use FaB Stats?", "What's the most popular hero?", "What minigames do you have?", "How do you track tournaments?"],
   },
+  activity: {
+    name: "Activity Feed",
+    role: "Event Logger",
+    color: "#f87171",
+    bg: "#f8717115",
+    borderColor: "#f8717130",
+    quote: "Tracks every event across the ecosystem in real time.",
+    whatItIs: "Central event aggregation service. Receives logs from all agents, apps, and infrastructure via MCP, then streams them to the workspace for real-time monitoring and historical analysis.",
+    tech: ["Firebase", "Firestore", "MCP API", "Real-time Listeners"],
+    data: ["agent_activity collection", "All MCP domains"],
+    cycle: ["Event fired from any agent or app", "MCP activity/log endpoint receives the event", "Event written to Firestore agent_activity collection", "Real-time listener pushes to workspace UI", "Activity counts and history updated"],
+  },
+  embedroute: {
+    name: "EmbedRoute",
+    role: "Embedding Gateway",
+    color: "#20d9d2",
+    bg: "#20d9d215",
+    borderColor: "#20d9d230",
+    quote: "Routes embedding requests to the optimal provider.",
+    whatItIs: "Unified embedding API gateway that provides one endpoint for multiple embedding providers (OpenAI, Voyage, Cohere, Mistral). Reduces provider lock-in and simplifies model switching for RAG and semantic search workloads.",
+    tech: ["Next.js", "TypeScript", "Supabase", "PostgreSQL", "Vercel"],
+    data: ["Embedding requests", "Provider APIs", "Usage metrics"],
+    cycle: ["Client sends text to unified endpoint", "Request routed to selected provider", "Embedding vector returned in consistent format", "Usage and costs tracked per request"],
+  },
 };
 
 const AGENT_ORDER = ['orchestrator', 'chat', 'blog', 'fitness', 'gaming', 'social', 'oldways', 'fabstats', 'fabstatsbot', 'medic'];

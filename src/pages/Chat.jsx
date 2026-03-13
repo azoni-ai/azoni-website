@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
+import useVisitTracker from '../hooks/useVisitTracker';
 
 const MODES = [
   { id: 'professional', name: 'Professional' },
@@ -430,6 +431,7 @@ const RAGStats = ({ rag, usage }) => {
  * Chat page with RAG visualization
  */
 const Chat = () => {
+  useVisitTracker('azoni-ai');
   const {
     messages,
     input,

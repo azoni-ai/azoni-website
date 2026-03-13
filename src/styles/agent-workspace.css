@@ -1258,7 +1258,7 @@
 }
 
 .aw-tooltip-desc {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: var(--text-secondary, #a8a8a0);
   line-height: 1.4;
   margin-bottom: 6px;
@@ -1273,7 +1273,7 @@
 }
 
 .aw-tooltip-event-title {
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   color: var(--text-secondary, #a8a8a0);
   white-space: nowrap;
   overflow: hidden;
@@ -1472,7 +1472,7 @@
 
 .aw-station-name {
   font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-primary, #fafaf9);
   white-space: nowrap;
@@ -1482,7 +1482,7 @@
 
 .aw-station-cat {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   margin-left: auto;
@@ -1491,7 +1491,7 @@
 
 .aw-station-offline {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.5rem;
+  font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: #f87171;
@@ -1512,7 +1512,7 @@
 }
 
 .aw-event-title {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   color: var(--text-secondary, #a8a8a0);
   white-space: nowrap;
   overflow: hidden;
@@ -1522,7 +1522,7 @@
 
 .aw-event-time {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   color: var(--text-muted, #6b6b65);
   flex-shrink: 0;
 }
@@ -1582,7 +1582,7 @@
 
 .aw-metric-label {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.45rem;
+  font-size: 0.55rem;
   font-weight: 500;
   color: var(--text-secondary, #a8a8a0);
   opacity: 0.6;
@@ -1614,7 +1614,7 @@
 
 .aw-hero-label {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   font-weight: 500;
   color: var(--text-secondary, #a8a8a0);
   text-transform: uppercase;
@@ -1624,7 +1624,7 @@
 
 /* ── Tagline ── */
 .aw-station-tagline {
-  font-size: 0.55rem;
+  font-size: 0.62rem;
   color: var(--text-secondary, #a8a8a0);
   opacity: 0.7;
   white-space: nowrap;
@@ -1643,7 +1643,7 @@
 .aw-visit-chip span {
   display: inline-block;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.5rem;
+  font-size: 0.55rem;
   font-weight: 600;
   color: var(--chip-color, var(--station-color));
   border: 1px solid color-mix(in srgb, var(--chip-color, var(--station-color)) 30%, transparent);
@@ -1766,13 +1766,13 @@
 }
 
 .aw-ticker-title {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: var(--text-secondary, #a8a8a0);
 }
 
 .aw-ticker-ago {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   color: var(--text-muted, #6b6b65);
 }
 
@@ -1851,7 +1851,7 @@
 
 .aw-detail-name {
   font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-primary, #fafaf9);
   margin: 0;
@@ -1859,7 +1859,7 @@
 
 .aw-detail-cat {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   margin-left: auto;
@@ -1872,7 +1872,7 @@
 }
 
 .aw-detail-quote {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--text-secondary, #a8a8a0);
   font-style: italic;
   margin-bottom: 12px;
@@ -1891,7 +1891,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: var(--text-secondary, #a8a8a0);
 }
 
@@ -1936,7 +1936,7 @@
 }
 
 .aw-detail-stat-label {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: var(--text-muted, #6b6b65);
   margin-top: 2px;
 }
@@ -1947,7 +1947,7 @@
 
 .aw-detail-section-title {
   font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted, #6b6b65);
   text-transform: uppercase;
@@ -1971,13 +1971,13 @@
 }
 
 .aw-detail-event-title {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--text-secondary, #a8a8a0);
 }
 
 .aw-detail-event-ago {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   color: var(--text-muted, #6b6b65);
 }
 
@@ -1997,7 +1997,7 @@
 }
 
 .aw-detail-text {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--text-secondary, #a8a8a0);
   line-height: 1.6;
 }
@@ -2010,7 +2010,7 @@
 
 .aw-detail-tag {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   padding: 3px 8px;
   border: 1px solid;
   border-radius: 4px;
@@ -2018,7 +2018,7 @@
 }
 
 .aw-detail-cycle {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-secondary, #a8a8a0);
   padding-left: 18px;
   line-height: 1.8;
@@ -2026,7 +2026,7 @@
 }
 
 .aw-detail-data-list {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-secondary, #a8a8a0);
   padding-left: 18px;
   line-height: 1.8;
@@ -2034,7 +2034,7 @@
 }
 
 .aw-detail-highlights {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-secondary, #a8a8a0);
   padding-left: 18px;
   line-height: 1.8;
@@ -2053,7 +2053,7 @@
   padding: 4px 10px;
   border: 1px solid;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
   text-decoration: none;
   transition: opacity 0.15s;
@@ -3679,7 +3679,7 @@
   border: none;
   padding: 8px 16px;
   font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-muted, #6b6b65);
   cursor: pointer;
