@@ -717,6 +717,9 @@ function AgentWorkspace({ appStats, githubStats }) {
       {/* Header */}
       <div className="aw-header">
         <div className="aw-header-left">
+          <h2 className="aw-header-section-title">The Agent System</h2>
+          <span className="aw-header-badge">Live</span>
+          <span className="aw-header-sep" />
           <span className="aw-header-dot" />
           <span className="aw-header-title">Agent Workspace</span>
         </div>

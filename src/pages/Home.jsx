@@ -205,15 +205,8 @@ const Home = () => {
         </section>
 
         {/* ===== 1. THE AGENT SYSTEM ===== */}
-        <section className="home-section">
+        <section className="home-section home-section--flush">
           <div className="container">
-            <div className="home-section-header">
-              <div className="home-section-header-left">
-                <h2 className="home-section-title">The Agent System</h2>
-                <span className="home-section-badge badge-live">Live</span>
-              </div>
-              <p className="home-section-subtitle">3 autonomous agents, 5 apps, and 4 infrastructure services</p>
-            </div>
             <AgentWorkspace appStats={enrichedStats} githubStats={githubStats} />
           </div>
         </section>
@@ -222,9 +215,12 @@ const Home = () => {
         <section className="home-section">
           <div className="container">
             <div className="home-section-header">
-              <div className="home-section-header-left">
-                <h2 className="home-section-title">Professional Experience</h2>
-                <span className="home-section-badge badge-count">7+ yrs</span>
+              <div className="home-section-header-top">
+                <div className="home-section-header-left">
+                  <h2 className="home-section-title">Professional Experience</h2>
+                  <span className="home-section-badge badge-count">7+ yrs</span>
+                </div>
+                <Link to="/resume" className="home-section-link">View resume →</Link>
               </div>
               <p className="home-section-subtitle">T-Mobile, Capital One, and startups — plus a 50-machine trading system and ACM publication</p>
             </div>
@@ -331,10 +327,12 @@ const Home = () => {
         <section className="home-section">
           <div className="container">
             <div className="home-section-header">
-              <div className="home-section-header-left">
-                <h2 className="home-section-title">Earlier Work</h2>
+              <div className="home-section-header-top">
+                <div className="home-section-header-left">
+                  <h2 className="home-section-title">Earlier Work</h2>
+                </div>
+                <Link to="/projects" className="home-section-link">All projects →</Link>
               </div>
-              <Link to="/projects" className="home-section-link">All projects →</Link>
             </div>
 
             <div className="earlier-work-grid">

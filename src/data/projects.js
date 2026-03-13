@@ -3,22 +3,22 @@ export const projects = [
     id: 'fab-stats',
     title: 'FaB Stats',
     tagline: 'Competitive TCG Analytics Platform',
-    description: 'Large Next.js application for hero-level performance analytics, matchup tools, and community features for Flesh and Blood players.',
-    longDescription: `FaB Stats is a feature-rich analytics and community platform with dozens of routes spanning player profiles, match tracking, leaderboards, tools, and mini-games.
+    description: 'Full-stack analytics platform with 300+ registered users and 1,600+ tracked matches for the Flesh and Blood TCG competitive community.',
+    longDescription: `FaB Stats is a production analytics platform serving the competitive Flesh and Blood community. Players track match results, explore hero-level performance data, compare matchup win rates, and climb leaderboards.
 
-The app focuses on decision support for competitive players with searchable stats, matchup exploration, social features, and extensible game-specific tooling.`,
+The app includes player profiles, match history, head-to-head matchup tools, community features, and mini-games — all backed by real user data across 300+ accounts and 1,600+ logged matches.`,
     tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Recharts'],
     highlights: [
-      'Large surface area with extensive route architecture',
-      'Player analytics, leaderboards, and matchup tooling',
-      'Integrated social and communication features',
-      'Game-focused utilities and engagement loops'
+      '300+ registered users with active match tracking',
+      '1,600+ competitive matches logged and analyzed',
+      'Hero performance analytics and matchup win rates',
+      'Leaderboards, player profiles, and community tools'
     ],
     links: {
       live: 'https://fabstats.net',
       github: null
     },
-    image: '/images/admin-panel.png',
+    image: '/images/fabstats-icon.svg',
     featured: true,
     category: 'games',
     displayOrder: 1
