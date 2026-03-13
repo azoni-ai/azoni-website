@@ -15,7 +15,8 @@ function WorkstationCard({
   activityCounts = {},
   visitCount = 0,
   isFlashing,
-  isWalking,
+  walkingAgent,
+  walkingAgent2,
   isHighlighted,
   isDimmedByHover,
   idleLevel = 0,
@@ -50,7 +51,7 @@ function WorkstationCard({
 
   return (
     <motion.div
-      className={`aw-station-card aw-theme-${station.id}${openDesk ? ' aw-open-desk' : ''}${basement ? ' aw-basement-station' : ''}${isFlashing ? ' aw-station-active' : ''}${isWalking ? ' aw-agent-walking' : ''}${idleClass}${highlightClass}${dimClass}`}
+      className={`aw-station-card aw-theme-${station.id}${openDesk ? ' aw-open-desk' : ''}${basement ? ' aw-basement-station' : ''}${isFlashing ? ' aw-station-active' : ''}${idleClass}${highlightClass}${dimClass}`}
       style={{
         '--station-color': station.color,
         '--activity-intensity': intensity,
@@ -89,24 +90,26 @@ function WorkstationCard({
         {/* Basement cobweb + flickering light overlay */}
         {basement && <div className="aw-basement-overlay" />}
 
-        {/* Avatar(s) */}
+        {/* Avatar(s) — hide only the one that's walking */}
         {hasAvatar && (
           <div className={`aw-station-avatars${station.secondAgent ? ' aw-dual-avatar' : ''}`}>
-            <div className="aw-avatar-col">
-              <span className="aw-avatar-label">{AVATAR_LABELS[station.agent]}</span>
-              <motion.div
-                className={`aw-station-avatar${isPacing ? ' aw-avatar-pacing' : ''}`}
-                animate={{ y: [0, -(idle?.bobAmt || 2), 0] }}
-                transition={{
-                  duration: (idle?.bobSpeed || 3000) / 1000,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              >
-                {avatars[station.agent](station.secondAgent ? 40 : 56)}
-              </motion.div>
-            </div>
-            {station.secondAgent && avatars[station.secondAgent] && (
+            {walkingAgent !== station.agent && (
+              <div className="aw-avatar-col">
+                <span className="aw-avatar-label">{AVATAR_LABELS[station.agent]}</span>
+                <motion.div
+                  className={`aw-station-avatar${isPacing ? ' aw-avatar-pacing' : ''}`}
+                  animate={{ y: [0, -(idle?.bobAmt || 2), 0] }}
+                  transition={{
+                    duration: (idle?.bobSpeed || 3000) / 1000,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                >
+                  {avatars[station.agent](station.secondAgent ? 40 : 56)}
+                </motion.div>
+              </div>
+            )}
+            {station.secondAgent && avatars[station.secondAgent] && walkingAgent2 !== station.secondAgent && (
               <div className="aw-avatar-col">
                 <span className="aw-avatar-label">{AVATAR_LABELS[station.secondAgent]}</span>
                 <motion.div

@@ -378,12 +378,32 @@ function AgentWorkspace({ appStats, githubStats }) {
     }, 2000);
   };
 
+  // ─── Map event types to secondary agents (unmapped = primary agent) ───
+  const EVENT_TO_SECOND_AGENT = useMemo(() => ({
+    // HQ: chat agent
+    assistant_chat: 'chat', chat_answered: 'chat',
+    // Content: social agent
+    moltbook_post: 'social', moltbook_comment: 'social', moltbook_upvote: 'social',
+    // Gym: rowing agent
+    rowing_session: 'rowing', row_completed: 'rowing', row_verified: 'rowing',
+    group_created: 'rowing', group_joined: 'rowing', challenge_created: 'rowing',
+    // FaB: fabstatsbot agent
+    discord_command: 'fabstatsbot',
+  }), []);
+
   // ─── Watch flashes and trigger agent walks ───
   const startWalkRef = useRef(null);
   startWalkRef.current = (stationId, eventType) => {
     const station = stationById[stationId];
     if (!station?.agent || !avatars[station.agent]) return;
-    if (walkingAgents[stationId]) {
+
+    // Determine which agent should walk
+    const secondAgent = eventType ? EVENT_TO_SECOND_AGENT[eventType] : null;
+    const isSecond = secondAgent && station.secondAgent === secondAgent;
+    const walkAgent = isSecond ? station.secondAgent : station.agent;
+    const walkKey = isSecond ? `${stationId}:2` : stationId;
+
+    if (walkingAgentsRef.current[walkKey]) {
       triggerPaceRef.current(stationId);
       return;
     }
@@ -513,7 +533,7 @@ function AgentWorkspace({ appStats, githubStats }) {
 
     setWalkingAgents(prev => ({
       ...prev,
-      [stationId]: { points: data.points, times: data.times, duration: data.duration, agent: station.agent },
+      [walkKey]: { points: data.points, times: data.times, duration: data.duration, agent: walkAgent, stationId },
     }));
   };
 
@@ -539,26 +559,27 @@ function AgentWorkspace({ appStats, githubStats }) {
     prevFlashRef.current = combined;
   }, [flashingStations, replayFlashes, lastEventTypeRef]);
 
-  const removeWalkingAgent = useCallback((stationId) => {
+  const removeWalkingAgent = useCallback((walkKey) => {
+    const baseStationId = walkKey.includes(':') ? walkKey.split(':')[0] : walkKey;
     setWalkingAgents(prev => {
       const next = { ...prev };
-      delete next[stationId];
+      delete next[walkKey];
       return next;
     });
 
     // Advance walk queue for sequential walks (e.g., blog visiting stations)
-    const queue = walkQueueRef.current[stationId];
+    const queue = walkQueueRef.current[baseStationId];
     if (queue && queue.length > 0) {
       walkQueueRef.current = {
         ...walkQueueRef.current,
-        [stationId]: queue.slice(1),
+        [baseStationId]: queue.slice(1),
       };
       if (queue.length > 1) {
         setTimeout(() => {
-          startWalkRef.current(stationId);
+          startWalkRef.current(baseStationId);
         }, 2000);
       } else {
-        delete walkQueueRef.current[stationId];
+        delete walkQueueRef.current[baseStationId];
       }
     }
   }, [walkQueueRef]);
@@ -822,7 +843,8 @@ function AgentWorkspace({ appStats, githubStats }) {
                 visitCount={visitCounts[station.id] || 0}
                 mcpStatus={(() => { const ds = Object.entries(DOMAIN_TO_STATION).filter(([, v]) => v === station.id).map(([d]) => d); if (!ds.length || !health) return undefined; if (ds.some(d => health[d] === false)) return false; if (ds.every(d => health[d] === true)) return true; return undefined; })()}
                 isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
-                isWalking={!!walkingAgents[station.id]}
+                walkingAgent={walkingAgents[station.id]?.agent || null}
+                walkingAgent2={walkingAgents[`${station.id}:2`]?.agent || null}
                 idleLevel={idleLevels[station.id] || 0}
                 errorCount={errorCounts[station.id] || 0}
                 isHighlighted={highlightedSet.has(station.id)}
@@ -858,9 +880,9 @@ function AgentWorkspace({ appStats, githubStats }) {
 
         {/* Walking agent avatars */}
         <AnimatePresence>
-          {Object.entries(walkingAgents).map(([stationId, data]) => (
+          {Object.entries(walkingAgents).map(([walkKey, data]) => (
             <motion.div
-              key={`walk-${stationId}`}
+              key={`walk-${walkKey}`}
               className="aw-walking-agent"
               initial={{ x: data.points[0].x, y: data.points[0].y }}
               animate={{
@@ -872,7 +894,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 times: data.times,
                 ease: 'linear',
               }}
-              onAnimationComplete={() => removeWalkingAgent(stationId)}
+              onAnimationComplete={() => removeWalkingAgent(walkKey)}
             >
               {avatars[data.agent](28)}
             </motion.div>
