@@ -38,9 +38,11 @@ export const TYPE_TO_STATION = {
   'reactive_trigger': 'orchestrator',
   // Activity feed
   'health_alert': 'activity',
-  // Blog
+  // Blog / Scribe
   'blog_published': 'blog',
   'blog_generated': 'blog',
+  'scribe_reading': 'blog',
+  'scribe_drafting': 'blog',
   // Chatbot
   'knowledge_generated': 'chatbot',
   'assistant_chat': 'chatbot',
@@ -133,7 +135,7 @@ export const STATION_DEFS = [
   {
     id: 'blog', label: 'The Scribe', color: '#fbbf24', agent: 'blog', icon: 'pen', category: 'agent',
     desc: 'Daily autonomous blog agent — reads commits, writes analysis, publishes.',
-    actions: ['Analyzing commits', 'Writing article', 'Publishing post'],
+    actions: ['Reading commits', 'Analyzing changes', 'Formulating post', 'Writing article', 'Publishing post'],
     dataLabel: 'blog content', url: '/blog',
   },
   {
@@ -279,6 +281,7 @@ export const MEDIUM_EVENTS = new Set([
   'owt_blog', 'owt_blog_viewed', 'owt_chat',
   'workout_generated', 'program_generated', 'rowing_session',
   'wizard_created', 'match_logged', 'discord_command',
+  'scribe_reading', 'scribe_drafting',
 ]);
 
 export function getEventImportance(type) {

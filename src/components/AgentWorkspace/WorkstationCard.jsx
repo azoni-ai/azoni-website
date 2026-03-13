@@ -20,6 +20,7 @@ function WorkstationCard({
   door,
   openDesk,
   basement,
+  metrics,
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -125,6 +126,18 @@ function WorkstationCard({
                 {visitCount}
               </span>
             )}
+          </div>
+        )}
+
+        {/* Live app metrics */}
+        {metrics && metrics.length > 0 && (
+          <div className="aw-station-metrics">
+            {metrics.map((m, i) => (
+              <span key={i} className="aw-station-metric">
+                <span className="aw-metric-val">{m.value}</span>
+                <span className="aw-metric-label">{m.label}</span>
+              </span>
+            ))}
           </div>
         )}
       </div>

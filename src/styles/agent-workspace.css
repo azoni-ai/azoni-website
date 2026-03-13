@@ -1480,6 +1480,39 @@
   opacity: 0.8;
 }
 
+/* Live app metrics bar on station cards */
+.aw-station-metrics {
+  display: flex;
+  gap: 8px;
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.aw-station-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.aw-metric-val {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--station-color);
+  opacity: 0.7;
+}
+
+.aw-metric-label {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.45rem;
+  font-weight: 500;
+  color: var(--text-secondary, #a8a8a0);
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* ═══════════════════════════════════════════════════════
    Ticker
    ═══════════════════════════════════════════════════════ */

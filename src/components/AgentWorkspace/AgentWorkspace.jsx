@@ -230,7 +230,57 @@ function calcStationToStationWaypoints(floorRect, srcCell, destCell, srcDoor, de
   return { points: allPoints, times, duration };
 }
 
-function AgentWorkspace() {
+// Maps station IDs to their live app metrics
+function getStationMetrics(stationId, appStats, githubStats) {
+  if (!appStats && !githubStats) return null;
+  const fmt = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n === 0) return null;
+    return n >= 10000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString();
+  };
+  switch (stationId) {
+    case 'fabstats': {
+      const s = appStats?.fabstats;
+      if (!s) return null;
+      const m = [];
+      if (fmt(s.users)) m.push({ value: fmt(s.users), label: 'players' });
+      if (fmt(s.matches)) m.push({ value: fmt(s.matches), label: 'matches' });
+      return m.length ? m : null;
+    }
+    case 'benchpressonly': {
+      const s = appStats?.benchpressonly;
+      if (!s) return null;
+      const m = [];
+      if (fmt(s.users)) m.push({ value: fmt(s.users), label: 'users' });
+      if (fmt(s.workoutsLogged)) m.push({ value: fmt(s.workoutsLogged), label: 'workouts' });
+      return m.length ? m : null;
+    }
+    case 'rowcrew': {
+      const s = appStats?.rowcrew;
+      if (!s) return null;
+      const m = [];
+      if (fmt(s.sessions || s.totalSessions)) m.push({ value: fmt(s.sessions || s.totalSessions), label: 'sessions' });
+      const meters = Number(s.meters || s.totalMeters || 0);
+      if (meters > 0) m.push({ value: meters >= 1000000 ? `${(meters / 1000000).toFixed(1)}M` : meters >= 1000 ? `${(meters / 1000).toFixed(0)}k` : String(meters), label: 'meters' });
+      return m.length ? m : null;
+    }
+    case 'oldwaystoday': {
+      const s = appStats?.oldwaystoday;
+      if (!s) return null;
+      const m = [];
+      if (fmt(s.requests)) m.push({ value: fmt(s.requests), label: 'requests' });
+      return m.length ? m : null;
+    }
+    case 'blog': {
+      const today = githubStats?.today || 0;
+      return today > 0 ? [{ value: String(today), label: 'commits today' }] : null;
+    }
+    default:
+      return null;
+  }
+}
+
+function AgentWorkspace({ appStats, githubStats }) {
   const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef } = useAgentActivity();
   const { health, totalTools } = useMCPHealth();
 
@@ -682,6 +732,7 @@ function AgentWorkspace() {
                 door={pos.door}
                 openDesk={pos.openDesk}
                 basement={pos.basement}
+                metrics={getStationMetrics(station.id, appStats, githubStats)}
               />
             </div>
           );
@@ -815,6 +866,8 @@ function AgentWorkspace() {
         activityCounts={selectedStation ? activityCounts[selectedStation.id] : null}
         visitCount={selectedStation ? (visitCounts[selectedStation.id] || 0) : 0}
         health={health}
+        appStats={appStats}
+        githubStats={githubStats}
         onClose={() => setSelectedStation(null)}
       />
 

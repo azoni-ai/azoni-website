@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -151,6 +151,12 @@ const Home = () => {
 
   const combinedFitnessUsers = Number(appStats?.benchpressonly?.users || 0) + Number(appStats?.rowcrew?.uniqueRowers || 0);
 
+  // Enrich appStats with FabStats user count (comes from separate Firebase)
+  const enrichedStats = useMemo(() => ({
+    ...appStats,
+    fabstats: { ...appStats?.fabstats, users: fabUserCount },
+  }), [appStats, fabUserCount]);
+
   return (
     <Layout>
       <InteractiveBackground />
@@ -237,16 +243,6 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ===== NARRATIVE INTRO ===== */}
-        <section className="narrative-section">
-          <div className="container">
-            <p className="narrative-text">
-              This portfolio runs itself — 3 AI agents autonomously write blog posts, manage social presence,
-              and coordinate data across 8+ live products. Every section below is backed by real systems, real users, and real-time data.
-            </p>
-          </div>
-        </section>
-
         {/* ===== COLLAPSIBLE SECTIONS ===== */}
         <div className="collapsible-wrapper">
 
@@ -260,7 +256,7 @@ const Home = () => {
         >
           <section className="showcase-section">
             <div className="container">
-              <AgentWorkspace />
+              <AgentWorkspace appStats={enrichedStats} githubStats={githubStats} />
             </div>
           </section>
         </CollapsibleSection>
@@ -471,11 +467,11 @@ const Home = () => {
 
         {/* ===== 7. BACKGROUND (merged Experience + Earlier Work) ===== */}
         <CollapsibleSection
-          title="Background"
+          title="Professional Experience"
           subtitle="7+ years at T-Mobile, Capital One, and startups — plus a 50-machine trading system and ACM publication"
           badge="7+ yrs"
           badgeType="count"
-          defaultOpen={false}
+          defaultOpen={true}
         >
         <section className="experience-section">
           <div className="container">

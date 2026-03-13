@@ -750,6 +750,53 @@ async function getActivityContext(query) {
   return { context, toolsCalled };
 }
 
+// ============ SCRIBE CONTEXT (today's commits from scribe_inbox) ============
+async function getScribeContext(query) {
+  const q = query.toLowerCase();
+  if (!/scribe|blog|writing|today|working on|doing|commit|recent stuff|what.*he/.test(q)) {
+    return { context: [], toolsCalled: [] };
+  }
+
+  const context = [];
+  const toolsCalled = [];
+
+  try {
+    if (!db) return { context, toolsCalled };
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const startOfDay = new Date(todayStr + 'T00:00:00Z');
+
+    const snapshot = await db.collection('scribe_inbox')
+      .where('receivedAt', '>=', admin.firestore.Timestamp.fromDate(startOfDay))
+      .orderBy('receivedAt', 'desc')
+      .limit(20)
+      .get();
+
+    if (!snapshot.empty) {
+      const commits = snapshot.docs.map(d => d.data());
+      const repos = [...new Set(commits.map(c => c.repo))];
+      const summary = {
+        totalCommits: commits.length,
+        repos,
+        recentCommits: commits.slice(0, 10).map(c => ({
+          repo: c.repo,
+          message: (c.message || '').split('\n')[0],
+          author: c.author,
+        })),
+        date: todayStr,
+      };
+
+      context.push({ title: 'The Scribe — Today\'s Commit Inbox', data: summary });
+      toolsCalled.push('get_scribe_inbox');
+    }
+  } catch (error) {
+    console.error('Scribe context error:', error);
+  }
+
+  return { context, toolsCalled };
+}
+
 // ============ FAB STATS CONTEXT (from MCP) ============
 async function getFabStatsContext(query) {
   const q = query.toLowerCase();
@@ -1074,10 +1121,15 @@ exports.handler = async (event, context) => {
     // Fetch AI activity data if relevant
     let activityContext = [];
     let activityToolsCalled = [];
-    if (intent.intent === 'activity') {
+    if (intent.intent === 'activity' || intent.intent === 'agents') {
       const activityResult = await getActivityContext(latestUserMessage);
       activityContext = activityResult.context;
       activityToolsCalled = activityResult.toolsCalled;
+
+      // Also fetch Scribe's live commit inbox
+      const scribeResult = await getScribeContext(latestUserMessage);
+      activityContext = activityContext.concat(scribeResult.context);
+      activityToolsCalled = activityToolsCalled.concat(scribeResult.toolsCalled);
     }
 
     // Fetch app-specific live data

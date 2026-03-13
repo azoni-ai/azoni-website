@@ -14,7 +14,7 @@ const TABS = [
   { key: 'tech', label: 'Tech' },
 ];
 
-function StationDetailPanel({ station, stationHistory, activityCounts, visitCount = 0, health, onClose }) {
+function StationDetailPanel({ station, stationHistory, activityCounts, visitCount = 0, health, appStats, githubStats, onClose }) {
   const [activeTab, setActiveTab] = useState('activity');
 
   return createPortal(
@@ -139,6 +139,58 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                           <div className="aw-detail-empty">No events recorded yet</div>
                         )}
                       </div>
+
+                      {/* Live app metrics */}
+                      {station.id === 'fabstats' && appStats?.fabstats && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Live Stats</div>
+                          <div className="aw-detail-stats">
+                            {appStats.fabstats.users > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.fabstats.users).toLocaleString()}</div><div className="aw-detail-stat-label">players</div></div>}
+                            {appStats.fabstats.matches > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.fabstats.matches).toLocaleString()}</div><div className="aw-detail-stat-label">matches</div></div>}
+                          </div>
+                        </div>
+                      )}
+                      {station.id === 'benchpressonly' && appStats?.benchpressonly && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Live Stats</div>
+                          <div className="aw-detail-stats">
+                            {appStats.benchpressonly.users > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.benchpressonly.users).toLocaleString()}</div><div className="aw-detail-stat-label">users</div></div>}
+                            {appStats.benchpressonly.workoutsLogged > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.benchpressonly.workoutsLogged).toLocaleString()}</div><div className="aw-detail-stat-label">workouts</div></div>}
+                          </div>
+                        </div>
+                      )}
+                      {station.id === 'rowcrew' && appStats?.rowcrew && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Live Stats</div>
+                          <div className="aw-detail-stats">
+                            {(appStats.rowcrew.sessions || appStats.rowcrew.totalSessions) > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.rowcrew.sessions || appStats.rowcrew.totalSessions).toLocaleString()}</div><div className="aw-detail-stat-label">sessions</div></div>}
+                            {(appStats.rowcrew.meters || appStats.rowcrew.totalMeters) > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.rowcrew.meters || appStats.rowcrew.totalMeters).toLocaleString()}</div><div className="aw-detail-stat-label">meters</div></div>}
+                          </div>
+                        </div>
+                      )}
+                      {station.id === 'oldwaystoday' && appStats?.oldwaystoday && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Live Stats</div>
+                          <div className="aw-detail-stats">
+                            {appStats.oldwaystoday.requests > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.oldwaystoday.requests).toLocaleString()}</div><div className="aw-detail-stat-label">requests</div></div>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Scribe — recent commits from git activity */}
+                      {station.id === 'blog' && githubStats?.recentCommits?.length > 0 && (
+                        <div className="aw-detail-section">
+                          <div className="aw-detail-section-title">Recent Commits</div>
+                          <div className="aw-detail-events">
+                            {githubStats.recentCommits.slice(0, 8).map((c, i) => (
+                              <div key={i} className="aw-detail-event">
+                                <span className="aw-detail-event-title">{(c.message || '').split('\n')[0]}</span>
+                                <span className="aw-detail-event-ago">{c.repo}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
 
