@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Comments from '../components/Comments';
 import { useProjects } from '../hooks/useProjects';
@@ -40,7 +40,7 @@ const StarButton = ({ projectId }) => {
   };
 
   return (
-    <button 
+    <button
       className={`star-button ${userStarred ? 'starred' : ''}`}
       onClick={handleStar}
       onMouseEnter={() => setHovered(true)}
@@ -55,9 +55,38 @@ const StarButton = ({ projectId }) => {
 
 const ProjectDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   useVisitTracker(id);
-  const { getProject, loading } = useProjects();
+  const { getProject, allProjects, loading } = useProjects();
   const project = getProject(id);
+
+  // Prev/next navigation
+  const currentIndex = allProjects.findIndex(p => p.id === id);
+  const prevProject = currentIndex > 0 ? allProjects[currentIndex - 1] : null;
+  const nextProject = currentIndex < allProjects.length - 1 ? allProjects[currentIndex + 1] : null;
+
+  // Scroll to top on project change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  // Keyboard navigation (left/right arrows)
+  const prevRef = useRef(prevProject);
+  const nextRef = useRef(nextProject);
+  prevRef.current = prevProject;
+  nextRef.current = nextProject;
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'ArrowLeft' && prevRef.current) {
+        navigate(`/projects/${prevRef.current.id}`);
+      } else if (e.key === 'ArrowRight' && nextRef.current) {
+        navigate(`/projects/${nextRef.current.id}`);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [navigate]);
 
   if (loading) {
     return (
@@ -93,25 +122,18 @@ const ProjectDetail = () => {
     <Layout>
       <section className="section" style={{ paddingTop: '120px' }}>
         <div className="container container-narrow">
-          {/* Back Link */}
-          <Link 
-            to="/projects" 
-            style={{ 
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--space-sm)',
-              color: 'var(--text-secondary)',
-              marginBottom: 'var(--space-xl)',
-              fontSize: '0.9rem'
-            }}
-          >
-            ← Back to Projects
-          </Link>
+          {/* Top navigation */}
+          <div className="project-nav">
+            <Link to="/projects" className="project-nav-back">← All Projects</Link>
+            {allProjects.length > 0 && (
+              <span className="project-nav-counter">{currentIndex + 1} / {allProjects.length}</span>
+            )}
+          </div>
 
           {/* Header */}
           <div style={{ marginBottom: 'var(--space-2xl)' }}>
-            <p style={{ 
-              color: 'var(--accent-primary)', 
+            <p style={{
+              color: 'var(--accent-primary)',
               marginBottom: 'var(--space-sm)',
               fontSize: '0.9rem',
               textTransform: 'uppercase',
@@ -119,13 +141,13 @@ const ProjectDetail = () => {
             }}>
               {project.tagline}
             </p>
-            
+
             {/* Title with Star */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)', flexWrap: 'wrap' }}>
               <h1 style={{ margin: 0 }}>{project.title}</h1>
               <StarButton projectId={id} />
             </div>
-            
+
             <div className="tags" style={{ marginBottom: 'var(--space-xl)' }}>
               {project.tech.map((tech) => (
                 <span key={tech} className="tag">{tech}</span>
@@ -135,9 +157,9 @@ const ProjectDetail = () => {
             {/* Links */}
             <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
               {project.links.live && (
-                <a 
-                  href={project.links.live} 
-                  target="_blank" 
+                <a
+                  href={project.links.live}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-primary"
                 >
@@ -145,9 +167,9 @@ const ProjectDetail = () => {
                 </a>
               )}
               {project.links.github && (
-                <a 
-                  href={project.links.github} 
-                  target="_blank" 
+                <a
+                  href={project.links.github}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-secondary"
                 >
@@ -155,9 +177,9 @@ const ProjectDetail = () => {
                 </a>
               )}
               {project.links.paper && (
-                <a 
-                  href={project.links.paper} 
-                  target="_blank" 
+                <a
+                  href={project.links.paper}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-secondary"
                 >
@@ -170,8 +192,8 @@ const ProjectDetail = () => {
           {/* Description */}
           <div className="card" style={{ marginBottom: 'var(--space-2xl)' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-lg)' }}>Overview</h2>
-            <div style={{ 
-              color: 'var(--text-secondary)', 
+            <div style={{
+              color: 'var(--text-secondary)',
               lineHeight: 1.8,
               whiteSpace: 'pre-line'
             }}>
@@ -183,7 +205,7 @@ const ProjectDetail = () => {
           {project.highlights && project.highlights.length > 0 && (
             <div className="card" style={{ marginBottom: 'var(--space-2xl)' }}>
               <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-lg)' }}>Key Features</h2>
-              <ul style={{ 
+              <ul style={{
                 color: 'var(--text-secondary)',
                 paddingLeft: 'var(--space-lg)',
                 display: 'flex',
@@ -200,6 +222,22 @@ const ProjectDetail = () => {
           {/* Comments Section */}
           <div className="card">
             <Comments projectId={id} />
+          </div>
+
+          {/* Prev/Next Navigation */}
+          <div className="project-nav-footer">
+            {prevProject ? (
+              <Link to={`/projects/${prevProject.id}`} className="project-nav-link project-nav-prev">
+                <span className="project-nav-dir">← Previous</span>
+                <span className="project-nav-name">{prevProject.title}</span>
+              </Link>
+            ) : <div />}
+            {nextProject ? (
+              <Link to={`/projects/${nextProject.id}`} className="project-nav-link project-nav-next">
+                <span className="project-nav-dir">Next →</span>
+                <span className="project-nav-name">{nextProject.title}</span>
+              </Link>
+            ) : <div />}
           </div>
         </div>
       </section>

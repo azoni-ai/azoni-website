@@ -426,7 +426,7 @@ function AgentWorkspace({ appStats, githubStats }) {
       return;
     }
 
-    const pos = GRID_PLACEMENT[stationId];
+    const pos = GRID_PLACEMENT[stationId] || (SMALL_STATIONS.includes(stationId) ? { col: 7, door: 'left' } : null);
     if (!pos) return;
 
     const floorEl = floorRef.current;
@@ -467,7 +467,7 @@ function AgentWorkspace({ appStats, githubStats }) {
       }
     }
 
-    const targetPos = targetId ? GRID_PLACEMENT[targetId] : null;
+    const targetPos = targetId ? (GRID_PLACEMENT[targetId] || (SMALL_STATIONS.includes(targetId) ? { col: 7, door: 'left' } : null)) : null;
     const targetCell = targetId ? cellRefs.current[targetId] : null;
 
     let data;
