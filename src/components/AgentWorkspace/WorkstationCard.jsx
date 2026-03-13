@@ -33,6 +33,7 @@ function WorkstationCard({
   showChatBubble,
   mcpStatus,
   small,
+  wide,
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -52,7 +53,7 @@ function WorkstationCard({
 
   return (
     <motion.div
-      className={`aw-station-card aw-theme-${station.id}${small ? ' aw-station-small' : ''}${openDesk ? ' aw-open-desk' : ''}${basement ? ' aw-basement-station' : ''}${isFlashing ? ' aw-station-active' : ''}${idleClass}${highlightClass}${dimClass}`}
+      className={`aw-station-card aw-theme-${station.id}${small ? ' aw-station-small' : ''}${wide ? ' aw-station-wide' : ''}${openDesk ? ' aw-open-desk' : ''}${basement ? ' aw-basement-station' : ''}${isFlashing ? ' aw-station-active' : ''}${idleClass}${highlightClass}${dimClass}`}
       style={{
         '--station-color': station.color,
         '--activity-intensity': intensity,

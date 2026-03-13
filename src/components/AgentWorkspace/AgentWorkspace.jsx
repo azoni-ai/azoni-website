@@ -23,7 +23,7 @@ const GRID_PLACEMENT = {
   // ─── APPS (Row 5) ───
   benchpress:   { col: 1, row: 5, room: 5,  door: 'right' },
   oldwaystoday: { col: 3, row: 5, room: 6,  door: 'right' },
-  fab:          { col: 5, row: 5, room: 7,  door: 'left' },
+  fab:          { col: '5 / 8', colStart: 5, row: 5, room: 7,  door: 'left', wide: true },
 };
 // Small stations rendered in flex sub-row (row 7)
 const SMALL_STATIONS = ['rowcrew', 'spellbrigade', 'activity', 'embedroute', 'medic'];
@@ -453,13 +453,13 @@ function AgentWorkspace({ appStats, githubStats }) {
     let data;
     if (targetPos && targetCell) {
       const targetRect = targetCell.getBoundingClientRect();
-      data = calcStationToStationWaypoints(floorRect, cellRect, targetRect, pos.door, targetPos.door, pos.col, targetPos.col, lobbyRect);
+      data = calcStationToStationWaypoints(floorRect, cellRect, targetRect, pos.door, targetPos.door, pos.colStart || pos.col, targetPos.colStart || targetPos.col, lobbyRect);
       // Blog queue walks: longer duration, more time at destination
       if (walkQueueRef.current[stationId]?.length > 0) {
         data.duration = data.duration * 1.5;
       }
     } else {
-      data = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door, pos.col);
+      data = calcWaypoints(floorRect, cellRect, lobbyRect, pos.door, pos.colStart || pos.col);
     }
 
     // Faster walks for medium-importance events to Tools
@@ -827,7 +827,7 @@ function AgentWorkspace({ appStats, githubStats }) {
             <div
               key={station.id}
               ref={(el) => setCellRef(station.id, el)}
-              className={`aw-grid-cell${zoneClass ? ` ${zoneClass}` : ''}`}
+              className={`aw-grid-cell${pos.wide ? ' aw-grid-cell-wide' : ''}${zoneClass ? ` ${zoneClass}` : ''}`}
               style={{ gridColumn: pos.col, gridRow: pos.row }}
               onMouseEnter={() => handleStationEnter(station.id)}
               onMouseLeave={handleStationLeave}
@@ -853,6 +853,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 inspection={inspectedStation?.id === station.id ? inspectedStation : null}
                 isPacing={!!pacingStations[station.id]}
                 showChatBubble={chatBubbleStation === station.id}
+                wide={pos.wide}
               />
             </div>
           );
@@ -943,7 +944,8 @@ function AgentWorkspace({ appStats, githubStats }) {
             const visits = visitCounts[tooltipStation] || 0;
             const eventMs = lastEvent?.receivedAt || 0;
 
-            const tooltipCol = pos.col <= 2 ? pos.col + 2 : pos.col >= 6 ? pos.col - 2 : pos.col <= 3 ? pos.col + 1 : pos.col - 1;
+            const colNum = pos.colStart || pos.col;
+            const tooltipCol = colNum <= 2 ? colNum + 2 : colNum >= 6 ? colNum - 2 : colNum <= 3 ? colNum + 1 : colNum - 1;
             const tooltipRow = pos.row;
 
             return (

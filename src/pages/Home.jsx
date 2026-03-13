@@ -118,6 +118,19 @@ const Home = () => {
     fabstats: { ...appStats?.fabstats, users: fabUserCount, matches: fabMatchCount },
   }), [appStats, fabUserCount, fabMatchCount]);
 
+  // Aggregate metrics for the collapsible section bar
+  const systemStats = useMemo(() => {
+    const bpUsers = Number(appStats?.benchpressonly?.users) || 0;
+    const fabUsers = fabUserCount || 0;
+    const rcUsers = Number(appStats?.rowcrew?.uniqueRowers) || 0;
+    const totalUsers = bpUsers + fabUsers + rcUsers;
+    const stats = [];
+    if (totalUsers > 0) stats.push({ value: totalUsers.toLocaleString(), label: 'users' });
+    const apps = 12;
+    stats.push({ value: String(apps), label: 'stations' });
+    return stats;
+  }, [appStats, fabUserCount]);
+
   return (
     <Layout>
       <InteractiveBackground />
@@ -210,10 +223,11 @@ const Home = () => {
         {/* ===== 1. THE AGENT SYSTEM (merged map + agents) ===== */}
         <CollapsibleSection
           title="The Agent System"
-          subtitle="3 autonomous AI agents running this site — real-time map + architecture"
+          subtitle="12 stations — 3 autonomous agents, 5 apps, and live infrastructure"
           badge="Live"
           badgeType="live"
           defaultOpen={true}
+          stats={systemStats}
         >
           <section className="showcase-section">
             <div className="container">

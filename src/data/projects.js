@@ -1,5 +1,29 @@
 export const projects = [
   {
+    id: 'fab-stats',
+    title: 'FaB Stats',
+    tagline: 'Competitive TCG Analytics Platform',
+    description: 'Large Next.js application for hero-level performance analytics, matchup tools, and community features for Flesh and Blood players.',
+    longDescription: `FaB Stats is a feature-rich analytics and community platform with dozens of routes spanning player profiles, match tracking, leaderboards, tools, and mini-games.
+
+The app focuses on decision support for competitive players with searchable stats, matchup exploration, social features, and extensible game-specific tooling.`,
+    tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Recharts'],
+    highlights: [
+      'Large surface area with extensive route architecture',
+      'Player analytics, leaderboards, and matchup tooling',
+      'Integrated social and communication features',
+      'Game-focused utilities and engagement loops'
+    ],
+    links: {
+      live: 'https://fabstats.net',
+      github: null
+    },
+    image: '/images/admin-panel.png',
+    featured: true,
+    category: 'games',
+    displayOrder: 1
+  },
+  {
     id: 'embedroute',
     title: 'EmbedRoute',
     tagline: 'Unified Embedding API Gateway',
@@ -159,29 +183,6 @@ It includes interactive project detail pages, AI chat workflows, activity teleme
     image: '/images/azoni.png',
     featured: true,
     category: 'web'
-  },
-  {
-    id: 'fab-stats',
-    title: 'FaB Stats',
-    tagline: 'Competitive TCG Analytics Platform',
-    description: 'Large Next.js application for hero-level performance analytics, matchup tools, and community features for Flesh and Blood players.',
-    longDescription: `FaB Stats is a feature-rich analytics and community platform with dozens of routes spanning player profiles, match tracking, leaderboards, tools, and mini-games.
-
-The app focuses on decision support for competitive players with searchable stats, matchup exploration, social features, and extensible game-specific tooling.`,
-    tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Recharts'],
-    highlights: [
-      'Large surface area with extensive route architecture',
-      'Player analytics, leaderboards, and matchup tooling',
-      'Integrated social and communication features',
-      'Game-focused utilities and engagement loops'
-    ],
-    links: {
-      live: 'https://fabstats.net',
-      github: null
-    },
-    image: '/images/admin-panel.png',
-    featured: true,
-    category: 'games'
   },
   {
     id: 'fab-stats-bot',

@@ -2694,6 +2694,29 @@
   transform-origin: bottom center;
 }
 
+/* ── Wide station (double-width, horizontal layout) ── */
+.aw-station-wide {
+  display: flex;
+  flex-direction: row;
+}
+
+.aw-station-wide .aw-station-scene {
+  width: 45%;
+  min-height: 140px;
+  flex-shrink: 0;
+}
+
+.aw-station-wide .aw-station-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.aw-grid-cell-wide {
+  min-width: 0;
+}
+
 .aw-props-fitness {
   position: absolute;
   inset: 0;
