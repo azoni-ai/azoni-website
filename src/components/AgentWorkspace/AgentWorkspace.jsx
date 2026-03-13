@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAgentActivity } from '../../hooks/useAgentActivity';
 import { useMCPHealth } from '../../hooks/useMCPHealth';
-import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, INFRASTRUCTURE_HUBS, DEFAULT_WALK_TARGETS, DOMAIN_TO_STATION, MCP_URL, getEventImportance, formatTimeAgo } from '../../utils/station-mapping';
+import { STATION_DEFS, STATION_CONNECTIONS, CATEGORY_STYLES, INFRASTRUCTURE_HUBS, DEFAULT_WALK_TARGETS, DOMAIN_TO_STATION, getEventImportance, formatTimeAgo } from '../../utils/station-mapping';
 import { avatars } from '../../data/agents';
 import WorkstationCard from './WorkstationCard';
 import MCPHub from './MCPHub';
@@ -282,7 +282,9 @@ function getStationMetrics(stationId, appStats, githubStats) {
 
 function AgentWorkspace({ appStats, githubStats }) {
   const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef } = useAgentActivity();
-  const { health, totalTools } = useMCPHealth();
+  const { health, totalTools, refresh: refreshHealth } = useMCPHealth();
+  const refreshHealthRef = useRef(refreshHealth);
+  refreshHealthRef.current = refreshHealth;
 
   const [selectedStation, setSelectedStation] = useState(null);
   const [hoverDelayId, setHoverDelayId] = useState(null);
@@ -521,15 +523,16 @@ function AgentWorkspace({ appStats, githubStats }) {
             setPatrolEvents(prev => [evt, ...prev].slice(0, 10));
           };
 
-          if (domain) {
-            fetch(`${MCP_URL}/health`).then(r => r.json()).then(h => {
+          // Conductor refreshes ALL health data (replaces background polling)
+          refreshHealthRef.current().then(h => {
+            if (domain && h) {
               logInspection(h[domain] === true ? 'online' : h[domain] === false ? 'offline' : 'unknown');
-            }).catch(() => {
-              logInspection('offline');
-            });
-          } else {
-            logInspection('checked');
-          }
+            } else {
+              logInspection('checked');
+            }
+          }).catch(() => {
+            logInspection('offline');
+          });
         }, midpointMs);
       }
     } else {
@@ -868,6 +871,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 lastEvent={station.id === 'orchestrator' && patrolEvents[0] && (!stationEvents[station.id] || patrolEvents[0].receivedAt > stationEvents[station.id].receivedAt) ? patrolEvents[0] : stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
                 visitCount={visitCounts[station.id] || 0}
+                mcpStatus={(() => { const d = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === station.id)?.[0]; return d && health ? health[d] : undefined; })()}
                 isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
                 isWalking={!!walkingAgents[station.id]}
                 idleLevel={idleLevels[station.id] || 0}

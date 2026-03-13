@@ -1504,6 +1504,21 @@
   opacity: 0.6;
 }
 
+.aw-station-offline {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #f87171;
+  margin-left: auto;
+  animation: awOfflinePulse 2s ease-in-out infinite;
+}
+
+@keyframes awOfflinePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 .aw-station-event {
   display: flex;
   align-items: center;

@@ -24,6 +24,7 @@ function WorkstationCard({
   inspection,
   isPacing,
   showChatBubble,
+  mcpStatus,
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
@@ -33,8 +34,8 @@ function WorkstationCard({
   const h24 = activityCounts.h24 || 0;
   const intensity = Math.min(h24 / 20, 1);
 
-  // Status LED: green (active <1h), yellow (1-24h), gray (>24h), red (errors)
-  const statusColor = errorCount > 0 ? '#f87171' : idleLevel === 0 ? '#4ade80' : idleLevel === 1 ? '#facc15' : '#6b6b65';
+  // Status LED: red (errors/offline), green (active <1h), yellow (1-24h), gray (>24h)
+  const statusColor = errorCount > 0 || mcpStatus === false ? '#f87171' : idleLevel === 0 ? '#4ade80' : idleLevel === 1 ? '#facc15' : '#6b6b65';
 
   const idleClass = idleLevel === 2 ? ' aw-station-idle-2' : idleLevel === 1 ? ' aw-station-idle-1' : '';
   const highlightClass = isHighlighted ? ' aw-station-highlighted' : '';
@@ -121,7 +122,8 @@ function WorkstationCard({
         <div className="aw-station-header">
           <span className="aw-status-led" style={{ background: statusColor }} />
           <span className="aw-station-name">{station.label}</span>
-          {cat && <span className="aw-station-cat" style={{ color: cat.color }}>{cat.label}</span>}
+          {mcpStatus === false && <span className="aw-station-offline">OFFLINE</span>}
+          {cat && mcpStatus !== false && <span className="aw-station-cat" style={{ color: cat.color }}>{cat.label}</span>}
         </div>
 
         {lastEvent ? (
