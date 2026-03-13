@@ -333,26 +333,37 @@ function FaBWorkspace() {
   );
 }
 
-// ─── Tools: Activity log + EmbedRoute nodes ───
+// ─── Tools: Activity Feed + EmbedRoute — clearly labeled sub-services ───
 function ToolsWorkspace({ color }) {
   return (
     <div className="aw-props-tools">
-      <div className="aw-activity-log">
-        <div className="aw-log-line" style={{ '--log-color': color }}>
-          <span className="aw-log-dot" style={{ background: '#4ade80' }} />
-          <span className="aw-log-bar" style={{ width: '70%', background: `${color}25` }} />
+      {/* Activity Feed side */}
+      <div className="aw-tools-service">
+        <span className="aw-tools-label">Activity Feed</span>
+        <div className="aw-tools-icon-wrap" style={{ '--svc-color': '#f87171' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
         </div>
-        <div className="aw-log-line" style={{ '--log-color': color }}>
-          <span className="aw-log-dot" style={{ background: '#60a5fa' }} />
-          <span className="aw-log-bar" style={{ width: '50%', background: `${color}25` }} />
-        </div>
-        <div className="aw-log-line" style={{ '--log-color': color }}>
-          <span className="aw-log-dot" style={{ background: '#fbbf24' }} />
-          <span className="aw-log-bar" style={{ width: '85%', background: `${color}25` }} />
+        <div className="aw-tools-mini-log">
+          <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#4ade80' }} /><span className="aw-log-bar" style={{ width: '70%', background: 'rgba(248,113,113,0.2)' }} /></div>
+          <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#60a5fa' }} /><span className="aw-log-bar" style={{ width: '50%', background: 'rgba(248,113,113,0.2)' }} /></div>
+          <div className="aw-log-line"><span className="aw-log-dot" style={{ background: '#fbbf24' }} /><span className="aw-log-bar" style={{ width: '85%', background: 'rgba(248,113,113,0.2)' }} /></div>
         </div>
       </div>
-      <div className="aw-embed-center" style={{ borderColor: `${color}40` }}>
-        <div className="aw-embed-core" style={{ background: `${color}60` }} />
+      {/* Divider */}
+      <div className="aw-tools-divider" style={{ background: `${color}20` }} />
+      {/* EmbedRoute side */}
+      <div className="aw-tools-service">
+        <span className="aw-tools-label">EmbedRoute</span>
+        <div className="aw-tools-icon-wrap" style={{ '--svc-color': color }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="6" r="3" /><circle cx="18" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 9v6M8.5 7.5l7 7M15.5 7.5l-7 7" />
+          </svg>
+        </div>
+        <div className="aw-embed-center" style={{ borderColor: `${color}40` }}>
+          <div className="aw-embed-core" style={{ background: `${color}60` }} />
+        </div>
       </div>
     </div>
   );

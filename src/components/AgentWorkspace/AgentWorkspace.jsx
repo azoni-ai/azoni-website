@@ -236,8 +236,11 @@ function getStationMetrics(stationId, appStats, githubStats) {
       const totalUsers = (Number(bp?.users) || 0) + (Number(rc?.users || rc?.totalUsers) || 0);
       if (fmt(totalUsers)) m.push({ value: fmt(totalUsers), label: 'users' });
       if (bp && fmt(bp.workoutsLogged)) m.push({ value: fmt(bp.workoutsLogged), label: 'workouts' });
-      const sessions = Number(rc?.sessions || rc?.totalSessions || 0);
-      if (fmt(sessions)) m.push({ value: fmt(sessions), label: 'sessions' });
+      const meters = Number(rc?.meters || 0);
+      if (meters > 0) {
+        const display = meters >= 1000000 ? `${(meters / 1000000).toFixed(1)}M` : meters >= 1000 ? `${(meters / 1000).toFixed(0)}k` : String(meters);
+        m.push({ value: display, label: 'meters' });
+      }
       return m.length ? m : null;
     }
     case 'oldwaystoday': {

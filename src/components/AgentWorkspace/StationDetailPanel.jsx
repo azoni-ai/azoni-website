@@ -166,16 +166,23 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                           </div>
                         </div>
                       )}
-                      {station.id === 'gym' && (appStats?.benchpressonly || appStats?.rowcrew) && (
-                        <div className="aw-detail-section">
-                          <div className="aw-detail-section-title">Live Stats</div>
-                          <div className="aw-detail-stats">
-                            {appStats.benchpressonly?.users > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.benchpressonly.users).toLocaleString()}</div><div className="aw-detail-stat-label">users</div></div>}
-                            {appStats.benchpressonly?.workoutsLogged > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.benchpressonly.workoutsLogged).toLocaleString()}</div><div className="aw-detail-stat-label">workouts</div></div>}
-                            {(appStats.rowcrew?.sessions || appStats.rowcrew?.totalSessions) > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{Number(appStats.rowcrew.sessions || appStats.rowcrew.totalSessions).toLocaleString()}</div><div className="aw-detail-stat-label">sessions</div></div>}
+                      {station.id === 'gym' && (appStats?.benchpressonly || appStats?.rowcrew) && (() => {
+                        const bpUsers = Number(appStats.benchpressonly?.users) || 0;
+                        const rcUsers = Number(appStats.rowcrew?.users || appStats.rowcrew?.totalUsers) || 0;
+                        const totalUsers = bpUsers + rcUsers;
+                        const workouts = Number(appStats.benchpressonly?.workoutsLogged) || 0;
+                        const meters = Number(appStats.rowcrew?.meters) || 0;
+                        return (
+                          <div className="aw-detail-section">
+                            <div className="aw-detail-section-title">Live Stats</div>
+                            <div className="aw-detail-stats">
+                              {totalUsers > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{totalUsers.toLocaleString()}</div><div className="aw-detail-stat-label">users</div></div>}
+                              {workouts > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{workouts.toLocaleString()}</div><div className="aw-detail-stat-label">workouts</div></div>}
+                              {meters > 0 && <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}><div className="aw-detail-stat-num" style={{ color: station.color }}>{meters.toLocaleString()}</div><div className="aw-detail-stat-label">meters rowed</div></div>}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                       {station.id === 'oldwaystoday' && appStats?.oldwaystoday && (
                         <div className="aw-detail-section">
                           <div className="aw-detail-section-title">Live Stats</div>
