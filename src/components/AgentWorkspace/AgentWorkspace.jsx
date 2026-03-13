@@ -298,6 +298,7 @@ function AgentWorkspace({ appStats, githubStats }) {
     const now = Date.now();
     const levels = {};
     [...workstationStations, ...secondaryHubStations].forEach(s => {
+      if (s.id === 'medic') { levels[s.id] = 0; return; } // Medic is always on rounds
       const lastMs = stationEvents[s.id]?.receivedAt || 0;
       const diff = now - lastMs;
       if (!lastMs || diff > 86400000) levels[s.id] = 2;
@@ -495,36 +496,37 @@ function AgentWorkspace({ appStats, githubStats }) {
         const dest = targetId;
         const midpointMs = data.duration * 0.35 * 1000;
         setTimeout(() => {
-          // Show chat bubbles while inspecting
+          // Show checkup bubble while inspecting
           setChatBubbleStation(dest);
           if (chatBubbleTimerRef.current) clearTimeout(chatBubbleTimerRef.current);
-          chatBubbleTimerRef.current = setTimeout(() => setChatBubbleStation(null), 4000);
+          chatBubbleTimerRef.current = setTimeout(() => setChatBubbleStation(null), 6000);
 
           const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === dest)?.[0];
           const destStation = stationById[dest];
           const destLabel = destStation?.label || dest;
-          const logInspection = (status) => {
+          const logCheckup = (status) => {
             setInspectedStation({ id: dest, status });
             if (inspectedTimerRef.current) clearTimeout(inspectedTimerRef.current);
-            inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 5000);
+            inspectedTimerRef.current = setTimeout(() => setInspectedStation(null), 6000);
+            const statusLabel = status === 'online' ? 'healthy' : status === 'offline' ? 'unresponsive' : 'checked';
             const evt = {
               type: 'health_check',
-              title: `Inspected ${destLabel} — ${status}`,
+              title: `Checkup: ${destLabel} — ${statusLabel}`,
               source: 'medic',
               receivedAt: Date.now(),
             };
             setPatrolEvents(prev => [evt, ...prev].slice(0, 10));
           };
 
-          // Conductor refreshes ALL health data (replaces background polling)
+          // Medic refreshes ALL health data (replaces background polling)
           refreshHealthRef.current().then(h => {
             if (domain && h) {
-              logInspection(h[domain] === true ? 'online' : h[domain] === false ? 'offline' : 'unknown');
+              logCheckup(h[domain] === true ? 'online' : h[domain] === false ? 'offline' : 'unknown');
             } else {
-              logInspection('checked');
+              logCheckup('checked');
             }
           }).catch(() => {
-            logInspection('offline');
+            logCheckup('offline');
           });
         }, midpointMs);
       }

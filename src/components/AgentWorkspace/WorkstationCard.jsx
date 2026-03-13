@@ -65,10 +65,10 @@ function WorkstationCard({
         <span className="aw-error-badge">{errorCount}</span>
       )}
 
-      {/* Conductor inspection badge */}
+      {/* Medic checkup badge */}
       {inspection && (
         <span className={`aw-inspection-badge aw-inspection-${inspection.status}`}>
-          {inspection.status === 'online' ? '✓' : inspection.status === 'offline' ? '✗' : '•'}
+          {inspection.status === 'online' ? '♥' : inspection.status === 'offline' ? '✗' : '•'}
         </span>
       )}
 
@@ -97,15 +97,11 @@ function WorkstationCard({
           </motion.div>
         )}
 
-        {/* Chat bubbles — Conductor inspection conversation */}
+        {/* Medic checkup bubble */}
         {showChatBubble && (
-          <div className="aw-chat-bubbles">
-            <div className="aw-chat-bubble-left">
-              <span /><span /><span />
-            </div>
-            <div className="aw-chat-bubble-right">
-              <span /><span /><span />
-            </div>
+          <div className="aw-checkup-bubble">
+            <span className="aw-checkup-cross">+</span>
+            <span className="aw-checkup-pulse" />
           </div>
         )}
 
