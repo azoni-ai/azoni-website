@@ -28,6 +28,7 @@ function WorkstationCard({
 }) {
   const cat = CATEGORY_STYLES[station.category];
   const idle = station.agent ? AGENT_IDLE[station.agent] : null;
+  const idle2 = station.secondAgent ? AGENT_IDLE[station.secondAgent] : null;
   const hasAvatar = station.agent && avatars[station.agent];
   const eventMs = lastEvent?.receivedAt || 0;
   const h1 = activityCounts.h1 || 0;
@@ -82,19 +83,34 @@ function WorkstationCard({
         {/* Basement cobweb + flickering light overlay */}
         {basement && <div className="aw-basement-overlay" />}
 
-        {/* Avatar */}
+        {/* Avatar(s) */}
         {hasAvatar && (
-          <motion.div
-            className={`aw-station-avatar${isPacing ? ' aw-avatar-pacing' : ''}`}
-            animate={{ y: [0, -(idle?.bobAmt || 2), 0] }}
-            transition={{
-              duration: (idle?.bobSpeed || 3000) / 1000,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          >
-            {avatars[station.agent](56)}
-          </motion.div>
+          <div className={`aw-station-avatars${station.secondAgent ? ' aw-dual-avatar' : ''}`}>
+            <motion.div
+              className={`aw-station-avatar${isPacing ? ' aw-avatar-pacing' : ''}`}
+              animate={{ y: [0, -(idle?.bobAmt || 2), 0] }}
+              transition={{
+                duration: (idle?.bobSpeed || 3000) / 1000,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            >
+              {avatars[station.agent](station.secondAgent ? 40 : 56)}
+            </motion.div>
+            {station.secondAgent && avatars[station.secondAgent] && (
+              <motion.div
+                className="aw-station-avatar"
+                animate={{ y: [0, -(idle2?.bobAmt || 2), 0] }}
+                transition={{
+                  duration: (idle2?.bobSpeed || 3000) / 1000,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              >
+                {avatars[station.secondAgent](40)}
+              </motion.div>
+            )}
+          </div>
         )}
 
         {/* Medic checkup bubble */}
@@ -174,8 +190,7 @@ function WorkspaceProps({ stationId, color }) {
     case 'spellbrigade': return <GamingWorkspace color={color} />;
     case 'moltbook': return <SocialWorkspace color={color} />;
     case 'oldwaystoday': return <WellnessWorkspace color={color} />;
-    case 'benchpressonly': return <FitnessWorkspace color={color} />;
-    case 'rowcrew': return <RowingWorkspace color={color} />;
+    case 'gym': return <GymWorkspace color={color} />;
     case 'embedroute': return <DataWorkspace icon="nodes" color={color} />;
     case 'activity': return <DataWorkspace icon="pulse" color={color} />;
     case 'fabstats': return <FaBStatsWorkspace color={color} />;
@@ -357,50 +372,30 @@ function WellnessWorkspace({ color }) {
   );
 }
 
-// ─── Fitness: Home gym with rack, barbell, mat ───
-function FitnessWorkspace({ color }) {
+// ─── Gym: Combined bench press area + rowing area ───
+function GymWorkspace() {
   return (
-    <div className="aw-props-fitness">
-      <div className="aw-fitness-mat" />
-      <div className="aw-fitness-rack">
-        <div className="aw-fitness-post" />
-        <div className="aw-fitness-post" />
-        <div className="aw-fitness-plate" />
-        <div className="aw-fitness-plate aw-fitness-plate-2" />
+    <div className="aw-props-gym">
+      <div className="aw-gym-bench-area">
+        <div className="aw-fitness-rack">
+          <div className="aw-fitness-post" />
+          <div className="aw-fitness-post" />
+          <div className="aw-fitness-plate" />
+          <div className="aw-fitness-plate aw-fitness-plate-2" />
+        </div>
+        <div className="aw-fitness-barbell">
+          <div className="aw-fitness-weight" />
+          <div className="aw-fitness-bar" />
+          <div className="aw-fitness-weight" />
+        </div>
       </div>
-      {/* Timer display */}
-      <div className="aw-fitness-timer" />
-      {/* Water bottle */}
-      <div className="aw-fitness-bottle" />
-      <div className="aw-fitness-barbell">
-        <div className="aw-fitness-weight" />
-        <div className="aw-fitness-bar" />
-        <div className="aw-fitness-weight" />
-      </div>
-      <div className="aw-activity aw-fitness-action">
-        <div className="aw-fitness-rep-bar" />
-        <div className="aw-fitness-sweat" />
-        <div className="aw-fitness-sweat aw-fitness-sweat-2" />
-      </div>
-    </div>
-  );
-}
-
-// ─── Rowing: Dock with water, oar rack ───
-function RowingWorkspace({ color }) {
-  return (
-    <div className="aw-props-rowing">
-      <div className="aw-rowing-water">
-        <div className="aw-rowing-ripple" />
-        <div className="aw-rowing-ripple aw-rowing-ripple-2" />
-      </div>
-      <div className="aw-rowing-dock" />
-      <div className="aw-rowing-oar" />
-      {/* Pace display */}
-      <div className="aw-rowing-pace" />
-      <div className="aw-activity aw-rowing-action">
-        <div className="aw-rowing-splash" />
-        <div className="aw-rowing-splash aw-rowing-splash-2" />
+      <div className="aw-gym-divider" />
+      <div className="aw-gym-rowing-area">
+        <div className="aw-rowing-water">
+          <div className="aw-rowing-ripple" />
+          <div className="aw-rowing-ripple aw-rowing-ripple-2" />
+        </div>
+        <div className="aw-rowing-oar" />
       </div>
     </div>
   );

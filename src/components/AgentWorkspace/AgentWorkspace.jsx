@@ -26,8 +26,7 @@ const GRID_PLACEMENT = {
   fabstats:       { col: 5, row: 5, room: 7,  door: 'left' },
   fabstatsbot:    { col: 7, row: 5, room: 8,  door: 'left' },
   // ─── THE GYM · OPS CENTER (Row 7) ───
-  benchpressonly: { col: 1, row: 7, room: 9,  door: 'right' },
-  rowcrew:        { col: 3, row: 7, room: 10, door: 'right' },
+  gym:            { col: 1, row: 7, room: 9, door: 'right', colSpan: 3 },
   medic:       { col: 5, row: 7, room: 11, door: 'left' },
   activity:       { col: 7, row: 7, room: 12, door: 'left' },
   // ─── THE BASEMENT (Row 10) ───
@@ -54,7 +53,7 @@ const ZONE_CLASSES = {
   blog: 'aw-zone-products', moltbook: 'aw-zone-products',
   oldwaystoday: 'aw-zone-wellness',
   fabstats: 'aw-zone-creative', fabstatsbot: 'aw-zone-creative',
-  benchpressonly: 'aw-zone-gym', rowcrew: 'aw-zone-gym',
+  gym: 'aw-zone-gym',
   medic: 'aw-zone-ops', activity: 'aw-zone-ops',
   spellbrigade: 'aw-zone-basement', embedroute: 'aw-zone-basement',
 };
@@ -247,21 +246,16 @@ function getStationMetrics(stationId, appStats, githubStats) {
       if (fmt(s.matches)) m.push({ value: fmt(s.matches), label: 'matches' });
       return m.length ? m : null;
     }
-    case 'benchpressonly': {
-      const s = appStats?.benchpressonly;
-      if (!s) return null;
+    case 'gym': {
+      const bp = appStats?.benchpressonly;
+      const rc = appStats?.rowcrew;
+      if (!bp && !rc) return null;
       const m = [];
-      if (fmt(s.users)) m.push({ value: fmt(s.users), label: 'users' });
-      if (fmt(s.workoutsLogged)) m.push({ value: fmt(s.workoutsLogged), label: 'workouts' });
-      return m.length ? m : null;
-    }
-    case 'rowcrew': {
-      const s = appStats?.rowcrew;
-      if (!s) return null;
-      const m = [];
-      if (fmt(s.sessions || s.totalSessions)) m.push({ value: fmt(s.sessions || s.totalSessions), label: 'sessions' });
-      const meters = Number(s.meters || s.totalMeters || 0);
-      if (meters > 0) m.push({ value: meters >= 1000000 ? `${(meters / 1000000).toFixed(1)}M` : meters >= 1000 ? `${(meters / 1000).toFixed(0)}k` : String(meters), label: 'meters' });
+      const totalUsers = (Number(bp?.users) || 0) + (Number(rc?.users || rc?.totalUsers) || 0);
+      if (fmt(totalUsers)) m.push({ value: fmt(totalUsers), label: 'users' });
+      if (bp && fmt(bp.workoutsLogged)) m.push({ value: fmt(bp.workoutsLogged), label: 'workouts' });
+      const sessions = Number(rc?.sessions || rc?.totalSessions || 0);
+      if (fmt(sessions)) m.push({ value: fmt(sessions), label: 'sessions' });
       return m.length ? m : null;
     }
     case 'oldwaystoday': {
@@ -588,7 +582,7 @@ function AgentWorkspace({ appStats, githubStats }) {
 
   // ─── Medic patrol walks ───
   useEffect(() => {
-    const PATROL_STATIONS = ['chatbot', 'blog', 'moltbook', 'benchpressonly', 'rowcrew', 'oldwaystoday', 'fabstats', 'fabstatsbot'];
+    const PATROL_STATIONS = ['chatbot', 'blog', 'moltbook', 'gym', 'oldwaystoday', 'fabstats', 'fabstatsbot'];
     let lastIdx = -1;
 
     const patrol = () => {
@@ -857,7 +851,7 @@ function AgentWorkspace({ appStats, githubStats }) {
               key={station.id}
               ref={(el) => setCellRef(station.id, el)}
               className={`aw-grid-cell${zoneClass ? ` ${zoneClass}` : ''}${basementClass}`}
-              style={{ gridColumn: pos.col, gridRow: pos.row }}
+              style={{ gridColumn: pos.colSpan ? `${pos.col} / span ${pos.colSpan}` : pos.col, gridRow: pos.row }}
               onMouseEnter={() => handleStationEnter(station.id)}
               onMouseLeave={handleStationLeave}
             >
@@ -866,7 +860,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 lastEvent={station.id === 'medic' && patrolEvents[0] && (!stationEvents[station.id] || patrolEvents[0].receivedAt > stationEvents[station.id].receivedAt) ? patrolEvents[0] : stationEvents[station.id]}
                 activityCounts={activityCounts[station.id]}
                 visitCount={visitCounts[station.id] || 0}
-                mcpStatus={(() => { const d = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === station.id)?.[0]; return d && health ? health[d] : undefined; })()}
+                mcpStatus={(() => { const ds = Object.entries(DOMAIN_TO_STATION).filter(([, v]) => v === station.id).map(([d]) => d); if (!ds.length || !health) return undefined; if (ds.some(d => health[d] === false)) return false; if (ds.every(d => health[d] === true)) return true; return undefined; })()}
                 isFlashing={!!flashingStations[station.id] || !!replayFlashes[station.id]}
                 isWalking={!!walkingAgents[station.id]}
                 idleLevel={idleLevels[station.id] || 0}
@@ -881,7 +875,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 basement={pos.basement}
                 metrics={getStationMetrics(station.id, appStats, githubStats)}
                 inspection={inspectedStation?.id === station.id ? inspectedStation : null}
-                isPacing={!!pacingStations[station.id]}
+                isPacing={station.id === 'medic' ? !walkingAgents['medic'] : !!pacingStations[station.id]}
                 showChatBubble={chatBubbleStation === station.id}
               />
             </div>

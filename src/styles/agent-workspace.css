@@ -2478,6 +2478,40 @@
 }
 
 /* ─── Fitness: Home Gym ─── */
+/* ─── Gym: Combined bench + rowing layout ─── */
+.aw-props-gym {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.aw-gym-bench-area {
+  flex: 1;
+  position: relative;
+}
+
+.aw-gym-rowing-area {
+  flex: 1;
+  position: relative;
+}
+
+.aw-gym-divider {
+  position: absolute;
+  top: 20%;
+  bottom: 20%;
+  left: 50%;
+  width: 1px;
+  background: rgba(74, 222, 128, 0.1);
+}
+
+/* ─── Dual avatar layout ─── */
+.aw-dual-avatar {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: flex-end;
+}
+
 .aw-props-fitness {
   position: absolute;
   inset: 0;
