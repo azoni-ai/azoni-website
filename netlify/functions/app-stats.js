@@ -146,13 +146,17 @@ async function fetchAppStats() {
       totalCost: 0,
       status: 'unknown',
     },
+    fabstats: {
+      matches: 0,
+    },
     updatedAt: new Date().toISOString(),
   };
 
-  const [benchResult, rowResult, owtResult] = await Promise.allSettled([
+  const [benchResult, rowResult, owtResult, fabResult] = await Promise.allSettled([
     fetchJson(`${mcpBase}/benchpressonly/stats`, mcpHeaders),
     fetchJson(`${mcpBase}/rowcrew/stats`, mcpHeaders),
     fetchJson(`${mcpBase}/oldwaystoday/stats`, mcpHeaders),
+    fetchJson(`${mcpBase}/fabstats/stats`, mcpHeaders),
   ]);
 
   if (benchResult.status === 'fulfilled') {
@@ -268,6 +272,26 @@ async function fetchAppStats() {
     stats.oldwaystoday.outputTokens = asNumber(totals.outputTokens ?? totals.total_output_tokens);
     stats.oldwaystoday.totalCost = asNumber(totals.totalCost ?? totals.total_cost);
     stats.oldwaystoday.status = payload.status || 'ok';
+  }
+
+  if (fabResult.status === 'fulfilled') {
+    const payload = fabResult.value || {};
+    const totals = payload.totals || payload.stats || payload;
+    stats.fabstats.matches = asNumber(firstDefined(
+      totals.matches,
+      totals.totalMatches,
+      totals.total_matches,
+      payload.matches,
+      payload.totalMatches
+    ));
+    stats.fabstats.users = asNumber(firstDefined(
+      totals.users,
+      totals.totalUsers,
+      totals.total_users,
+      totals.players,
+      payload.users,
+      payload.totalUsers
+    ));
   }
 
   // If OWT backend counters reset, recover from durable activity logs.
