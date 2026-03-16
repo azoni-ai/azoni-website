@@ -273,7 +273,7 @@ function getStationMetrics(stationId, appStats, githubStats, extra) {
 }
 
 function AgentWorkspace({ appStats, githubStats }) {
-  const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef } = useAgentActivity();
+  const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, pageViewCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef } = useAgentActivity();
   const { health, totalTools, refresh: refreshHealth } = useMCPHealth();
   const refreshHealthRef = useRef(refreshHealth);
   refreshHealthRef.current = refreshHealth;
@@ -1044,6 +1044,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         ) : null}
         activityCounts={selectedStation ? activityCounts[selectedStation.id] : null}
         visitCount={selectedStation ? (visitCounts[selectedStation.id] || 0) : 0}
+        pageViewCount={selectedStation ? (pageViewCounts[selectedStation.id] || 0) : 0}
         health={health}
         appStats={appStats}
         githubStats={githubStats}

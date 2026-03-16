@@ -37,7 +37,7 @@ export function useAgentActivity() {
       collection(db, 'agent_activity'),
       where('timestamp', '>=', cutoff),
       orderBy('timestamp', 'desc'),
-      limit(500)
+      limit(1000)
     )).then(snap => {
       const hist = [];
       const sHist = {};
@@ -48,7 +48,9 @@ export function useAgentActivity() {
         const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
         if (ms) {
           const entry = { title: data.title || data.type, type: data.type, source: data.source, ms };
-          hist.push({ stationId: sid, ms, type: data.type });
+          const histEntry = { stationId: sid, ms, type: data.type };
+          if (data.type === 'page_view_summary') histEntry.title = data.title;
+          hist.push(histEntry);
           if (!sHist[sid]) sHist[sid] = [];
           sHist[sid].push(entry);
           // Activity feed gets ALL events
@@ -106,7 +108,7 @@ export function useAgentActivity() {
             : { type: 'site_visit', title: 'Site visit', receivedAt: latestAt[sid] };
         });
         setStationEvents(initial);
-        setTickerEvents(docs.filter(d => d.type !== 'site_visit').slice(0, 5));
+        setTickerEvents(docs.filter(d => d.type !== 'site_visit' && d.type !== 'page_view_summary').slice(0, 5));
         isFirstLoadRef.current = false;
         return;
       }
@@ -119,11 +121,13 @@ export function useAgentActivity() {
           const ts = data.timestamp;
           const ms = ts?.toMillis ? ts.toMillis() : ts?.seconds ? ts.seconds * 1000 : 0;
           const now = Date.now();
-          const isVisit = data.type === 'site_visit';
+          const isVisit = data.type === 'site_visit' || data.type === 'page_view_summary';
           const entry = { title: data.title || data.type, type: data.type, source: data.source, ms: now };
           // Always update history (for counts)
           setActivityHistory(prev => {
-            const next = [...prev, { stationId, ms: ms || now, type: data.type }];
+            const histEntry = { stationId, ms: ms || now, type: data.type };
+            if (data.type === 'page_view_summary') histEntry.title = data.title;
+            const next = [...prev, histEntry];
             if (stationId !== 'activity') next.push({ stationId: 'activity', ms: ms || now, type: data.type });
             return next;
           });
@@ -179,16 +183,29 @@ export function useAgentActivity() {
   }, []);
 
   // Compute counts (excluding visits) + visit counts + error counts
-  const { activityCounts, errorCounts, visitCounts } = useMemo(() => {
+  const { activityCounts, errorCounts, visitCounts, pageViewCounts } = useMemo(() => {
     const now = Date.now();
     const counts = {};
     const errors = {};
     const visits = {};
+    const pageViews = {};
     activityHistory.forEach(e => {
       if (e.type === 'site_visit') {
         if (now - e.ms < 86400000) {
           if (!visits[e.stationId]) visits[e.stationId] = 0;
           visits[e.stationId]++;
+        }
+      } else if (e.type === 'page_view_summary') {
+        // Extract count from title like "123 page views today"
+        if (now - e.ms < 86400000) {
+          const match = (e.title || '').match(/^(\d+)/);
+          if (match) {
+            const count = parseInt(match[1], 10);
+            // Keep the highest reported count per station (summaries are cumulative)
+            if (!pageViews[e.stationId] || count > pageViews[e.stationId]) {
+              pageViews[e.stationId] = count;
+            }
+          }
         }
       } else {
         if (!counts[e.stationId]) counts[e.stationId] = { h1: 0, h24: 0 };
@@ -201,8 +218,8 @@ export function useAgentActivity() {
       const errCount = events.filter(e => e.type === 'error_logged').length;
       if (errCount > 0) errors[sid] = errCount;
     });
-    return { activityCounts: counts, errorCounts: errors, visitCounts: visits };
+    return { activityCounts: counts, errorCounts: errors, visitCounts: visits, pageViewCounts: pageViews };
   }, [activityHistory, stationHistory]);
 
-  return { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef };
+  return { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, pageViewCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef };
 }

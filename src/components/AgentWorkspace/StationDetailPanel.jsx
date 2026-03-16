@@ -14,7 +14,7 @@ const TABS = [
   { key: 'tech', label: 'Tech' },
 ];
 
-function StationDetailPanel({ station, stationHistory, activityCounts, visitCount = 0, health, appStats, githubStats, onClose }) {
+function StationDetailPanel({ station, stationHistory, activityCounts, visitCount = 0, pageViewCount = 0, health, appStats, githubStats, onClose }) {
   const [activeTab, setActiveTab] = useState('activity');
 
   return createPortal(
@@ -25,7 +25,7 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
         const cat = CATEGORY_STYLES[station.category];
         const h1 = activityCounts?.h1 || 0;
         const h24 = activityCounts?.h24 || 0;
-        const events = (stationHistory || []).filter(e => e.type !== 'site_visit' && e.type !== 'error_logged').slice(0, 10);
+        const events = (stationHistory || []).filter(e => e.type !== 'site_visit' && e.type !== 'error_logged' && e.type !== 'page_view_summary').slice(0, 10);
         const errors = (stationHistory || []).filter(e => e.type === 'error_logged');
         const domain = Object.entries(DOMAIN_TO_STATION).find(([, v]) => v === station.id)?.[0];
         const mcpStatus = domain && health?.[domain];
@@ -132,6 +132,12 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                           <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
                             <div className="aw-detail-stat-num" style={{ color: station.color }}>{visitCount}</div>
                             <div className="aw-detail-stat-label">visits (24h)</div>
+                          </div>
+                        )}
+                        {pageViewCount > 0 && (
+                          <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
+                            <div className="aw-detail-stat-num" style={{ color: station.color }}>{pageViewCount.toLocaleString()}</div>
+                            <div className="aw-detail-stat-label">page views (24h)</div>
                           </div>
                         )}
                       </div>
