@@ -1,3 +1,18 @@
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  if (projectId && clientEmail && privateKey) {
+    admin.initializeApp({
+      credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+    });
+  }
+}
+
+const db = admin.apps.length ? admin.firestore() : null;
+
 const MCP_URL = process.env.MCP_URL || "https://azoni-mcp.onrender.com";
 const MCP_KEY = process.env.MCP_ADMIN_KEY;
 
@@ -14,15 +29,32 @@ exports.handler = async (event) => {
   let source = "azoni";
   try { const b = JSON.parse(event.body || "{}"); if (b.source) source = b.source; } catch {}
 
+  const promises = [];
+
+  // Write directly to portfolio Firestore (primary — this is what the dashboard reads)
+  if (db) {
+    promises.push(
+      db.collection('agent_activity').add({
+        type: 'site_visit',
+        title: 'Site visit',
+        source,
+        description: '',
+        timestamp: admin.firestore.Timestamp.now(),
+      }).catch(err => console.error('[log-visit] Firestore write failed:', err.message))
+    );
+  }
+
+  // Also forward to MCP (for its own records)
   if (MCP_KEY) {
-    try {
-      await fetch(`${MCP_URL}/activity/log`, {
+    promises.push(
+      fetch(`${MCP_URL}/activity/log`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${MCP_KEY}` },
         body: JSON.stringify({ type: "site_visit", title: "Site visit", source }),
-      });
-    } catch {}
+      }).catch(() => {})
+    );
   }
 
+  await Promise.allSettled(promises);
   return { statusCode: 200, headers, body: '{"ok":true}' };
 };
