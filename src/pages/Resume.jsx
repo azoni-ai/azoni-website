@@ -3,6 +3,8 @@ import Layout from '../components/Layout';
 import { profile } from '../data/profile';
 
 const Resume = () => {
+  const resumePreviewSrc = `${profile.links.resume}#page=1&view=FitH&pagemode=none&navpanes=0&scrollbar=1`;
+
   return (
     <Layout>
       <section className="section" style={{ paddingTop: '120px' }}>
@@ -32,7 +34,7 @@ const Resume = () => {
             border: '1px solid var(--border-subtle)'
           }}>
             <iframe
-              src={profile.links.resume}
+              src={resumePreviewSrc}
               title="Charlton Smith Resume"
               style={{
                 width: '100%',
