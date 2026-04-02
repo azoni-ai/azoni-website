@@ -1,0 +1,19 @@
+<svg viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Vertical poles -->
+  <rect x="2" y="0" width="3" height="48" fill="#6b6b65"/>
+  <rect x="27" y="0" width="3" height="48" fill="#6b6b65"/>
+  <!-- Horizontal platforms -->
+  <rect x="0" y="10" width="32" height="3" fill="#8b6914"/>
+  <rect x="0" y="24" width="32" height="3" fill="#8b6914"/>
+  <rect x="0" y="38" width="32" height="3" fill="#8b6914"/>
+  <!-- Cross braces -->
+  <rect x="5" y="12" width="22" height="1" fill="#9a9a98"/>
+  <rect x="5" y="18" width="22" height="1" fill="#9a9a98"/>
+  <rect x="5" y="26" width="22" height="1" fill="#9a9a98"/>
+  <rect x="5" y="32" width="22" height="1" fill="#9a9a98"/>
+  <!-- Diagonal braces -->
+  <rect x="10" y="4" width="2" height="8" fill="#9a9a98" transform="rotate(15 11 8)"/>
+  <rect x="20" y="14" width="2" height="8" fill="#9a9a98" transform="rotate(-15 21 18)"/>
+  <!-- Safety net -->
+  <rect x="5" y="40" width="22" height="6" fill="#ff6b00" opacity="0.3"/>
+</svg>

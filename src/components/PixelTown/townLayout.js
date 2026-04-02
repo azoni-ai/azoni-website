@@ -83,6 +83,33 @@ export const DECORATIONS = [
   { type: 'bench', x: O+20, y: 17 }, { type: 'bench', x: O+20, y: 26 },
   // Fountain in town square
   { type: 'fountain', x: O+19, y: 12 },
+
+  // ─── CONSTRUCTION ZONE ───
+  // Crane near career district
+  { type: 'crane', x: O+20, y: 34 },
+  // Bulldozer on the road
+  { type: 'bulldozer', x: O+38, y: 35 },
+  // Dump truck parked near services
+  { type: 'dump-truck', x: 6, y: 35 },
+  // Workers scattered around
+  { type: 'worker', x: O+17, y: 36 }, { type: 'worker', x: O+22, y: 44 },
+  { type: 'worker', x: O+34, y: 36 }, { type: 'worker', x: O+8, y: 44 },
+  { type: 'worker', x: O+29, y: 17 },
+  // Traffic cones
+  { type: 'cone', x: O+15, y: 35 }, { type: 'cone', x: O+16, y: 35 },
+  { type: 'cone', x: O+24, y: 44 }, { type: 'cone', x: O+25, y: 44 },
+  { type: 'cone', x: O+36, y: 44 }, { type: 'cone', x: O+37, y: 44 },
+  { type: 'cone', x: O+6, y: 26 }, { type: 'cone', x: O+7, y: 26 },
+  // Barriers
+  { type: 'barrier', x: O+12, y: 44 }, { type: 'barrier', x: O+30, y: 35 },
+  // Scaffolding on buildings
+  { type: 'scaffolding', x: O+36, y: 38 },
+  // Dirt piles
+  { type: 'dirt-pile', x: O+18, y: 44 }, { type: 'dirt-pile', x: O+40, y: 36 },
+  { type: 'dirt-pile', x: 8, y: 44 },
+  // Caution signs
+  { type: 'caution-sign', x: O+14, y: 36 }, { type: 'caution-sign', x: O+26, y: 36 },
+  { type: 'caution-sign', x: O+10, y: 44 },
 ];
 
 // Zone labels (drawn on the map)

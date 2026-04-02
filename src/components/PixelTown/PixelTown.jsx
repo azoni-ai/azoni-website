@@ -48,6 +48,15 @@ const DECORATION_SVG = {
   'lamp-post': '/town/decorations/lamp-post.svg',
   'bench': '/town/decorations/bench.svg',
   'fountain': '/town/decorations/fountain.svg',
+  'cone': '/town/decorations/cone.svg',
+  'barrier': '/town/decorations/barrier.svg',
+  'bulldozer': '/town/decorations/bulldozer.svg',
+  'crane': '/town/decorations/crane.svg',
+  'worker': '/town/decorations/worker.svg',
+  'dump-truck': '/town/decorations/dump-truck.svg',
+  'scaffolding': '/town/decorations/scaffolding.svg',
+  'dirt-pile': '/town/decorations/dirt-pile.svg',
+  'caution-sign': '/town/decorations/caution-sign.svg',
 };
 
 function formatTimeAgo(timestamp) {
@@ -382,9 +391,14 @@ function PixelTown({ appStats, githubStats, profile }) {
           const isTree = d.type.startsWith('tree');
           const isFountain = d.type === 'fountain';
           const isFlower = d.type.startsWith('flower');
-          const size = isFountain ? TILE_SIZE * 2 : isTree ? TILE_SIZE * 1.5 : isFlower ? TILE_SIZE * 0.5 : TILE_SIZE;
+          const isCrane = d.type === 'crane';
+          const isBulldozer = d.type === 'bulldozer' || d.type === 'dump-truck';
+          const isScaffolding = d.type === 'scaffolding';
+          const isBarrier = d.type === 'barrier';
+          const isWorker = d.type === 'worker';
+          const size = isCrane ? TILE_SIZE * 2.5 : isScaffolding ? TILE_SIZE * 1.5 : isBulldozer ? TILE_SIZE * 2 : isBarrier ? TILE_SIZE * 1.2 : isFountain ? TILE_SIZE * 2 : isTree ? TILE_SIZE * 1.5 : isWorker ? TILE_SIZE * 0.7 : isFlower ? TILE_SIZE * 0.5 : TILE_SIZE;
           return (
-            <div key={`deco-${i}`} className="pixel-town-decoration" style={{ left: d.x * TILE_SIZE, top: d.y * TILE_SIZE - (isTree ? TILE_SIZE : 0), width: size, height: size * 1.2 }}>
+            <div key={`deco-${i}`} className="pixel-town-decoration" style={{ left: d.x * TILE_SIZE, top: d.y * TILE_SIZE - (isCrane ? TILE_SIZE * 2 : isScaffolding ? TILE_SIZE * 1.5 : isTree ? TILE_SIZE : 0), width: size, height: size * (isCrane ? 1.6 : isScaffolding ? 1.8 : 1.2) }}>
               <img src={src} alt="" width={size} height={size * 1.2} />
             </div>
           );

@@ -167,12 +167,25 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     #1a1a1e 8px
   );
   border-radius: 1px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .construction-banner {
+    font-size: 0.55rem;
+    padding: 5px 10px;
+    gap: 8px;
+  }
+  .construction-stripe {
+    width: 24px;
+    height: 6px;
+  }
 }
 
 /* Navbar */
 .navbar {
   position: fixed;
-  top: 30px;
+  top: 32px;
   top: 0;
   left: 0;
   right: 0;
