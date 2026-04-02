@@ -196,99 +196,42 @@ const Home = () => {
               </div>
               <p className="home-section-subtitle">T-Mobile, Capital One, and startups — plus a 50-machine trading system and ACM publication</p>
             </div>
-            <div className="earlier-work-grid">
+            <div className="experience-list">
 
-              <div className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#e20074' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <div className="experience-icon">
-                      <img src="/images/tmobile-logo.svg" alt="T-Mobile logo" width="40" height="40" />
-                    </div>
-                    <div>
-                      <h3>T-Mobile</h3>
-                      <span className="earlier-card-tagline">Software Engineer II · June 2018 – April 2022</span>
-                    </div>
+              <div className="exp-entry">
+                <div className="exp-where">
+                  <img src="/images/tmobile-logo.svg" alt="T-Mobile" className="exp-logo" />
+                  <div>
+                    <h3>T-Mobile</h3>
+                    <span className="exp-role">Software Engineer II · 2018 – 2022</span>
                   </div>
-                  <p className="earlier-card-desc">
-                    Built an internal automation platform that consolidated 4-5 separate tools into a single interface,
-                    reducing manual work for network operations teams by over 80%. Migrated the frontend from Django
-                    templates to Angular with reusable components and contributed to the org-wide migration from Jenkins
-                    to GitLab CI/CD.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg> Reduced manual work by 80%</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Consolidated 4-5 tools into one</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e20074" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Cross-functional enterprise teams</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">4 yr</span>
-                      <span className="earlier-stat-label">Tenure</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">80%</span>
-                      <span className="earlier-stat-label">Work reduced</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">4-5</span>
-                      <span className="earlier-stat-label">Tools unified</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>Python</span>
-                    <span>Django</span>
-                    <span>Angular</span>
-                    <span>PostgreSQL</span>
-                    <span>GitLab CI/CD</span>
-                  </div>
+                </div>
+                <p className="exp-desc">
+                  Built an internal automation platform that consolidated 4-5 separate tools into a single interface,
+                  reducing manual work for network operations teams by over 80%. Migrated the frontend from Django
+                  templates to Angular with reusable components and contributed to the org-wide migration from Jenkins
+                  to GitLab CI/CD.
+                </p>
+                <div className="exp-tech">
+                  <span>Python</span><span>Django</span><span>Angular</span><span>PostgreSQL</span><span>GitLab CI/CD</span>
                 </div>
               </div>
 
-              <div className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#004977' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <div className="experience-icon">
-                      <img src="/images/capitalone-logo.svg" alt="Capital One logo" width="40" height="40" />
-                    </div>
-                    <div>
-                      <h3>Capital One</h3>
-                      <span className="earlier-card-tagline">Senior Software Engineer · Nov 2022 – Nov 2023</span>
-                    </div>
+              <div className="exp-entry">
+                <div className="exp-where">
+                  <img src="/images/capitalone-logo.svg" alt="Capital One" className="exp-logo" />
+                  <div>
+                    <h3>Capital One</h3>
+                    <span className="exp-role">Senior Software Engineer · 2022 – 2023</span>
                   </div>
-                  <p className="earlier-card-desc">
-                    Maintained and extended automated testing infrastructure for customer email notifications across the
-                    financial services platform. Designed a JSON schema system so new test cases could be added without
-                    code changes — test definitions stored in S3, executed via Lambda, results piped to CloudWatch.
-                    Mentored a summer intern from project scoping through to production deployment.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Zero-code test authoring via JSON schema</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> Mentored intern to production deployment</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#004977" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Regulated financial services environment</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">Sr.</span>
-                      <span className="earlier-stat-label">Level</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">AWS</span>
-                      <span className="earlier-stat-label">Platform</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">0-code</span>
-                      <span className="earlier-stat-label">Test schema</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>AWS Lambda</span>
-                    <span>S3</span>
-                    <span>CloudWatch</span>
-                    <span>Python</span>
-                    <span>JSON Schema</span>
-                  </div>
+                </div>
+                <p className="exp-desc">
+                  Designed a JSON schema system for automated email testing — new test cases added without code changes.
+                  Definitions stored in S3, executed via Lambda, results piped to CloudWatch. Mentored a summer intern
+                  from project scoping through to production deployment.
+                </p>
+                <div className="exp-tech">
+                  <span>AWS Lambda</span><span>S3</span><span>CloudWatch</span><span>Python</span><span>JSON Schema</span>
                 </div>
               </div>
 
@@ -307,107 +250,40 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="earlier-work-grid">
-              <Link to="/projects/dustbunny" className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#f59e0b' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <img src="/images/dustbunny.png" alt="" className="earlier-card-icon" />
-                    <div>
-                      <h3>Dustbunny</h3>
-                      <span className="earlier-card-tagline">Autonomous NFT Trading System · Solo Built</span>
-                    </div>
+            <div className="experience-list">
+              <Link to="/projects/dustbunny" className="exp-entry exp-entry--link">
+                <div className="exp-where">
+                  <img src="/images/dustbunny.png" alt="" className="exp-logo" />
+                  <div>
+                    <h3>Dustbunny</h3>
+                    <span className="exp-role">Autonomous NFT Trading System · Solo</span>
                   </div>
-                  <p className="earlier-card-desc">
-                    Built a fully autonomous bidding system that tracked every collection on OpenSea in real-time,
-                    distributed across 50 machines on a local network. A constant arms race — OpenSea added API keys,
-                    changed their SDK, and shifted rate limits regularly. Other bots were competing for the same bids,
-                    so the system had to adapt daily: monitoring floor prices, maintaining competitive bids, and
-                    outmaneuvering rival algorithms — all while staying profitable.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg> Fully autonomous — no manual intervention</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Real-time bot-vs-bot competition</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Constant adaptation to API &amp; SDK changes</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">50</span>
-                      <span className="earlier-stat-label">Machines</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">2,500+</span>
-                      <span className="earlier-stat-label">Req/min</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">All</span>
-                      <span className="earlier-stat-label">OpenSea</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">6 mo</span>
-                      <span className="earlier-stat-label">Profitable</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">1</span>
-                      <span className="earlier-stat-label">Engineer</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>Node.js</span>
-                    <span>Redis</span>
-                    <span>OpenSea SDK</span>
-                    <span>Docker</span>
-                    <span>Etherscan API</span>
-                    <span>Web3.js</span>
-                  </div>
+                </div>
+                <p className="exp-desc">
+                  Fully autonomous bidding system distributed across 50 machines, tracking every collection on OpenSea
+                  in real-time. A constant arms race against other bots and API changes — adapted daily to stay profitable
+                  over 6 months.
+                </p>
+                <div className="exp-tech">
+                  <span>Node.js</span><span>Redis</span><span>OpenSea SDK</span><span>Docker</span><span>Web3.js</span>
                 </div>
               </Link>
 
-              <Link to="/projects/oli-fitness" className="earlier-card">
-                <div className="earlier-card-accent" style={{ background: '#22d3ee' }} />
-                <div className="earlier-card-body">
-                  <div className="earlier-card-header">
-                    <img src="/images/oli.png" alt="" className="earlier-card-icon" />
-                    <div>
-                      <h3>OLI Fitness</h3>
-                      <span className="earlier-card-tagline">Computer Vision Startup · Co-founder &amp; Engineer</span>
-                    </div>
+              <Link to="/projects/oli-fitness" className="exp-entry exp-entry--link">
+                <div className="exp-where">
+                  <img src="/images/oli.png" alt="" className="exp-logo" />
+                  <div>
+                    <h3>OLI Fitness</h3>
+                    <span className="exp-role">Co-founder &amp; Engineer · Computer Vision Startup</span>
                   </div>
-                  <p className="earlier-card-desc">
-                    Co-founded a fitness startup straight out of college that used Microsoft Kinect to analyze
-                    weightlifting form in real-time. Built the core tracking engine — 25 joint positions at 30fps,
-                    scored against expert references and normalized across body types. Led a small team of 5 plus
-                    interns through ACM publication, startup competitions, and an accelerator program until funding ran out.
-                  </p>
-                  <div className="earlier-card-highlights">
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> Published at ACM CHI 2017</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 010-5C5.9 4 7 5 7 5s1.1-1 2.5-1a2.5 2.5 0 010 5H8"/><path d="M12 15l-3-3h6l-3 3z"/><rect x="9" y="15" width="6" height="6" rx="1"/></svg> Princeton Tiger Launch finalist</span>
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b5de5" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> UW Business Plan Competition finalist</span>
-                  </div>
-                  <div className="earlier-card-stats">
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">ACM</span>
-                      <span className="earlier-stat-label">Published</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">30fps</span>
-                      <span className="earlier-stat-label">Tracking</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">25</span>
-                      <span className="earlier-stat-label">Joints</span>
-                    </div>
-                    <div className="earlier-stat">
-                      <span className="earlier-stat-value">5+</span>
-                      <span className="earlier-stat-label">Team</span>
-                    </div>
-                  </div>
-                  <div className="earlier-card-tech">
-                    <span>C#</span>
-                    <span>Kinect SDK</span>
-                    <span>Computer Vision</span>
-                    <span>Unity</span>
-                  </div>
+                </div>
+                <p className="exp-desc">
+                  Built a real-time weightlifting form analyzer using Kinect — 25 joints at 30fps, scored against
+                  expert references. Led a team of 5 through ACM CHI publication, Princeton Tiger Launch, and UW
+                  Business Plan Competition before funding ran out.
+                </p>
+                <div className="exp-tech">
+                  <span>C#</span><span>Kinect SDK</span><span>Computer Vision</span><span>Unity</span>
                 </div>
               </Link>
             </div>

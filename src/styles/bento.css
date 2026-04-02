@@ -994,169 +994,86 @@ a.commit-repo:hover {
 }
 
 /* ============ EARLIER WORK ============ */
-.earlier-work-grid {
+/* Experience entries */
+.experience-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 0;
 }
 
-.earlier-card {
-  display: flex;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+.exp-entry {
+  padding: var(--space-xl) 0;
+  border-bottom: 1px solid var(--border-subtle);
   text-decoration: none;
-  transition: all 0.2s ease;
+  color: inherit;
 }
 
-.earlier-card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-light);
-  transform: translateY(-2px);
+.exp-entry:first-child {
+  padding-top: 0;
 }
 
-.earlier-card-accent {
-  width: 3px;
-  flex-shrink: 0;
+.exp-entry:last-child {
+  border-bottom: none;
 }
 
-.earlier-card-body {
-  padding: var(--space-lg);
-  flex: 1;
-  min-width: 0;
+.exp-entry--link {
+  display: block;
+  transition: opacity var(--transition-fast);
 }
 
-.earlier-card-header {
+.exp-entry--link:hover {
+  opacity: 0.8;
+}
+
+.exp-where {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
-.earlier-card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
+.exp-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
-.earlier-card-header h3 {
-  font-size: 1.1rem;
+.exp-where h3 {
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
   line-height: 1.2;
 }
 
-.earlier-card-tagline {
-  font-size: 0.78rem;
+.exp-role {
+  font-size: 0.82rem;
   color: var(--text-muted);
 }
 
-.earlier-card-desc {
-  font-size: 0.85rem;
+.exp-desc {
+  font-size: 0.88rem;
   color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--space-md);
+  line-height: 1.65;
+  margin-bottom: var(--space-sm);
+  max-width: 640px;
 }
 
-.earlier-card-highlights {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: var(--space-md);
-}
-
-.earlier-card-highlights span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  padding: 5px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
-}
-
-.earlier-card-highlights span svg {
-  flex-shrink: 0;
-}
-
-/* Experience icon */
-.experience-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.experience-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.earlier-card-stats {
-  display: flex;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-md);
-  padding: var(--space-sm) 0;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.earlier-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.earlier-stat-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-
-}
-
-.earlier-stat-label {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.earlier-card-tech {
+.exp-tech {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.earlier-card-tech span {
+.exp-tech span {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
-  padding: 3px 8px;
+  padding: 2px 8px;
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
-
-}
-
-@media (max-width: 768px) {
-  .earlier-card-highlights {
-    flex-direction: column;
-  }
-  
-  .earlier-card-stats {
-    flex-wrap: wrap;
-    gap: var(--space-md);
-  }
 }
 
 
