@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
-import AgentWorkspace from '../components/AgentWorkspace/AgentWorkspace';
+import PixelTown from '../components/PixelTown/PixelTown';
 import { useFabStats } from '../hooks/useFabStats';
 import '../styles/bento.css';
 
@@ -131,7 +131,7 @@ const Home = () => {
         {/* ===== THE AGENT SYSTEM ===== */}
         <section className="home-section home-section--flush">
           <div className="container">
-            <AgentWorkspace appStats={enrichedStats} githubStats={githubStats} profile={profile} />
+            <PixelTown appStats={enrichedStats} githubStats={githubStats} profile={profile} />
           </div>
         </section>
       </div>

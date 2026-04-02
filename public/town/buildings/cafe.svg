@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" shape-rendering="crispEdges">
+  <!-- Ground -->
+  <rect x="0" y="144" width="160" height="16" fill="#8b7355"/>
+  <!-- Main building -->
+  <rect x="16" y="56" width="128" height="88" fill="#fb923c"/>
+  <rect x="16" y="56" width="128" height="8" fill="#fdba74"/>
+  <!-- Shadow -->
+  <rect x="136" y="56" width="8" height="88" fill="#ea580c"/>
+  <!-- Roof -->
+  <rect x="8" y="40" width="144" height="16" fill="#9a3412"/>
+  <rect x="16" y="32" width="128" height="8" fill="#7c2d12"/>
+  <!-- Coffee cup sign -->
+  <rect x="60" y="8" width="32" height="24" fill="#7c2d12"/>
+  <rect x="64" y="12" width="24" height="16" fill="#fde68a"/>
+  <rect x="68" y="12" width="16" height="4" fill="#92400e"/>
+  <rect x="88" y="16" width="8" height="8" fill="#fde68a"/>
+  <!-- Steam from cup -->
+  <rect x="68" y="4" width="4" height="8" fill="#e7e5e4" opacity="0.5"/>
+  <rect x="76" y="0" width="4" height="8" fill="#e7e5e4" opacity="0.4"/>
+  <!-- Awning -->
+  <rect x="8" y="56" width="144" height="12" fill="#dc2626"/>
+  <rect x="16" y="56" width="16" height="12" fill="#fbbf24"/>
+  <rect x="48" y="56" width="16" height="12" fill="#fbbf24"/>
+  <rect x="80" y="56" width="16" height="12" fill="#fbbf24"/>
+  <rect x="112" y="56" width="16" height="12" fill="#fbbf24"/>
+  <!-- Windows -->
+  <rect x="28" y="76" width="20" height="20" fill="#fde68a"/>
+  <rect x="112" y="76" width="20" height="20" fill="#fde68a"/>
+  <!-- Door -->
+  <rect x="64" y="100" width="32" height="44" fill="#7c2d12"/>
+  <rect x="78" y="100" width="4" height="44" fill="#9a3412"/>
+  <rect x="68" y="120" width="4" height="4" fill="#fbbf24"/>
+  <!-- Outdoor seating - table -->
+  <rect x="8" y="132" width="24" height="4" fill="#92400e"/>
+  <rect x="16" y="136" width="8" height="8" fill="#78350f"/>
+  <!-- Chairs -->
+  <rect x="4" y="128" width="8" height="12" fill="#78350f"/>
+  <rect x="28" y="128" width="8" height="12" fill="#78350f"/>
+  <!-- Second table -->
+  <rect x="128" y="132" width="24" height="4" fill="#92400e"/>
+  <rect x="136" y="136" width="8" height="8" fill="#78350f"/>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" shape-rendering="crispEdges">
+  <!-- Water -->
+  <rect x="0" y="128" width="160" height="32" fill="#0ea5e9"/>
+  <rect x="0" y="136" width="160" height="8" fill="#0284c7"/>
+  <rect x="0" y="148" width="160" height="12" fill="#0369a1"/>
+  <!-- Water ripples -->
+  <rect x="8" y="132" width="24" height="4" fill="#38bdf8" opacity="0.5"/>
+  <rect x="48" y="140" width="20" height="4" fill="#38bdf8" opacity="0.5"/>
+  <rect x="112" y="136" width="16" height="4" fill="#38bdf8" opacity="0.5"/>
+  <!-- Dock/pier -->
+  <rect x="24" y="120" width="112" height="8" fill="#78350f"/>
+  <rect x="32" y="128" width="8" height="16" fill="#92400e"/>
+  <rect x="120" y="128" width="8" height="16" fill="#92400e"/>
+  <!-- Main building -->
+  <rect x="28" y="48" width="104" height="72" fill="#34d399"/>
+  <rect x="28" y="48" width="104" height="8" fill="#6ee7b7"/>
+  <!-- Shadow -->
+  <rect x="124" y="48" width="8" height="72" fill="#10b981"/>
+  <!-- Roof -->
+  <rect x="20" y="32" width="120" height="16" fill="#065f46"/>
+  <rect x="28" y="24" width="104" height="8" fill="#064e3b"/>
+  <!-- Crossed oars sign -->
+  <rect x="60" y="4" width="40" height="20" fill="#065f46"/>
+  <!-- Oar 1 (diagonal represented as pixel steps) -->
+  <rect x="64" y="8" width="4" height="4" fill="#d97706"/>
+  <rect x="68" y="12" width="4" height="4" fill="#d97706"/>
+  <rect x="72" y="16" width="4" height="4" fill="#d97706"/>
+  <!-- Oar 2 -->
+  <rect x="92" y="8" width="4" height="4" fill="#d97706"/>
+  <rect x="88" y="12" width="4" height="4" fill="#d97706"/>
+  <rect x="84" y="16" width="4" height="4" fill="#d97706"/>
+  <!-- Center cross -->
+  <rect x="76" y="12" width="8" height="4" fill="#fbbf24"/>
+  <!-- Large boat door -->
+  <rect x="44" y="72" width="72" height="48" fill="#047857"/>
+  <rect x="78" y="72" width="4" height="48" fill="#065f46"/>
+  <!-- Windows -->
+  <rect x="36" y="56" width="20" height="12" fill="#fde68a"/>
+  <rect x="104" y="56" width="20" height="12" fill="#fde68a"/>
+  <!-- Rope detail -->
+  <rect x="24" y="116" width="16" height="4" fill="#92400e"/>
+  <rect x="120" y="116" width="16" height="4" fill="#92400e"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg viewBox="0 0 16 32" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Base -->
+  <rect x="4" y="28" width="8" height="4" fill="#6b6b65"/>
+  <!-- Pole -->
+  <rect x="7" y="8" width="2" height="20" fill="#9a9a98"/>
+  <!-- Lamp housing -->
+  <rect x="4" y="4" width="8" height="6" fill="#4a4a4a"/>
+  <rect x="5" y="5" width="6" height="4" fill="#fde68a"/>
+  <!-- Glow -->
+  <rect x="3" y="3" width="10" height="2" fill="#fde68a" opacity="0.3"/>
+</svg>

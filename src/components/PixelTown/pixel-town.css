@@ -1,0 +1,306 @@
+/* ═══════════════════════════════════════════════════════
+   Pixel Town — Retro RPG Portfolio Visualization
+   ═══════════════════════════════════════════════════════ */
+
+.pixel-town-viewport {
+  position: relative;
+  width: 100%;
+  height: 700px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 3px solid #5c3a1e;
+  background: #87ceeb; /* Sky blue */
+  cursor: pointer;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+.pixel-town-viewport:focus {
+  outline: 2px solid #6b8afd;
+  outline-offset: 2px;
+}
+
+.pixel-town-world {
+  position: absolute;
+  transition: transform 0.15s ease-out;
+}
+
+/* Ground */
+.pixel-town-ground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #4abe4a;
+  /* Pixel grass pattern */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 31px,
+      rgba(58, 171, 58, 0.5) 31px,
+      rgba(58, 171, 58, 0.5) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 31px,
+      rgba(58, 171, 58, 0.5) 31px,
+      rgba(58, 171, 58, 0.5) 32px
+    );
+}
+
+/* Path tiles */
+.pixel-town-path {
+  position: absolute;
+  background: #d4b87a;
+  border: 1px solid #c4a86a;
+}
+
+/* Buildings */
+.pixel-town-building {
+  position: absolute;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  z-index: 2;
+}
+
+.pixel-town-building:hover {
+  filter: brightness(1.15);
+}
+
+.pixel-town-building img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+.pixel-town-building-label {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.55rem;
+  color: #3b2814;
+  background: rgba(255, 248, 220, 0.9);
+  padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border: 1px solid #d4b87a;
+  z-index: 5;
+}
+
+.pixel-town-building-status {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  z-index: 6;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Decorations */
+.pixel-town-decoration {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pixel-town-decoration img {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+/* Welcome sign */
+.pixel-town-welcome {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #8b6914;
+  border: 3px solid #5c3a1e;
+  border-radius: 4px;
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.pixel-town-welcome-name {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fde68a;
+  letter-spacing: 0.02em;
+  text-shadow: 1px 1px 0 #3b2814;
+}
+
+.pixel-town-welcome-title {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.5rem;
+  color: #d4b87a;
+  margin-top: 2px;
+}
+
+/* Zone labels */
+.pixel-town-zone-label {
+  position: absolute;
+  z-index: 4;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  background: rgba(59, 40, 20, 0.75);
+  border-radius: 3px;
+  border: 1px solid rgba(93, 58, 30, 0.5);
+  pointer-events: none;
+}
+
+/* Player character */
+.pixel-town-player {
+  position: absolute;
+  z-index: 10;
+  transition: left 0.1s linear, top 0.1s linear;
+  pointer-events: none;
+}
+
+.pixel-town-player img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+/* Walking animation — toggle between frames */
+.pixel-town-player--walking {
+  animation: pixel-walk 0.3s steps(2) infinite;
+}
+
+@keyframes pixel-walk {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* Sky elements */
+.pixel-town-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100px;
+  z-index: 0;
+  pointer-events: none;
+  animation: cloud-drift 60s linear infinite;
+}
+
+@keyframes cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.pixel-town-cloud {
+  position: absolute;
+  opacity: 0.7;
+}
+
+.pixel-town-cloud img {
+  image-rendering: pixelated;
+}
+
+/* Controls hint */
+.pixel-town-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  color: rgba(59, 40, 20, 0.6);
+  background: rgba(255, 248, 220, 0.8);
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid #d4b87a;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* Mobile: simplified card grid */
+@media (max-width: 900px) {
+  .pixel-town-viewport {
+    height: auto;
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+    background: none;
+  }
+
+  .pixel-town-world {
+    position: relative !important;
+    transform: none !important;
+    width: 100%;
+    height: auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 8px;
+    background: none;
+  }
+
+  .pixel-town-ground,
+  .pixel-town-path,
+  .pixel-town-decoration,
+  .pixel-town-clouds,
+  .pixel-town-player,
+  .pixel-town-welcome,
+  .pixel-town-zone-label,
+  .pixel-town-hint {
+    display: none;
+  }
+
+  .pixel-town-building {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    left: auto !important;
+    top: auto !important;
+    background: var(--bg-card, #1c1d20);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pixel-town-building img {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .pixel-town-building-label {
+    position: static;
+    transform: none;
+    background: none;
+    border: none;
+    color: var(--text-primary, #ededec);
+    font-size: 0.8rem;
+    padding: 0;
+  }
+
+  .pixel-town-building-status {
+    position: static;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}

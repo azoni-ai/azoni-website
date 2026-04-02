@@ -1,0 +1,14 @@
+<svg viewBox="0 0 28 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Legs -->
+  <rect x="2" y="10" width="2" height="6" fill="#6b4e1a"/>
+  <rect x="24" y="10" width="2" height="6" fill="#6b4e1a"/>
+  <!-- Seat -->
+  <rect x="0" y="8" width="28" height="4" fill="#8b6914"/>
+  <rect x="0" y="8" width="28" height="2" fill="#a07a1a"/>
+  <!-- Back -->
+  <rect x="0" y="2" width="28" height="2" fill="#8b6914"/>
+  <rect x="0" y="5" width="28" height="2" fill="#8b6914"/>
+  <!-- Posts -->
+  <rect x="2" y="0" width="2" height="10" fill="#6b4e1a"/>
+  <rect x="24" y="0" width="2" height="10" fill="#6b4e1a"/>
+</svg>

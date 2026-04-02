@@ -1,0 +1,19 @@
+<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Base pool -->
+  <rect x="4" y="32" width="40" height="12" fill="#6b8afd" opacity="0.3"/>
+  <rect x="2" y="30" width="44" height="4" fill="#9a9a98"/>
+  <rect x="6" y="34" width="36" height="8" fill="#60a5fa" opacity="0.4"/>
+  <!-- Center column -->
+  <rect x="20" y="12" width="8" height="20" fill="#d4c4a0"/>
+  <rect x="22" y="12" width="4" height="20" fill="#e8d8b4"/>
+  <!-- Top bowl -->
+  <rect x="14" y="8" width="20" height="6" fill="#d4c4a0"/>
+  <rect x="16" y="6" width="16" height="4" fill="#e8d8b4"/>
+  <!-- Water spout -->
+  <rect x="22" y="2" width="4" height="6" fill="#60a5fa" opacity="0.6"/>
+  <!-- Water drops -->
+  <rect x="12" y="14" width="2" height="4" fill="#60a5fa" opacity="0.4"/>
+  <rect x="34" y="16" width="2" height="4" fill="#60a5fa" opacity="0.4"/>
+  <rect x="18" y="18" width="2" height="3" fill="#60a5fa" opacity="0.3"/>
+  <rect x="28" y="17" width="2" height="3" fill="#60a5fa" opacity="0.3"/>
+</svg>

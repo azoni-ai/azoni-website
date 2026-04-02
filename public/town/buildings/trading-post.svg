@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" shape-rendering="crispEdges">
+  <!-- Ground -->
+  <rect x="0" y="144" width="160" height="16" fill="#8b7355"/>
+  <!-- Main building (warehouse) -->
+  <rect x="12" y="48" width="136" height="96" fill="#8b5cf6"/>
+  <rect x="12" y="48" width="136" height="8" fill="#a78bfa"/>
+  <!-- Shadow -->
+  <rect x="140" y="48" width="8" height="96" fill="#7c3aed"/>
+  <!-- Roof -->
+  <rect x="4" y="36" width="152" height="12" fill="#5b21b6"/>
+  <rect x="12" y="28" width="136" height="8" fill="#4c1d95"/>
+  <!-- Shelves visible through window left -->
+  <rect x="24" y="64" width="32" height="28" fill="#fde68a"/>
+  <rect x="28" y="68" width="8" height="8" fill="#ef4444"/>
+  <rect x="38" y="68" width="8" height="8" fill="#3b82f6"/>
+  <rect x="28" y="78" width="8" height="8" fill="#fbbf24"/>
+  <rect x="38" y="78" width="8" height="8" fill="#22c55e"/>
+  <!-- Window right -->
+  <rect x="104" y="64" width="32" height="28" fill="#fde68a"/>
+  <rect x="108" y="68" width="8" height="8" fill="#ec4899"/>
+  <rect x="118" y="68" width="8" height="8" fill="#f97316"/>
+  <rect x="108" y="78" width="8" height="8" fill="#14b8a6"/>
+  <rect x="118" y="78" width="8" height="8" fill="#a78bfa"/>
+  <!-- Large entrance -->
+  <rect x="52" y="80" width="56" height="64" fill="#4c1d95"/>
+  <rect x="56" y="80" width="48" height="4" fill="#6d28d9"/>
+  <!-- Crates outside left -->
+  <rect x="16" y="120" width="24" height="24" fill="#92400e"/>
+  <rect x="20" y="116" width="16" height="8" fill="#78350f"/>
+  <rect x="16" y="128" width="24" height="4" fill="#78350f"/>
+  <!-- Crates outside right -->
+  <rect x="120" y="128" width="20" height="16" fill="#92400e"/>
+  <rect x="120" y="132" width="20" height="4" fill="#78350f"/>
+  <!-- Treasure chest -->
+  <rect x="64" y="108" width="32" height="20" fill="#d97706"/>
+  <rect x="64" y="108" width="32" height="4" fill="#fbbf24"/>
+  <rect x="76" y="112" width="8" height="8" fill="#fbbf24"/>
+  <!-- Sparkle on chest -->
+  <rect x="88" y="104" width="4" height="4" fill="#fde68a"/>
+  <!-- Sign -->
+  <rect x="56" y="56" width="48" height="12" fill="#4c1d95"/>
+  <rect x="60" y="58" width="8" height="8" fill="#fde68a"/>
+  <rect x="72" y="58" width="8" height="8" fill="#fde68a"/>
+  <rect x="84" y="58" width="8" height="8" fill="#fde68a"/>
+</svg>
