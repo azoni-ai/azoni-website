@@ -94,7 +94,7 @@ export const ZONE_LABELS = [
 ];
 
 // Welcome sign position
-export const WELCOME_SIGN = { x: O+16, y: 4, w: 8, h: 3 };
+export const WELCOME_SIGN = { x: O+13, y: 3, w: 14, h: 5 };
 
 // Player start position (in front of welcome sign)
 export const PLAYER_START = { x: O+19, y: 8 };

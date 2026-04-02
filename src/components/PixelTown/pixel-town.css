@@ -138,18 +138,18 @@
 
 .pixel-town-welcome-name {
   font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 1rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #fde68a;
   letter-spacing: 0.02em;
-  text-shadow: 1px 1px 0 #3b2814;
+  text-shadow: 2px 2px 0 #3b2814;
 }
 
 .pixel-town-welcome-title {
   font-family: var(--font-mono, monospace);
-  font-size: 0.5rem;
+  font-size: 0.7rem;
   color: #d4b87a;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* Zone labels */
@@ -522,6 +522,189 @@
 
 .town-detail-btn:hover {
   filter: brightness(1.15);
+}
+
+/* Status row */
+.town-detail-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.town-detail-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.town-detail-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.town-detail-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.town-detail-action-btns {
+  display: flex;
+  gap: 8px;
+}
+
+/* Tabs */
+.town-detail-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 12px 0 0;
+}
+
+.town-detail-tab {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.town-detail-tab.active {
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.town-detail-tab:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.town-detail-tab-content {
+  padding-top: 12px;
+}
+
+/* Stat grid */
+.town-detail-stat-grid {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.town-detail-stat-card {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.town-detail-stat-num {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.town-detail-stat-label {
+  font-size: 0.58rem;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* Section */
+.town-detail-section {
+  margin-bottom: 12px;
+}
+
+.town-detail-section-title {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+/* Events list */
+.town-detail-events {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.town-detail-event {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.town-detail-event:last-child {
+  border-bottom: none;
+}
+
+.town-detail-event-text {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.town-detail-event-time {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.town-detail-event--error .town-detail-event-text {
+  color: rgba(248, 113, 113, 0.7);
+}
+
+.town-detail-empty {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.2);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+/* About tab */
+.town-detail-about p {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+
+.town-detail-actions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.town-detail-actions-list span {
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .pixel-town-hint {

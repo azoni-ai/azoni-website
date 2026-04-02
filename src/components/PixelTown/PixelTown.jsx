@@ -60,47 +60,177 @@ function formatTimeAgo(timestamp) {
   return `${Math.floor(hours / 24)}d`;
 }
 
-// ─── In-game detail panel (right side) ───
-function InGameDetailPanel({ station, activityCounts, onClose }) {
+// ─── In-game detail panel (centered modal) ───
+function InGameDetailPanel({ station, activityCounts, stationHistory, visitCount, appStats, health, onClose }) {
   const cat = CATEGORY_STYLES[station.category];
   const isArchive = station.isArchive;
   const counts = activityCounts || {};
+  const [tab, setTab] = useState('activity');
+  const events = (stationHistory || []).filter(e => e.type !== 'site_visit' && e.type !== 'error_logged' && e.type !== 'page_view_summary').slice(0, 10);
+  const errors = (stationHistory || []).filter(e => e.type === 'error_logged');
+
+  // Status
+  const ds = Object.entries(DOMAIN_TO_STATION).filter(([, v]) => v === station.id).map(([d]) => d);
+  const mcpStatus = ds.length && health ? (ds.some(d => health[d] === false) ? false : ds.every(d => health[d] === true) ? true : null) : null;
+  const statusText = mcpStatus === true ? 'online' : mcpStatus === false ? 'offline' : 'connected';
+  const statusColor = mcpStatus === true ? '#4ade80' : mcpStatus === false ? '#f87171' : '#6b6b65';
+  const isExternal = station.url && station.url.startsWith('http');
+
+  // App-specific live stats
+  const liveStats = [];
+  if (station.id === 'fab' && appStats?.fabstats) {
+    if (appStats.fabstats.users > 0) liveStats.push({ val: Number(appStats.fabstats.users).toLocaleString(), label: 'players' });
+    if (appStats.fabstats.matches > 0) liveStats.push({ val: Number(appStats.fabstats.matches).toLocaleString(), label: 'matches' });
+  }
+  if (station.id === 'benchpress' && appStats?.benchpressonly) {
+    const bp = appStats.benchpressonly;
+    if (Number(bp.users) > 0) liveStats.push({ val: Number(bp.users).toLocaleString(), label: 'users' });
+    if (Number(bp.workoutsLogged) > 0) liveStats.push({ val: Number(bp.workoutsLogged).toLocaleString(), label: 'workouts' });
+  }
+  if (station.id === 'rowcrew' && appStats?.rowcrew) {
+    const rc = appStats.rowcrew;
+    if (Number(rc.users || rc.totalUsers) > 0) liveStats.push({ val: Number(rc.users || rc.totalUsers).toLocaleString(), label: 'rowers' });
+    if (Number(rc.meters) > 0) liveStats.push({ val: Number(rc.meters).toLocaleString(), label: 'meters' });
+  }
 
   return (
     <div className="town-detail-panel" onClick={(e) => e.stopPropagation()}>
       <button className="town-detail-close" onClick={onClose}>×</button>
+
+      {/* Header */}
       <div className="town-detail-header">
-        {station.logo && <img src={station.logo} alt="" className="town-detail-logo" />}
+        {station.logo ? (
+          <img src={station.logo} alt="" className="town-detail-logo" />
+        ) : (
+          <span className="town-detail-dot" style={{ background: station.color }} />
+        )}
         <div>
           <h3 className="town-detail-name">{station.label}</h3>
           {cat && <span className="town-detail-cat" style={{ color: cat.color }}>{cat.label}</span>}
         </div>
       </div>
+
       <div className="town-detail-tagline">{station.tagline}</div>
       <p className="town-detail-desc">{station.desc}</p>
-      {!isArchive && (counts.h1 > 0 || counts.h24 > 0) && (
-        <div className="town-detail-stats">
-          {counts.h1 > 0 && <span>{counts.h1} /1h</span>}
-          {counts.h24 > 0 && <span>{counts.h24} /24h</span>}
+
+      {/* Status + visit */}
+      <div className="town-detail-status-row">
+        {!isArchive && (
+          <div className="town-detail-status">
+            <span className="town-detail-status-dot" style={{ background: statusColor }} />
+            {statusText}
+          </div>
+        )}
+        <div className="town-detail-action-btns">
+          {station.url && (
+            isExternal ? (
+              <a href={station.url} target="_blank" rel="noopener noreferrer" className="town-detail-btn" style={{ background: station.color }}>Visit ↗</a>
+            ) : (
+              <Link to={station.url} className="town-detail-btn" style={{ background: station.color }}>Visit</Link>
+            )
+          )}
+          {isArchive && <Link to="/resume" className="town-detail-btn town-detail-btn-secondary">Resume</Link>}
         </div>
-      )}
+      </div>
+
+      {/* Tech chips */}
       {(station.tech || []).length > 0 && (
         <div className="town-detail-tech">
           {station.tech.map(t => <span key={t} style={{ borderColor: `${station.color}40` }}>{t}</span>)}
         </div>
       )}
-      <div className="town-detail-actions">
-        {station.url && (
-          station.url.startsWith('http') ? (
-            <a href={station.url} target="_blank" rel="noopener noreferrer" className="town-detail-btn" style={{ background: station.color }}>Visit ↗</a>
-          ) : (
-            <Link to={station.url} className="town-detail-btn" style={{ background: station.color }}>Visit</Link>
-          )
-        )}
-        {isArchive && (
-          <Link to="/resume" className="town-detail-btn town-detail-btn-secondary">Resume</Link>
-        )}
-      </div>
+
+      {/* Tabs (only for non-archive stations) */}
+      {!isArchive && (
+        <>
+          <div className="town-detail-tabs">
+            <button className={`town-detail-tab${tab === 'activity' ? ' active' : ''}`} onClick={() => setTab('activity')}>Activity</button>
+            <button className={`town-detail-tab${tab === 'about' ? ' active' : ''}`} onClick={() => setTab('about')}>About</button>
+          </div>
+
+          <div className="town-detail-tab-content">
+            {tab === 'activity' && (
+              <>
+                {/* Activity stats */}
+                <div className="town-detail-stat-grid">
+                  <div className="town-detail-stat-card" style={{ borderColor: `${station.color}30` }}>
+                    <div className="town-detail-stat-num" style={{ color: station.color }}>{counts.h1 || 0}</div>
+                    <div className="town-detail-stat-label">last hour</div>
+                  </div>
+                  <div className="town-detail-stat-card" style={{ borderColor: `${station.color}30` }}>
+                    <div className="town-detail-stat-num" style={{ color: station.color }}>{counts.h24 || 0}</div>
+                    <div className="town-detail-stat-label">last 24h</div>
+                  </div>
+                  {(visitCount || 0) > 0 && (
+                    <div className="town-detail-stat-card" style={{ borderColor: `${station.color}30` }}>
+                      <div className="town-detail-stat-num" style={{ color: station.color }}>{visitCount}</div>
+                      <div className="town-detail-stat-label">visits</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Live app stats */}
+                {liveStats.length > 0 && (
+                  <div className="town-detail-section">
+                    <div className="town-detail-section-title">Live Stats</div>
+                    <div className="town-detail-stat-grid">
+                      {liveStats.map((s, i) => (
+                        <div key={i} className="town-detail-stat-card" style={{ borderColor: `${station.color}30` }}>
+                          <div className="town-detail-stat-num" style={{ color: station.color }}>{s.val}</div>
+                          <div className="town-detail-stat-label">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent events */}
+                <div className="town-detail-section">
+                  <div className="town-detail-section-title">Recent Events</div>
+                  {events.length > 0 ? (
+                    <div className="town-detail-events">
+                      {events.map((evt, i) => (
+                        <div key={i} className="town-detail-event">
+                          <span className="town-detail-event-text">{evt.title || evt.type}</span>
+                          <span className="town-detail-event-time">{formatTimeAgo(evt.ms || evt.receivedAt)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="town-detail-empty">No events recorded yet</div>
+                  )}
+                </div>
+
+                {/* Errors */}
+                {errors.length > 0 && (
+                  <div className="town-detail-section">
+                    <div className="town-detail-section-title" style={{ color: '#f87171' }}>Errors ({errors.length})</div>
+                    <div className="town-detail-events">
+                      {errors.slice(0, 5).map((err, i) => (
+                        <div key={i} className="town-detail-event town-detail-event--error">
+                          <span className="town-detail-event-text">{err.title || err.description || err.type}</span>
+                          <span className="town-detail-event-time">{formatTimeAgo(err.ms || err.receivedAt)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {tab === 'about' && (
+              <div className="town-detail-about">
+                <p>{station.desc}</p>
+                {station.actions && (
+                  <div className="town-detail-actions-list">
+                    {station.actions.map((a, i) => <span key={i}>{a}</span>)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -152,7 +282,7 @@ function PixelTown({ appStats, githubStats, profile }) {
   const [viewportSize, setViewportSize] = useState({ w: 1200, h: 700 });
   const [selectedStation, setSelectedStation] = useState(null);
 
-  const { activityCounts } = useAgentActivity();
+  const { stationHistory, activityCounts } = useAgentActivity();
   const { health } = useMCPHealth();
   const { dir, isMoving, reachedBuilding, clearReachedBuilding, moveTo, pixelPos } = usePlayerMovement(PLAYER_START.x, PLAYER_START.y);
 
@@ -287,6 +417,9 @@ function PixelTown({ appStats, githubStats, profile }) {
           <InGameDetailPanel
             station={selectedStation}
             activityCounts={activityCounts[selectedStation.id]}
+            stationHistory={stationHistory[selectedStation.id]}
+            appStats={appStats}
+            health={health}
             onClose={() => setSelectedStation(null)}
           />
         </>
