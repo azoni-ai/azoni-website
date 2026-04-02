@@ -142,7 +142,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   left: 0;
   right: 0;
   z-index: 100;
-  padding: var(--space-md) 0;
+  padding: var(--space-lg) 0;
   background: rgba(15, 15, 18, 0.85);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
@@ -156,7 +156,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 .navbar-logo {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -174,7 +174,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 }
 
 .navbar-link {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: var(--text-secondary);
   transition: color var(--transition-fast);
   position: relative;
@@ -198,7 +198,12 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 .navbar-social {
   display: flex;
-  gap: var(--space-md);
+  gap: var(--space-lg);
+}
+
+.navbar-social svg {
+  width: 22px;
+  height: 22px;
 }
 
 .navbar-social a {
@@ -508,18 +513,19 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 /* Footer */
 .footer {
-  padding: var(--space-2xl) 0;
+  padding: var(--space-3xl) 0;
   border-top: 1px solid var(--border-subtle);
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .footer-links {
   display: flex;
   justify-content: center;
-  gap: var(--space-xl);
-  margin-bottom: var(--space-lg);
+  gap: var(--space-2xl);
+  margin-bottom: var(--space-xl);
+  font-size: 1rem;
 }
 
 .footer-links a:hover {
