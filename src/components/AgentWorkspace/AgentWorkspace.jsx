@@ -26,7 +26,7 @@ const GRID_PLACEMENT = {
   fab:          { col: '5 / 8', colStart: 5, row: 5, room: 7,  door: 'left', wide: true },
 };
 // Small stations rendered in flex sub-row (row 7)
-const SMALL_STATIONS = ['rowcrew', 'spellbrigade', 'activity', 'embedroute', 'medic'];
+const SMALL_STATIONS = ['rowcrew', 'spellbrigade', 'activity', 'embedroute', 'medic', 'launchpad'];
 
 // Zone labels between station rows
 const ZONE_LABELS = [
@@ -266,6 +266,14 @@ function getStationMetrics(stationId, appStats, githubStats, extra) {
       const totalErrors = extra?.totalErrors || 0;
       if (totalErrors > 0) return [{ value: String(totalErrors), label: 'issues 24h' }];
       return null;
+    }
+    case 'launchpad': {
+      const lp = appStats?.launchpad;
+      if (!lp) return null;
+      const m = [];
+      if (Number(lp.totalApps) > 0) m.push({ value: String(lp.totalApps), label: 'apps' });
+      if (Number(lp.totalViews24h) > 0) m.push({ value: fmt(lp.totalViews24h), label: 'views 24h' });
+      return m.length ? m : null;
     }
     default:
       return null;

@@ -232,6 +232,42 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
                         </div>
                       )}
 
+                      {/* Launchpad — per-app view breakdown */}
+                      {station.id === 'launchpad' && appStats?.launchpad && (() => {
+                        const lp = appStats.launchpad;
+                        const totalApps = Number(lp.totalApps) || 0;
+                        const totalViews = Number(lp.totalViews24h) || 0;
+                        const apps = lp.apps || [];
+                        return (
+                          <div className="aw-detail-section">
+                            <div className="aw-detail-section-title">Live Stats</div>
+                            <div className="aw-detail-stats">
+                              <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
+                                <div className="aw-detail-stat-num" style={{ color: station.color }}>{totalApps}</div>
+                                <div className="aw-detail-stat-label">apps</div>
+                              </div>
+                              <div className="aw-detail-stat" style={{ borderColor: `${station.color}30` }}>
+                                <div className="aw-detail-stat-num" style={{ color: station.color }}>{totalViews.toLocaleString()}</div>
+                                <div className="aw-detail-stat-label">views (24h)</div>
+                              </div>
+                            </div>
+                            {apps.length > 0 && (
+                              <div className="aw-detail-events" style={{ marginTop: '8px' }}>
+                                {apps.map((app) => (
+                                  <div key={app.name} className="aw-detail-event" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span className="aw-detail-event-title" style={{ fontWeight: 600 }}>{app.name}</span>
+                                    <span style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', opacity: 0.7 }}>
+                                      <span>{app.views24h} today</span>
+                                      <span>{app.viewsTotal?.toLocaleString()} total</span>
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* Scribe — recent commits from git activity */}
                       {station.id === 'scribe' && githubStats?.recentCommits?.length > 0 && (
                         <div className="aw-detail-section">
