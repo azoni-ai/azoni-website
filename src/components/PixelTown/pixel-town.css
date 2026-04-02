@@ -222,11 +222,11 @@
 /* Controls hint */
 /* Fullscreen home layout */
 .home-page--fullscreen {
-  padding-top: 70px;
+  padding-top: 90px;
 }
 
 .home-page--fullscreen .pixel-town-viewport {
-  height: calc(100vh - 70px);
+  height: calc(100vh - 90px);
   max-height: none;
   min-height: 500px;
   border-radius: 0;
@@ -779,20 +779,20 @@
   .town-detail-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 200;
   }
 
   .town-detail-panel {
     position: fixed;
-    top: 80px;
+    top: 100px;
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 24px);
     max-width: 400px;
-    max-height: calc(100vh - 100px);
+    max-height: calc(100vh - 120px);
     border-radius: 8px;
     border: 2px solid rgba(93, 58, 30, 0.7);
-    z-index: 51;
+    z-index: 201;
     overflow-y: auto;
   }
 
