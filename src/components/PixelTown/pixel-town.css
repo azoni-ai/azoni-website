@@ -242,16 +242,17 @@
   position: absolute;
   bottom: 12px;
   left: 12px;
-  width: 360px;
-  max-height: 280px;
-  background: rgba(10, 10, 16, 0.88);
+  width: 420px;
+  max-height: 300px;
+  background: rgba(10, 10, 16, 0.92);
   border: 2px solid rgba(93, 58, 30, 0.6);
-  border-radius: 6px;
+  border-radius: 8px;
   z-index: 15;
   display: flex;
   flex-direction: column;
-  font-size: 0.68rem;
-  backdrop-filter: blur(8px);
+  font-size: 0.78rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .town-chatbox--collapsed {
@@ -274,7 +275,16 @@
   font-family: var(--font-mono, monospace);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.town-chatbox-title svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
 }
 
 .town-chatbox-stats {
@@ -318,34 +328,35 @@
 }
 
 .town-chat-time {
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.65rem;
   flex-shrink: 0;
-  min-width: 24px;
+  min-width: 28px;
 }
 
 .town-chat-text {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.65);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+  font-size: 0.75rem;
 }
 
 .town-chat-repo {
   font-family: var(--font-mono, monospace);
-  font-size: 0.55rem;
-  color: rgba(107, 138, 253, 0.5);
+  font-size: 0.65rem;
+  color: rgba(107, 138, 253, 0.6);
   flex-shrink: 0;
 }
 
 .town-chat-badge {
-  font-size: 0.48rem;
-  padding: 1px 4px;
-  border-radius: 2px;
+  font-size: 0.55rem;
+  padding: 2px 5px;
+  border-radius: 3px;
   background: rgba(167, 139, 250, 0.2);
-  color: rgba(167, 139, 250, 0.7);
+  color: rgba(167, 139, 250, 0.8);
   flex-shrink: 0;
 }
 
@@ -376,19 +387,29 @@
    In-Game Detail Panel — right side overlay
    ═══════════════════════════════════════════════════════ */
 
+.town-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 14;
+}
+
 .town-detail-panel {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 320px;
-  max-height: calc(100% - 24px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 380px;
+  max-width: calc(100% - 40px);
+  max-height: calc(100% - 60px);
   overflow-y: auto;
-  background: rgba(10, 10, 16, 0.92);
-  border: 2px solid rgba(93, 58, 30, 0.6);
-  border-radius: 6px;
+  background: rgba(12, 12, 18, 0.95);
+  border: 2px solid rgba(93, 58, 30, 0.7);
+  border-radius: 8px;
   z-index: 15;
-  padding: 16px;
-  backdrop-filter: blur(8px);
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
 }
 
 .town-detail-close {
