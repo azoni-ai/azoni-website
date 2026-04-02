@@ -22,6 +22,7 @@ export const SOURCE_TO_STATION = {
   'embedroute': 'embedroute',
   'embed-route': 'embedroute',
   'admin': 'conductor',
+  'launchpad': 'launchpad',
 };
 
 export const TYPE_TO_STATION = {
@@ -111,6 +112,7 @@ export const DOMAIN_TO_STATION = {
   embedroute: 'embedroute',
   rowcrew: 'rowcrew',
   fabstats: 'fab',
+  launchpad: 'launchpad',
 };
 
 export const CATEGORY_STYLES = {
@@ -208,6 +210,13 @@ export const STATION_DEFS = [
     tagline: 'Station health monitor',
     actions: ['Health checkups', 'Making rounds', 'Status alerts'],
   },
+  {
+    id: 'launchpad', label: 'Launchpad', color: '#FF6B35', icon: 'rocket', category: 'app',
+    desc: 'Web app factory — tracks views and activity across all launched apps.',
+    tagline: 'Web app factory',
+    actions: ['Tracking views', 'Monitoring apps', 'Reporting stats'],
+    dataLabel: 'views',
+  },
 ];
 
 export const AGENT_IDLE = {
@@ -237,6 +246,7 @@ export const STATION_CONNECTIONS = {
   activity: ['mcp'],
   embedroute: ['mcp'],
   medic: ['mcp', 'activity'],
+  launchpad: ['mcp', 'activity'],
 };
 
 export const STATION_TO_PROJECT = {
@@ -253,6 +263,7 @@ export const STATION_TO_PROJECT = {
   fab: 'fab-stats',
   mcp: 'azoni-mcp',
   medic: 'azoni-ai',
+  launchpad: 'launchpad',
 };
 
 // Default walk targets for known station partnerships
@@ -274,6 +285,7 @@ export const REPO_TO_STATION = {
   'fab-stats': 'fab',
   'fab-stats-bot': 'fab',
   'azoni-mcp': 'mcp',
+  'swipecart': 'launchpad',
 };
 
 // Event importance tiers for walk rules
@@ -299,6 +311,8 @@ export function getEventImportance(type) {
 
 export function mapSourceToStation(source, type) {
   if (SOURCE_TO_STATION[source]) return SOURCE_TO_STATION[source];
+  // Handle prefixed sources like "launchpad:swipecart"
+  if (source && source.startsWith('launchpad:')) return 'launchpad';
   if (TYPE_TO_STATION[type]) return TYPE_TO_STATION[type];
   return null;
 }

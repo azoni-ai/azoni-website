@@ -149,14 +149,20 @@ async function fetchAppStats() {
     fabstats: {
       matches: 0,
     },
+    launchpad: {
+      totalApps: 0,
+      totalViews24h: 0,
+      apps: [],
+    },
     updatedAt: new Date().toISOString(),
   };
 
-  const [benchResult, rowResult, owtResult, fabResult] = await Promise.allSettled([
+  const [benchResult, rowResult, owtResult, fabResult, launchpadResult] = await Promise.allSettled([
     fetchJson(`${mcpBase}/benchpressonly/stats`, mcpHeaders),
     fetchJson(`${mcpBase}/rowcrew/stats`, mcpHeaders),
     fetchJson(`${mcpBase}/oldwaystoday/stats`, mcpHeaders),
     fetchJson(`${mcpBase}/fabstats/stats`, mcpHeaders),
+    fetchJson(`${mcpBase}/launchpad/stats`, mcpHeaders),
   ]);
 
   if (benchResult.status === 'fulfilled') {
@@ -292,6 +298,17 @@ async function fetchAppStats() {
       payload.users,
       payload.totalUsers
     ));
+  }
+
+  if (launchpadResult.status === 'fulfilled') {
+    const payload = launchpadResult.value || {};
+    stats.launchpad.totalApps = asNumber(payload.totalApps);
+    stats.launchpad.totalViews24h = asNumber(payload.totalViews24h);
+    stats.launchpad.apps = (payload.apps || []).map(a => ({
+      name: a.name,
+      views24h: asNumber(a.views24h),
+      viewsTotal: asNumber(a.viewsTotal),
+    }));
   }
 
   // If OWT backend counters reset, recover from durable activity logs.
