@@ -222,7 +222,7 @@
 /* Controls hint */
 /* Fullscreen home layout */
 .home-page--fullscreen {
-  padding-top: 0 !important;
+  padding-top: 70px;
 }
 
 .home-page--fullscreen .pixel-town-viewport {
@@ -742,10 +742,6 @@
 
 /* Mobile: simplified card grid */
 @media (max-width: 900px) {
-  .home-page--fullscreen {
-    padding-top: 70px !important;
-  }
-
   .home-page--fullscreen .pixel-town-viewport {
     height: auto;
     max-height: none;
@@ -760,6 +756,8 @@
     border: none;
     border-radius: 0;
     background: var(--bg-primary, #111113);
+    display: flex;
+    flex-direction: column;
   }
 
   .town-chatbox {
@@ -775,6 +773,7 @@
     box-shadow: none;
     backdrop-filter: none;
     background: var(--bg-secondary, #191a1c);
+    order: -1;
   }
 
   .town-detail-backdrop {
@@ -785,12 +784,12 @@
 
   .town-detail-panel {
     position: fixed;
-    top: 50%;
+    top: 80px;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     width: calc(100% - 24px);
     max-width: 400px;
-    max-height: 80vh;
+    max-height: calc(100vh - 100px);
     border-radius: 8px;
     border: 2px solid rgba(93, 58, 30, 0.7);
     z-index: 51;
