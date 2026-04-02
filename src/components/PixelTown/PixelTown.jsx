@@ -166,8 +166,16 @@ function PixelTown({ appStats, githubStats, profile }) {
     return () => obs.disconnect();
   }, []);
 
-  const cameraX = Math.min(0, Math.max(-(WORLD_W - viewportSize.w), -(pixelPos.x - viewportSize.w / 2 + TILE_SIZE / 2)));
-  const cameraY = Math.min(0, Math.max(-(WORLD_H - viewportSize.h), -(pixelPos.y - viewportSize.h / 2 + TILE_SIZE / 2)));
+  // Scale world to fit viewport width if needed
+  const worldScale = Math.min(1, viewportSize.w / WORLD_W);
+  const scaledW = WORLD_W * worldScale;
+  const scaledH = WORLD_H * worldScale;
+  const scaledTile = TILE_SIZE * worldScale;
+  const scaledPlayerX = pixelPos.x * worldScale;
+  const scaledPlayerY = pixelPos.y * worldScale;
+
+  const cameraX = Math.min(0, Math.max(-(scaledW - viewportSize.w), -(scaledPlayerX - viewportSize.w / 2 + scaledTile / 2)));
+  const cameraY = Math.min(0, Math.max(-(scaledH - viewportSize.h), -(scaledPlayerY - viewportSize.h / 2 + scaledTile / 2)));
 
   useEffect(() => {
     if (reachedBuilding) {
@@ -178,18 +186,25 @@ function PixelTown({ appStats, githubStats, profile }) {
   }, [reachedBuilding, clearReachedBuilding]);
 
   const handleWorldClick = useCallback((e) => {
-    if (e.target.closest('.town-detail-panel') || e.target.closest('.town-chatbox')) return;
+    if (e.target.closest('.town-detail-panel') || e.target.closest('.town-chatbox') || e.target.closest('.town-detail-backdrop')) return;
     const rect = viewportRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const worldX = e.clientX - rect.left - cameraX;
-    const worldY = e.clientY - rect.top - cameraY;
+    const worldX = (e.clientX - rect.left - cameraX) / worldScale;
+    const worldY = (e.clientY - rect.top - cameraY) / worldScale;
     moveTo(Math.floor(worldX / TILE_SIZE), Math.floor(worldY / TILE_SIZE));
-  }, [cameraX, cameraY, moveTo]);
+  }, [cameraX, cameraY, moveTo, worldScale]);
+
+  const isMobile = viewportSize.w <= 900;
 
   const handleBuildingClick = useCallback((building, e) => {
     e.stopPropagation();
-    moveTo(building.entrance.x, building.entrance.y);
-  }, [moveTo]);
+    if (isMobile) {
+      const station = stationById[building.id];
+      if (station) setSelectedStation(station);
+    } else {
+      moveTo(building.entrance.x, building.entrance.y);
+    }
+  }, [moveTo, isMobile]);
 
   const getStatusColor = (stationId) => {
     const ds = Object.entries(DOMAIN_TO_STATION).filter(([, v]) => v === stationId).map(([d]) => d);
@@ -209,7 +224,12 @@ function PixelTown({ appStats, githubStats, profile }) {
       {/* World */}
       <div
         className="pixel-town-world"
-        style={{ width: WORLD_W, height: WORLD_H, transform: `translate(${cameraX}px, ${cameraY}px)` }}
+        style={{
+          width: WORLD_W,
+          height: WORLD_H,
+          transform: `translate(${cameraX}px, ${cameraY}px) scale(${worldScale})`,
+          transformOrigin: '0 0',
+        }}
       >
         <div className="pixel-town-ground" />
 
