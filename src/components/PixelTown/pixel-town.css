@@ -220,6 +220,289 @@
 }
 
 /* Controls hint */
+/* Fullscreen home layout */
+.home-page--fullscreen {
+  padding-top: 0 !important;
+}
+
+.home-page--fullscreen .pixel-town-viewport {
+  height: calc(100vh - 70px);
+  max-height: none;
+  min-height: 500px;
+  border-radius: 0;
+  border: none;
+  border-top: 2px solid #5c3a1e;
+}
+
+/* ═══════════════════════════════════════════════════════
+   In-Game Chat Box — MMO-style activity feed
+   ═══════════════════════════════════════════════════════ */
+
+.town-chatbox {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  width: 360px;
+  max-height: 280px;
+  background: rgba(10, 10, 16, 0.88);
+  border: 2px solid rgba(93, 58, 30, 0.6);
+  border-radius: 6px;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.68rem;
+  backdrop-filter: blur(8px);
+}
+
+.town-chatbox--collapsed {
+  max-height: none;
+}
+
+.town-chatbox-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  user-select: none;
+}
+
+.town-chatbox-title {
+  font-weight: 700;
+  color: #fde68a;
+  font-family: var(--font-mono, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+}
+
+.town-chatbox-stats {
+  display: flex;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.58rem;
+}
+
+.town-chatbox-stats strong {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.town-chatbox-toggle {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.55rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.town-chatbox-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  max-height: 200px;
+}
+
+.town-chat-msg {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 10px;
+  line-height: 1.4;
+}
+
+.town-chat-msg:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.town-chat-time {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.55rem;
+  flex-shrink: 0;
+  min-width: 24px;
+}
+
+.town-chat-text {
+  color: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.town-chat-repo {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.55rem;
+  color: rgba(107, 138, 253, 0.5);
+  flex-shrink: 0;
+}
+
+.town-chat-badge {
+  font-size: 0.48rem;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(167, 139, 250, 0.2);
+  color: rgba(167, 139, 250, 0.7);
+  flex-shrink: 0;
+}
+
+.town-chat-empty {
+  color: rgba(255, 255, 255, 0.2);
+  font-style: italic;
+}
+
+.town-chatbox-links {
+  display: flex;
+  gap: 12px;
+  padding: 6px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.town-chatbox-links a {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.55rem;
+  color: rgba(253, 230, 138, 0.5);
+  text-decoration: none;
+}
+
+.town-chatbox-links a:hover {
+  color: #fde68a;
+}
+
+/* ═══════════════════════════════════════════════════════
+   In-Game Detail Panel — right side overlay
+   ═══════════════════════════════════════════════════════ */
+
+.town-detail-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 320px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  background: rgba(10, 10, 16, 0.92);
+  border: 2px solid rgba(93, 58, 30, 0.6);
+  border-radius: 6px;
+  z-index: 15;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.town-detail-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.town-detail-close:hover {
+  color: #fff;
+}
+
+.town-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.town-detail-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.town-detail-name {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fafaf9;
+  margin: 0;
+}
+
+.town-detail-cat {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.town-detail-tagline {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 8px;
+}
+
+.town-detail-desc {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+
+.town-detail-stats {
+  display: flex;
+  gap: 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 10px;
+}
+
+.town-detail-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.town-detail-tech span {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+.town-detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.town-detail-btn {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 4px;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.town-detail-btn-secondary {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.town-detail-btn:hover {
+  filter: brightness(1.15);
+}
+
 .pixel-town-hint {
   position: absolute;
   bottom: 10px;
@@ -238,12 +521,41 @@
 
 /* Mobile: simplified card grid */
 @media (max-width: 900px) {
+  .home-page--fullscreen .pixel-town-viewport {
+    height: auto;
+    max-height: none;
+    border: none;
+  }
+
   .pixel-town-viewport {
     height: auto;
     overflow: visible;
     border: none;
     border-radius: 0;
     background: none;
+  }
+
+  .town-chatbox {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    order: -1;
+  }
+
+  .town-detail-panel {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .pixel-town-world {
