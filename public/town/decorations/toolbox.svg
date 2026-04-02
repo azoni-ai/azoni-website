@@ -1,0 +1,10 @@
+<svg viewBox="0 0 20 14" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Box -->
+  <rect x="0" y="4" width="20" height="10" fill="#d03027"/>
+  <rect x="2" y="6" width="16" height="6" fill="#b02020"/>
+  <!-- Handle -->
+  <rect x="6" y="0" width="8" height="2" fill="#4a4a4a"/>
+  <rect x="8" y="2" width="4" height="2" fill="#4a4a4a"/>
+  <!-- Latch -->
+  <rect x="9" y="6" width="2" height="2" fill="#fbbf24"/>
+</svg>

@@ -57,6 +57,9 @@ const DECORATION_SVG = {
   'scaffolding': '/town/decorations/scaffolding.svg',
   'dirt-pile': '/town/decorations/dirt-pile.svg',
   'caution-sign': '/town/decorations/caution-sign.svg',
+  'hole': '/town/decorations/hole.svg',
+  'wheelbarrow': '/town/decorations/wheelbarrow.svg',
+  'toolbox': '/town/decorations/toolbox.svg',
 };
 
 function formatTimeAgo(timestamp) {
@@ -101,6 +104,14 @@ function InGameDetailPanel({ station, activityCounts, stationHistory, visitCount
     if (Number(rc.users || rc.totalUsers) > 0) liveStats.push({ val: Number(rc.users || rc.totalUsers).toLocaleString(), label: 'rowers' });
     if (Number(rc.meters) > 0) liveStats.push({ val: Number(rc.meters).toLocaleString(), label: 'meters' });
   }
+  if (station.id === 'launchpad' && appStats?.launchpad) {
+    const lp = appStats.launchpad;
+    if (Number(lp.totalApps) > 0) liveStats.push({ val: Number(lp.totalApps), label: 'apps' });
+    if (Number(lp.totalViews24h) > 0) liveStats.push({ val: Number(lp.totalViews24h).toLocaleString(), label: 'views (24h)' });
+  }
+
+  // Launchpad per-app breakdown
+  const launchpadApps = station.id === 'launchpad' ? (appStats?.launchpad?.apps || []) : [];
 
   return (
     <div className="town-detail-panel" onClick={(e) => e.stopPropagation()}>
@@ -187,6 +198,24 @@ function InGameDetailPanel({ station, activityCounts, stationHistory, visitCount
                         <div key={i} className="town-detail-stat-card" style={{ borderColor: `${station.color}30` }}>
                           <div className="town-detail-stat-num" style={{ color: station.color }}>{s.val}</div>
                           <div className="town-detail-stat-label">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Launchpad per-app breakdown */}
+                {launchpadApps.length > 0 && (
+                  <div className="town-detail-section">
+                    <div className="town-detail-section-title">App Views</div>
+                    <div className="town-detail-events">
+                      {launchpadApps.map((app) => (
+                        <div key={app.name} className="town-detail-event">
+                          <span className="town-detail-event-text" style={{ fontWeight: 600 }}>{app.name}</span>
+                          <span className="town-detail-event-time" style={{ display: 'flex', gap: '8px' }}>
+                            <span>{app.views24h} today</span>
+                            <span>{(app.viewsTotal || 0).toLocaleString()} total</span>
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -396,7 +425,10 @@ function PixelTown({ appStats, githubStats, profile }) {
           const isScaffolding = d.type === 'scaffolding';
           const isBarrier = d.type === 'barrier';
           const isWorker = d.type === 'worker';
-          const size = isCrane ? TILE_SIZE * 2.5 : isScaffolding ? TILE_SIZE * 1.5 : isBulldozer ? TILE_SIZE * 2 : isBarrier ? TILE_SIZE * 1.2 : isFountain ? TILE_SIZE * 2 : isTree ? TILE_SIZE * 1.5 : isWorker ? TILE_SIZE * 0.7 : isFlower ? TILE_SIZE * 0.5 : TILE_SIZE;
+          const isHole = d.type === 'hole';
+          const isWheelbarrow = d.type === 'wheelbarrow';
+          const isToolbox = d.type === 'toolbox';
+          const size = isCrane ? TILE_SIZE * 2.5 : isScaffolding ? TILE_SIZE * 1.5 : isBulldozer ? TILE_SIZE * 2 : isWheelbarrow ? TILE_SIZE * 1.2 : isBarrier ? TILE_SIZE * 1.2 : isFountain ? TILE_SIZE * 2 : isTree ? TILE_SIZE * 1.5 : isHole ? TILE_SIZE * 1 : isWorker ? TILE_SIZE * 0.7 : isToolbox ? TILE_SIZE * 0.7 : isFlower ? TILE_SIZE * 0.5 : TILE_SIZE;
           return (
             <div key={`deco-${i}`} className="pixel-town-decoration" style={{ left: d.x * TILE_SIZE, top: d.y * TILE_SIZE - (isCrane ? TILE_SIZE * 2 : isScaffolding ? TILE_SIZE * 1.5 : isTree ? TILE_SIZE : 0), width: size, height: size * (isCrane ? 1.6 : isScaffolding ? 1.8 : 1.2) }}>
               <img src={src} alt="" width={size} height={size * 1.2} />

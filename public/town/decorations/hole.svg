@@ -1,0 +1,11 @@
+<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Hole in ground -->
+  <rect x="2" y="4" width="20" height="12" fill="#3d2a0a"/>
+  <rect x="4" y="6" width="16" height="8" fill="#2a1d06"/>
+  <!-- Dirt edges -->
+  <rect x="0" y="2" width="24" height="3" fill="#6b4e1a"/>
+  <rect x="2" y="0" width="20" height="3" fill="#8b6914"/>
+  <!-- Cracks -->
+  <rect x="6" y="1" width="2" height="1" fill="#5c3a1e"/>
+  <rect x="14" y="2" width="3" height="1" fill="#5c3a1e"/>
+</svg>

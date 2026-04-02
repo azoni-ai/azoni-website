@@ -85,6 +85,18 @@ export const DECORATIONS = [
   { type: 'fountain', x: O+19, y: 12 },
 
   // ─── CONSTRUCTION ZONE ───
+  // Top of town — active construction near entrance
+  { type: 'hole', x: O+8, y: 8 }, { type: 'hole', x: O+32, y: 8 },
+  { type: 'hole', x: O+2, y: 15 },
+  { type: 'cone', x: O+7, y: 8 }, { type: 'cone', x: O+10, y: 8 },
+  { type: 'cone', x: O+31, y: 8 }, { type: 'cone', x: O+34, y: 8 },
+  { type: 'worker', x: O+9, y: 7 }, { type: 'worker', x: O+33, y: 7 },
+  { type: 'barrier', x: O+5, y: 9 }, { type: 'barrier', x: O+35, y: 9 },
+  { type: 'wheelbarrow', x: O+3, y: 8 },
+  { type: 'toolbox', x: O+11, y: 9 }, { type: 'toolbox', x: O+30, y: 9 },
+  { type: 'dirt-pile', x: O+1, y: 9 },
+  { type: 'caution-sign', x: O+6, y: 7 },
+
   // Crane near career district
   { type: 'crane', x: O+20, y: 34 },
   // Bulldozer on the road
