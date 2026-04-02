@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
-import InteractiveBackground from '../components/InteractiveBackground';
 import AgentWorkspace from '../components/AgentWorkspace/AgentWorkspace';
 import { useFabStats } from '../hooks/useFabStats';
 import '../styles/bento.css';
@@ -28,7 +27,6 @@ const Home = () => {
   const [appStats, setAppStats] = useState(null);
   const { users: fabUserCount, matches: fabMatchCount } = useFabStats();
 
-  const heroRef = useRef(null);
 
   // Fetch profile from Firestore
   useEffect(() => {
@@ -85,20 +83,6 @@ const Home = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Mouse tracking for hero glow effect — uses ref to avoid re-rendering whole page
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (heroRef.current) {
-        const rect = heroRef.current.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-        const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
-        heroRef.current.style.setProperty('--mouse-x', `${x}%`);
-        heroRef.current.style.setProperty('--mouse-y', `${y}%`);
-      }
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   const formatTimeAgo = (timestamp) => {
     const seconds = Math.floor((new Date() - new Date(timestamp)) / 1000);
@@ -120,13 +104,9 @@ const Home = () => {
 
   return (
     <Layout>
-      <InteractiveBackground />
-      
       <div className="home-page">
         {/* Hero */}
-        <section className="hero" ref={heroRef}>
-          <div className="hero-glow" />
-          
+        <section className="hero">
           <div className="container">
             <div className="hero-top">
               <div className="hero-intro">
@@ -142,14 +122,6 @@ const Home = () => {
                 </div>
               </div>
 
-              <div className="hero-ai-badge">
-                <div className="ai-badge-glow"></div>
-                <div className="ai-badge-content">
-                  <span className="ai-badge-dot"></span>
-                  <span className="ai-badge-text">3 Agents Live</span>
-                </div>
-                <p className="ai-badge-subtext">Autonomous decisions every 3 hours</p>
-              </div>
             </div>
 
           </div>
@@ -230,8 +202,8 @@ const Home = () => {
                 <div className="earlier-card-accent" style={{ background: '#e20074' }} />
                 <div className="earlier-card-body">
                   <div className="earlier-card-header">
-                    <div className="experience-icon" style={{ background: '#e20074' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                    <div className="experience-icon">
+                      <img src="/images/tmobile-logo.svg" alt="T-Mobile logo" width="40" height="40" />
                     </div>
                     <div>
                       <h3>T-Mobile</h3>
@@ -277,8 +249,8 @@ const Home = () => {
                 <div className="earlier-card-accent" style={{ background: '#004977' }} />
                 <div className="earlier-card-body">
                   <div className="earlier-card-header">
-                    <div className="experience-icon" style={{ background: '#004977' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <div className="experience-icon">
+                      <img src="/images/capitalone-logo.svg" alt="Capital One logo" width="40" height="40" />
                     </div>
                     <div>
                       <h3>Capital One</h3>
