@@ -53,8 +53,8 @@
   --transition-slow: 400ms ease;
 
   /* Container */
-  --container-max: 1200px;
-  --container-narrow: 800px;
+  --container-max: 1440px;
+  --container-narrow: 900px;
 }
 
 /* ===== Reset & Base ===== */
