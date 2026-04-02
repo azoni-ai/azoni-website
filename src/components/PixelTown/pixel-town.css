@@ -222,11 +222,11 @@
 /* Controls hint */
 /* Fullscreen home layout */
 .home-page--fullscreen {
-  padding-top: 90px;
+  padding-top: 120px;
 }
 
 .home-page--fullscreen .pixel-town-viewport {
-  height: calc(100vh - 90px);
+  height: calc(100vh - 120px);
   max-height: none;
   min-height: 500px;
   border-radius: 0;

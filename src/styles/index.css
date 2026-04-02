@@ -135,9 +135,44 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 /* ===== Components ===== */
 
+/* Construction Banner */
+.construction-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background: #1a1a1e;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.construction-stripe {
+  display: block;
+  width: 40px;
+  height: 8px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #fbbf24,
+    #fbbf24 4px,
+    #1a1a1e 4px,
+    #1a1a1e 8px
+  );
+  border-radius: 1px;
+}
+
 /* Navbar */
 .navbar {
   position: fixed;
+  top: 30px;
   top: 0;
   left: 0;
   right: 0;
