@@ -117,7 +117,7 @@
   position: relative;
   display: grid;
   grid-template-columns: 1fr 34px 1fr 56px 1fr 34px 1fr;
-  grid-template-rows: auto 20px auto 20px auto 20px auto;
+  grid-template-rows: auto auto auto 20px auto 20px auto 20px auto 20px auto 20px auto;
   gap: 0;
   min-height: 600px;
 
@@ -4699,6 +4699,38 @@
   .aw-staircase { display: none; }
   .aw-vacant-cell { display: none; }
 
+  /* Facade — full width on mobile */
+  .aw-facade {
+    grid-column: span 3 !important;
+    grid-row: auto !important;
+    order: -3;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0;
+  }
+
+  /* Ticker — full width on mobile */
+  .aw-ticker-strip {
+    grid-column: span 3 !important;
+    grid-row: auto !important;
+    order: -2;
+    flex-wrap: wrap;
+  }
+
+  .aw-ticker-commits {
+    display: none;
+  }
+
+  /* Archive rooms — card layout */
+  .aw-grid-cell-archive {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  .aw-station-archive {
+    border-radius: 10px;
+  }
+
   /* Reset basement styling for card layout */
   .aw-basement-station { filter: none; opacity: 1; }
   .aw-basement-cell { background: none; }
@@ -4712,6 +4744,14 @@
   }
 
   .aw-lobby {
+    grid-column: span 2 !important;
+  }
+
+  .aw-facade {
+    grid-column: span 2 !important;
+  }
+
+  .aw-ticker-strip {
     grid-column: span 2 !important;
   }
 
@@ -4755,4 +4795,246 @@
   .aw-station-name {
     font-size: 0.72rem;
   }
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   Building Facade — identity nameplate
+   ═══════════════════════════════════════════════════════ */
+
+.aw-facade {
+  border-bottom: 2px solid rgba(255, 122, 92, 0.18);
+  padding: 24px 20px 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 122, 92, 0.04) 0%, transparent 100%);
+}
+
+.aw-facade-content {
+  max-width: 640px;
+}
+
+.aw-facade-name {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fafaf9;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.aw-facade-title {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  color: rgba(255, 122, 92, 0.7);
+  letter-spacing: 0.02em;
+  margin: 0 0 8px;
+}
+
+.aw-facade-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.aw-facade-dot {
+  opacity: 0.3;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   Activity Ticker — commit feed strip
+   ═══════════════════════════════════════════════════════ */
+
+.aw-ticker-strip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 122, 92, 0.02);
+  overflow: hidden;
+  font-size: 0.68rem;
+}
+
+.aw-ticker-stats {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.aw-ticker-stat strong {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.aw-ticker-commits {
+  display: flex;
+  gap: 20px;
+  overflow: hidden;
+  flex: 1;
+  mask-image: linear-gradient(to right, black 80%, transparent 100%);
+}
+
+.aw-ticker-commit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.aw-ticker-msg {
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aw-ticker-repo {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.6rem;
+  color: rgba(255, 122, 92, 0.5);
+  text-decoration: none;
+}
+
+.aw-ticker-repo:hover {
+  color: rgba(255, 122, 92, 0.8);
+}
+
+.aw-ticker-badge {
+  font-size: 0.55rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(167, 139, 250, 0.15);
+  color: rgba(167, 139, 250, 0.6);
+}
+
+.aw-ticker-time {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.aw-ticker-links {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.aw-ticker-links a {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.6rem;
+  color: rgba(255, 122, 92, 0.4);
+  text-decoration: none;
+}
+
+.aw-ticker-links a:hover {
+  color: rgba(255, 122, 92, 0.7);
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   Archive Rooms — Career & Earlier Work stations
+   ═══════════════════════════════════════════════════════ */
+
+.aw-grid-cell-archive {
+  position: relative;
+}
+
+.aw-station-archive {
+  position: relative;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1.5px solid color-mix(in srgb, var(--station-color) 30%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.aw-station-archive:hover {
+  border-color: color-mix(in srgb, var(--station-color) 55%, transparent);
+}
+
+.aw-room-badge-archive {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.aw-archive-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  min-height: 80px;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.aw-archive-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.aw-archive-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  opacity: 0.3;
+}
+
+.aw-station-archive .aw-station-info {
+  padding: 10px 12px 12px;
+  flex: 1;
+}
+
+.aw-station-archive .aw-station-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.aw-station-archive .aw-station-name {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.aw-archive-role {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.aw-archive-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.aw-archive-tech span {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.52rem;
+  color: rgba(255, 255, 255, 0.25);
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 2px;
 }

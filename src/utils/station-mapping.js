@@ -116,9 +116,10 @@ export const DOMAIN_TO_STATION = {
 };
 
 export const CATEGORY_STYLES = {
-  agent: { label: 'AGENT', color: '#a78bfa' },
-  app:   { label: 'APP',   color: '#60a5fa' },
-  data:  { label: 'DATA',  color: '#6b6b65' },
+  agent:  { label: 'AGENT',  color: '#a78bfa' },
+  app:    { label: 'APP',    color: '#60a5fa' },
+  data:   { label: 'DATA',   color: '#6b6b65' },
+  career: { label: 'CAREER', color: '#60a5fa' },
 };
 
 export const STATION_DEFS = [
@@ -216,6 +217,35 @@ export const STATION_DEFS = [
     tagline: 'Web app factory',
     actions: ['Tracking views', 'Monitoring apps', 'Reporting stats'],
     dataLabel: 'views',
+  },
+  // ─── CAREER (archive stations) ───
+  {
+    id: 'tmobile', label: 'T-Mobile', color: '#e20074', icon: 'building', category: 'career', isArchive: true,
+    desc: 'Built an internal automation platform that consolidated 4-5 separate tools into a single interface, reducing manual work for network operations teams by over 80%. Migrated the frontend from Django templates to Angular.',
+    tagline: 'Software Engineer II · 2018–2022',
+    tech: ['Python', 'Django', 'Angular', 'PostgreSQL', 'GitLab CI/CD'],
+    logo: '/images/tmobile-logo.svg',
+  },
+  {
+    id: 'capitalone', label: 'Capital One', color: '#004977', icon: 'building', category: 'career', isArchive: true,
+    desc: 'Designed a JSON schema system for automated email testing — new test cases added without code changes. Definitions stored in S3, executed via Lambda, results piped to CloudWatch. Mentored intern to production deployment.',
+    tagline: 'Senior Software Engineer · 2022–2023',
+    tech: ['AWS Lambda', 'S3', 'CloudWatch', 'Python', 'JSON Schema'],
+    logo: '/images/capitalone-logo.svg',
+  },
+  {
+    id: 'dustbunny', label: 'Dustbunny', color: '#8b5cf6', icon: 'bot', category: 'career', isArchive: true,
+    desc: 'Fully autonomous bidding system distributed across 50 machines, tracking every collection on OpenSea in real-time. Adapted daily to stay profitable over 6 months in a bot-vs-bot arms race.',
+    tagline: 'Autonomous NFT Trading · Solo',
+    tech: ['Node.js', 'Redis', 'OpenSea SDK', 'Docker', 'Web3.js'],
+    logo: '/images/dustbunny.png',
+  },
+  {
+    id: 'oli', label: 'OLI Fitness', color: '#06b6d4', icon: 'camera', category: 'career', isArchive: true,
+    desc: 'Real-time weightlifting form analyzer using Kinect — 25 joints at 30fps, scored against expert references. Led a team of 5 through ACM CHI publication and startup competitions.',
+    tagline: 'Co-founder & Engineer · Startup',
+    tech: ['C#', 'Kinect SDK', 'Computer Vision', 'Unity'],
+    logo: '/images/oli.png',
   },
 ];
 

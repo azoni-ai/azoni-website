@@ -34,6 +34,58 @@ function StationDetailPanel({ station, stationHistory, activityCounts, visitCoun
         const project = getProjectById(STATION_TO_PROJECT[station.id]);
         const isExternal = station.url && station.url.startsWith('http');
 
+        // Archive stations (career/earlier work) — simplified panel
+        if (station.isArchive) {
+          return (
+            <>
+              <motion.div
+                className="aw-detail-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={onClose}
+              />
+              <motion.div
+                className="aw-detail-wrap"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                <motion.div
+                  className="aw-detail"
+                  initial={{ scale: 0.95, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.95, y: 20 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
+                  <button className="aw-detail-close" onClick={onClose}>&times;</button>
+                  <div className="aw-detail-header">
+                    {station.logo && <img src={station.logo} alt="" style={{ width: 32, height: 32, borderRadius: 6, marginRight: 8 }} />}
+                    <h2 className="aw-detail-name">{station.label}</h2>
+                    {cat && <span className="aw-detail-cat" style={{ color: cat.color }}>{cat.label}</span>}
+                  </div>
+                  <div className="aw-detail-role">{station.tagline}</div>
+                  <div className="aw-detail-quote">{station.desc}</div>
+                  {station.tech && station.tech.length > 0 && (
+                    <div className="aw-detail-tech-inline">
+                      {station.tech.map((t, i) => (
+                        <span key={i} className="aw-detail-tech-chip" style={{ borderColor: `${station.color}30`, color: station.color }}>{t}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="aw-detail-status-row" style={{ marginTop: 12 }}>
+                    <Link to="/resume" className="aw-detail-visit-link" style={{ background: station.color }}>
+                      View Resume
+                    </Link>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </>
+          );
+        }
+
         return (
           <>
             <motion.div

@@ -9,30 +9,41 @@ import MCPHub from './MCPHub';
 import WorkspaceTicker from './WorkspaceTicker';
 import StationDetailPanel from './StationDetailPanel';
 import WorkspaceLegend from './WorkspaceLegend';
+import BuildingFacade from './BuildingFacade';
+import ActivityTicker from './ActivityTicker';
+import ArchiveRoom from './ArchiveRoom';
 import '../../styles/agent-workspace.css';
 
 // ─── Building floor plan: 7-col grid with side corridors ───
 // Col layout: office | side-hall | office | center-hall | office | side-hall | office
 // Rows: lobby | label | stations | label | stations | label | stations
 const GRID_PLACEMENT = {
-  // ─── COMMAND (Row 3) ───
-  conductor:    { col: 1, row: 3, room: 1,  door: 'right' },
-  chatbot:      { col: 3, row: 3, room: 2,  door: 'right' },
-  scribe:       { col: 5, row: 3, room: 3,  door: 'left' },
-  moltbook:     { col: 7, row: 3, room: 4,  door: 'left' },
-  // ─── APPS (Row 5) ───
-  benchpress:   { col: 1, row: 5, room: 5,  door: 'right' },
-  oldwaystoday: { col: 3, row: 5, room: 6,  door: 'right' },
-  fab:          { col: '5 / 8', colStart: 5, row: 5, room: 7,  door: 'left', wide: true },
+  // ─── COMMAND (Row 5) ───
+  conductor:    { col: 1, row: 5, room: 1,  door: 'right' },
+  chatbot:      { col: 3, row: 5, room: 2,  door: 'right' },
+  scribe:       { col: 5, row: 5, room: 3,  door: 'left' },
+  moltbook:     { col: 7, row: 5, room: 4,  door: 'left' },
+  // ─── APPS (Row 7) ───
+  benchpress:   { col: 1, row: 7, room: 5,  door: 'right' },
+  oldwaystoday: { col: 3, row: 7, room: 6,  door: 'right' },
+  fab:          { col: '5 / 8', colStart: 5, row: 7, room: 7,  door: 'left', wide: true },
+  // ─── CAREER (Row 11) ───
+  tmobile:      { col: 1, row: 11, room: 'C-1', door: 'right', archive: true },
+  capitalone:   { col: 3, row: 11, room: 'C-2', door: 'right', archive: true },
+  // ─── EARLIER WORK (Row 13) ───
+  dustbunny:    { col: 1, row: 13, room: 'C-3', door: 'right', archive: true },
+  oli:          { col: 3, row: 13, room: 'C-4', door: 'right', archive: true },
 };
-// Small stations rendered in flex sub-row (row 7)
+// Small stations rendered in flex sub-row (row 9, was 7)
 const SMALL_STATIONS = ['rowcrew', 'spellbrigade', 'activity', 'embedroute', 'medic', 'launchpad'];
 
 // Zone labels between station rows
 const ZONE_LABELS = [
-  { row: 2, label: 'AGENTS', color: '#a78bfa' },
-  { row: 4, label: 'APPS', color: '#4ade80' },
-  { row: 6, label: 'MORE', color: '#6b6b65' },
+  { row: 4, label: 'AGENTS', color: '#a78bfa' },
+  { row: 6, label: 'APPS', color: '#4ade80' },
+  { row: 8, label: 'MORE', color: '#6b6b65' },
+  { row: 10, label: 'CAREER', color: '#60a5fa' },
+  { row: 12, label: 'EARLIER WORK', color: '#06b6d4' },
 ];
 
 // Zone classes for subtle background textures
@@ -280,7 +291,7 @@ function getStationMetrics(stationId, appStats, githubStats, extra) {
   }
 }
 
-function AgentWorkspace({ appStats, githubStats }) {
+function AgentWorkspace({ appStats, githubStats, profile }) {
   const { stationEvents, tickerEvents, activityCounts, errorCounts, visitCounts, pageViewCounts, stationHistory, flashingStations, flashTargets, activityHistory, walkQueueRef, lastEventTypeRef } = useAgentActivity();
   const { health, totalTools, refresh: refreshHealth } = useMCPHealth();
   const refreshHealthRef = useRef(refreshHealth);
@@ -767,11 +778,17 @@ function AgentWorkspace({ appStats, githubStats }) {
           </div>
         )}
 
-        {/* MCP Hub — Lobby (row 1, full width) */}
+        {/* Building Facade — identity nameplate */}
+        <BuildingFacade profile={profile} />
+
+        {/* Activity Ticker — commit feed strip */}
+        <ActivityTicker githubStats={githubStats} />
+
+        {/* MCP Hub — Lobby */}
         <div
           ref={lobbyRef}
           className="aw-lobby"
-          style={{ gridColumn: '1 / -1', gridRow: 1 }}
+          style={{ gridColumn: '1 / -1', gridRow: 3 }}
         >
           <MCPHub
             totalTools={totalTools}
@@ -802,7 +819,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Central hallway — spans all station rows */}
         <div
           className={`aw-hallway${hallwayActive ? ' aw-hallway-active' : ''}`}
-          style={{ gridColumn: 4, gridRow: '2 / 7' }}
+          style={{ gridColumn: 4, gridRow: '4 / 14' }}
         >
           {/* Water cooler — products zone */}
           <div className="aw-hall-decor aw-decor-top">
@@ -821,7 +838,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Left side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 2, gridRow: '2 / 7' }}
+          style={{ gridColumn: 2, gridRow: '4 / 14' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-plant" />
@@ -837,7 +854,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         {/* Right side corridor */}
         <div
           className={`aw-side-hallway${hallwayActive ? ' aw-side-hallway-active' : ''}`}
-          style={{ gridColumn: 6, gridRow: '2 / 7' }}
+          style={{ gridColumn: 6, gridRow: '4 / 14' }}
         >
           <div className="aw-hall-decor aw-decor-top">
             <div className="aw-decor-umbrella" />
@@ -851,7 +868,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         </div>
 
         {/* Station rooms (grid-placed) */}
-        {workstationStations.filter(s => GRID_PLACEMENT[s.id]).map((station, i) => {
+        {workstationStations.filter(s => GRID_PLACEMENT[s.id] && !GRID_PLACEMENT[s.id].archive).map((station, i) => {
           const pos = GRID_PLACEMENT[station.id];
           const zoneClass = ZONE_CLASSES[station.id] || '';
           return (
@@ -891,7 +908,7 @@ function AgentWorkspace({ appStats, githubStats }) {
         })}
 
         {/* Small stations row */}
-        <div className="aw-small-stations-row" style={{ gridColumn: '1 / -1', gridRow: 7 }}>
+        <div className="aw-small-stations-row" style={{ gridColumn: '1 / -1', gridRow: 9 }}>
           {workstationStations.filter(s => SMALL_STATIONS.includes(s.id)).map((station, i) => (
             <div
               key={station.id}
@@ -925,6 +942,24 @@ function AgentWorkspace({ appStats, githubStats }) {
             </div>
           ))}
         </div>
+
+        {/* Archive rooms — Career & Earlier Work */}
+        {workstationStations.filter(s => GRID_PLACEMENT[s.id]?.archive).map((station) => {
+          const pos = GRID_PLACEMENT[station.id];
+          return (
+            <div
+              key={station.id}
+              className="aw-grid-cell aw-grid-cell-archive"
+              style={{ gridColumn: pos.col, gridRow: pos.row }}
+            >
+              <ArchiveRoom
+                station={station}
+                roomNumber={pos.room}
+                onClick={handleStationClick}
+              />
+            </div>
+          );
+        })}
 
         {/* Data particles (site visits flowing to Tools) */}
         <AnimatePresence>
@@ -1007,7 +1042,7 @@ function AgentWorkspace({ appStats, githubStats }) {
                 <motion.div
                   key="tooltip"
                   className="aw-tooltip aw-tooltip-small"
-                  style={{ gridColumn: '1 / -1', gridRow: 6, '--tip-color': station.color }}
+                  style={{ gridColumn: '1 / -1', gridRow: 8, '--tip-color': station.color }}
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
