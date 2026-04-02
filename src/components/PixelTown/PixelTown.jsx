@@ -61,7 +61,7 @@ function PixelTown({ appStats, githubStats, profile }) {
   const { health } = useMCPHealth();
 
   // Player movement
-  const { pos, dir, isMoving, reachedBuilding, clearReachedBuilding, moveTo, pixelPos } = usePlayerMovement(PLAYER_START.x, PLAYER_START.y);
+  const { dir, isMoving, reachedBuilding, clearReachedBuilding, moveTo, pixelPos } = usePlayerMovement(PLAYER_START.x, PLAYER_START.y);
 
   // Update viewport size
   useEffect(() => {
