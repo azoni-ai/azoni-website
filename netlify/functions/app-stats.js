@@ -5,7 +5,7 @@ let db = null;
 let admin = null;
 
 const CACHE_DOC_PATH = { collection: 'settings', id: 'app_stats' };
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 function initFirebase() {
   if (db) return true;

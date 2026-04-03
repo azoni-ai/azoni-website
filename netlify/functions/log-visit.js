@@ -44,16 +44,7 @@ exports.handler = async (event) => {
     );
   }
 
-  // Also forward to MCP (for its own records)
-  if (MCP_KEY) {
-    promises.push(
-      fetch(`${MCP_URL}/activity/log`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${MCP_KEY}` },
-        body: JSON.stringify({ type: "site_visit", title: "Site visit", source }),
-      }).catch(() => {})
-    );
-  }
+  // MCP mirror removed — portfolio Firestore is the single source of truth for visits
 
   await Promise.allSettled(promises);
   return { statusCode: 200, headers, body: '{"ok":true}' };

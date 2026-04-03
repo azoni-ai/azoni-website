@@ -37,7 +37,7 @@ export function useAgentActivity() {
       collection(db, 'agent_activity'),
       where('timestamp', '>=', cutoff),
       orderBy('timestamp', 'desc'),
-      limit(1000)
+      limit(200)
     )).then(snap => {
       const hist = [];
       const sHist = {};
