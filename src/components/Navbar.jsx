@@ -15,6 +15,7 @@ const Navbar = () => {
     { path: '/commits', label: 'Commits' },
     { path: '/activity', label: 'Activity' },
     { path: '/resume', label: 'Resume' },
+    { path: '/town', label: 'Town' },
   ];
 
   const isActive = (path) => location.pathname === path;
