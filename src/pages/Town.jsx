@@ -61,7 +61,12 @@ const Town = () => {
 
   return (
     <Layout>
-      <div className="home-page home-page--fullscreen">
+      <div className="construction-banner">
+        <span className="construction-stripe" />
+        <span>Under Construction — building the town</span>
+        <span className="construction-stripe" />
+      </div>
+      <div className="home-page home-page--fullscreen home-page--has-banner">
         <PixelTown appStats={enrichedStats} githubStats={githubStats} profile={profile} />
       </div>
     </Layout>

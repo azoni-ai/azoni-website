@@ -135,24 +135,20 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 /* ===== Components ===== */
 
-/* Construction Banner */
+/* Construction Banner — only used on /town */
 .construction-banner {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 101;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 6px 16px;
+  padding: 8px 16px;
   background: #1a1a1e;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   color: #fbbf24;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  margin-top: 90px;
 }
 
 .construction-stripe {
@@ -185,7 +181,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 /* Navbar */
 .navbar {
   position: fixed;
-  top: 32px;
+  top: 0;
   top: 0;
   left: 0;
   right: 0;
