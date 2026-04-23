@@ -118,9 +118,13 @@
   padding: 0 calc(50% - var(--slide-width) / 2);
   transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
   transform: translateX(
-    calc(-1 * var(--active-idx, 0) * (var(--slide-width) + var(--slide-gap)))
+    calc(-1 * var(--track-idx, 0) * (var(--slide-width) + var(--slide-gap)))
   );
   will-change: transform;
+}
+
+.project-carousel-track.is-instant {
+  transition: none;
 }
 
 .project-carousel-slide {

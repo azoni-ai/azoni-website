@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PROJECT_STORIES } from '../data/project-stories';
 import '../styles/project-showcase.css';
@@ -6,7 +6,17 @@ import '../styles/project-showcase.css';
 const isExternal = (href) => href && /^https?:\/\//i.test(href);
 const formatIndex = (i) => String(i + 1).padStart(2, '0');
 
-const ProjectSlide = ({ project, index, isActive, onClick }) => {
+const TOTAL = PROJECT_STORIES.length;
+
+// Extend the list with a copy at each end so peeks always show something,
+// and so we can seamlessly wrap (classic cloned-edges infinite carousel).
+const EXTENDED_PROJECTS = [
+  ...PROJECT_STORIES,
+  ...PROJECT_STORIES,
+  ...PROJECT_STORIES,
+];
+
+const ProjectSlide = ({ project, realIndex, isActive, onClick }) => {
   const href = project.url;
   const external = isExternal(href);
   const LinkComponent = href ? (external ? 'a' : Link) : null;
@@ -25,7 +35,7 @@ const ProjectSlide = ({ project, index, isActive, onClick }) => {
     >
       <div className="project-entry-grid">
         <div className="project-entry-head">
-          <div className="project-entry-index">{formatIndex(index)}</div>
+          <div className="project-entry-index">{formatIndex(realIndex)}</div>
           <div className="project-entry-icon-wrap" aria-hidden="true">
             {project.icon ? (
               <img src={project.icon} alt="" className="project-entry-icon" />
@@ -94,16 +104,34 @@ const ProjectSlide = ({ project, index, isActive, onClick }) => {
 };
 
 const ProjectShowcase = () => {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const total = PROJECT_STORIES.length;
+  // Start in the middle copy so peeks work on both sides immediately.
+  const [trackIdx, setTrackIdx] = useState(TOTAL);
+  const [animate, setAnimate] = useState(true);
+  const trackRef = useRef(null);
 
-  const goTo = useCallback((idx) => {
-    setActiveIdx(((idx % total) + total) % total);
-  }, [total]);
+  const activeIdx = ((trackIdx % TOTAL) + TOTAL) % TOTAL;
 
-  const goPrev = useCallback(() => goTo(activeIdx - 1), [activeIdx, goTo]);
-  const goNext = useCallback(() => goTo(activeIdx + 1), [activeIdx, goTo]);
+  const step = useCallback((dir) => {
+    setAnimate(true);
+    setTrackIdx((prev) => prev + dir);
+  }, []);
 
+  const goPrev = useCallback(() => step(-1), [step]);
+  const goNext = useCallback(() => step(1), [step]);
+
+  const goToReal = useCallback((real) => {
+    setAnimate(true);
+    setTrackIdx((prev) => {
+      const currentReal = ((prev % TOTAL) + TOTAL) % TOTAL;
+      // Shortest-path choice: move just enough to land on the target real idx.
+      let delta = real - currentReal;
+      if (delta > TOTAL / 2) delta -= TOTAL;
+      if (delta < -TOTAL / 2) delta += TOTAL;
+      return prev + delta;
+    });
+  }, []);
+
+  // Keyboard nav
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.closest('input, textarea, [contenteditable="true"]')) return;
@@ -113,6 +141,24 @@ const ProjectShowcase = () => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [goPrev, goNext]);
+
+  // When we drift into the outer copies (copy 0 or copy 2), silently snap
+  // back to the equivalent position in the middle copy after the slide
+  // transition finishes. This is what makes the loop seamless.
+  const handleTransitionEnd = (e) => {
+    if (e.target !== trackRef.current) return;
+    if (trackIdx < TOTAL || trackIdx >= 2 * TOTAL) {
+      setAnimate(false);
+      setTrackIdx(TOTAL + activeIdx);
+    }
+  };
+
+  // Re-enable animation after the instant snap.
+  useEffect(() => {
+    if (animate) return;
+    const id = requestAnimationFrame(() => setAnimate(true));
+    return () => cancelAnimationFrame(id);
+  }, [animate]);
 
   return (
     <section className="project-showcase" aria-labelledby="project-showcase-heading">
@@ -136,9 +182,9 @@ const ProjectShowcase = () => {
                   type="button"
                   className={`project-carousel-tab${i === activeIdx ? ' is-active' : ''}`}
                   style={{ '--tab-accent': proj.accent }}
-                  onClick={() => goTo(i)}
+                  onClick={() => goToReal(i)}
                   aria-current={i === activeIdx ? 'true' : undefined}
-                  aria-label={`${proj.name}: project ${i + 1} of ${total}`}
+                  aria-label={`${proj.name}: project ${i + 1} of ${TOTAL}`}
                 >
                   <span className="project-carousel-tab-num">{formatIndex(i)}</span>
                   <span className="project-carousel-tab-name">{proj.name}</span>
@@ -160,18 +206,23 @@ const ProjectShowcase = () => {
         </button>
 
         <div
-          className="project-carousel-track"
-          style={{ '--active-idx': activeIdx }}
+          ref={trackRef}
+          className={`project-carousel-track${animate ? '' : ' is-instant'}`}
+          style={{ '--track-idx': trackIdx }}
+          onTransitionEnd={handleTransitionEnd}
         >
-          {PROJECT_STORIES.map((proj, i) => (
-            <ProjectSlide
-              key={proj.id}
-              project={proj}
-              index={i}
-              isActive={i === activeIdx}
-              onClick={() => goTo(i)}
-            />
-          ))}
+          {EXTENDED_PROJECTS.map((proj, extIdx) => {
+            const realIdx = extIdx % TOTAL;
+            return (
+              <ProjectSlide
+                key={extIdx}
+                project={proj}
+                realIndex={realIdx}
+                isActive={extIdx === trackIdx}
+                onClick={() => setTrackIdx(extIdx)}
+              />
+            );
+          })}
         </div>
 
         <button
@@ -199,7 +250,7 @@ const ProjectShowcase = () => {
           <div className="project-carousel-counter" aria-live="polite">
             <span className="project-carousel-counter-current">{formatIndex(activeIdx)}</span>
             <span className="project-carousel-counter-sep">/</span>
-            <span className="project-carousel-counter-total">{String(total).padStart(2, '0')}</span>
+            <span className="project-carousel-counter-total">{String(TOTAL).padStart(2, '0')}</span>
             <span className="project-carousel-counter-hint">Use ← → keys</span>
           </div>
 
