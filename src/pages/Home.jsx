@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import HomeHero from '../components/home/HomeHero';
 import HeroChatPrompt from '../components/home/HeroChatPrompt';
+import HeroStats from '../components/home/HeroStats';
 import LivePulseStrip from '../components/home/LivePulseStrip';
 import ProjectShowcase from '../components/ProjectShowcase';
 import CareerSection from '../components/CareerSection';
@@ -15,6 +16,7 @@ import '../styles/project-showcase.css';
 const Home = () => {
   const [profile, setProfile] = useState(null);
   const [githubStats, setGithubStats] = useState(null);
+  const [appStats, setAppStats] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -43,14 +45,32 @@ const Home = () => {
     fetchGithubStats();
   }, []);
 
+  useEffect(() => {
+    const fetchAppStats = async () => {
+      try {
+        const res = await fetch('/.netlify/functions/app-stats');
+        if (!res.ok) return;
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) return;
+        const data = await res.json();
+        if (!data.error) setAppStats(data);
+      } catch (_err) { /* silent */ }
+    };
+    fetchAppStats();
+    const id = setInterval(fetchAppStats, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <Layout>
       <div className="home-page-v2">
-        <HomeHero profile={profile}>
-          <HeroChatPrompt />
-        </HomeHero>
+        <HomeHero
+          profile={profile}
+          stats={<HeroStats githubStats={githubStats} />}
+          aside={<HeroChatPrompt />}
+        />
         <LivePulseStrip githubStats={githubStats} />
-        <ProjectShowcase />
+        <ProjectShowcase appStats={appStats} />
         <CareerSection />
         <EducationSection />
         <HowThisSiteRuns />

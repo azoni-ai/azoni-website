@@ -173,7 +173,18 @@ const HeroChatPrompt = () => {
           )}
           {error && <p className="hero-chat-error">{error}</p>}
           <div className="hero-chat-cta-row">
-            <Link to="/chat" className="hero-chat-continue">Open the full chat →</Link>
+            {(() => {
+              const lastUserMsg = [...conversation].reverse().find((m) => m.role === 'user');
+              const q = lastUserMsg ? encodeURIComponent(lastUserMsg.content) : '';
+              return (
+                <Link
+                  to={q ? `/chat?q=${q}` : '/chat'}
+                  className="hero-chat-continue"
+                >
+                  Continue in the full chat →
+                </Link>
+              );
+            })()}
           </div>
         </div>
       )}

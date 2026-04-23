@@ -436,6 +436,25 @@
   max-width: 18ch;
   margin-left: auto;
   line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+.project-entry-metric-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--project-accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--project-accent) 60%, transparent);
+  animation: project-metric-pulse 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes project-metric-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 @media (max-width: 768px) {

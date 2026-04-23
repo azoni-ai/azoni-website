@@ -8,6 +8,51 @@ const formatIndex = (i) => String(i + 1).padStart(2, '0');
 
 const TOTAL = PROJECT_STORIES.length;
 
+const formatCount = (n) => {
+  if (!Number.isFinite(n)) return null;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+  return n.toLocaleString();
+};
+
+// Map project id → (appStats) → { value, label, live: true }
+const LIVE_METRIC_RESOLVERS = {
+  fabstats: (s) => {
+    const n = s?.fabstats?.matches;
+    return Number.isFinite(n) && n > 0
+      ? { value: formatCount(n), label: 'matches tracked', live: true }
+      : null;
+  },
+  rowcrew: (s) => {
+    const km = s?.rowcrew?.kilometers;
+    return Number.isFinite(km) && km > 0
+      ? { value: `${km.toLocaleString(undefined, { maximumFractionDigits: 1 })} km`, label: 'rowed collectively', live: true }
+      : null;
+  },
+  benchpress: (s) => {
+    const n = s?.benchpressonly?.workoutsLogged;
+    return Number.isFinite(n) && n > 0
+      ? { value: formatCount(n), label: 'workouts logged', live: true }
+      : null;
+  },
+  oldwaystoday: (s) => {
+    const n = s?.oldwaystoday?.requests;
+    return Number.isFinite(n) && n > 0
+      ? { value: formatCount(n), label: 'chatbot requests', live: true }
+      : null;
+  },
+};
+
+const resolveMetric = (project, appStats) => {
+  const resolver = LIVE_METRIC_RESOLVERS[project.id];
+  if (resolver) {
+    const live = resolver(appStats);
+    if (live) return live;
+  }
+  return project.metric ? { ...project.metric, live: false } : null;
+};
+
 // Extend the list with a copy at each end so peeks always show something,
 // and so we can seamlessly wrap (classic cloned-edges infinite carousel).
 const EXTENDED_PROJECTS = [
@@ -16,7 +61,7 @@ const EXTENDED_PROJECTS = [
   ...PROJECT_STORIES,
 ];
 
-const ProjectSlide = ({ project, realIndex, isActive, onClick }) => {
+const ProjectSlide = ({ project, realIndex, isActive, onClick, metric }) => {
   const href = project.url;
   const external = isExternal(href);
   const LinkComponent = href ? (external ? 'a' : Link) : null;
@@ -90,10 +135,15 @@ const ProjectSlide = ({ project, realIndex, isActive, onClick }) => {
                 ))}
               </ul>
             )}
-            {project.metric && (
-              <div className="project-entry-metric">
-                <div className="project-entry-metric-value">{project.metric.value}</div>
-                <div className="project-entry-metric-label">{project.metric.label}</div>
+            {metric && (
+              <div className={`project-entry-metric${metric.live ? ' project-entry-metric--live' : ''}`}>
+                <div className="project-entry-metric-value">{metric.value}</div>
+                <div className="project-entry-metric-label">
+                  {metric.live && (
+                    <span className="project-entry-metric-dot" aria-label="Live" />
+                  )}
+                  {metric.label}
+                </div>
               </div>
             )}
           </div>
@@ -103,7 +153,7 @@ const ProjectSlide = ({ project, realIndex, isActive, onClick }) => {
   );
 };
 
-const ProjectShowcase = () => {
+const ProjectShowcase = ({ appStats }) => {
   // Start in the middle copy so peeks work on both sides immediately.
   const [trackIdx, setTrackIdx] = useState(TOTAL);
   const [animate, setAnimate] = useState(true);
@@ -220,6 +270,7 @@ const ProjectShowcase = () => {
                 realIndex={realIdx}
                 isActive={extIdx === trackIdx}
                 onClick={() => setTrackIdx(extIdx)}
+                metric={resolveMetric(proj, appStats)}
               />
             );
           })}

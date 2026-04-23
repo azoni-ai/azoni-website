@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 import useVisitTracker from '../hooks/useVisitTracker';
@@ -449,11 +450,24 @@ const Chat = () => {
   const [diagramCollapsed, setDiagramCollapsed] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const inputRef = useRef(null);
+  const location = useLocation();
+  const seededRef = useRef(false);
 
   // Initialize with random suggestions on mount
   useEffect(() => {
     setSuggestions(shufflePick(INITIAL_QUESTIONS, 4));
   }, []);
+
+  // Pre-seed from ?q= query param (arrives from home hero's "Continue in full chat")
+  useEffect(() => {
+    if (seededRef.current) return;
+    const params = new URLSearchParams(location.search);
+    const seed = params.get('q');
+    if (seed && seed.trim()) {
+      seededRef.current = true;
+      sendMessage(seed.trim());
+    }
+  }, [location.search, sendMessage]);
 
   // Update suggestions based on last message's detected intent
   useEffect(() => {

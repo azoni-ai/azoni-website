@@ -45,6 +45,32 @@ const HowThisSiteRuns = () => (
       </p>
     </header>
 
+    <figure className="how-runs-diagram" aria-label="Agent architecture diagram">
+      <div className="how-runs-diagram-row">
+        <span className="how-runs-diagram-node how-runs-diagram-node--start">Visitor</span>
+        <span className="how-runs-diagram-arrow" aria-hidden="true">→</span>
+        <span className="how-runs-diagram-node">Azoni AI</span>
+        <span className="how-runs-diagram-arrow" aria-hidden="true">→</span>
+        <span className="how-runs-diagram-node">MCP</span>
+        <span className="how-runs-diagram-arrow" aria-hidden="true">→</span>
+        <span className="how-runs-diagram-node-list">
+          BenchPress&nbsp;· RowCrew · FaB&nbsp;Stats · Old&nbsp;Ways · …
+        </span>
+      </div>
+      <div className="how-runs-diagram-row how-runs-diagram-row--cron">
+        <span className="how-runs-diagram-label">cron · 3h</span>
+        <span className="how-runs-diagram-arrow" aria-hidden="true">→</span>
+        <span className="how-runs-diagram-node how-runs-diagram-node--conductor">Conductor</span>
+        <span className="how-runs-diagram-arrow" aria-hidden="true">→</span>
+        <span className="how-runs-diagram-node-list">
+          Scribe · Moltbook agent · Medic
+        </span>
+      </div>
+      <figcaption className="how-runs-diagram-caption">
+        Inputs come from humans (you) and cron. Everything is observable in the activity log.
+      </figcaption>
+    </figure>
+
     <ol className="how-runs-list">
       {ROWS.map((row, i) => (
         <li
