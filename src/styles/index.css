@@ -55,6 +55,20 @@
   /* Container */
   --container-max: 1440px;
   --container-narrow: 900px;
+
+  /* Warm palette — used by Home page redesign (scoped to .home-page-v2) */
+  --bg-warm: #13110f;
+  --bg-warm-card: #1c1a17;
+  --bg-warm-hover: #252320;
+  --text-warm: #ede7dd;
+  --text-warm-soft: #b8b0a4;
+  --text-warm-muted: #6f675c;
+  --border-warm: rgba(237, 231, 221, 0.08);
+  --border-warm-strong: rgba(237, 231, 221, 0.16);
+  --accent-coral: #ff7a5c;
+  --accent-amber: #d9a05b;
+  --accent-sage: #8ba888;
+  --font-serif: 'Fraunces', Georgia, serif;
 }
 
 /* ===== Reset & Base ===== */
