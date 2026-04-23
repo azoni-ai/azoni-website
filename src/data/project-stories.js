@@ -151,7 +151,7 @@ export const PROJECT_STORIES = [
     tagline: 'A monorepo and checklist for shipping small web apps fast.',
     role: 'Solo · 2025',
     accent: '#FF6B35',
-    icon: null,
+    icon: '/images/launchpad-rocket.svg',
     url: null,
     metric: { value: '5', label: 'apps shipped from the template' },
     story: [
@@ -191,7 +191,7 @@ export const PROJECT_STORIES = [
     tagline: 'A daily cron job that turns yesterday\u2019s commits into a readable blog post.',
     role: 'Solo · 2024',
     accent: '#fbbf24',
-    icon: null,
+    icon: '/images/scribe-pen.svg',
     url: '/blog',
     metric: null,
     story: [

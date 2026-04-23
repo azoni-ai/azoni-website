@@ -6,6 +6,7 @@ import HomeHero from '../components/home/HomeHero';
 import RecentActivityStrip from '../components/home/RecentActivityStrip';
 import ProjectShowcase from '../components/ProjectShowcase';
 import CareerSection from '../components/CareerSection';
+import EducationSection from '../components/EducationSection';
 import '../styles/home-v2.css';
 import '../styles/project-showcase.css';
 
@@ -47,6 +48,7 @@ const Home = () => {
         <RecentActivityStrip githubStats={githubStats} />
         <ProjectShowcase />
         <CareerSection />
+        <EducationSection />
       </div>
     </Layout>
   );

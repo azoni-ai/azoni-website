@@ -8,7 +8,6 @@ import SpellBrigade from "./components/SpellBrigade";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
-const About = lazy(() => import("./pages/About"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Chat = lazy(() => import("./pages/Chat"));
@@ -37,7 +36,6 @@ const App = () => {
           <Suspense fallback={<Loading fullScreen message="Loading..." />}>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/chat" element={<Chat />} />
@@ -47,8 +45,6 @@ const App = () => {
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/moltbook" element={<MoltbookAgent />} />
               <Route path="/game" element={<SpellBrigade />} />
-              {/* Redirects for old routes */}
-              <Route path="/aboutme" element={<About />} />
               <Route path="/activity" element={<Activity />} />
               <Route path="/commits" element={<Commits />} />
               <Route path="/town" element={<Town />} />

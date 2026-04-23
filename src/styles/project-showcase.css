@@ -39,28 +39,77 @@
   margin: 0;
 }
 
-.project-showcase-list {
+/* ───── Carousel nav tabs ───── */
+
+.project-carousel-nav {
+  margin-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--border-warm);
+  padding-bottom: var(--space-md);
+}
+
+.project-carousel-tabs {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
+
+.project-carousel-tab {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  color: var(--text-warm-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.project-carousel-tab-num {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+.project-carousel-tab-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.project-carousel-tab:hover {
+  color: var(--text-warm);
+}
+
+.project-carousel-tab.is-active {
+  color: var(--tab-accent);
+  border-color: color-mix(in srgb, var(--tab-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--tab-accent) 8%, transparent);
+}
+
+.project-carousel-tab.is-active .project-carousel-tab-num {
+  opacity: 1;
+}
+
+/* ───── Active entry card ───── */
 
 .project-entry {
-  padding: var(--space-3xl) 0;
-  border-top: 1px solid var(--border-warm);
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, opacity 0.2s ease;
 }
 
-.project-entry:last-child {
-  border-bottom: 1px solid var(--border-warm);
+.project-entry--active {
+  padding: var(--space-2xl) 0;
+  animation: project-entry-fade 0.25s ease-out;
 }
 
-.project-entry:hover {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--project-accent) 3%, transparent) 0%,
-    transparent 70%
-  );
+@keyframes project-entry-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .project-entry-grid {
@@ -372,3 +421,92 @@
     margin-left: 0;
   }
 }
+
+/* ───── Carousel prev/next controls ───── */
+
+.project-carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-warm);
+  margin-top: var(--space-md);
+}
+
+.project-carousel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid var(--border-warm-strong);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-warm);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.project-carousel-btn:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+  background: color-mix(in srgb, var(--accent-coral) 8%, transparent);
+}
+
+.project-carousel-counter {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-warm-muted);
+}
+
+.project-carousel-counter-current {
+  color: var(--text-warm);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.project-carousel-counter-sep {
+  opacity: 0.5;
+}
+
+.project-carousel-counter-hint {
+  margin-left: var(--space-md);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+  opacity: 0.65;
+}
+
+@media (max-width: 768px) {
+  .project-carousel-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .project-carousel-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .project-carousel-tab {
+    flex-shrink: 0;
+  }
+
+  .project-carousel-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .project-carousel-counter-hint {
+    display: none;
+  }
+}
+
