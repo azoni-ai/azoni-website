@@ -12,9 +12,9 @@ const CareerSection = () => {
   return (
     <section className="career-section" aria-labelledby="career-heading">
       <header className="career-section-intro">
-        <p className="career-section-eyebrow">Before the solo run</p>
+        <p className="career-section-eyebrow">Day jobs</p>
         <h2 id="career-heading" className="career-section-heading">
-          Where I worked, and what I shipped there.
+          Who paid me, and what I shipped there.
         </h2>
       </header>
 

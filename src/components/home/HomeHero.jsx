@@ -18,18 +18,18 @@ const HomeHero = ({ profile }) => {
         <h1 className="home-hero-name">{name}</h1>
 
         <p className="home-hero-tagline">
-          Software engineer. I build production AI systems and the products they live inside of.
+          Software engineer. I build AI-powered products and the systems underneath them.
         </p>
 
         <div className="home-hero-bio">
           <p>
-            I&rsquo;ve been writing software for about a decade &mdash; startups, T-Mobile, Capital One,
-            and for the last year, a pile of things I make for myself. This page is most of them.
+            About a decade of shipping software &mdash; startups, T-Mobile, Capital One, and for the
+            last year, working solo on a pile of things I make for myself. This page is most of them.
           </p>
           <p>
-            I like shipping real products that handle real users, agents that do the boring work while
-            I sleep, and tools that make the next project faster than the last. If something on this
-            page looks interesting, the easiest way to dig in is to ask my AI or read the commits.
+            Lately I care about two things: products with real users, and agents that can run them
+            without me watching. If something here catches your eye, ask my chatbot or scroll the
+            commit feed &mdash; it&rsquo;s easier than reading a bio.
           </p>
         </div>
 

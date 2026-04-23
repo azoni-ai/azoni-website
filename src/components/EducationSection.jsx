@@ -10,9 +10,9 @@ const EducationSection = () => {
   return (
     <section className="education-section" aria-labelledby="education-heading">
       <header className="education-section-intro">
-        <p className="education-section-eyebrow">School &amp; honors</p>
+        <p className="education-section-eyebrow">School</p>
         <h2 id="education-heading" className="education-section-heading">
-          Where I learned, and what stuck.
+          Degrees, and a couple of things I&rsquo;m proud of.
         </h2>
       </header>
 
@@ -34,7 +34,7 @@ const EducationSection = () => {
 
         {awards?.length > 0 && (
           <aside className="education-awards" aria-labelledby="awards-heading">
-            <h3 id="awards-heading" className="education-awards-heading">Recognition</h3>
+            <h3 id="awards-heading" className="education-awards-heading">Honors</h3>
             <ul className="education-awards-list">
               {awards.map((a, i) => (
                 <li key={`${a.event}-${i}`} className="education-awards-item">

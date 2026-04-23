@@ -18,7 +18,6 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
 const Activity = lazy(() => import("./pages/Activity"));
 const Commits = lazy(() => import("./pages/Commits"));
-const Town = lazy(() => import("./pages/Town"));
 
 const App = () => {
   useEffect(() => {
@@ -47,7 +46,6 @@ const App = () => {
               <Route path="/game" element={<SpellBrigade />} />
               <Route path="/activity" element={<Activity />} />
               <Route path="/commits" element={<Commits />} />
-              <Route path="/town" element={<Town />} />
               {/* 404 catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>

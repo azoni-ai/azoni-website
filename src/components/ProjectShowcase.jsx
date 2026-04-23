@@ -164,13 +164,13 @@ const ProjectShowcase = () => {
     <section className="project-showcase" aria-labelledby="project-showcase-heading">
       <div className="project-showcase-container">
         <header className="project-showcase-intro">
-          <p className="project-showcase-eyebrow">Selected work</p>
+          <p className="project-showcase-eyebrow">Work</p>
           <h2 id="project-showcase-heading" className="project-showcase-heading">
-            Things I&rsquo;ve built, and why.
+            Ten projects I built and still think about.
           </h2>
           <p className="project-showcase-lede">
-            A mix of products with real users, internal tooling I got tired of re-writing, and
-            experiments that turned into something. Click through &mdash; each one has a short story.
+            Some are products people use every day. Some are internal tools I got tired of
+            re-writing. Most started with a problem I had on a Saturday.
           </p>
         </header>
 

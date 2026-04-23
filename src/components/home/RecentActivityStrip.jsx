@@ -29,7 +29,7 @@ const RecentActivityStrip = ({ githubStats }) => {
     <section className="activity-strip" aria-label="Recent GitHub activity">
       <div className="activity-strip-inner">
         <div className="activity-strip-header">
-          <p className="activity-strip-eyebrow">Still shipping</p>
+          <p className="activity-strip-eyebrow">Live from the repo</p>
           <div className="activity-strip-stats">
             <span><strong>{githubStats?.today ?? '—'}</strong> today</span>
             <span className="activity-strip-divider" aria-hidden="true">/</span>
@@ -78,8 +78,8 @@ const RecentActivityStrip = ({ githubStats }) => {
         )}
 
         <div className="activity-strip-footer">
-          <Link to="/commits" className="activity-strip-link">All commits →</Link>
-          <Link to="/blog" className="activity-strip-link">The agent&rsquo;s daily blog →</Link>
+          <Link to="/commits" className="activity-strip-link">Full commit log →</Link>
+          <Link to="/blog" className="activity-strip-link">Scribe&rsquo;s daily writeup →</Link>
         </div>
       </div>
     </section>
