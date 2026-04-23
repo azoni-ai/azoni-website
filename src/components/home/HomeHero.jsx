@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { profile as staticProfile } from '../../data/profile';
 
-const HomeHero = ({ profile }) => {
+const HomeHero = ({ profile, children }) => {
   const data = profile || staticProfile;
   const name = data?.name || staticProfile.name;
   const location = data?.location || staticProfile.location;
@@ -23,33 +23,28 @@ const HomeHero = ({ profile }) => {
 
         <div className="home-hero-bio">
           <p>
-            About a decade of shipping software &mdash; startups, T-Mobile, Capital One, and for the
-            last year, working solo on a pile of things I make for myself. This page is most of them.
-          </p>
-          <p>
-            Lately I care about two things: products with real users, and agents that can run them
-            without me watching. If something here catches your eye, ask my chatbot or scroll the
-            commit feed &mdash; it&rsquo;s easier than reading a bio.
+            About a decade of shipping software &mdash; startups, T-Mobile, Capital One, and for
+            the last year, working solo on a pile of things I make for myself. Lately the work is
+            split between products with real users and agents that can run them without me watching.
           </p>
         </div>
 
         <div className="home-hero-ctas">
-          <Link to="/chat" className="home-hero-cta home-hero-cta--primary">
-            Chat with my AI
-            <span aria-hidden="true">→</span>
-          </Link>
-          <Link to="/resume" className="home-hero-cta">
+          <Link to="/resume" className="home-hero-cta home-hero-cta--primary">
             Resume
             <span aria-hidden="true">→</span>
           </Link>
-          <a
-            href="mailto:charltonuw@gmail.com"
-            className="home-hero-cta"
-          >
+          <Link to="/chat" className="home-hero-cta">
+            Open full chat
+            <span aria-hidden="true">→</span>
+          </Link>
+          <a href="mailto:charltonuw@gmail.com" className="home-hero-cta">
             Email me
             <span aria-hidden="true">↗</span>
           </a>
         </div>
+
+        {children}
       </div>
     </header>
   );

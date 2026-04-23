@@ -3,10 +3,12 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import HomeHero from '../components/home/HomeHero';
-import RecentActivityStrip from '../components/home/RecentActivityStrip';
+import HeroChatPrompt from '../components/home/HeroChatPrompt';
+import LivePulseStrip from '../components/home/LivePulseStrip';
 import ProjectShowcase from '../components/ProjectShowcase';
 import CareerSection from '../components/CareerSection';
 import EducationSection from '../components/EducationSection';
+import HowThisSiteRuns from '../components/home/HowThisSiteRuns';
 import '../styles/home-v2.css';
 import '../styles/project-showcase.css';
 
@@ -44,11 +46,14 @@ const Home = () => {
   return (
     <Layout>
       <div className="home-page-v2">
-        <HomeHero profile={profile} />
-        <RecentActivityStrip githubStats={githubStats} />
+        <HomeHero profile={profile}>
+          <HeroChatPrompt />
+        </HomeHero>
+        <LivePulseStrip githubStats={githubStats} />
         <ProjectShowcase />
         <CareerSection />
         <EducationSection />
+        <HowThisSiteRuns />
       </div>
     </Layout>
   );
