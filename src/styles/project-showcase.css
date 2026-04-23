@@ -1,9 +1,16 @@
-/* ===== PROJECT SHOWCASE — editorial stack ===== */
+/* ===== PROJECT SHOWCASE — editorial carousel ===== */
 
 .project-showcase {
+  padding: var(--space-3xl) 0;
+  overflow: hidden;
+  --slide-width: min(820px, calc(100vw - 260px));
+  --slide-gap: var(--space-xl);
+}
+
+.project-showcase-container {
   max-width: 960px;
   margin: 0 auto;
-  padding: var(--space-3xl) var(--space-md);
+  padding: 0 var(--space-md);
 }
 
 .project-showcase-intro {
@@ -96,20 +103,101 @@
   opacity: 1;
 }
 
-/* ───── Active entry card ───── */
+/* ───── Carousel viewport (the sliding track with peeks) ───── */
 
-.project-entry {
-  transition: background 0.3s ease, opacity 0.2s ease;
+.project-carousel-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: var(--space-xl) 0;
 }
 
-.project-entry--active {
-  padding: var(--space-2xl) 0;
-  animation: project-entry-fade 0.25s ease-out;
+.project-carousel-track {
+  display: flex;
+  gap: var(--slide-gap);
+  padding: 0 calc(50% - var(--slide-width) / 2);
+  transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transform: translateX(
+    calc(-1 * var(--active-idx, 0) * (var(--slide-width) + var(--slide-gap)))
+  );
+  will-change: transform;
 }
 
-@keyframes project-entry-fade {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+.project-carousel-slide {
+  flex: 0 0 var(--slide-width);
+  width: var(--slide-width);
+  padding: var(--space-2xl);
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  background: var(--bg-warm-card);
+  opacity: 0.38;
+  transform: scale(0.94);
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 0.3s ease,
+    background 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 20px 60px -30px rgba(0, 0, 0, 0.5);
+}
+
+.project-carousel-slide:hover:not(.is-active) {
+  opacity: 0.65;
+  transform: scale(0.96);
+  border-color: var(--border-warm-strong);
+}
+
+.project-carousel-slide.is-active {
+  opacity: 1;
+  transform: scale(1);
+  cursor: default;
+  border-color: color-mix(in srgb, var(--project-accent) 20%, var(--border-warm));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--project-accent) 3%, var(--bg-warm-card)) 0%,
+    var(--bg-warm-card) 60%
+  );
+  box-shadow:
+    0 30px 80px -40px rgba(0, 0, 0, 0.6),
+    0 0 0 1px color-mix(in srgb, var(--project-accent) 12%, transparent);
+}
+
+/* ───── Edge arrow buttons (on the viewport) ───── */
+
+.project-carousel-edge {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg-warm-card) 85%, transparent);
+  border: 1px solid var(--border-warm-strong);
+  color: var(--text-warm);
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.project-carousel-edge:hover {
+  background: var(--bg-warm-card);
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+}
+
+.project-carousel-edge--prev {
+  left: calc((100% - var(--slide-width)) / 2 - 22px);
+}
+
+.project-carousel-edge--next {
+  right: calc((100% - var(--slide-width)) / 2 - 22px);
 }
 
 .project-entry-grid {
@@ -348,11 +436,17 @@
 
 @media (max-width: 768px) {
   .project-showcase {
-    padding: var(--space-2xl) var(--space-md);
+    padding: var(--space-2xl) 0;
+    --slide-width: calc(100vw - 32px);
+    --slide-gap: var(--space-md);
   }
 
-  .project-entry {
-    padding: var(--space-2xl) 0;
+  .project-carousel-slide {
+    padding: var(--space-lg);
+  }
+
+  .project-carousel-edge {
+    display: none;
   }
 
   .project-entry-head {
