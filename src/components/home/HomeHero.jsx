@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { profile as staticProfile } from '../../data/profile';
+import CurrentlyBuilding from './CurrentlyBuilding';
 
 const HomeHero = ({ profile, aside, stats }) => {
   const data = profile || staticProfile;
@@ -21,6 +22,8 @@ const HomeHero = ({ profile, aside, stats }) => {
           <p className="home-hero-tagline">
             Software engineer. I build AI-powered products and the systems underneath them.
           </p>
+
+          <CurrentlyBuilding profile={profile} />
 
           {stats}
 

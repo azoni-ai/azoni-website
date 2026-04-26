@@ -2,10 +2,8 @@ import React from 'react';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
 import { useProjects } from '../hooks/useProjects';
+import '../styles/projects-warm.css';
 
-/**
- * Projects page with loading state to prevent flash
- */
 const Projects = () => {
   const {
     projects: filteredProjects,
@@ -17,63 +15,50 @@ const Projects = () => {
 
   return (
     <Layout>
-      <section className="section" style={{ paddingTop: '120px' }}>
-        <div className="container">
-          <div className="section-header">
-            <h1>Projects</h1>
-            <p>
-              Selected production work across AI products, platform infrastructure,
-              developer tooling, and consumer applications.
+      <div className="projects-page">
+        <div className="projects-page-inner">
+          <header className="projects-page-header">
+            <p className="projects-eyebrow">Catalog</p>
+            <h1 className="projects-heading">Every project I&rsquo;ve put on the internet.</h1>
+            <p className="projects-tagline">
+              Production AI products, platform infrastructure, internal tooling, hackathon experiments,
+              and a few things I&rsquo;m still embarrassed by but won&rsquo;t take down.
             </p>
-          </div>
+          </header>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              gap: 'var(--space-sm)',
-              marginBottom: 'var(--space-2xl)'
-            }}
-          >
-            {Object.entries(categories || {}).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => changeCategory(key)}
-                className={`chat-mode-btn ${activeCategory === key ? 'active' : ''}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {categories && Object.keys(categories).length > 0 && (
+            <nav className="projects-filters" aria-label="Filter projects">
+              {Object.entries(categories).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => changeCategory(key)}
+                  className={`projects-filter${activeCategory === key ? ' is-active' : ''}`}
+                  aria-pressed={activeCategory === key}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          )}
 
           {loading ? (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                padding: 'var(--space-2xl)'
-              }}
-            >
-              <p style={{ color: 'var(--text-muted)' }}>Loading projects...</p>
-            </div>
+            <p className="projects-status">Loading projects…</p>
           ) : (
             <>
-              <div className="project-grid">
+              <div className="project-grid projects-grid">
                 {filteredProjects.map((project) => (
                   <ProjectCard key={project.id} project={project} />
                 ))}
               </div>
 
               {filteredProjects.length === 0 && (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No projects in this category yet.
-                </p>
+                <p className="projects-status">No projects in this category yet.</p>
               )}
             </>
           )}
         </div>
-      </section>
+      </div>
     </Layout>
   );
 };
