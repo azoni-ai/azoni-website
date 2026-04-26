@@ -25,15 +25,17 @@ const HeroStats = ({ githubStats }) => {
       value: String(PROJECT_STORIES.length),
       label: 'projects shipped',
     },
-    {
-      value: githubStats?.last7Days != null ? String(githubStats.last7Days) : '—',
+    githubStats?.last7Days != null && {
+      value: String(githubStats.last7Days),
       label: 'commits · this week',
     },
-    {
-      value: agentCount24h != null ? String(agentCount24h) : '—',
+    agentCount24h != null && agentCount24h > 0 && {
+      value: String(agentCount24h),
       label: 'agent actions · 24h',
     },
-  ];
+  ].filter(Boolean);
+
+  if (stats.length === 0) return null;
 
   return (
     <dl className="hero-stats" aria-label="Live stats">

@@ -121,11 +121,25 @@ const LivePulseStrip = ({ githubStats }) => {
             <span className="pulse-strip-dot" aria-hidden="true" />
             <span>Live from the site</span>
           </div>
-          <div className="pulse-strip-stats">
-            <span><strong>{githubStats?.today ?? '—'}</strong> commits today</span>
-            <span className="pulse-strip-divider" aria-hidden="true">·</span>
-            <span><strong>{agentItems.filter((a) => Date.now() - toMs(a.timestamp) < 86400000).length || 0}</strong> agent actions · 24h</span>
-          </div>
+          {(() => {
+            const todayCommits = githubStats?.today;
+            const agents24h = agentItems.filter((a) => Date.now() - toMs(a.timestamp) < 86400000).length;
+            const parts = [];
+            if (todayCommits != null) {
+              parts.push(<span key="commits"><strong>{todayCommits}</strong> commits today</span>);
+            }
+            if (agents24h > 0) {
+              parts.push(<span key="agents"><strong>{agents24h}</strong> agent actions · 24h</span>);
+            }
+            if (parts.length === 0) return null;
+            return (
+              <div className="pulse-strip-stats">
+                {parts.flatMap((p, i) => i === 0
+                  ? [p]
+                  : [<span key={`d-${i}`} className="pulse-strip-divider" aria-hidden="true">·</span>, p])}
+              </div>
+            );
+          })()}
         </div>
 
         {feed.length > 0 ? (

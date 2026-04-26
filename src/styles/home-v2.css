@@ -207,10 +207,6 @@
 .hero-chat {
   margin-top: 0;
   max-width: 100%;
-  padding: var(--space-lg);
-  background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
-  border: 1px solid var(--border-warm);
-  border-radius: 14px;
 }
 
 .hero-chat-label {

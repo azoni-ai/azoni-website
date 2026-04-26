@@ -37,12 +37,17 @@ const HomeHero = ({ profile, aside, stats }) => {
               Resume
               <span aria-hidden="true">→</span>
             </Link>
-            <Link to="/chat" className="home-hero-cta">
-              Open full chat
-              <span aria-hidden="true">→</span>
-            </Link>
             <a href="mailto:charltonuw@gmail.com" className="home-hero-cta">
               Email me
+              <span aria-hidden="true">↗</span>
+            </a>
+            <a
+              href={profile?.links?.github || 'https://github.com/azoni'}
+              className="home-hero-cta"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
               <span aria-hidden="true">↗</span>
             </a>
           </div>

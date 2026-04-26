@@ -75,6 +75,7 @@
   color: var(--text-warm-muted);
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
 }
 
 .project-carousel-tab-num {

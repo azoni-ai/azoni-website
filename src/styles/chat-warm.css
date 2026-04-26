@@ -1,0 +1,292 @@
+/* ===== Chat page — warm editorial overrides =====
+   These rules scope to .chat-page-warm and override the base
+   chat styles in index.css to match the home page's palette
+   and typography (Fraunces serif, coral accent, warm darks).
+*/
+
+.chat-page-warm {
+  background: var(--bg-warm);
+  color: var(--text-warm);
+}
+
+.chat-page-warm .chat-header {
+  border-bottom: 1px solid var(--border-warm);
+  padding: var(--space-lg) var(--space-md);
+  gap: var(--space-md);
+  align-items: baseline;
+}
+
+.chat-page-warm .chat-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 96;
+  font-size: 2rem;
+  letter-spacing: -0.015em;
+  color: var(--text-warm);
+}
+
+.chat-page-warm .chat-control label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  color: var(--text-warm-muted);
+}
+
+.chat-page-warm .chat-select {
+  background-color: var(--bg-warm-card);
+  border: 1px solid var(--border-warm-strong);
+  color: var(--text-warm);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b8b0a4' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.chat-page-warm .chat-select:hover,
+.chat-page-warm .chat-select:focus {
+  border-color: var(--accent-coral);
+  box-shadow: none;
+}
+
+.chat-page-warm .chat-select option {
+  background: var(--bg-warm-card);
+  color: var(--text-warm);
+}
+
+.chat-page-warm .chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-warm-strong) transparent;
+}
+
+.chat-page-warm .chat-message {
+  font-family: var(--font-body);
+  line-height: 1.7;
+  border-radius: 14px;
+}
+
+.chat-page-warm .chat-message.assistant {
+  background: var(--bg-warm-card);
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm);
+}
+
+.chat-page-warm .chat-message.assistant p {
+  color: var(--text-warm);
+  opacity: 0.9;
+}
+
+.chat-page-warm .chat-message.user {
+  background: var(--accent-coral);
+  color: #18110e;
+  font-weight: 500;
+}
+
+.chat-page-warm .chat-input-area {
+  border-top: 1px solid var(--border-warm);
+}
+
+.chat-page-warm .chat-suggestion {
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-soft);
+  font-family: var(--font-body);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.chat-page-warm .chat-suggestion:hover {
+  border-color: var(--border-warm-strong);
+  color: var(--text-warm);
+  background: color-mix(in srgb, var(--accent-coral) 6%, transparent);
+}
+
+.chat-page-warm .chat-suggestion:disabled {
+  opacity: 0.5;
+}
+
+.chat-page-warm .chat-suggestions-refresh {
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-muted);
+  border-radius: 999px;
+}
+
+.chat-page-warm .chat-suggestions-refresh:hover {
+  color: var(--accent-coral);
+  border-color: var(--border-warm-strong);
+}
+
+.chat-page-warm .chat-form {
+  align-items: stretch;
+}
+
+.chat-page-warm .chat-input {
+  background: color-mix(in srgb, var(--bg-warm-card) 70%, transparent);
+  border: 1px solid var(--border-warm-strong);
+  color: var(--text-warm);
+  font-family: var(--font-body);
+  border-radius: 999px;
+  padding: 12px 18px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.chat-page-warm .chat-input::placeholder {
+  color: var(--text-warm-muted);
+}
+
+.chat-page-warm .chat-input:focus {
+  border-color: var(--accent-coral);
+  background: var(--bg-warm-card);
+  outline: none;
+}
+
+.chat-page-warm .chat-form .btn-primary {
+  background: var(--accent-coral);
+  color: #18110e;
+  border: 1px solid var(--accent-coral);
+  border-radius: 999px;
+  font-weight: 500;
+  padding: 10px 22px;
+  transition: background 0.15s ease;
+}
+
+.chat-page-warm .chat-form .btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-coral) 88%, #ffffff);
+  border-color: color-mix(in srgb, var(--accent-coral) 88%, #ffffff);
+}
+
+.chat-page-warm .chat-form .btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chat-page-warm .chat-disclaimer {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--text-warm-muted);
+  text-transform: uppercase;
+}
+
+/* RAG architecture banner (visible at top, auto-collapses after first reply) */
+.chat-page-warm .rag-architecture {
+  background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+  color: var(--text-warm);
+}
+
+.chat-page-warm .rag-architecture-header h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  color: var(--text-warm);
+  letter-spacing: -0.005em;
+}
+
+.chat-page-warm .rag-header-icon,
+.chat-page-warm .rag-step-icon,
+.chat-page-warm .rag-step-icon-small,
+.chat-page-warm .rag-pipeline-arrow,
+.chat-page-warm .rag-pipeline-arrow-small {
+  color: var(--accent-coral);
+}
+
+.chat-page-warm .rag-step-label,
+.chat-page-warm .rag-step-label-small {
+  color: var(--text-warm);
+  font-family: var(--font-body);
+}
+
+.chat-page-warm .rag-step-detail {
+  font-family: var(--font-mono);
+  color: var(--text-warm-muted);
+}
+
+.chat-page-warm .rag-branch {
+  border: 1px solid var(--border-warm);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-warm-card) 50%, transparent);
+}
+
+.chat-page-warm .rag-branch.active {
+  border-color: color-mix(in srgb, var(--accent-coral) 35%, transparent);
+}
+
+.chat-page-warm .rag-branch.mcp-branch.active {
+  border-color: color-mix(in srgb, var(--accent-amber) 35%, transparent);
+}
+
+.chat-page-warm .rag-branch-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+}
+
+.chat-page-warm .rag-tech-badge {
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-soft);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  border-radius: 4px;
+  padding: 4px 10px;
+  letter-spacing: 0.02em;
+}
+
+.chat-page-warm .rag-architecture-note {
+  color: var(--text-warm-muted);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.chat-page-warm .rag-close-btn {
+  color: var(--text-warm-muted);
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  border-radius: 999px;
+}
+
+.chat-page-warm .rag-close-btn:hover {
+  color: var(--accent-coral);
+  border-color: var(--border-warm-strong);
+}
+
+/* Collapsed-state toggle button (the "View RAG Architecture" link) */
+.chat-page-warm .rag-architecture-toggle {
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-soft);
+  font-family: var(--font-body);
+  border-radius: 999px;
+}
+
+.chat-page-warm .rag-architecture-toggle:hover {
+  color: var(--accent-coral);
+  border-color: var(--border-warm-strong);
+}
+
+/* Mode buttons (Professional / Friendly / Casual / Funny) */
+.chat-page-warm .chat-mode-btn {
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-soft);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.chat-page-warm .chat-mode-btn:hover {
+  color: var(--text-warm);
+  border-color: var(--border-warm-strong);
+}
+
+.chat-page-warm .chat-mode-btn.active {
+  background: color-mix(in srgb, var(--accent-coral) 14%, transparent);
+  color: var(--accent-coral);
+  border-color: color-mix(in srgb, var(--accent-coral) 35%, transparent);
+}

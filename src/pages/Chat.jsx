@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 import useVisitTracker from '../hooks/useVisitTracker';
+import '../styles/chat-warm.css';
 
 const MODES = [
   { id: 'professional', name: 'Professional' },
@@ -510,7 +511,7 @@ const Chat = () => {
 
   return (
     <Layout hideFooter>
-      <div className="chat-container">
+      <div className="chat-container chat-page-warm">
         <div className="chat-header">
           <h1 className="chat-title">Azoni AI</h1>
           
