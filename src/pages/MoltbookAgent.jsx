@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import useVisitTracker from '../hooks/useVisitTracker';
+import '../styles/moltbook-warm.css';
 
 const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 const MOLTBOOK_PROFILE_URL = 'https://www.moltbook.com/u/Azoni-AI';
@@ -183,7 +184,7 @@ const MoltbookAgent = () => {
 
   return (
     <Layout>
-      <section className="moltbook-page">
+      <section className="moltbook-page moltbook-page-warm">
         <div className="container">
           {/* Header */}
           <header className="moltbook-header">

@@ -1,0 +1,282 @@
+/* ===== Project detail page — warm editorial ===== */
+
+.project-detail-page {
+  min-height: 100vh;
+  background: var(--bg-warm);
+  color: var(--text-warm);
+  padding: 120px 0 var(--space-3xl);
+}
+
+.project-detail-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.project-detail-inner--centered {
+  text-align: center;
+}
+
+.project-detail-status {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text-warm-muted);
+  text-align: center;
+  padding: var(--space-2xl) 0;
+}
+
+.project-detail-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-2xl);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+}
+
+.project-detail-back {
+  color: var(--text-warm-soft);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.project-detail-back:hover {
+  color: var(--accent-coral);
+}
+
+.project-detail-counter {
+  color: var(--text-warm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.project-detail-header {
+  margin-bottom: var(--space-2xl);
+}
+
+.project-detail-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+  margin: 0 0 var(--space-md);
+}
+
+.project-detail-titlerow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+
+.project-detail-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text-warm);
+  margin: 0;
+}
+
+.project-detail-page .star-button {
+  background: transparent;
+  border: 1px solid var(--border-warm-strong);
+  color: var(--text-warm-soft);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.project-detail-page .star-button:hover:not(:disabled) {
+  color: var(--accent-amber);
+  border-color: var(--accent-amber);
+  background: color-mix(in srgb, var(--accent-amber) 8%, transparent);
+}
+
+.project-detail-page .star-button.starred {
+  color: var(--accent-amber);
+  border-color: color-mix(in srgb, var(--accent-amber) 50%, transparent);
+}
+
+.project-detail-tech {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-xl);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-detail-tech li {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-warm-soft);
+  padding: 4px 10px;
+  border: 1px solid var(--border-warm);
+  border-radius: 3px;
+  letter-spacing: 0.01em;
+}
+
+.project-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.project-detail-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: 1px solid var(--border-warm-strong);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-warm);
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.project-detail-cta:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+}
+
+.project-detail-cta--primary {
+  background: var(--accent-coral);
+  border-color: var(--accent-coral);
+  color: #18110e;
+}
+
+.project-detail-cta--primary:hover {
+  background: color-mix(in srgb, var(--accent-coral) 85%, #ffffff);
+  border-color: color-mix(in srgb, var(--accent-coral) 85%, #ffffff);
+  color: #18110e;
+}
+
+.project-detail-block {
+  margin-bottom: var(--space-2xl);
+  padding: var(--space-xl);
+  background: var(--bg-warm-card);
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+}
+
+.project-detail-block-heading {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 72;
+  font-size: 1.25rem;
+  color: var(--text-warm);
+  margin: 0 0 var(--space-md);
+  letter-spacing: -0.01em;
+}
+
+.project-detail-prose {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--text-warm);
+  opacity: 0.88;
+  white-space: pre-line;
+}
+
+.project-detail-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.project-detail-highlights li {
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  line-height: 1.55;
+  color: var(--text-warm-soft);
+  padding-left: 1.1rem;
+  position: relative;
+}
+
+.project-detail-highlights li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.65rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-coral) 70%, transparent);
+}
+
+.project-detail-comments {
+  /* Comments component already has its own internal styling */
+}
+
+.project-detail-footer-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--border-warm);
+}
+
+.project-detail-foot-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-md);
+  background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.project-detail-foot-link:hover {
+  border-color: var(--border-warm-strong);
+  background: var(--bg-warm-hover);
+}
+
+.project-detail-foot-link--next {
+  text-align: right;
+}
+
+.project-detail-foot-dir {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+}
+
+.project-detail-foot-name {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--text-warm);
+  letter-spacing: -0.005em;
+}
+
+@media (max-width: 768px) {
+  .project-detail-page {
+    padding-top: 96px;
+  }
+
+  .project-detail-block {
+    padding: var(--space-md);
+  }
+}

@@ -1,0 +1,161 @@
+/* ===== Activity page — warm editorial overrides ===== */
+
+.activity-page-warm {
+  background: var(--bg-warm);
+  color: var(--text-warm);
+}
+
+.activity-page-warm .activity-page-header {
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.activity-page-warm .activity-title-section h1 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  font-size: clamp(2.25rem, 5vw, 3rem);
+  letter-spacing: -0.02em;
+  color: var(--text-warm);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.activity-page-warm .activity-pulse {
+  background: var(--accent-coral);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-coral) 60%, transparent);
+}
+
+.activity-page-warm .activity-title-section p {
+  font-family: var(--font-body);
+  color: var(--text-warm-soft);
+  font-size: 1rem;
+  margin-top: 6px;
+}
+
+.activity-page-warm .activity-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.activity-page-warm .activity-filters button,
+.activity-page-warm .activity-filter-btn,
+.activity-page-warm .filter-btn {
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-soft);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  border-radius: 999px;
+  padding: 6px 12px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.activity-page-warm .activity-filters button:hover,
+.activity-page-warm .activity-filter-btn:hover,
+.activity-page-warm .filter-btn:hover {
+  color: var(--text-warm);
+  border-color: var(--border-warm-strong);
+}
+
+.activity-page-warm .activity-filters button.active,
+.activity-page-warm .activity-filter-btn.active,
+.activity-page-warm .filter-btn.active {
+  background: color-mix(in srgb, var(--accent-coral) 14%, transparent);
+  color: var(--accent-coral);
+  border-color: color-mix(in srgb, var(--accent-coral) 35%, transparent);
+}
+
+.activity-page-warm .feed-live-badge {
+  background: color-mix(in srgb, var(--accent-coral) 14%, transparent);
+  color: var(--accent-coral);
+  border: 1px solid color-mix(in srgb, var(--accent-coral) 35%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.activity-page-warm .activity-loading,
+.activity-page-warm .activity-empty {
+  color: var(--text-warm-muted);
+  font-family: var(--font-body);
+}
+
+.activity-page-warm .activity-empty h3 {
+  font-family: var(--font-serif);
+  color: var(--text-warm);
+}
+
+.activity-page-warm .activity-card {
+  background: var(--bg-warm-card);
+  border: 1px solid var(--border-warm);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.activity-page-warm .activity-card:hover {
+  border-color: var(--border-warm-strong);
+  background: var(--bg-warm-hover);
+}
+
+.activity-page-warm .activity-time {
+  font-family: var(--font-mono);
+  color: var(--text-warm-muted);
+  font-size: 0.72rem;
+}
+
+.activity-page-warm .activity-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 48;
+  color: var(--text-warm);
+  letter-spacing: -0.01em;
+}
+
+.activity-page-warm .activity-title a {
+  color: var(--text-warm);
+}
+
+.activity-page-warm .activity-title a:hover {
+  color: var(--accent-coral);
+}
+
+.activity-page-warm .activity-description {
+  font-family: var(--font-body);
+  color: var(--text-warm-soft);
+}
+
+.activity-page-warm .activity-reasoning {
+  background: color-mix(in srgb, var(--bg-warm-card) 80%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--accent-coral) 50%, transparent);
+  color: var(--text-warm-soft);
+  font-family: var(--font-body);
+}
+
+.activity-page-warm .activity-metadata,
+.activity-page-warm .activity-source,
+.activity-page-warm .activity-card-footer {
+  font-family: var(--font-mono);
+  color: var(--text-warm-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.activity-page-warm .activity-type-badge {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.activity-page-warm .activity-feed-container::-webkit-scrollbar-thumb {
+  background: var(--border-warm-strong);
+  border-radius: 999px;
+}
+
+.activity-page-warm .activity-feed-container::-webkit-scrollbar-track {
+  background: transparent;
+}

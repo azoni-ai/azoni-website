@@ -1,0 +1,250 @@
+/* ===== Blog post page — warm editorial overrides ===== */
+
+.blog-post-page-warm {
+  background: var(--bg-warm);
+  color: var(--text-warm);
+  padding: 120px 0 var(--space-3xl) !important;
+}
+
+.blog-post-page-warm .container {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.blog-post-page-warm .blog-back-link {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-warm-soft);
+  text-decoration: none;
+  margin-bottom: var(--space-xl);
+  display: inline-block;
+}
+
+.blog-post-page-warm .blog-back-link:hover {
+  color: var(--accent-coral);
+}
+
+.blog-post-page-warm .blog-post-header {
+  margin-bottom: var(--space-2xl);
+}
+
+.blog-post-page-warm .blog-post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.blog-post-page-warm .blog-post-date {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+}
+
+.blog-post-page-warm .blog-post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.blog-post-page-warm .blog-post-tags .blog-tag,
+.blog-post-page-warm .blog-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-warm-soft);
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  border-radius: 3px;
+  padding: 2px 8px;
+  letter-spacing: 0.01em;
+}
+
+.blog-post-page-warm .blog-post-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text-warm);
+  margin: 0 0 var(--space-md);
+}
+
+.blog-post-page-warm .blog-post-excerpt {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.2rem;
+  line-height: 1.5;
+  color: var(--text-warm-soft);
+  margin: 0;
+}
+
+.blog-post-page-warm .blog-post-cover {
+  margin: var(--space-2xl) 0;
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.blog-post-page-warm .blog-post-cover img {
+  width: 100%;
+  display: block;
+}
+
+.blog-post-page-warm .blog-post-content {
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  line-height: 1.8;
+  color: var(--text-warm);
+  opacity: 0.9;
+}
+
+.blog-post-page-warm .blog-post-content p {
+  margin: 0 0 var(--space-md);
+}
+
+.blog-post-page-warm .blog-post-content h1,
+.blog-post-page-warm .blog-post-content h2,
+.blog-post-page-warm .blog-post-content h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-warm);
+  margin: var(--space-xl) 0 var(--space-md);
+}
+
+.blog-post-page-warm .blog-post-content h2 {
+  font-size: 1.6rem;
+}
+
+.blog-post-page-warm .blog-post-content h3 {
+  font-size: 1.25rem;
+}
+
+.blog-post-page-warm .blog-post-content a {
+  color: var(--accent-coral);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-coral) 40%, transparent);
+  transition: border-color 0.15s ease;
+}
+
+.blog-post-page-warm .blog-post-content a:hover {
+  border-bottom-color: var(--accent-coral);
+}
+
+.blog-post-page-warm .blog-post-content code,
+.blog-post-page-warm .blog-post-content pre {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: color-mix(in srgb, var(--bg-warm-card) 70%, transparent);
+  border: 1px solid var(--border-warm);
+  border-radius: 4px;
+}
+
+.blog-post-page-warm .blog-post-content code {
+  padding: 2px 6px;
+}
+
+.blog-post-page-warm .blog-post-content pre {
+  padding: var(--space-md);
+  overflow-x: auto;
+  line-height: 1.55;
+  margin: var(--space-md) 0;
+}
+
+.blog-post-page-warm .blog-post-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.blog-post-page-warm .blog-post-content blockquote {
+  border-left: 3px solid color-mix(in srgb, var(--accent-coral) 60%, transparent);
+  padding-left: var(--space-md);
+  margin: var(--space-md) 0;
+  color: var(--text-warm-soft);
+  font-style: italic;
+}
+
+.blog-post-page-warm .blog-post-content ul,
+.blog-post-page-warm .blog-post-content ol {
+  padding-left: var(--space-lg);
+  margin: var(--space-md) 0;
+}
+
+.blog-post-page-warm .blog-post-content li {
+  margin-bottom: 6px;
+  color: var(--text-warm-soft);
+}
+
+.blog-post-page-warm .blog-post-related {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--border-warm);
+}
+
+.blog-post-page-warm .blog-post-related h3 {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+  margin: 0 0 var(--space-md);
+}
+
+.blog-post-page-warm .blog-post-related .btn,
+.blog-post-page-warm .blog-post-related .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-warm-strong);
+  color: var(--text-warm);
+  font-family: var(--font-body);
+  border-radius: 999px;
+  padding: 10px 18px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.blog-post-page-warm .blog-post-related .btn:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+}
+
+.blog-post-page-warm .blog-loading,
+.blog-post-page-warm .blog-not-found {
+  text-align: center;
+  color: var(--text-warm-muted);
+  font-family: var(--font-body);
+  padding: var(--space-2xl) 0;
+}
+
+.blog-post-page-warm .blog-not-found h1 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 144;
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -0.02em;
+  color: var(--text-warm);
+  margin-bottom: var(--space-md);
+}
+
+.blog-post-page-warm .blog-not-found .btn-primary {
+  background: var(--accent-coral);
+  border: 1px solid var(--accent-coral);
+  color: #18110e;
+  font-family: var(--font-body);
+  border-radius: 999px;
+  padding: 10px 18px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: var(--space-lg);
+}
+
+.blog-post-page-warm .blog-not-found .btn-primary:hover {
+  background: color-mix(in srgb, var(--accent-coral) 85%, #ffffff);
+}

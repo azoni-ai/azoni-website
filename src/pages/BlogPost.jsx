@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import '../styles/blog-post-warm.css';
 import { db } from '../config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -164,7 +165,7 @@ const BlogPost = () => {
   if (loading) {
     return (
       <Layout>
-        <section className="section blog-post-page">
+        <section className="section blog-post-page blog-post-page-warm">
           <div className="container">
             <div className="blog-loading">Loading...</div>
           </div>
@@ -176,7 +177,7 @@ const BlogPost = () => {
   if (notFound) {
     return (
       <Layout>
-        <section className="section blog-post-page">
+        <section className="section blog-post-page blog-post-page-warm">
           <div className="container">
             <div className="blog-not-found">
               <h1>Post not found</h1>
@@ -191,7 +192,7 @@ const BlogPost = () => {
 
   return (
     <Layout>
-      <article className="section blog-post-page">
+      <article className="section blog-post-page blog-post-page-warm">
         <div className="container">
           <Link to="/blog" className="blog-back-link">← Back to Blog</Link>
           

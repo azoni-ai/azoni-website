@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import '../styles/activity.css';
+import '../styles/activity-warm.css';
 
 const ACTIVITY_ICONS = {
   blog_generated: (
@@ -359,7 +360,7 @@ const Activity = () => {
 
   return (
     <Layout>
-      <div className="activity-page">
+      <div className="activity-page activity-page-warm">
         <div className="activity-container">
           {/* Header */}
           <div className="activity-page-header">

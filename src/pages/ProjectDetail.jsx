@@ -6,6 +6,7 @@ import { useProjects } from '../hooks/useProjects';
 import useVisitTracker from '../hooks/useVisitTracker';
 import { db } from '../config/firebase';
 import { doc, getDoc, setDoc, onSnapshot, increment } from 'firebase/firestore';
+import '../styles/project-detail-warm.css';
 
 const StarButton = ({ projectId }) => {
   const [stars, setStars] = useState(0);
@@ -91,11 +92,11 @@ const ProjectDetail = () => {
   if (loading) {
     return (
       <Layout>
-        <section className="section" style={{ paddingTop: '120px', textAlign: 'center' }}>
-          <div className="container">
-            <p style={{ color: 'var(--text-secondary)' }}>Loading project...</p>
+        <div className="project-detail-page">
+          <div className="project-detail-inner">
+            <p className="project-detail-status">Loading project&hellip;</p>
           </div>
-        </section>
+        </div>
       </Layout>
     );
   }
@@ -103,67 +104,58 @@ const ProjectDetail = () => {
   if (!project) {
     return (
       <Layout>
-        <section className="section" style={{ paddingTop: '120px', textAlign: 'center' }}>
-          <div className="container">
-            <h1>Project Not Found</h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--space-md)' }}>
-              The project you're looking for doesn't exist.
+        <div className="project-detail-page">
+          <div className="project-detail-inner project-detail-inner--centered">
+            <h1 className="project-detail-title">Project not found.</h1>
+            <p className="project-detail-status">
+              The project you&rsquo;re looking for doesn&rsquo;t exist.
             </p>
-            <Link to="/projects" className="btn btn-secondary" style={{ marginTop: 'var(--space-xl)' }}>
-              ← Back to Projects
+            <Link to="/projects" className="project-detail-cta">
+              <span aria-hidden="true">←</span> Back to projects
             </Link>
           </div>
-        </section>
+        </div>
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <section className="section" style={{ paddingTop: '120px' }}>
-        <div className="container container-narrow">
-          {/* Top navigation */}
-          <div className="project-nav">
-            <Link to="/projects" className="project-nav-back">← All Projects</Link>
+      <div className="project-detail-page">
+        <div className="project-detail-inner">
+          <div className="project-detail-nav">
+            <Link to="/projects" className="project-detail-back">
+              <span aria-hidden="true">←</span> All projects
+            </Link>
             {allProjects.length > 0 && (
-              <span className="project-nav-counter">{currentIndex + 1} / {allProjects.length}</span>
+              <span className="project-detail-counter">
+                {String(currentIndex + 1).padStart(2, '0')} / {String(allProjects.length).padStart(2, '0')}
+              </span>
             )}
           </div>
 
-          {/* Header */}
-          <div style={{ marginBottom: 'var(--space-2xl)' }}>
-            <p style={{
-              color: 'var(--accent-primary)',
-              marginBottom: 'var(--space-sm)',
-              fontSize: '0.9rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em'
-            }}>
-              {project.tagline}
-            </p>
-
-            {/* Title with Star */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0 }}>{project.title}</h1>
+          <header className="project-detail-header">
+            <p className="project-detail-eyebrow">{project.tagline}</p>
+            <div className="project-detail-titlerow">
+              <h1 className="project-detail-title">{project.title}</h1>
               <StarButton projectId={id} />
             </div>
 
-            <div className="tags" style={{ marginBottom: 'var(--space-xl)' }}>
+            <ul className="project-detail-tech" aria-label="Tech stack">
               {project.tech.map((tech) => (
-                <span key={tech} className="tag">{tech}</span>
+                <li key={tech}>{tech}</li>
               ))}
-            </div>
+            </ul>
 
-            {/* Links */}
-            <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+            <div className="project-detail-actions">
               {project.links.live && (
                 <a
                   href={project.links.live}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
+                  className="project-detail-cta project-detail-cta--primary"
                 >
-                  View Live →
+                  View live <span aria-hidden="true">↗</span>
                 </a>
               )}
               {project.links.github && (
@@ -171,9 +163,9 @@ const ProjectDetail = () => {
                   href={project.links.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-secondary"
+                  className="project-detail-cta"
                 >
-                  View Code
+                  View code <span aria-hidden="true">↗</span>
                 </a>
               )}
               {project.links.paper && (
@@ -181,66 +173,52 @@ const ProjectDetail = () => {
                   href={project.links.paper}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-secondary"
+                  className="project-detail-cta"
                 >
-                  Read Paper
+                  Read paper <span aria-hidden="true">↗</span>
                 </a>
               )}
             </div>
-          </div>
+          </header>
 
-          {/* Description */}
-          <div className="card" style={{ marginBottom: 'var(--space-2xl)' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-lg)' }}>Overview</h2>
-            <div style={{
-              color: 'var(--text-secondary)',
-              lineHeight: 1.8,
-              whiteSpace: 'pre-line'
-            }}>
+          <section className="project-detail-block">
+            <h2 className="project-detail-block-heading">Overview</h2>
+            <div className="project-detail-prose">
               {project.longDescription}
             </div>
-          </div>
+          </section>
 
-          {/* Highlights */}
-          {project.highlights && project.highlights.length > 0 && (
-            <div className="card" style={{ marginBottom: 'var(--space-2xl)' }}>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-lg)' }}>Key Features</h2>
-              <ul style={{
-                color: 'var(--text-secondary)',
-                paddingLeft: 'var(--space-lg)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-sm)'
-              }}>
+          {project.highlights?.length > 0 && (
+            <section className="project-detail-block">
+              <h2 className="project-detail-block-heading">Key features</h2>
+              <ul className="project-detail-highlights">
                 {project.highlights.map((highlight, index) => (
                   <li key={index}>{highlight}</li>
                 ))}
               </ul>
-            </div>
+            </section>
           )}
 
-          {/* Comments Section */}
-          <div className="card">
+          <section className="project-detail-block project-detail-comments">
             <Comments projectId={id} />
-          </div>
+          </section>
 
-          {/* Prev/Next Navigation */}
-          <div className="project-nav-footer">
+          <nav className="project-detail-footer-nav" aria-label="Project navigation">
             {prevProject ? (
-              <Link to={`/projects/${prevProject.id}`} className="project-nav-link project-nav-prev">
-                <span className="project-nav-dir">← Previous</span>
-                <span className="project-nav-name">{prevProject.title}</span>
+              <Link to={`/projects/${prevProject.id}`} className="project-detail-foot-link project-detail-foot-link--prev">
+                <span className="project-detail-foot-dir">← Previous</span>
+                <span className="project-detail-foot-name">{prevProject.title}</span>
               </Link>
             ) : <div />}
             {nextProject ? (
-              <Link to={`/projects/${nextProject.id}`} className="project-nav-link project-nav-next">
-                <span className="project-nav-dir">Next →</span>
-                <span className="project-nav-name">{nextProject.title}</span>
+              <Link to={`/projects/${nextProject.id}`} className="project-detail-foot-link project-detail-foot-link--next">
+                <span className="project-detail-foot-dir">Next →</span>
+                <span className="project-detail-foot-name">{nextProject.title}</span>
               </Link>
             ) : <div />}
-          </div>
+          </nav>
         </div>
-      </section>
+      </div>
     </Layout>
   );
 };
