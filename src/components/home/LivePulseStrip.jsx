@@ -119,7 +119,7 @@ const LivePulseStrip = ({ githubStats }) => {
         <div className="pulse-strip-header">
           <div className="pulse-strip-eyebrow">
             <span className="pulse-strip-dot" aria-hidden="true" />
-            <span>Live from the site</span>
+            <span>Recent activity</span>
           </div>
           {(() => {
             const todayCommits = githubStats?.today;
@@ -203,9 +203,9 @@ const LivePulseStrip = ({ githubStats }) => {
         )}
 
         <div className="pulse-strip-footer">
-          <Link to="/commits" className="pulse-strip-link">Full commit log →</Link>
-          <Link to="/activity" className="pulse-strip-link">Full agent log →</Link>
-          <Link to="/blog" className="pulse-strip-link">Scribe&rsquo;s daily writeup →</Link>
+          <Link to="/commits" className="pulse-strip-link">All commits →</Link>
+          <Link to="/activity" className="pulse-strip-link">All agent actions →</Link>
+          <Link to="/blog" className="pulse-strip-link">Today&rsquo;s post →</Link>
         </div>
       </div>
     </section>

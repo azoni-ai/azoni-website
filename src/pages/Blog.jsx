@@ -47,12 +47,10 @@ const Blog = () => {
       <div className="blog-page-warm">
         <div className="blog-page-inner">
           <header className="blog-page-header">
-            <p className="blog-page-eyebrow">Writing · Auto-published by Scribe</p>
-            <h1 className="blog-page-heading">What I shipped, narrated daily.</h1>
+            <h1 className="blog-page-heading">Writing</h1>
             <p className="blog-page-tagline">
-              Every weekday at 5pm UTC, Scribe (Claude Sonnet via OpenRouter) reads my last
-              24&nbsp;hours of GitHub commits and writes a post explaining what shipped and why.
-              Not a commit list &mdash; an actual narrative.
+              Posts written daily by Scribe. Reads my GitHub commits at 5pm UTC, asks Claude
+              Sonnet to write what shipped, publishes.
             </p>
           </header>
 

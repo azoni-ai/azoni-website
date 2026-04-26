@@ -36,11 +36,7 @@ export const useChat = (initialMode = 'professional') => {
   useEffect(() => {
     setMessages([{
       role: 'assistant',
-      content: `Hi! I'm Azoni AI — Charlton's portfolio chatbot. Ask me about his experience, projects, or paste a job description for fit analysis.
-
-NEW: I'm part of a 5-agent system. Ask "How does the AI agent system work?" to learn about the orchestrator, blog writer, and more.
-
-NEW: Ask about fitness — "How much does Charlton bench?" pulls live data from BenchPressOnly via MCP.`,
+      content: `Hi. I'm Charlton's chatbot. Ask about his experience, projects, or paste a job description for fit analysis. I can also pull live data from his apps (try "how much does he bench?").`,
       rag: null // No RAG for initial message
     }]);
   }, []);

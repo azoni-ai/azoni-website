@@ -18,11 +18,10 @@ const Projects = () => {
       <div className="projects-page">
         <div className="projects-page-inner">
           <header className="projects-page-header">
-            <p className="projects-eyebrow">Catalog</p>
-            <h1 className="projects-heading">Every project I&rsquo;ve put on the internet.</h1>
+            <h1 className="projects-heading">Projects</h1>
             <p className="projects-tagline">
-              Production AI products, platform infrastructure, internal tooling, hackathon experiments,
-              and a few things I&rsquo;m still embarrassed by but won&rsquo;t take down.
+              Production AI products, infrastructure, tooling, and hackathon experiments. Every
+              project I&rsquo;ve shipped publicly.
             </p>
           </header>
 

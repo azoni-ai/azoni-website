@@ -367,9 +367,9 @@ const Activity = () => {
             <div className="activity-title-section">
               <h1>
                 <span className="activity-pulse"></span>
-                All Agent Activity
+                Agent activity
               </h1>
-              <p>Real-time feed of all AI agent actions across the Azoni ecosystem</p>
+              <p>Every action my agents take, logged in real time.</p>
             </div>
             
             <div className="activity-controls">

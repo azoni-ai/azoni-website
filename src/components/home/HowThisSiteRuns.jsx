@@ -8,28 +8,28 @@ const ROWS = [
     label: 'Scribe',
     accent: '#fbbf24',
     icon: '/images/scribe-pen.svg',
-    desc: 'Reads yesterday\u2019s commits off GitHub GraphQL at 5pm UTC, asks Claude Sonnet (via OpenRouter) to turn them into a narrative post, and publishes.',
+    desc: 'Daily 5pm UTC cron. Pulls yesterday\u2019s commits, asks Claude Sonnet to write a post, publishes.',
     link: { to: '/blog', label: 'Latest post' },
   },
   {
     label: 'Azoni AI',
     accent: '#60a5fa',
     icon: '/images/azoni.png',
-    desc: 'The chatbot you used up top. Cosine-similarity RAG over a Firestore knowledge base that generates new chunks on the fly when the retrieval score drops below a threshold.',
+    desc: 'The chatbot above. RAG over a Firestore knowledge base that generates new chunks when retrieval scores drop.',
     link: { to: '/chat', label: 'Open chat' },
   },
   {
     label: 'Conductor',
     accent: '#a78bfa',
     icon: null,
-    desc: 'A Netlify cron that wakes up every few hours, reads the state of everything (activity, errors, RAG health), and asks GPT-4o-mini what\u2019s worth doing next.',
+    desc: 'Runs every few hours. Reads activity, errors, and RAG health, then decides what\u2019s worth doing next.',
     link: { to: '/activity', label: 'Agent log' },
   },
   {
     label: 'Moltbook agent',
     accent: '#fb923c',
     icon: '/images/moltbook-lobster.svg',
-    desc: 'A LangGraph state machine. Decides whether to post, comment, or upvote, evaluates its own output, and respects the cooldown.',
+    desc: 'LangGraph state machine. Decides whether to post, comment, or upvote. Self-evaluates before publishing.',
     link: { to: '/moltbook', label: 'Moltbook' },
   },
 ];
@@ -79,13 +79,12 @@ const HowThisSiteRuns = () => {
   return (
     <section className="how-runs" aria-labelledby="how-runs-heading">
       <header className="how-runs-intro">
-        <p className="how-runs-eyebrow">Colophon</p>
         <h2 id="how-runs-heading" className="how-runs-heading">
-          Most of this site is written by agents.
+          How this site works
         </h2>
         <p className="how-runs-lede">
-          Not just for show &mdash; the same stack I ship in production runs this portfolio. The blog,
-          the chatbot, and the activity feed you scrolled past are all live systems, not mocked content.
+          The blog, the chatbot, and the activity feed are all live systems. Same stack I run in
+          production.
         </p>
       </header>
 
@@ -104,8 +103,7 @@ const HowThisSiteRuns = () => {
             )}
           </div>
           <p className="how-runs-budget-note">
-            Pulled live from the activity log. Every chat reply, blog post, and agent decision is
-            logged with its model and cost &mdash; so the bill stays visible.
+            Every chat reply, blog post, and agent decision is logged with its model and cost.
           </p>
         </div>
       )}
@@ -132,7 +130,7 @@ const HowThisSiteRuns = () => {
           </span>
         </div>
         <figcaption className="how-runs-diagram-caption">
-          Inputs come from humans (you) and cron. Everything is observable in the activity log.
+          Triggered by visitors and cron. Every action logged.
         </figcaption>
       </figure>
 

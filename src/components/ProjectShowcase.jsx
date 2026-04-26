@@ -214,13 +214,12 @@ const ProjectShowcase = ({ appStats }) => {
     <section className="project-showcase" aria-labelledby="project-showcase-heading">
       <div className="project-showcase-container">
         <header className="project-showcase-intro">
-          <p className="project-showcase-eyebrow">Work</p>
           <h2 id="project-showcase-heading" className="project-showcase-heading">
-            Ten projects I built and still think about.
+            Projects
           </h2>
           <p className="project-showcase-lede">
-            Some are products people use every day. Some are internal tools I got tired of
-            re-writing. Most started with a problem I had on a Saturday.
+            Live products, internal tools, and a few experiments. Click through for the story
+            behind each one.
           </p>
         </header>
 

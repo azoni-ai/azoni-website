@@ -121,9 +121,9 @@ const Commits = () => {
                   <line x1="3" y1="12" x2="9" y2="12"/>
                   <line x1="15" y1="12" x2="21" y2="12"/>
                 </svg>
-                Git Activity
+                Commits
               </h1>
-              <p>Real-time commit history across all repositories</p>
+              <p>Live feed across every repo I push to.</p>
             </div>
 
             {/* Stats bar */}

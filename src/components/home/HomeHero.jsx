@@ -20,7 +20,7 @@ const HomeHero = ({ profile, aside, stats }) => {
           <h1 className="home-hero-name">{name}</h1>
 
           <p className="home-hero-tagline">
-            Software engineer. I build AI-powered products and the systems underneath them.
+            Software engineer. I build AI products and the systems underneath them.
           </p>
 
           <CurrentlyBuilding profile={profile} />
@@ -29,9 +29,8 @@ const HomeHero = ({ profile, aside, stats }) => {
 
           <div className="home-hero-bio">
             <p>
-              About a decade of shipping software &mdash; startups, T-Mobile, Capital One, and for
-              the last year, working solo on a pile of things I make for myself. Lately the work is
-              split between products with real users and agents that can run them without me watching.
+              Ten years shipping software. Startups, T-Mobile, Capital One. For the last year,
+              solo &mdash; building products with real users and agents that keep them running.
             </p>
           </div>
 

@@ -2,9 +2,9 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const SUGGESTIONS = [
-  "What has he built with AI?",
-  "Where would he fit on an AI team?",
-  "What's his most interesting project?",
+  "What has Charlton built?",
+  "Where would he fit on a team?",
+  "What's his best project?",
 ];
 
 const SYSTEM_GREETING = null; // no pre-seeded history; keeps the one-shot clean
@@ -83,14 +83,14 @@ const HeroChatPrompt = () => {
     <div className="hero-chat" aria-label="Inline Azoni AI chat">
       <form className="hero-chat-form" onSubmit={onSubmit} role="search">
         <label className="hero-chat-label" htmlFor="hero-chat-input">
-          Or ask my chatbot
+          Ask my chatbot
         </label>
         <div className="hero-chat-inputwrap">
           <input
             id="hero-chat-input"
             className="hero-chat-input"
             type="text"
-            placeholder="Ask me something about Charlton's work…"
+            placeholder="Ask anything…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
@@ -181,7 +181,7 @@ const HeroChatPrompt = () => {
                   to={q ? `/chat?q=${q}` : '/chat'}
                   className="hero-chat-continue"
                 >
-                  Continue in the full chat →
+                  Open full chat →
                 </Link>
               );
             })()}

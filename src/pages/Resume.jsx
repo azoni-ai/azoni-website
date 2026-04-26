@@ -11,10 +11,9 @@ const Resume = () => {
       <div className="resume-page">
         <div className="resume-page-inner">
           <header className="resume-header">
-            <p className="resume-eyebrow">Resume · PDF</p>
-            <h1 className="resume-heading">Charlton Smith</h1>
+            <h1 className="resume-heading">Resume</h1>
             <p className="resume-tagline">
-              Software engineer · AI-assisted development · Full-stack product engineering
+              Charlton Smith &middot; Software engineer &middot; AI products and full-stack systems.
             </p>
             <ul className="resume-meta">
               <li>{profile.location}</li>
