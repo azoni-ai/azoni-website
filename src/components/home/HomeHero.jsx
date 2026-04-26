@@ -1,7 +1,42 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { profile as staticProfile } from '../../data/profile';
 import CurrentlyBuilding from './CurrentlyBuilding';
+
+const EMAIL = 'charltonuw@gmail.com';
+
+const EmailCta = () => {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  const handleClick = async () => {
+    try {
+      await navigator.clipboard?.writeText(EMAIL);
+      setCopied(true);
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (_err) {
+      // Clipboard not available (older browsers, http context, etc.) — fall through to mailto
+    }
+    // Always also try to launch the user's mail client
+    window.location.href = `mailto:${EMAIL}`;
+  };
+
+  return (
+    <button
+      type="button"
+      className="home-hero-cta"
+      onClick={handleClick}
+      aria-label={`Email ${EMAIL}`}
+      title={EMAIL}
+    >
+      {copied ? 'Copied!' : 'Email me'}
+      <span aria-hidden="true">{copied ? '✓' : '↗'}</span>
+    </button>
+  );
+};
 
 const HomeHero = ({ profile, aside, stats }) => {
   const data = profile || staticProfile;
@@ -20,7 +55,7 @@ const HomeHero = ({ profile, aside, stats }) => {
           <h1 className="home-hero-name">{name}</h1>
 
           <p className="home-hero-tagline">
-            Software engineer. I build AI products and the systems underneath them.
+            Software engineer. I build AI products and ship the infrastructure they run on.
           </p>
 
           <CurrentlyBuilding profile={profile} />
@@ -39,10 +74,7 @@ const HomeHero = ({ profile, aside, stats }) => {
               Resume
               <span aria-hidden="true">→</span>
             </Link>
-            <a href="mailto:charltonuw@gmail.com" className="home-hero-cta">
-              Email me
-              <span aria-hidden="true">↗</span>
-            </a>
+            <EmailCta />
             <a
               href={profile?.links?.github || 'https://github.com/azoni'}
               className="home-hero-cta"

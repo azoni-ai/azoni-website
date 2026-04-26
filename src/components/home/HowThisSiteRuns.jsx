@@ -108,6 +108,34 @@ const HowThisSiteRuns = () => {
         </div>
       )}
 
+      <dl className="how-runs-stack" aria-label="Stack and operations">
+        <div className="how-runs-stack-row">
+          <dt>Compute</dt>
+          <dd>Netlify Functions · Render</dd>
+        </div>
+        <div className="how-runs-stack-row">
+          <dt>Storage</dt>
+          <dd>Firestore · PostgreSQL · Supabase</dd>
+        </div>
+        <div className="how-runs-stack-row">
+          <dt>Schedule</dt>
+          <dd>
+            Conductor every 3h · Scribe daily 5pm UTC · Moltbook every 4h ·
+            Medic every 2 min
+          </dd>
+        </div>
+        <div className="how-runs-stack-row">
+          <dt>Observability</dt>
+          <dd>
+            Activity log · per-call cost &amp; tokens · error log · Medic health checks
+          </dd>
+        </div>
+        <div className="how-runs-stack-row">
+          <dt>Deploy</dt>
+          <dd>Git push &rarr; Netlify autodeploys · 13 functions · 2 Render services</dd>
+        </div>
+      </dl>
+
       <figure className="how-runs-diagram" aria-label="Agent architecture diagram">
         <div className="how-runs-diagram-row">
           <span className="how-runs-diagram-node how-runs-diagram-node--start">Visitor</span>
