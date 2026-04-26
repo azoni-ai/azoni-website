@@ -8,7 +8,7 @@ const ROWS = [
     label: 'Scribe',
     accent: '#fbbf24',
     icon: '/images/scribe-pen.svg',
-    desc: 'Daily 5pm UTC cron. Pulls yesterday\u2019s commits, asks Claude Sonnet to write a post, publishes.',
+    desc: 'Netlify scheduled function, 5pm UTC. GitHub GraphQL → Claude Sonnet via OpenRouter → published Firestore doc with auto-generated SVG cover.',
     link: { to: '/blog', label: 'Latest post' },
   },
   {
@@ -22,45 +22,56 @@ const ROWS = [
     label: 'Conductor',
     accent: '#a78bfa',
     icon: null,
-    desc: 'Runs every few hours. Reads activity, errors, and RAG health, then decides what\u2019s worth doing next.',
+    desc: 'Netlify cron, every 3h. Pulls activity, errors, and RAG health from Firestore in parallel, then asks GPT-4o-mini what to do. Owns the error-review pipeline.',
     link: { to: '/activity', label: 'Agent log' },
   },
   {
     label: 'Moltbook agent',
     accent: '#fb923c',
     icon: '/images/moltbook-lobster.svg',
-    desc: 'LangGraph state machine. Decides whether to post, comment, or upvote. Self-evaluates before publishing.',
+    desc: 'LangGraph workflow on Render. Decides whether to post, comment, or upvote. Self-evaluates, respects the rate-limit cooldown, logs every transition.',
     link: { to: '/moltbook', label: 'Moltbook' },
   },
 ];
 
-const useAgentCostLast30Days = () => {
+const ERROR_TYPES = new Set(['error_logged', 'error_reviewed', 'health_alert']);
+
+const useAgentOpsStats = () => {
   const [cost, setCost] = useState(null);
   const [actionCount, setActionCount] = useState(null);
+  const [errors7d, setErrors7d] = useState(null);
 
   useEffect(() => {
-    const since = Timestamp.fromDate(new Date(Date.now() - 30 * 86_400_000));
+    const since30 = Timestamp.fromDate(new Date(Date.now() - 30 * 86_400_000));
+    const since7 = Date.now() - 7 * 86_400_000;
     const q = query(
       collection(db, 'agent_activity'),
-      where('timestamp', '>=', since)
+      where('timestamp', '>=', since30)
     );
     const unsub = onSnapshot(
       q,
       (snap) => {
         let total = 0;
+        let errCount = 0;
         snap.docs.forEach((d) => {
-          const c = d.data()?.cost;
+          const data = d.data();
+          const c = data?.cost;
           if (Number.isFinite(c)) total += c;
+          if (ERROR_TYPES.has(data?.type)) {
+            const ts = data?.timestamp?.toDate ? data.timestamp.toDate().getTime() : 0;
+            if (ts >= since7) errCount += 1;
+          }
         });
         setCost(total);
         setActionCount(snap.size);
+        setErrors7d(errCount);
       },
-      (err) => console.error('cost stat failed', err)
+      (err) => console.error('ops stats failed', err)
     );
     return () => unsub();
   }, []);
 
-  return { cost, actionCount };
+  return { cost, actionCount, errors7d };
 };
 
 const formatCost = (n) => {
@@ -73,7 +84,7 @@ const formatCost = (n) => {
 };
 
 const HowThisSiteRuns = () => {
-  const { cost, actionCount } = useAgentCostLast30Days();
+  const { cost, actionCount, errors7d } = useAgentOpsStats();
   const showCost = Number.isFinite(cost) && cost > 0;
 
   return (
@@ -89,7 +100,7 @@ const HowThisSiteRuns = () => {
       </header>
 
       {showCost && (
-        <div className="how-runs-budget" aria-label="AI spend">
+        <div className="how-runs-budget" aria-label="Live ops stats">
           <div className="how-runs-budget-row">
             <div className="how-runs-budget-stat">
               <span className="how-runs-budget-value">{formatCost(cost)}</span>
@@ -101,9 +112,16 @@ const HowThisSiteRuns = () => {
                 <span className="how-runs-budget-label">agent actions logged</span>
               </div>
             )}
+            {Number.isFinite(errors7d) && (
+              <div className="how-runs-budget-stat">
+                <span className="how-runs-budget-value">{errors7d}</span>
+                <span className="how-runs-budget-label">errors caught &middot; last 7 days</span>
+              </div>
+            )}
           </div>
           <p className="how-runs-budget-note">
             Every chat reply, blog post, and agent decision is logged with its model and cost.
+            Errors flow into the same feed so I see them before users do.
           </p>
         </div>
       )}

@@ -221,23 +221,23 @@ export const STATION_DEFS = [
   // ─── CAREER (archive stations) ───
   {
     id: 'tmobile', label: 'T-Mobile', color: '#e20074', icon: 'building', category: 'career', isArchive: true,
-    desc: 'Built an internal automation platform that consolidated 4-5 separate tools into a single interface, reducing manual work for network operations teams by over 80%. Migrated the frontend from Django templates to Angular.',
+    desc: 'Owned the GitLab CI/CD pipeline and Python/Django microservice backend for an internal network-ops platform. Migrated the frontend from Django templates to Angular without dropping prod. Consolidated 4–5 tools into one — cut team manual work 80%.',
     tagline: 'Software Engineer II · 2018–2022',
-    tech: ['Python', 'Django', 'Angular', 'PostgreSQL', 'GitLab CI/CD'],
+    tech: ['Python', 'Django', 'Angular', 'PostgreSQL', 'GitLab CI/CD', 'Microservices'],
     logo: '/images/tmobile-logo.svg',
   },
   {
     id: 'capitalone', label: 'Capital One', color: '#004977', icon: 'building', category: 'career', isArchive: true,
-    desc: 'Designed a JSON schema system for automated email testing — new test cases added without code changes. Definitions stored in S3, executed via Lambda, results piped to CloudWatch. Mentored intern to production deployment.',
+    desc: 'Designed a serverless email-testing pipeline on AWS — JSON schema definitions in S3, Lambda execution, results piped to CloudWatch. Engineers added new tests without code changes. Mentored an intern through their first prod deploy.',
     tagline: 'Senior Software Engineer · 2022–2023',
-    tech: ['AWS Lambda', 'S3', 'CloudWatch', 'Python', 'JSON Schema'],
+    tech: ['AWS Lambda', 'S3', 'CloudWatch', 'Python', 'IaC'],
     logo: '/images/capitalone-logo.svg',
   },
   {
     id: 'dustbunny', label: 'Dustbunny', color: '#8b5cf6', icon: 'bot', category: 'career', isArchive: true,
-    desc: 'Fully autonomous bidding system distributed across 50 machines, tracking every collection on OpenSea in real-time. Adapted daily to stay profitable over 6 months in a bot-vs-bot arms race.',
+    desc: 'Distributed bidding system across 50 Dockerized workers — Redis-backed coordination, ~2,500 req/min, 24/7 uptime. Adapted the strategy daily to stay profitable for 6 months in a bot-vs-bot arms race against OpenSea floors.',
     tagline: 'Autonomous NFT Trading · Solo',
-    tech: ['Node.js', 'Redis', 'OpenSea SDK', 'Docker', 'Web3.js'],
+    tech: ['Node.js', 'Docker', 'Redis', 'OpenSea SDK', 'Web3.js'],
     logo: '/images/dustbunny.png',
   },
   {
