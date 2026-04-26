@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
 import '../styles/commits.css';
+import '../styles/commits-warm.css';
 
 // Map repo names to live sites
 const REPO_TO_SITE = {
@@ -104,7 +105,7 @@ const Commits = () => {
 
   return (
     <Layout>
-      <div className="commits-page">
+      <div className="commits-page commits-page-warm">
         <div className="commits-container">
           {/* Header */}
           <div className="commits-page-header">

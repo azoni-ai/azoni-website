@@ -1,0 +1,217 @@
+/* ===== Commits page — warm editorial overrides =====
+   Scopes to .commits-page-warm and overrides the defaults in
+   commits.css to use the warm palette + Fraunces typography.
+*/
+
+.commits-page-warm {
+  background: var(--bg-warm);
+  color: var(--text-warm);
+}
+
+.commits-page-warm .commits-breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+}
+
+.commits-page-warm .breadcrumb-link {
+  color: var(--text-warm-soft);
+  text-decoration: none;
+}
+
+.commits-page-warm .breadcrumb-link:hover {
+  color: var(--accent-coral);
+}
+
+.commits-page-warm .breadcrumb-current {
+  color: var(--text-warm);
+}
+
+.commits-page-warm .commits-page-header h1 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  font-size: clamp(2.25rem, 5vw, 3rem);
+  letter-spacing: -0.02em;
+  color: var(--text-warm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.commits-page-warm .commits-page-header h1 svg {
+  color: var(--accent-coral);
+  width: 28px;
+  height: 28px;
+}
+
+.commits-page-warm .commits-title-section p {
+  font-family: var(--font-body);
+  color: var(--text-warm-soft);
+  font-size: 1rem;
+  margin-top: 6px;
+}
+
+.commits-page-warm .commits-stats-bar {
+  border: 1px solid var(--border-warm);
+  background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
+  border-radius: 12px;
+}
+
+.commits-page-warm .commits-stat-value {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variation-settings: 'opsz' 96;
+  color: var(--text-warm);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.commits-page-warm .commits-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--text-warm-muted);
+  text-transform: uppercase;
+}
+
+.commits-page-warm .repo-filter-btn {
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-soft);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  border-radius: 999px;
+  padding: 6px 12px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.commits-page-warm .repo-filter-btn:hover {
+  color: var(--text-warm);
+  border-color: var(--border-warm-strong);
+}
+
+.commits-page-warm .repo-filter-btn.active {
+  background: color-mix(in srgb, var(--accent-coral) 14%, transparent);
+  color: var(--accent-coral);
+  border-color: color-mix(in srgb, var(--accent-coral) 35%, transparent);
+}
+
+.commits-page-warm .commits-search {
+  background: color-mix(in srgb, var(--bg-warm-card) 70%, transparent);
+  border: 1px solid var(--border-warm-strong);
+  border-radius: 999px;
+  color: var(--text-warm-muted);
+}
+
+.commits-page-warm .commits-search:focus-within {
+  border-color: var(--accent-coral);
+}
+
+.commits-page-warm .commits-search input {
+  background: transparent;
+  color: var(--text-warm);
+  font-family: var(--font-body);
+}
+
+.commits-page-warm .commits-search input::placeholder {
+  color: var(--text-warm-muted);
+}
+
+.commits-page-warm .commits-loading,
+.commits-page-warm .commits-empty {
+  color: var(--text-warm-muted);
+  font-family: var(--font-body);
+}
+
+.commits-page-warm .commits-loading-pulse {
+  background: var(--accent-coral);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-coral) 60%, transparent);
+}
+
+.commits-page-warm .commits-day-line {
+  background: var(--border-warm);
+}
+
+.commits-page-warm .commits-day-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-warm);
+}
+
+.commits-page-warm .commits-day-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-warm-muted);
+}
+
+.commits-page-warm .commit-item {
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.commits-page-warm .commit-timeline-dot {
+  box-shadow: 0 0 0 3px var(--bg-warm);
+}
+
+.commits-page-warm .commit-item-msg {
+  color: var(--text-warm);
+  font-family: var(--font-body);
+}
+
+.commits-page-warm .commit-item-time {
+  color: var(--text-warm-muted);
+  font-family: var(--font-mono);
+}
+
+.commits-page-warm .commit-item-meta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-warm-muted);
+}
+
+.commits-page-warm .commit-item-repo a,
+.commits-page-warm .commit-item-repo span {
+  color: var(--text-warm-soft);
+}
+
+.commits-page-warm .commit-item-repo a:hover {
+  color: var(--accent-coral);
+}
+
+.commits-page-warm .commit-item-live {
+  color: var(--text-warm-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.commits-page-warm .commit-item-live:hover {
+  color: var(--accent-coral);
+}
+
+.commits-page-warm .commit-item-claude,
+.commits-page-warm .commit-item-codex,
+.commits-page-warm .commit-item-branch {
+  background: color-mix(in srgb, var(--bg-warm-card) 80%, transparent);
+  border: 1px solid var(--border-warm);
+  color: var(--text-warm-soft);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.commits-page-warm .commit-item-sha {
+  color: var(--text-warm-muted);
+}
+
+.commits-page-warm .commit-item-ago {
+  color: var(--text-warm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.commits-page-warm .repo-dot {
+  box-shadow: 0 0 6px color-mix(in srgb, var(--repo-color, var(--accent-coral)) 60%, transparent);
+}

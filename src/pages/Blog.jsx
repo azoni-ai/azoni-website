@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import useVisitTracker from '../hooks/useVisitTracker';
 import { db } from '../config/firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import '../styles/blog-warm.css';
 
 const Blog = () => {
   useVisitTracker('daily-blog');
@@ -43,51 +44,60 @@ const Blog = () => {
 
   return (
     <Layout>
-      <section className="section blog-page">
-        <div className="container">
-          <div className="blog-header">
-            <h1>Blog</h1>
-            <p className="blog-subtitle">
-              Building in public — breaking down projects, technical decisions, and lessons learned.
+      <div className="blog-page-warm">
+        <div className="blog-page-inner">
+          <header className="blog-page-header">
+            <p className="blog-page-eyebrow">Writing · Auto-published by Scribe</p>
+            <h1 className="blog-page-heading">What I shipped, narrated daily.</h1>
+            <p className="blog-page-tagline">
+              Every weekday at 5pm UTC, Scribe (Claude Sonnet via OpenRouter) reads my last
+              24&nbsp;hours of GitHub commits and writes a post explaining what shipped and why.
+              Not a commit list &mdash; an actual narrative.
             </p>
-          </div>
+          </header>
 
           {loading ? (
-            <div className="blog-loading">Loading posts...</div>
+            <p className="blog-page-status">Loading posts&hellip;</p>
           ) : posts.length === 0 ? (
-            <div className="blog-empty">
-              <p>No posts yet. Check back soon!</p>
-            </div>
+            <p className="blog-page-status">No posts yet. Check back tomorrow.</p>
           ) : (
-            <div className="blog-grid">
+            <div className="blog-page-grid">
               {posts.map((post) => (
-                <Link to={`/blog/${post.slug}`} key={post.id} className="blog-card">
+                <Link
+                  to={`/blog/${post.slug}`}
+                  key={post.id}
+                  className="blog-page-card"
+                >
                   {post.coverImage && (
-                    <div className="blog-card-image">
-                      <img src={post.coverImage} alt={post.title} />
+                    <div className="blog-page-card-image">
+                      <img src={post.coverImage} alt="" />
                     </div>
                   )}
-                  <div className="blog-card-content">
-                    <div className="blog-card-meta">
-                      <span className="blog-card-date">{formatDate(post.publishedAt)}</span>
+                  <div className="blog-page-card-body">
+                    <div className="blog-page-card-meta">
+                      <span className="blog-page-card-date">{formatDate(post.publishedAt)}</span>
                       {post.tags?.length > 0 && (
-                        <div className="blog-card-tags">
+                        <div className="blog-page-card-tags">
                           {post.tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="blog-tag">{tag}</span>
+                            <span key={tag} className="blog-page-card-tag">{tag}</span>
                           ))}
                         </div>
                       )}
                     </div>
-                    <h2 className="blog-card-title">{post.title}</h2>
-                    <p className="blog-card-excerpt">{post.excerpt}</p>
-                    <span className="blog-card-link">Read more →</span>
+                    <h2 className="blog-page-card-title">{post.title}</h2>
+                    {post.excerpt && (
+                      <p className="blog-page-card-excerpt">{post.excerpt}</p>
+                    )}
+                    <span className="blog-page-card-cta">
+                      Read post <span aria-hidden="true">→</span>
+                    </span>
                   </div>
                 </Link>
               ))}
             </div>
           )}
         </div>
-      </section>
+      </div>
     </Layout>
   );
 };

@@ -603,23 +603,41 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 /* Footer */
 .footer {
-  padding: var(--space-3xl) 0;
-  border-top: 1px solid var(--border-subtle);
+  padding: var(--space-3xl) var(--space-md);
+  border-top: 1px solid var(--border-warm, var(--border-subtle));
   text-align: center;
-  color: var(--text-muted);
-  font-size: 1rem;
+  color: var(--text-warm-muted, var(--text-muted));
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  background: var(--bg-warm, transparent);
 }
 
 .footer-links {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: var(--space-2xl);
-  margin-bottom: var(--space-xl);
-  font-size: 1rem;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-md);
+}
+
+.footer-links a {
+  color: var(--text-warm-soft, var(--text-secondary));
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  letter-spacing: 0;
+  transition: color 0.15s ease;
 }
 
 .footer-links a:hover {
-  color: var(--text-primary);
+  color: var(--accent-coral, var(--accent-primary));
+}
+
+.footer p {
+  margin: 0;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Animations */
