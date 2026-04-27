@@ -15,7 +15,16 @@ const Footer = () => {
           <Link to="/resume">Resume</Link>
           <a href={`mailto:${profile.email}`}>Contact</a>
         </div>
-        <p>© {currentYear} {profile.name}. Built with React.</p>
+        <p>
+          © {currentYear} {profile.name} &middot; Seattle, WA &middot; Auto-deployed from{' '}
+          <a
+            href="https://github.com/azoni-ai/azoni-website"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            azoni-ai/azoni-website
+          </a>
+        </p>
       </div>
     </footer>
   );
