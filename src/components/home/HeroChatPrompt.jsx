@@ -51,6 +51,7 @@ const HeroChatPrompt = () => {
         model: data.modelName || data.usage?.model || MODEL,
         chunks: data._rag?.chunksRetrieved,
         intent: data._rag?.intent,
+        topChunks: data._rag?.topChunks?.slice(0, 3) || [],
       };
 
       setMessages((prev) => [...prev, { role: 'assistant', content: reply, meta }]);
@@ -142,6 +143,16 @@ const HeroChatPrompt = () => {
                       <p key={idx}>{line}</p>
                     ))}
                   </div>
+                  {m.meta?.topChunks?.length > 0 && (
+                    <p className="hero-chat-msg-sources">
+                      <span className="hero-chat-msg-sources-label">Drew from</span>
+                      {m.meta.topChunks.map((chunk, idx) => (
+                        <span key={idx} className="hero-chat-msg-source-chip">
+                          {chunk.title || chunk.category}
+                        </span>
+                      ))}
+                    </p>
+                  )}
                   {m.meta && (m.meta.model || m.meta.chunks != null) && (
                     <p className="hero-chat-msg-meta">
                       {m.meta.model && <span>{m.meta.model}</span>}

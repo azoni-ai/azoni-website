@@ -36,10 +36,25 @@ const ROWS = [
 
 const ERROR_TYPES = new Set(['error_logged', 'error_reviewed', 'health_alert']);
 
+const SOURCE_DISPLAY = {
+  orchestrator: { label: 'Conductor', color: '#a78bfa' },
+  'daily-blog': { label: 'Scribe', color: '#fbbf24' },
+  'azoni-ai': { label: 'Azoni AI', color: '#60a5fa' },
+  azoni: { label: 'Azoni AI', color: '#60a5fa' },
+  'moltbook-agent': { label: 'Moltbook agent', color: '#fb923c' },
+  benchpressonly: { label: 'Bench Only', color: '#4ade80' },
+  rowcrew: { label: 'RowCrew', color: '#34d399' },
+  'spell-brigade': { label: 'Spell Brigade', color: '#c084fc' },
+  oldwaystoday: { label: 'Old Ways Today', color: '#d97706' },
+  'old-ways-today': { label: 'Old Ways Today', color: '#d97706' },
+  embedroute: { label: 'EmbedRoute', color: '#20d9d2' },
+};
+
 const useAgentOpsStats = () => {
   const [cost, setCost] = useState(null);
   const [actionCount, setActionCount] = useState(null);
   const [errors7d, setErrors7d] = useState(null);
+  const [bySource, setBySource] = useState([]);
 
   useEffect(() => {
     const since30 = Timestamp.fromDate(new Date(Date.now() - 30 * 86_400_000));
@@ -53,25 +68,39 @@ const useAgentOpsStats = () => {
       (snap) => {
         let total = 0;
         let errCount = 0;
+        const sourceTotals = new Map();
+
         snap.docs.forEach((d) => {
           const data = d.data();
           const c = data?.cost;
-          if (Number.isFinite(c)) total += c;
+          if (Number.isFinite(c)) {
+            total += c;
+            if (c > 0) {
+              const src = data?.source || 'unknown';
+              sourceTotals.set(src, (sourceTotals.get(src) || 0) + c);
+            }
+          }
           if (ERROR_TYPES.has(data?.type)) {
             const ts = data?.timestamp?.toDate ? data.timestamp.toDate().getTime() : 0;
             if (ts >= since7) errCount += 1;
           }
         });
+
+        const sourceList = Array.from(sourceTotals.entries())
+          .map(([source, value]) => ({ source, value }))
+          .sort((a, b) => b.value - a.value);
+
         setCost(total);
         setActionCount(snap.size);
         setErrors7d(errCount);
+        setBySource(sourceList);
       },
       (err) => console.error('ops stats failed', err)
     );
     return () => unsub();
   }, []);
 
-  return { cost, actionCount, errors7d };
+  return { cost, actionCount, errors7d, bySource };
 };
 
 const formatCost = (n) => {
@@ -84,8 +113,10 @@ const formatCost = (n) => {
 };
 
 const HowThisSiteRuns = () => {
-  const { cost, actionCount, errors7d } = useAgentOpsStats();
+  const { cost, actionCount, errors7d, bySource } = useAgentOpsStats();
   const showCost = Number.isFinite(cost) && cost > 0;
+  const topSources = bySource.slice(0, 4);
+  const topSourceTotal = topSources.reduce((sum, s) => sum + s.value, 0);
 
   return (
     <section className="how-runs" aria-labelledby="how-runs-heading">
@@ -123,6 +154,37 @@ const HowThisSiteRuns = () => {
             Every chat reply, blog post, and agent decision is logged with its model and cost.
             Errors flow into the same feed so I see them before users do.
           </p>
+
+          {topSources.length > 0 && topSourceTotal > 0 && (
+            <div className="how-runs-budget-breakdown" aria-label="Cost by app">
+              <p className="how-runs-budget-breakdown-label">Where it goes</p>
+              <ul className="how-runs-budget-breakdown-list">
+                {topSources.map(({ source, value }) => {
+                  const display = SOURCE_DISPLAY[source] || { label: source, color: '#6f675c' };
+                  const pct = topSourceTotal > 0 ? Math.round((value / topSourceTotal) * 100) : 0;
+                  return (
+                    <li
+                      key={source}
+                      className="how-runs-budget-breakdown-row"
+                      style={{ '--breakdown-color': display.color }}
+                    >
+                      <span className="how-runs-budget-breakdown-name">{display.label}</span>
+                      <span className="how-runs-budget-breakdown-bar" aria-hidden="true">
+                        <span
+                          className="how-runs-budget-breakdown-fill"
+                          style={{ width: `${Math.max(2, pct)}%` }}
+                        />
+                      </span>
+                      <span className="how-runs-budget-breakdown-value">
+                        {formatCost(value)}
+                        <span className="how-runs-budget-breakdown-pct"> · {pct}%</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

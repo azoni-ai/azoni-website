@@ -769,7 +769,7 @@ const BlogTab = () => {
           </div>
 
           <div className="form-group">
-            <label>Cover Image URL</label>
+            <label>Cover image URL</label>
             <input
               type="text"
               value={formData.coverImage}
@@ -788,12 +788,12 @@ const BlogTab = () => {
           <div className="form-group">
             <label>Content (Markdown)</label>
             <div className="content-toolbar">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={insertImageMarkdown}
               >
-                📷 Insert Image
+                Insert image
               </button>
             </div>
             <textarea
@@ -848,7 +848,7 @@ code block
           </div>
 
           <div className="form-group">
-            <label>Related Project (optional)</label>
+            <label>Related project (optional)</label>
             <input
               type="text"
               value={formData.relatedProject}
@@ -875,7 +875,7 @@ code block
               onClick={savePost}
               disabled={saving}
             >
-              {saving ? 'Saving...' : (editingPost ? 'Update Post' : 'Create Post')}
+              {saving ? 'Saving…' : (editingPost ? 'Update post' : 'Create post')}
             </button>
           </div>
         </div>
@@ -888,7 +888,7 @@ code block
       <div className="blog-tab-header">
         <h3>Blog posts ({posts.length})</h3>
         <button className="btn btn-primary" onClick={() => setShowEditor(true)}>
-          + New Post
+          + New post
         </button>
       </div>
 

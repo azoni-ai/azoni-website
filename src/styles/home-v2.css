@@ -432,6 +432,32 @@
   font-style: italic;
 }
 
+.hero-chat-msg-sources {
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-warm-muted);
+}
+
+.hero-chat-msg-sources-label {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+  margin-right: 2px;
+}
+
+.hero-chat-msg-source-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--border-warm);
+  border-radius: 999px;
+  color: var(--text-warm-soft);
+  background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
+}
+
 .hero-chat-msg-meta {
   margin: 8px 0 0;
   display: flex;
@@ -743,6 +769,93 @@
   color: var(--text-warm-soft);
   margin: 0;
   max-width: 60ch;
+}
+
+.how-runs-budget-breakdown {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-warm);
+}
+
+.how-runs-budget-breakdown-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+  margin: 0 0 var(--space-sm);
+}
+
+.how-runs-budget-breakdown-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.how-runs-budget-breakdown-row {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  align-items: center;
+  gap: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-warm-soft);
+}
+
+.how-runs-budget-breakdown-name {
+  color: var(--breakdown-color, var(--text-warm));
+}
+
+.how-runs-budget-breakdown-bar {
+  height: 6px;
+  background: color-mix(in srgb, var(--breakdown-color, var(--accent-coral)) 8%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+  display: block;
+}
+
+.how-runs-budget-breakdown-fill {
+  display: block;
+  height: 100%;
+  background: var(--breakdown-color, var(--accent-coral));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.how-runs-budget-breakdown-value {
+  color: var(--text-warm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.how-runs-budget-breakdown-pct {
+  color: var(--text-warm-muted);
+}
+
+@media (max-width: 640px) {
+  .how-runs-budget-breakdown-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name value"
+      "bar bar";
+    row-gap: 4px;
+  }
+
+  .how-runs-budget-breakdown-name {
+    grid-area: name;
+  }
+
+  .how-runs-budget-breakdown-bar {
+    grid-area: bar;
+  }
+
+  .how-runs-budget-breakdown-value {
+    grid-area: value;
+  }
 }
 
 .how-runs-stack {

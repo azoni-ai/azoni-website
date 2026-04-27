@@ -3,16 +3,16 @@ export const projects = [
     id: 'fab-stats',
     title: 'FaB Stats',
     tagline: 'Stats site and Discord bot for the Flesh and Blood TCG.',
-    description: 'Full-stack analytics platform with 3,000+ registered users and 1,000,000+ tracked matches for the Flesh and Blood TCG competitive community.',
-    longDescription: `FaB Stats is a production analytics platform serving the competitive Flesh and Blood community. Players track match results, explore hero-level performance data, compare matchup win rates, and climb leaderboards.
+    description: 'Stats site for competitive Flesh and Blood. Match logging, hero performance, matchup win rates, leaderboards, daily minigames.',
+    longDescription: `Built FaB Stats because the Flesh and Blood community kept arguing about the meta without real data.
 
-The app includes player profiles, match history, head-to-head matchup tools, community features, and mini-games — all backed by real user data across 3,000+ accounts and 1,000,000+ logged matches.`,
-    tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Recharts'],
+Players log matches, browse hero-level performance, compare matchup win rates, and climb leaderboards. There's a Chrome extension that imports a tournament bracket in one click, a Discord bot in 20+ servers, and a rotating set of daily puzzle minigames (FaBdoku, Bladedash, Brutebrawl) that people play in the morning.`,
+    tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Netlify Functions', 'Satori'],
     highlights: [
-      '3,000+ registered users with active match tracking',
-      '1,000,000+ competitive matches logged and analyzed',
-      'Hero performance analytics and matchup win rates',
-      'Leaderboards, player profiles, and community tools'
+      'Chrome extension imports a whole tournament in one click',
+      'Discord bot with 24 slash commands across multiple servers',
+      'Daily minigames with seeded RNG and Satori-generated OG images',
+      'Hero-level analytics and matchup data'
     ],
     links: {
       live: 'https://fabstats.net',
@@ -27,16 +27,16 @@ The app includes player profiles, match history, head-to-head matchup tools, com
     id: 'embedroute',
     title: 'EmbedRoute',
     tagline: 'Embedding API gateway. One key, four providers.',
-    description: 'Single API for embeddings across OpenAI, Voyage, Cohere, and Mistral with consistent request and response formats.',
-    longDescription: `EmbedRoute is a unified embedding API gateway designed to reduce provider lock-in and integration overhead.
+    description: 'Embedding API gateway. One key, four providers, drop-in OpenAI-compatible endpoint.',
+    longDescription: `Every RAG project I built had the same three files: an embedding wrapper, a provider switch, and a usage logger. EmbedRoute is the gateway I extracted so I'd stop writing them.
 
-It provides one authentication model, one request shape, and one response contract while routing to multiple providers. The platform focuses on operational simplicity: faster model switching, clearer cost controls, and lower integration time for teams running RAG and semantic search in production.`,
-    tech: ['Next.js', 'TypeScript', 'Supabase', 'PostgreSQL', 'Vercel'],
+OpenAI-compatible endpoint — drop-in for existing SDK code. Routes to OpenAI, Voyage, Cohere, or Mistral. Caches duplicate requests. Logs cost per call. Scopes usage per API key. Swapping models is a config change, not a deploy.`,
+    tech: ['Next.js', 'TypeScript', 'Supabase', 'PostgreSQL', 'Netlify'],
     highlights: [
-      'OpenAI-compatible endpoint design for low-friction adoption',
-      'Multi-provider routing across major embedding vendors',
-      'Consistent model naming and response handling',
-      'Built for RAG and semantic search workloads'
+      'OpenAI-compatible endpoint — drop-in for existing SDK code',
+      'Supabase auth + per-key usage scoping, PostgreSQL request log',
+      'Provider routing with dedup caching to cut bill',
+      'Powers azoni.ai chatbot and Old Ways Today'
     ],
     links: {
       live: 'https://www.embedroute.com',
@@ -50,16 +50,16 @@ It provides one authentication model, one request shape, and one response contra
     id: 'azoni-mcp',
     title: 'Azoni MCP Server',
     tagline: 'Shared tooling backbone. Agents call this for live data.',
-    description: 'Domain-based API server exposing live tools for fitness, gaming, content, and ops workflows used by autonomous agents.',
-    longDescription: `Azoni MCP Server is the shared tooling backbone across multiple products in this workspace. It exposes authenticated endpoints for activity logs, app health, analytics, and action execution.
+    description: 'Shared tooling backbone for the agent ecosystem. 37 tools across 9 domains, behind auth + rate limits.',
+    longDescription: `MCP server is what every agent in this ecosystem calls into for live data. Activity logs, per-app health, analytics, action execution — all behind one authenticated surface.
 
-The server is organized by domain modules and used by both interactive chat experiences and autonomous workflows. It standardizes access patterns, applies rate limits, and centralizes operational observability across projects.`,
-    tech: ['Node.js', 'Express', 'Firebase Admin', 'Rate Limiting', 'REST API'],
+Organized by domain (fitness, gaming, content, ops). Auth and rate limits on every route. Both interactive chat and autonomous workflows hit the same endpoints, so observability lives in one place. Hosted on Render, called from Netlify Functions and the Moltbook agent.`,
+    tech: ['Node.js', 'Express', 'Firebase Admin', 'Render', 'REST'],
     highlights: [
-      '40+ tool endpoints across multiple domains',
-      'Auth and rate-limiting middleware on all routes',
-      'Shared interface for agents and portfolio systems',
-      'Cross-project data surface for production automation'
+      '37 tools across 9 domains',
+      'Auth + rate limits on every route',
+      'Single observability surface for the agent ecosystem',
+      'Hosted on Render; called by every other agent'
     ],
     links: {
       live: null,
@@ -73,16 +73,16 @@ The server is organized by domain modules and used by both interactive chat expe
     id: 'moltbook-agent',
     title: 'Azoni Moltbook Agent',
     tagline: 'LangGraph agent running a social presence on autopilot.',
-    description: 'Autonomous agent that observes feed context, decides actions, drafts content, quality-checks output, and executes on schedule.',
-    longDescription: `Azoni Moltbook Agent is a LangGraph-powered system that runs an end-to-end agent loop: observe, decide, draft, evaluate, execute, and log.
+    description: 'LangGraph agent that runs a social presence on autopilot. Observe, decide, draft, self-evaluate, post.',
+    longDescription: `Moltbook is a social network where AI agents are allowed to post. I built one of the agents.
 
-It is built as a production workflow with explicit state transitions, external API integrations, and auditable activity logs. The agent is designed to operate safely under scheduled execution while keeping decision quality visible and measurable.`,
-    tech: ['Python', 'LangGraph', 'LangChain', 'FastAPI', 'Firebase'],
+LangGraph state machine on Render. Wakes up every few hours, reads the feed, decides whether to post, comment, or upvote. If it drafts something, it evaluates its own output before publishing. Respects the platform's 30-minute cooldown. Every state transition is logged to Firestore.`,
+    tech: ['Python', 'LangGraph', 'FastAPI', 'Firestore', 'OpenRouter', 'Render'],
     highlights: [
-      'Stateful agent workflow with explicit step transitions',
-      'Scheduled autonomous runs plus manual triggers',
-      'Quality evaluation before posting actions',
-      'Firestore-backed activity logging'
+      'Stateful workflow — explicit transitions, no hidden steps',
+      'Self-evaluates output before posting',
+      'Respects platform cooldown and rate limits',
+      'Every transition logged for replay/debug'
     ],
     links: {
       live: null,
@@ -96,16 +96,16 @@ It is built as a production workflow with explicit state transitions, external A
     id: 'old-ways-today',
     title: 'Old Ways Today',
     tagline: 'Wellness site about non-toxic household alternatives.',
-    description: 'Full-stack product helping families find non-toxic alternatives with AI chat, editorial content, and conversion-focused product pages.',
-    longDescription: `Old Ways Today combines editorial publishing, product discovery, and AI assistance into a single production platform.
+    description: 'Wellness site about non-toxic household alternatives. RAG chatbot, editorial blog, and product recommendations.',
+    longDescription: `First test of pointing my agent stack at a real product instead of a portfolio.
 
-The stack includes a Next.js frontend and FastAPI backend with OpenAI integration, SEO-friendly content architecture, and subscription workflows. The system is built to support both educational content and practical purchase decisions.`,
-    tech: ['Next.js', 'FastAPI', 'PostgreSQL', 'OpenAI API', 'Netlify', 'Render'],
+RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and product recommendation flow. FastAPI backend, Next.js frontend, EmbedRoute for vector search. Same observability and per-call cost logging as the rest of the ecosystem.`,
+    tech: ['Next.js', 'FastAPI', 'Firestore', 'PostgreSQL', 'EmbedRoute', 'Render'],
     highlights: [
-      'AI-assisted Q and A for product guidance',
-      'Production CMS workflows for content publishing',
-      'SEO-focused architecture for discoverability',
-      'Integrated backend services and rate control'
+      'RAG chatbot over a curated Firestore knowledge base',
+      'Editorial blog + product recommendation flow',
+      'EmbedRoute for vector search across providers',
+      'Per-call cost logging surfaces in the agent feed'
     ],
     links: {
       live: 'https://oldwaystoday.com',
@@ -119,16 +119,16 @@ The stack includes a Next.js frontend and FastAPI backend with OpenAI integratio
     id: 'bench-only',
     title: 'Bench Only',
     tagline: 'Strength training app that writes the program for you.',
-    description: 'Progressive web app for lifters with workout tracking, goal management, group coaching, and AI training assistance.',
-    longDescription: `Bench Only is a production fitness application focused on measurable progress for strength athletes.
+    description: 'Strength training app that writes the program. Offline-first PWA, Netlify Functions behind Firebase auth.',
+    longDescription: `I was tired of fiddling with spreadsheets between sets. I wanted an app that knew what I lifted last week and could just give me today's session.
 
-It combines structured workout logging with AI-assisted recommendations and analysis features. The app supports individual and group workflows, runs as an installable PWA, and is designed for frequent mobile usage.`,
-    tech: ['React', 'Vite', 'Firebase', 'OpenAI API', 'Tailwind CSS', 'PWA'],
+Generates workouts from your history and recent fatigue. Offline-first PWA — works in basement gyms, syncs when you leave. Netlify Functions handle the OpenAI calls behind Firebase auth so the API key never ships to clients. Per-user token dashboard tracks spend per account.`,
+    tech: ['React', 'Vite', 'Firebase', 'Netlify Functions', 'OpenAI', 'PWA'],
     highlights: [
-      'AI-assisted workout recommendations and analysis',
-      'Goal tracking and progress visibility',
-      'Group training and shared scheduling features',
-      'Installable mobile-first PWA experience'
+      'Per-user AI workout generation that adapts to volume + fatigue',
+      'Offline-first PWA — service worker handles sync',
+      'API key stays server-side via Netlify Functions',
+      'Per-user token dashboard for OpenAI spend'
     ],
     links: {
       live: 'https://benchpressonly.com',
@@ -142,16 +142,16 @@ It combines structured workout logging with AI-assisted recommendations and anal
     id: 'row-crew',
     title: 'Row Crew',
     tagline: 'Rowing tracker with photo-verified meters.',
-    description: 'Rowing tracker with AI-assisted workout verification, social challenges, and real-time progress features.',
-    longDescription: `Row Crew turns solitary rowing sessions into a connected social product with accountability and competition mechanics.
+    description: 'Rowing tracker that turns ergs into a team. Tesseract OCR + Claude verification of erg photos.',
+    longDescription: `Rowing alone on a machine is lonely. RowCrew totals everyone's meters into a shared lap of the planet (40,075 km), hitting real landmarks as the community passes them.
 
-The app uses vision-based workout verification and supports challenges, rankings, and group workflows. It is designed as a full PWA with mobile-first interaction patterns and real-time updates.`,
-    tech: ['React', 'Firebase', 'Claude API', 'Firestore', 'PWA'],
+At the end of a session users photograph their erg screen. Tesseract pulls the numbers on-device. A Claude API call verifies the photo matches the claimed meters. Cheapest anti-cheat I could build, and it holds up.`,
+    tech: ['React', 'Firebase', 'Tesseract.js', 'Claude API', 'Netlify'],
     highlights: [
-      'AI-assisted image verification for workout entries',
-      'Group challenges and competitive leaderboard loops',
-      'Real-time updates via Firestore listeners',
-      'PWA support for mobile installation and repeat use'
+      'Client-side Tesseract OCR + Claude verification',
+      'Shared world-tour progress with milestone landmarks',
+      'Real-time leaderboards via Firestore listeners',
+      'PWA — works on mobile, syncs when online'
     ],
     links: {
       live: 'https://rowcrew.netlify.app',
@@ -165,16 +165,16 @@ The app uses vision-based workout verification and supports challenges, rankings
     id: 'azoni-ai',
     title: 'azoni.ai',
     tagline: 'This site. Chatbot, agents, and the stack underneath.',
-    description: 'Personal portfolio platform with chat assistant, activity dashboards, and live system integrations.',
-    longDescription: `This portfolio is built as an operational product rather than a static brochure site.
+    description: 'This site. Chatbot answering questions, agents writing the blog, activity feed running live.',
+    longDescription: `The portfolio is itself a live AI product. Same stack I run in production for the other apps.
 
-It includes interactive project detail pages, AI chat workflows, activity telemetry, and live integrations with supporting services. The architecture demonstrates production frontend patterns and practical AI integration in a public-facing application.`,
-    tech: ['React', 'Firebase', 'Netlify Functions', 'OpenRouter', 'RAG'],
+Scribe writes a blog post every weekday from my GitHub commits. Conductor runs every 3 hours, decides what's worth doing next. Azoni AI answers questions over a Firestore RAG index that grows itself when retrieval scores drop. Every action — chat reply, blog post, knowledge generation — is logged with model and cost.`,
+    tech: ['React', 'Firebase', 'Netlify Functions', 'OpenRouter', 'EmbedRoute'],
     highlights: [
-      'AI assistant integrated into portfolio experience',
-      'Live activity surfaces from production systems',
-      'Project detail routing with reusable data structures',
-      'Serverless backend functions for integrations'
+      'Live RAG chatbot with on-the-fly knowledge generation',
+      'Daily Scribe cron writes blog posts from commits',
+      'Conductor cron picks the next agent action every 3h',
+      'All cost + tokens logged in the activity feed'
     ],
     links: {
       live: 'https://azoni.ai',
