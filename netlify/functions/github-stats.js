@@ -235,6 +235,22 @@ exports.handler = async (event, context) => {
     const last7Days = allDays
       .filter(d => d.date >= sevenDaysAgoStr && d.date <= today)
       .reduce((sum, d) => sum + d.contributionCount, 0);
+
+    // Calendar-month total (since the 1st of the current month)
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString().split('T')[0];
+    const thisMonth = allDays
+      .filter(d => d.date >= startOfMonth && d.date <= today)
+      .reduce((sum, d) => sum + d.contributionCount, 0);
+
+    // Calendar-year total (since Jan 1 of the current year)
+    const startOfYear = `${now.getFullYear()}-01-01`;
+    const thisYear = allDays
+      .filter(d => d.date >= startOfYear && d.date <= today)
+      .reduce((sum, d) => sum + d.contributionCount, 0);
+
+    // Note: GitHub's contributionCalendar covers the trailing ~365 days,
+    // so this is roughly "last 12 months". Kept for back-compat with /commits.
     const last30Days = allDays.reduce((sum, d) => sum + d.contributionCount, 0);
 
     // Combine both repo lists.
@@ -412,6 +428,8 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         today: todayCommits,
         last7Days,
+        thisMonth,
+        thisYear,
         last30Days,
         recentCommits: topCommits,
         repos: repoList,

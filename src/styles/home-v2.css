@@ -165,13 +165,13 @@
 
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: var(--space-lg);
   margin: 0 0 var(--space-xl);
   padding: var(--space-md) 0;
   border-top: 1px solid var(--border-warm);
   border-bottom: 1px solid var(--border-warm);
-  max-width: 540px;
+  max-width: 600px;
 }
 
 .hero-stats-item {
@@ -204,10 +204,7 @@
 @media (max-width: 480px) {
   .hero-stats {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .hero-stats-item:nth-child(3) {
-    grid-column: 1 / -1;
+    gap: var(--space-md);
   }
 }
 

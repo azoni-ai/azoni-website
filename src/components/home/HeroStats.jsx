@@ -20,14 +20,19 @@ const HeroStats = ({ githubStats }) => {
     return () => unsub();
   }, []);
 
+  const yearLabel = new Date().getFullYear();
   const stats = [
     {
       value: String(PROJECT_STORIES.length),
       label: 'projects shipped',
     },
-    githubStats?.last7Days != null && {
-      value: String(githubStats.last7Days),
-      label: 'commits · this week',
+    githubStats?.thisYear != null && {
+      value: githubStats.thisYear.toLocaleString(),
+      label: `commits · ${yearLabel}`,
+    },
+    githubStats?.thisMonth != null && {
+      value: githubStats.thisMonth.toLocaleString(),
+      label: 'commits · this month',
     },
     agentCount24h != null && agentCount24h > 0 && {
       value: String(agentCount24h),

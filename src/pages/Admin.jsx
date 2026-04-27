@@ -85,47 +85,47 @@ const Admin = () => {
           </div>
 
           <div className="admin-main-tabs">
-            <button 
+            <button
               className={`admin-main-tab ${activeTab === 'agents' ? 'active' : ''}`}
               onClick={() => setActiveTab('agents')}
             >
               Agents
             </button>
-            <button 
+            <button
               className={`admin-main-tab ${activeTab === 'usage' ? 'active' : ''}`}
               onClick={() => setActiveTab('usage')}
             >
-              📊 Chat Usage
+              Chat usage
             </button>
-            <button 
+            <button
               className={`admin-main-tab ${activeTab === 'comments' ? 'active' : ''}`}
               onClick={() => setActiveTab('comments')}
             >
-              💬 Comments
+              Comments
             </button>
-            <button 
+            <button
               className={`admin-main-tab ${activeTab === 'blog' ? 'active' : ''}`}
               onClick={() => setActiveTab('blog')}
             >
-              ✍️ Blog
+              Blog
             </button>
-            <button 
+            <button
               className={`admin-main-tab ${activeTab === 'rag' ? 'active' : ''}`}
               onClick={() => setActiveTab('rag')}
             >
-              🧠 RAG
+              RAG
             </button>
-            <button 
+            <button
               className={`admin-main-tab ${activeTab === 'moltbook' ? 'active' : ''}`}
               onClick={() => setActiveTab('moltbook')}
             >
-              🦞 Moltbook
+              Moltbook
             </button>
-            <button 
+            <button
               className={`admin-main-tab ${activeTab === 'customize' ? 'active' : ''}`}
               onClick={() => setActiveTab('customize')}
             >
-              🎨 Customize
+              Profile
             </button>
           </div>
 
@@ -154,12 +154,12 @@ const AGENT_COLORS = {
 };
 
 const AGENT_NAMES = {
-  orchestrator: 'Orchestrator',
+  orchestrator: 'Conductor',
   chat: 'Azoni AI',
-  blog: 'The Scribe',
-  fitness: 'Coach',
-  gaming: 'The Wizard',
-  social: 'The Hype Man',
+  blog: 'Scribe',
+  fitness: 'Fitness',
+  gaming: 'Spell Brigade',
+  social: 'Moltbook agent',
   oldways: 'Old Ways Today',
 };
 
@@ -284,7 +284,7 @@ const AgentsTab = () => {
           Overview
         </button>
         <button className={`admin-tab ${subTab === 'chats' ? 'active' : ''}`} onClick={() => setSubTab('chats')}>
-          Agent Chats ({agentChats.length})
+          Agent chats ({agentChats.length})
         </button>
         <button className={`admin-tab ${subTab === 'activity' ? 'active' : ''}`} onClick={() => setSubTab('activity')}>
           Activity ({activities.length})
@@ -320,32 +320,32 @@ const AgentsTab = () => {
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-value">{chatStats.total}</div>
-              <div className="stat-label">Agent Chats</div>
+              <div className="stat-label">Agent chats</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">{chatStats.totalTokens.toLocaleString()}</div>
-              <div className="stat-label">Chat Tokens</div>
+              <div className="stat-label">Chat tokens</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">${chatStats.totalCost.toFixed(6)}</div>
-              <div className="stat-label">Chat Cost</div>
+              <div className="stat-label">Chat cost</div>
             </div>
             <div className="stat-card highlight">
               <div className="stat-value">{chatStats.todayChats}</div>
-              <div className="stat-label">Today's Chats</div>
+              <div className="stat-label">Today&rsquo;s chats</div>
             </div>
             <div className="stat-card highlight">
               <div className="stat-value">{activityStats.total}</div>
-              <div className="stat-label">Agent Events</div>
+              <div className="stat-label">Agent events</div>
             </div>
             <div className="stat-card" style={errorStats.unresolved > 0 ? { borderColor: '#f87171' } : {}}>
               <div className="stat-value">{errorStats.unresolved}</div>
-              <div className="stat-label">Unresolved Errors</div>
+              <div className="stat-label">Unresolved errors</div>
             </div>
           </div>
 
           {/* Per-agent chat breakdown */}
-          <h3 style={{ margin: 'var(--space-xl) 0 var(--space-md)' }}>Usage by Agent</h3>
+          <h3 style={{ margin: 'var(--space-xl) 0 var(--space-md)' }}>Usage by agent</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginBottom: 'var(--space-xl)' }}>
             {Object.entries(chatStats.byAgent).sort((a,b) => b[1].count - a[1].count).map(([agent, data]) => (
               <div key={agent} style={{
@@ -371,7 +371,7 @@ const AgentsTab = () => {
           </div>
 
           {/* Activity type breakdown */}
-          <h3 style={{ margin: '0 0 var(--space-md)' }}>Activity by Type</h3>
+          <h3 style={{ margin: '0 0 var(--space-md)' }}>Activity by type</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--space-xl)' }}>
             {Object.entries(activityStats.byType).sort((a,b) => b[1] - a[1]).map(([type, count]) => (
               <span key={type} style={{
@@ -384,7 +384,7 @@ const AgentsTab = () => {
           </div>
 
           {/* Error breakdown */}
-          <h3 style={{ margin: '0 0 var(--space-md)' }}>Errors by Severity</h3>
+          <h3 style={{ margin: '0 0 var(--space-md)' }}>Errors by severity</h3>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: 'var(--space-md)' }}>
             {Object.entries(errorStats.bySeverity).map(([sev, count]) => {
               const sevColors = { low: '#6b7280', medium: '#f59e0b', high: '#f97316', critical: '#ef4444' };
@@ -727,7 +727,7 @@ const BlogTab = () => {
     return (
       <div className="blog-editor">
         <div className="blog-editor-header">
-          <h2>{editingPost ? 'Edit Post' : 'New Post'}</h2>
+          <h2>{editingPost ? 'Edit post' : 'New post'}</h2>
           <button className="btn btn-secondary" onClick={() => { setShowEditor(false); setEditingPost(null); setFormData(emptyPost); }}>
             Cancel
           </button>
@@ -886,7 +886,7 @@ code block
   return (
     <div className="blog-tab">
       <div className="blog-tab-header">
-        <h3>Blog Posts ({posts.length})</h3>
+        <h3>Blog posts ({posts.length})</h3>
         <button className="btn btn-primary" onClick={() => setShowEditor(true)}>
           + New Post
         </button>
@@ -1071,7 +1071,7 @@ const UsageTab = () => {
   return (
     <div className="usage-tab">
       <div className="model-selector">
-        <h3>Active Model</h3>
+        <h3>Active model</h3>
         <div className="model-grid">
           {AVAILABLE_MODELS.map((m) => (
             <button
@@ -1092,23 +1092,23 @@ const UsageTab = () => {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{stats.totalChats}</div>
-          <div className="stat-label">Total Chats</div>
+          <div className="stat-label">Total chats</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{stats.totalTokens.toLocaleString()}</div>
-          <div className="stat-label">Total Tokens</div>
+          <div className="stat-label">Total tokens</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">${stats.totalCost}</div>
-          <div className="stat-label">Total Cost</div>
+          <div className="stat-label">Total cost</div>
         </div>
         <div className="stat-card highlight">
           <div className="stat-value">{stats.todayChats}</div>
-          <div className="stat-label">Today's Chats</div>
+          <div className="stat-label">Today&rsquo;s chats</div>
         </div>
         <div className="stat-card highlight">
           <div className="stat-value">${stats.todayCost}</div>
-          <div className="stat-label">Today's Cost</div>
+          <div className="stat-label">Today&rsquo;s cost</div>
         </div>
       </div>
 
@@ -1401,46 +1401,70 @@ const RAGTab = () => {
     }
   };
 
+  const handleBackfillBlogs = async () => {
+    try {
+      setLoading(true);
+      // Dry run first so we know how many to expect
+      const probe = await fetch('/.netlify/functions/backfill-blog-rag').then(r => r.json());
+      if (!probe.missing) {
+        alert(`All ${probe.blogPostsTotal} blog posts already in RAG. Nothing to backfill.`);
+        return;
+      }
+      const ok = window.confirm(
+        `Found ${probe.missing} blog posts missing from RAG (out of ${probe.blogPostsTotal}). Create + embed chunks now?`
+      );
+      if (!ok) return;
+      const result = await fetch('/.netlify/functions/backfill-blog-rag', { method: 'POST' }).then(r => r.json());
+      alert(`Created ${result.created} chunks. Embedded ${result.embedded}. Errors: ${result.errors?.length || 0}`);
+      loadChunks();
+      loadStats();
+    } catch (err) {
+      alert(`Failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="rag-tab">
       <div className="rag-header">
         <div className="rag-header-info">
-          <h3>RAG Knowledge Base</h3>
-          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-            Manage embeddings, test retrieval, and monitor performance
-          </p>
+          <h3>Knowledge base</h3>
         </div>
         <div className="rag-header-actions">
+          <button onClick={handleBackfillBlogs} className="btn btn-secondary btn-sm" disabled={loading}>
+            Backfill blogs
+          </button>
           <button onClick={handleEmbedAll} className="btn btn-secondary btn-sm" disabled={loading}>
-            🔄 Re-embed All
+            Re-embed all
           </button>
           <button onClick={handleSeedDefaults} className="btn btn-secondary btn-sm" disabled={loading}>
-            🌱 Seed Defaults
+            Seed defaults
           </button>
         </div>
       </div>
 
       {error && (
         <div className="rag-error">
-          <strong>RAG System Error:</strong> {error}
+          <strong>RAG error:</strong> {error}
           <p style={{ fontSize: '0.85rem', marginTop: '8px' }}>
-            To enable RAG, add Firebase Admin credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) to Netlify environment variables.
+            Add Firebase Admin credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) to Netlify env.
           </p>
         </div>
       )}
 
       <div className="admin-tabs" style={{ marginTop: 'var(--space-md)' }}>
         <button className={`admin-tab ${subTab === 'chunks' ? 'active' : ''}`} onClick={() => setSubTab('chunks')}>
-          📚 Chunks ({chunks.length})
+          Chunks ({chunks.length})
         </button>
         <button className={`admin-tab ${subTab === 'auto' ? 'active' : ''}`} onClick={() => setSubTab('auto')}>
-          🤖 Auto-Generated
+          Auto-generated
         </button>
         <button className={`admin-tab ${subTab === 'test' ? 'active' : ''}`} onClick={() => setSubTab('test')}>
-          🔍 Test
+          Test
         </button>
         <button className={`admin-tab ${subTab === 'stats' ? 'active' : ''}`} onClick={() => setSubTab('stats')}>
-          📊 Stats
+          Stats
         </button>
       </div>
 
@@ -1602,7 +1626,7 @@ const RAGChunksPanel = ({ chunks, loading, apiCall, onRefresh }) => {
                     className="btn btn-secondary btn-sm"
                     disabled={reembedding === chunk.id}
                   >
-                    {reembedding === chunk.id ? '⏳...' : '🔄 Re-embed'}
+                    {reembedding === chunk.id ? 'Embedding…' : 'Re-embed'}
                   </button>
                   <button onClick={() => handleDelete(chunk.id)} className="btn btn-danger btn-sm">
                     🗑️ Delete
@@ -1677,7 +1701,7 @@ const RAGChunkEditor = ({ chunk, apiCall, onClose, onSave }) => {
     <div className="rag-modal-overlay" onClick={onClose}>
       <div className="rag-modal" onClick={(e) => e.stopPropagation()}>
         <div className="rag-modal-header">
-          <h3>{chunk?.id ? 'Edit Chunk' : 'New Chunk'}</h3>
+          <h3>{chunk?.id ? 'Edit chunk' : 'New chunk'}</h3>
           <button onClick={onClose} className="rag-modal-close">×</button>
         </div>
 
@@ -2051,7 +2075,7 @@ const RAGStatsPanel = ({ stats, chunks }) => {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{stats.totalChunks}</div>
-          <div className="stat-label">Total Chunks</div>
+          <div className="stat-label">Total chunks</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{stats.embeddedChunks}</div>
@@ -2063,11 +2087,11 @@ const RAGStatsPanel = ({ stats, chunks }) => {
         </div>
         <div className="stat-card">
           <div className="stat-value">{stats.totalTokens?.toLocaleString() || 0}</div>
-          <div className="stat-label">Total Tokens</div>
+          <div className="stat-label">Total tokens</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{avgTokens}</div>
-          <div className="stat-label">Avg/Chunk</div>
+          <div className="stat-label">Avg per chunk</div>
         </div>
       </div>
 
@@ -2121,7 +2145,7 @@ const RAGStatsPanel = ({ stats, chunks }) => {
 
       {stats.missingEmbeddings > 0 && (
         <div className="rag-warning">
-          ⚠️ {stats.missingEmbeddings} chunks missing embeddings. Click "Re-embed All" to fix.
+          {stats.missingEmbeddings} chunks missing embeddings. Click &ldquo;Re-embed all&rdquo; to fix.
         </div>
       )}
     </div>
@@ -2630,10 +2654,10 @@ const MoltbookTab = () => {
 
       {/* Header with refresh */}
       <div className="moltbook-header">
-        <h2>🦞 Moltbook Agent Control</h2>
+        <h2>Moltbook agent</h2>
         <div className="moltbook-header-actions">
           <span style={{ fontSize: '0.8rem', color: MOLTBOOK_ADMIN_KEY ? '#10b981' : '#f59e0b' }}>
-            {MOLTBOOK_ADMIN_KEY ? '🔑 Auth Key Set' : '⚠️ No Admin Key'}
+            {MOLTBOOK_ADMIN_KEY ? 'Auth key set' : 'No admin key'}
           </span>
           <a 
             href="https://www.moltbook.com/u/Azoni-AI" 
@@ -2641,7 +2665,7 @@ const MoltbookTab = () => {
             rel="noopener noreferrer"
             className="btn btn-secondary"
           >
-            View Profile ↗
+            View profile ↗
           </a>
           <button onClick={fetchAllData} className="btn btn-secondary" disabled={actionLoading}>
             ↻ Refresh
@@ -2684,21 +2708,21 @@ const MoltbookTab = () => {
         </div>
 
         <div className="moltbook-card">
-          <h3>Autonomous Mode</h3>
+          <h3>Autonomous mode</h3>
           <p className="moltbook-card-desc">When enabled, agent runs automatically on schedule</p>
           <button
             onClick={toggleAutonomousMode}
             className={`moltbook-toggle ${config?.autonomous_mode ? 'active' : ''}`}
             disabled={actionLoading}
           >
-            {config?.autonomous_mode ? '🤖 ON — Running Autonomously' : '👤 OFF — Manual Only'}
+            {config?.autonomous_mode ? 'ON — running autonomously' : 'OFF — manual only'}
           </button>
         </div>
       </div>
 
       {/* Job Intervals */}
       <div className="moltbook-card">
-        <h3>⏱️ Job Intervals (minutes)</h3>
+        <h3>Job intervals (minutes)</h3>
         <p className="moltbook-card-desc">Set to 0 to disable a job. Changes take effect immediately.</p>
         <div className="moltbook-intervals-grid">
           {Object.entries(intervals).map(([key, val]) => (
@@ -2723,7 +2747,7 @@ const MoltbookTab = () => {
 
       {/* Manual Run */}
       <div className="moltbook-card">
-        <h3>Manual Run</h3>
+        <h3>Manual run</h3>
         <p className="moltbook-card-desc">Trigger the agent to observe, decide, and engage</p>
         <div className="moltbook-form-row">
           <input
@@ -2745,7 +2769,7 @@ const MoltbookTab = () => {
 
       {/* Direct Post */}
       <div className="moltbook-card">
-        <h3>Direct Post</h3>
+        <h3>Direct post</h3>
         <p className="moltbook-card-desc">Post directly (bypasses agent decision-making)</p>
         <div className="moltbook-form-stack">
           <input
@@ -2782,7 +2806,7 @@ const MoltbookTab = () => {
 
       {/* Direct Comment */}
       <div className="moltbook-card">
-        <h3>Direct Comment</h3>
+        <h3>Direct comment</h3>
         <p className="moltbook-card-desc">Click a post ID from the feed below to comment on it</p>
         <div className="moltbook-form-stack">
           <input
@@ -2807,7 +2831,7 @@ const MoltbookTab = () => {
 
       {/* Post Topics Queue */}
       <div className="moltbook-card">
-        <h3>Post Topics Queue</h3>
+        <h3>Post topics queue</h3>
         <p className="moltbook-card-desc">
           Topics the agent will post about (in order). When empty, uses random defaults.
         </p>
@@ -2850,7 +2874,7 @@ const MoltbookTab = () => {
       {/* Job History */}
       {jobHistory.length > 0 && (
         <div className="moltbook-card">
-          <h3>🔧 Job History</h3>
+          <h3>Job history</h3>
           <div className="moltbook-job-history">
             {jobHistory.slice(0, 15).map((job, i) => {
               const statusColor = job.status === 'success' ? '#10b981'

@@ -31,47 +31,47 @@ export const useProjects = (initialCategory = 'all') => {
   }, []);
 
   const fetchProjects = async () => {
+    // Static data is the source of truth (edited via src/data/projects.js).
+    // Firestore is queried only to enrich with live runtime fields (e.g.
+    // view counts, star counts) that don't belong in the codebase. Static
+    // copy/tagline/description/etc. always wins.
     try {
       setLoading(true);
-      const projectsRef = collection(db, 'projects');
-      const snapshot = await getDocs(projectsRef);
 
-      if (snapshot.empty) {
-        // No projects in Firestore, use static data
-        console.log('No projects in Firestore, using static data');
-        setAllProjects(staticProjects);
-        setSource('static');
-      } else {
-        const projectsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        // Merge in any static projects missing from Firestore
-        const firestoreIds = new Set(projectsData.map(p => p.id));
-        for (const sp of staticProjects) {
-          if (!firestoreIds.has(sp.id)) {
-            projectsData.push(sp);
-          }
-        }
-        // Sort by displayOrder (lower = first), then featured, then title
-        projectsData.sort((a, b) => {
-          // First by displayOrder if exists
-          const orderA = a.displayOrder ?? 999;
-          const orderB = b.displayOrder ?? 999;
-          if (orderA !== orderB) return orderA - orderB;
-          // Then by featured
-          if (a.featured !== b.featured) return b.featured ? 1 : -1;
-          // Then alphabetically
-          return a.title.localeCompare(b.title);
+      let firestoreEnrichment = {};
+      try {
+        const snapshot = await getDocs(collection(db, 'projects'));
+        snapshot.docs.forEach((d) => {
+          const data = d.data() || {};
+          // Only keep runtime/state fields, not editorial copy.
+          firestoreEnrichment[d.id] = {
+            views: data.views,
+            starCount: data.starCount,
+          };
         });
-        setAllProjects(projectsData);
-        setSource('firestore');
+      } catch (fireErr) {
+        console.warn('Firestore enrichment skipped:', fireErr.message);
       }
+
+      const merged = staticProjects.map((p) => ({
+        ...p,
+        ...(firestoreEnrichment[p.id] || {}),
+      }));
+
+      merged.sort((a, b) => {
+        const orderA = a.displayOrder ?? 999;
+        const orderB = b.displayOrder ?? 999;
+        if (orderA !== orderB) return orderA - orderB;
+        if (a.featured !== b.featured) return b.featured ? 1 : -1;
+        return a.title.localeCompare(b.title);
+      });
+
+      setAllProjects(merged);
+      setSource('static');
       setError(null);
     } catch (err) {
-      console.error('Error fetching projects:', err);
+      console.error('Error preparing projects:', err);
       setError(err.message);
-      // Fall back to static data on error
       setAllProjects(staticProjects);
       setSource('static');
     } finally {

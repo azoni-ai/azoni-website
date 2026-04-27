@@ -138,8 +138,12 @@ const Commits = () => {
                   <span className="commits-stat-label">this week</span>
                 </div>
                 <div className="commits-stat">
-                  <span className="commits-stat-value">{githubStats.last30Days || 0}</span>
+                  <span className="commits-stat-value">{(githubStats.thisMonth ?? 0).toLocaleString()}</span>
                   <span className="commits-stat-label">this month</span>
+                </div>
+                <div className="commits-stat">
+                  <span className="commits-stat-value">{(githubStats.thisYear ?? 0).toLocaleString()}</span>
+                  <span className="commits-stat-label">{new Date().getFullYear()}</span>
                 </div>
                 <div className="commits-stat">
                   <span className="commits-stat-value">{repos.length}</span>
