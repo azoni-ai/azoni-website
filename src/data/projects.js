@@ -188,16 +188,16 @@ Scribe writes a blog post every weekday from my GitHub commits. Conductor runs e
     id: 'fab-stats-bot',
     title: 'FaB Stats Discord Bot',
     tagline: 'Companion bot for FaB Stats. Lives in 20+ servers.',
-    description: 'TypeScript Discord bot with command routing, analytics tracking, and game-specific utilities connected to platform data.',
-    longDescription: `FaB Stats Bot extends analytics workflows into Discord with slash commands, autocomplete, scheduled jobs, and usage tracking.
+    description: 'TypeScript Discord bot with 24 slash commands. Lives in 20+ FaB community servers.',
+    longDescription: `Companion bot for FaB Stats. Slash commands answer hero stats, matchup queries, and leaderboards directly in Discord without leaving the channel.
 
-It acts as a companion layer to the main platform, providing quick access to stats and utility commands directly in community channels.`,
+Background scheduler heartbeats every minute, autocomplete handlers reduce search friction, and per-command analytics tell me which queries actually matter.`,
     tech: ['TypeScript', 'Discord.js', 'Firebase Admin', 'Node.js'],
     highlights: [
-      'Command router supporting many game-focused actions',
-      'Autocomplete and interaction handling patterns',
-      'Background scheduler and heartbeat monitoring',
-      'Analytics instrumentation for command usage'
+      '24 slash commands across hero stats, matchups, and leaderboards',
+      'Autocomplete on every searchable parameter',
+      'Heartbeat + per-command analytics',
+      'Lives in 20+ community servers'
     ],
     links: {
       live: null,
@@ -211,16 +211,16 @@ It acts as a companion layer to the main platform, providing quick access to sta
     id: 'tcgdoku',
     title: 'TCGDoku',
     tagline: 'Daily TCG puzzle. Wordle for card games.',
-    description: 'Daily puzzle game blending category logic and card knowledge with shareable outcomes and community play.',
-    longDescription: `TCGDoku applies daily puzzle mechanics to trading card games, combining repeatable retention loops with community participation.
+    description: 'Daily TCG puzzle. Same seed for everyone, share results.',
+    longDescription: `Wordle for trading card games. Same seeded daily puzzle for every player so results are comparable, plus a custom puzzle builder for sharing your own.
 
-The product includes seeded daily puzzles, custom puzzle creation, and game-specific data integrations for real-time validation and search.`,
+Card validation hits the Scryfall API on submit. Streaks and shares persist in Firebase.`,
     tech: ['React', 'Firebase', 'Scryfall API', 'Netlify'],
     highlights: [
-      'Seeded daily puzzle logic for consistent global play',
-      'Custom puzzle builder and share flows',
-      'Card validation and lookup integrations',
-      'Community-oriented progression mechanics'
+      'Seeded daily puzzle — same answer worldwide',
+      'Custom puzzle builder + shareable links',
+      'Live card validation against Scryfall',
+      'Streaks and stats per player'
     ],
     links: {
       live: 'https://tcgdoku.netlify.app',
@@ -234,16 +234,16 @@ The product includes seeded daily puzzles, custom puzzle creation, and game-spec
     id: 'spell-brigade',
     title: 'Spell Brigade',
     tagline: 'Real-time multiplayer wizard game with AI-generated characters.',
-    description: 'Real-time multiplayer wizard game with class systems, progression, and persistent backend state.',
-    longDescription: `Spell Brigade pairs a React game client with a Socket.IO/Express backend for live multiplayer sessions.
+    description: 'Real-time multiplayer wizard game with AI-generated characters. Server-authoritative Socket.IO loop.',
+    longDescription: `Multiplayer that isn't a chat app. Socket.IO wizards co-op through procedural dungeons. Three classes (Pyromancer, Cryomancer, Arcanist), six zones from Sanctuary to the Abyss.
 
-The system includes class mechanics, zone progression, persistent player data, and backend services for session coordination and long-term state.`,
+Started as a single Node.js file. After it grew past readable I refactored the server into bounded modules — auth, room manager, combat tick, persistence, AI generation — each their own file. Bug fixes stopped being archaeology.`,
     tech: ['React', 'Node.js', 'Socket.IO', 'Express', 'Firebase Admin'],
     highlights: [
-      'Real-time multiplayer architecture with Socket.IO',
-      'Class-based combat and progression systems',
-      'Persistent player profiles and unlock paths',
-      'Integrated backend state and server coordination'
+      'Server-authoritative Socket.IO game loop',
+      'Refactor: monolith → bounded modules, no downtime',
+      'GPT-4o-mini character generator with balancing constraints',
+      'Six progression zones, three classes, persistent ranks'
     ],
     links: {
       live: 'https://azoni.ai/game',
@@ -257,16 +257,16 @@ The system includes class mechanics, zone progression, persistent player data, a
     id: 'polymarket-tool',
     title: 'Polymarket Edge Finder',
     tagline: 'Edge-finder for prediction markets.',
-    description: 'Full-stack analysis tool for identifying potential edge cases in prediction markets using multiple strategy modules.',
-    longDescription: `Polymarket Edge Finder combines a FastAPI backend with a React frontend to ingest market data and surface candidate opportunities.
+    description: 'Edge-finder for Polymarket. FastAPI backend ingests markets, React frontend explores spreads.',
+    longDescription: `Pulls live Polymarket data, runs it through a few strategy modules — spread inefficiency, volume anomaly, directional momentum — and surfaces candidate edges.
 
-The project explores detection patterns such as spread inefficiencies, volume anomalies, and directional momentum to support research-driven decision making.`,
+Research tool, not a trading bot. The frontend is for poking around and forming hypotheses; the backend is what would feed an actual auto-trader if I built one.`,
     tech: ['FastAPI', 'Python', 'React', 'Vite', 'Recharts'],
     highlights: [
-      'Market ingestion and analysis pipeline',
-      'Multiple strategy modules for edge detection',
+      'Live Polymarket ingestion pipeline',
+      'Spread, volume, and momentum strategy modules',
       'Interactive frontend for scenario exploration',
-      'Designed for iterative research workflows'
+      'Built for hypothesis-forming, not auto-trading'
     ],
     links: {
       live: null,
@@ -280,16 +280,16 @@ The project explores detection patterns such as spread inefficiencies, volume an
     id: 'image-pipeline-api',
     title: 'Image Pipeline API',
     tagline: 'FastAPI image worker with job queues and observability.',
-    description: 'FastAPI service for image processing with job queues, observability middleware, and agent-managed worker lifecycles.',
-    longDescription: `Image Pipeline API is a backend service that manages image uploads, processing jobs, and runtime observability.
+    description: 'FastAPI image worker. Job queues, request tracing, agent lifecycles, dashboard endpoint.',
+    longDescription: `Backend for handling image uploads, transformations, and async jobs without a queue service. SQLAlchemy-backed job tracking, Pydantic schemas, Pillow for the actual work.
 
-It includes request tracing, metrics collection, background execution orchestration, and a lightweight dashboard endpoint for operational visibility.`,
+Every request gets a trace ID and a duration metric. Background workers spin up and down with the FastAPI lifespan so a redeploy doesn't strand jobs. A small dashboard endpoint exposes queue depth, error rate, and recent traces.`,
     tech: ['FastAPI', 'SQLAlchemy', 'Pydantic', 'Pillow', 'Pytest'],
     highlights: [
-      'Job-based processing architecture',
-      'Request trace IDs and duration metrics',
-      'Agent lifecycle management in app lifespan',
-      'Operational health and dashboard endpoints'
+      'Async job queue with SQLAlchemy persistence',
+      'Trace IDs + duration metrics on every request',
+      'Worker lifecycle managed via FastAPI lifespan',
+      'Dashboard endpoint for queue depth + error rate'
     ],
     links: {
       live: null,
@@ -303,16 +303,16 @@ It includes request tracing, metrics collection, background execution orchestrat
     id: 'scryfall-ai',
     title: 'Scryfall AI',
     tagline: 'Natural-language card search over Scryfall.',
-    description: 'Service that translates natural-language card requests into structured Scryfall query syntax.',
-    longDescription: `Scryfall AI focuses on one practical interface problem: making complex card database search accessible to non-expert users.
+    description: 'Plain-English to Scryfall query syntax. Ask for "blue counter spells under 3 mana", get the search string.',
+    longDescription: `Scryfall's query language is powerful but unfriendly. Scryfall AI wraps an LLM around it so you can ask in plain English and get a working query.
 
-Users ask in plain language, and the service returns structured query syntax suitable for direct Scryfall lookups.`,
+Constrained output — the prompt forces structured Scryfall syntax, no chatter. Drop the result into Scryfall's URL bar and the search just works.`,
     tech: ['Node.js', 'Express', 'OpenAI API', 'Scryfall API'],
     highlights: [
-      'Natural-language to query-string transformation',
-      'Prompt design for constrained output format',
-      'Simple API surface for frontend integration',
-      'Domain-specific search productivity gains'
+      'Plain English → Scryfall query syntax',
+      'Constrained output prompt — no LLM chatter',
+      'Simple API; drop straight into a search URL',
+      'Fast lane for non-power users of Scryfall'
     ],
     links: {
       live: 'https://scryfall.netlify.app',
@@ -326,16 +326,16 @@ Users ask in plain language, and the service returns structured query syntax sui
     id: 'dustbunny',
     title: 'Dustbunny',
     tagline: '50 Dockerized bots, 2,500 req/min, 24/7 uptime.',
-    description: 'Distributed bidding operation across 50 machines with high request throughput and real-time pricing logic.',
-    longDescription: `Dustbunny was an automation-heavy trading system built for high-frequency NFT market monitoring and bidding.
+    description: 'Distributed NFT bidding bot. 50 Dockerized workers, Redis coordination, ~2,500 req/min, 24/7 uptime.',
+    longDescription: `Solo bot-vs-bot arms race against every other floor sniper on OpenSea. Distributed bidding system across 50 Dockerized workers with Redis-backed coordination so they didn't trip over each other.
 
-The platform used distributed workers, caching, and strategy controls to sustain high request throughput while adapting to changing API and marketplace conditions.`,
+Sustained around 2,500 req/min for six months. Adapted the strategy daily — when other bots changed their bidding patterns, mine had to change too or stop being profitable. Eventually the marketplace cooled and I shut it down.`,
     tech: ['Node.js', 'Redis', 'Docker', 'OpenSea SDK', 'Web3'],
     highlights: [
-      'Distributed architecture across 50 machines',
-      'Real-time floor monitoring and bid automation',
-      'Throughput in the 2,500+ requests per minute range',
-      'Operational safeguards for bidding decisions'
+      '50 Dockerized workers + Redis coordination',
+      '~2,500 req/min sustained for 6 months',
+      'Daily strategy adaptation in a bot arms race',
+      'Operational kill-switches for runaway bid scenarios'
     ],
     links: {
       live: null,
@@ -348,17 +348,17 @@ The platform used distributed workers, caching, and strategy controls to sustain
   {
     id: 'oli-fitness',
     title: 'OLI Fitness',
-    tagline: 'Computer Vision Startup',
-    description: 'Co-founded computer vision fitness startup using Kinect-based movement analysis; work published at ACM CHI 2017.',
-    longDescription: `OLI Fitness used Kinect-based body tracking to evaluate lifting form in real time and compare movement against reference patterns.
+    tagline: 'Co-founded a Kinect-based form analyzer. ACM CHI 2017.',
+    description: 'Real-time weightlifting form analyzer using Kinect — 25 joints at 30fps, scored against expert references.',
+    longDescription: `Co-founded OLI Fitness in college. Kinect-based body tracker that scored your lifting form against expert reference movements in real time — 25 joints, 30 frames per second.
 
-The project combined product development, technical execution, and early-stage startup operations, resulting in an ACM CHI publication and multiple startup program appearances.`,
+Led a team of five through an ACM CHI 2017 publication and multiple startup competitions, including Princeton Tiger Launch finalist. First experience taking a product from zero to working demo to public presentation.`,
     tech: ['C#', 'Kinect SDK', 'Computer Vision', 'Unity'],
     highlights: [
-      'Real-time movement tracking and form scoring',
+      '25-joint body tracking at 30fps with reference scoring',
       'ACM CHI 2017 publication',
-      'Startup competition finalist experience',
-      'Zero-to-one product and team execution'
+      'Princeton Tiger Launch finalist',
+      'Led team of 5 — first zero-to-one experience'
     ],
     links: {
       live: null,
@@ -372,16 +372,16 @@ The project combined product development, technical execution, and early-stage s
   {
     id: 'hashmaps',
     title: 'HashMaps',
-    tagline: 'Hackathon Winner: Contextual Hashtag Generation',
-    description: 'OpenCV and geolocation-based system for contextual hashtag generation; won first place at T-Mobile Big Data Hackathon.',
-    longDescription: `HashMaps generated context-aware social hashtags by combining image analysis with location context.
+    tagline: 'OpenCV + geolocation hashtag generator. 1st place, T-Mobile Big Data Hackathon.',
+    description: 'Contextual hashtag generator combining image analysis with location data. Built in a weekend, won 1st place.',
+    longDescription: `Built in 36 hours for the T-Mobile Big Data Hackathon. Take a photo, extract objects and scenes via OpenCV, fuse with the device location, return context-aware hashtags ready to paste.
 
-The project was built and presented in a hackathon setting and won first place for applied use of computer vision and metadata fusion.`,
+Won 1st place for the cross-modal approach (vision + geo + temporal context). One of the first times I shipped something end-to-end under hard time pressure.`,
     tech: ['Python', 'OpenCV', 'Geolocation API'],
     highlights: [
-      'First place at T-Mobile Big Data Hackathon',
-      'Image understanding plus location-aware recommendations',
-      'Rapid prototyping and presentation under time constraints'
+      '1st place at T-Mobile Big Data Hackathon',
+      'Vision + geolocation + temporal context fusion',
+      'Built and presented in 36 hours'
     ],
     links: {
       live: null,

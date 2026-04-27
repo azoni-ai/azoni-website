@@ -12,82 +12,52 @@ const MODES = [
   { id: 'funny', name: 'Funny' }
 ];
 
-// Initial question pool - shown on first load (third person / neutral phrasing)
+// Initial question pool — shown on first load.
 const INITIAL_QUESTIONS = [
-  "What's Charlton's experience with Python and AI?",
-  "Tell me about Charlton's projects",
-  "Why should I hire Charlton?",
-  "What tech stack does Charlton use?",
-  "Tell me about Charlton's time at T-Mobile",
-  "How does this AI agent system work?",
-  "What's Charlton's background in machine learning?",
-  "What does the orchestrator do?",
-  "Where did Charlton go to school?",
-  "Is Charlton available for work?",
-  "What makes Charlton different from other candidates?",
-  "Tell me about Charlton's work at Capital One",
-  "How many AI agents are running right now?",
-  "What is the MCP Data Server?",
-  "How does the blog get written automatically?",
-  "Paste a job description for fit analysis"
+  "What has Charlton built?",
+  "What's his DevOps and infra experience?",
+  "Where would he fit on a team?",
+  "How does this site's agent system work?",
+  "Tell me about his time at T-Mobile and Capital One.",
+  "Paste a job description for fit analysis."
 ];
 
-// Follow-up questions based on detected intent/topic
+// Follow-up questions, narrowed by the last detected intent.
 const FOLLOW_UP_QUESTIONS = {
   skills: [
-    "What AI frameworks has Charlton used?",
-    "Tell me about Charlton's frontend experience",
-    "What backend technologies does Charlton know?",
-    "Has Charlton worked with cloud infrastructure?",
-    "What's Charlton's experience with databases?"
+    "What's his cloud and infra experience?",
+    "Which AI frameworks has he shipped with?",
+    "Backend stack?",
+    "Frontend stack?"
   ],
   projects: [
-    "How did Charlton build Row Crew's anti-cheat?",
-    "What's the tech stack for Bench Only?",
-    "Tell me more about EmbedRoute",
-    "What challenges did Charlton face building these?",
-    "Which project is Charlton most proud of?"
+    "How does RowCrew's anti-cheat work?",
+    "What runs Bench Only behind the scenes?",
+    "Tell me more about EmbedRoute.",
+    "Which project is he most proud of?"
   ],
   experience: [
-    "What did Charlton build at T-Mobile?",
-    "Tell me about Charlton's Capital One work",
-    "What's Charlton's biggest achievement?",
-    "Has Charlton led any teams?",
-    "What industries has Charlton worked in?"
-  ],
-  behavioral: [
-    "Tell me about a time Charlton solved a hard problem",
-    "How does Charlton handle tight deadlines?",
-    "Describe a project that didn't go as planned",
-    "How does Charlton learn new technologies?",
-    "Tell me about Charlton working with stakeholders"
+    "What did he build at T-Mobile?",
+    "What did he do at Capital One?",
+    "Has he led teams?",
+    "What's his biggest shipped achievement?"
   ],
   hire: [
-    "What value would Charlton bring to a team?",
-    "What are Charlton's career goals?",
-    "What type of role is Charlton looking for?",
-    "What's Charlton's ideal work environment?",
-    "Why is Charlton interested in AI/ML roles?"
-  ],
-  contact: [
-    "Is Charlton open to remote work?",
-    "What's Charlton's availability?",
-    "Is Charlton open to contract work?",
-    "What locations is Charlton considering?"
-  ],
-  general: [
-    "What is Charlton currently working on?",
-    "Tell me something interesting about Charlton",
-    "What's Charlton's development philosophy?",
-    "How does Charlton stay current with tech?",
-    "What excites Charlton about AI?"
+    "Is he available for work?",
+    "Remote, hybrid, or on-site?",
+    "What kind of role is he looking for?",
+    "What value would he bring to a team?"
   ],
   agents: [
-    "How does the orchestrator coordinate agents?",
-    "What does the blog writer agent do?",
-    "Tell me about the Moltbook social agent",
-    "How does the fitness AI work?",
-    "What data does the MCP server expose?"
+    "How does the Conductor decide what to do?",
+    "How does Scribe write the blog?",
+    "What does the MCP server expose?",
+    "Show me the agent stack."
+  ],
+  general: [
+    "What's he working on right now?",
+    "How does this site work?",
+    "What's his development philosophy?"
   ]
 };
 
@@ -360,68 +330,78 @@ const RAGStats = ({ rag, usage }) => {
     return '#ef4444';
   };
 
+  const top = rag.topChunks?.slice(0, 3) || [];
+  const totalIn = usage?.prompt_tokens;
+  const totalOut = usage?.completion_tokens;
+  const cost = usage?.totalCost;
+
   return (
-    
     <div className="rag-stats">
-      <button 
+      {top.length > 0 && (
+        <p className="rag-stats-sources">
+          <span className="rag-stats-sources-label">Drew from</span>
+          {top.map((chunk, i) => (
+            <span key={i} className="rag-stats-source-chip">
+              {chunk.title || chunk.category}
+            </span>
+          ))}
+        </p>
+      )}
+
+      <button
+        type="button"
         className="rag-stats-toggle"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
       >
-        <span className="rag-stats-summary">
-          <span className="rag-intent-pill">{rag.intent}</span>
-          {rag.retrievalMethod === 'vector' && (
-            <span className="rag-method-pill">vector</span>
-          )}
-          <span className="rag-chunks-count">{rag.chunksRetrieved} chunks retrieved</span>
-          {usage?.totalCost && (
-            <span className="rag-cost">${usage.totalCost}</span>
+        <span className="rag-stats-meta">
+          <span>{rag.intent}</span>
+          <span className="rag-stats-sep">·</span>
+          <span>{rag.chunksRetrieved} chunk{rag.chunksRetrieved === 1 ? '' : 's'}</span>
+          {cost && (
+            <>
+              <span className="rag-stats-sep">·</span>
+              <span>${cost}</span>
+            </>
           )}
         </span>
-        <span className="rag-expand-icon">
-          {expanded ? <Icons.Collapse /> : <Icons.Expand />}
+        <span className="rag-stats-expand">
+          {expanded ? 'Hide details' : 'Details'}
         </span>
       </button>
 
       {expanded && (
         <div className="rag-stats-details">
-          <div className="rag-stats-row">
-            <span className="rag-stats-label">Intent Detected:</span>
-            <span className="rag-stats-value">
-              {rag.intent} 
-              <span className={`rag-confidence-badge ${rag.intentConfidence}`}>
-                {rag.intentConfidence}
-              </span>
-            </span>
-          </div>
-
-          {rag.topChunks && rag.topChunks.length > 0 && (
-            <div className="rag-chunks-used">
-              <span className="rag-stats-label">Context Retrieved:</span>
-              <div className="rag-chunks-list-mini">
-                {rag.topChunks.map((chunk, i) => (
-                  <div key={i} className="rag-chunk-mini">
-                    <span className="rag-chunk-rank">#{i + 1}</span>
-                    <span className="rag-chunk-category">{chunk.category}</span>
-                    <span className="rag-chunk-title">{chunk.title}</span>
-                    <span 
-                      className="rag-chunk-similarity"
-                      style={{ color: getSimilarityColor(chunk.similarity) }}
-                    >
-                      {(parseFloat(chunk.similarity) * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {top.length > 0 && (
+            <ul className="rag-stats-chunklist">
+              {top.map((chunk, i) => (
+                <li key={i} className="rag-stats-chunk">
+                  <span className="rag-stats-chunk-rank">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="rag-stats-chunk-cat">{chunk.category}</span>
+                  <span className="rag-stats-chunk-title">{chunk.title}</span>
+                  <span
+                    className="rag-stats-chunk-sim"
+                    style={{ color: getSimilarityColor(chunk.similarity) }}
+                  >
+                    {(parseFloat(chunk.similarity) * 100).toFixed(0)}%
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
 
-          {usage && (
-            <div className="rag-usage-stats">
-              <span>Tokens: {usage.prompt_tokens} in / {usage.completion_tokens} out</span>
+          {(totalIn != null || totalOut != null) && (
+            <p className="rag-stats-tokens">
+              {totalIn != null && <span>{totalIn} in</span>}
+              {totalIn != null && totalOut != null && <span className="rag-stats-sep">·</span>}
+              {totalOut != null && <span>{totalOut} out</span>}
               {usage.embeddingCost && parseFloat(usage.embeddingCost) > 0 && (
-                <span>Embedding: ${usage.embeddingCost}</span>
+                <>
+                  <span className="rag-stats-sep">·</span>
+                  <span>embed ${usage.embeddingCost}</span>
+                </>
               )}
-            </div>
+            </p>
           )}
         </div>
       )}

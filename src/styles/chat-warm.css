@@ -268,6 +268,139 @@
   border-color: var(--border-warm-strong);
 }
 
+/* Simplified RAG stats footer (Drew from / details toggle) */
+.chat-page-warm .rag-stats {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-warm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-page-warm .rag-stats-sources {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-warm-muted);
+}
+
+.chat-page-warm .rag-stats-sources-label {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+}
+
+.chat-page-warm .rag-stats-source-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--border-warm);
+  border-radius: 999px;
+  color: var(--text-warm-soft);
+  background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
+}
+
+.chat-page-warm .rag-stats-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-warm-muted);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.chat-page-warm .rag-stats-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-page-warm .rag-stats-sep {
+  opacity: 0.5;
+}
+
+.chat-page-warm .rag-stats-expand {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-warm-soft);
+}
+
+.chat-page-warm .rag-stats-toggle:hover .rag-stats-expand {
+  color: var(--accent-coral);
+}
+
+.chat-page-warm .rag-stats-details {
+  margin-top: 4px;
+  padding: var(--space-sm);
+  background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-warm-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-page-warm .rag-stats-chunklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-page-warm .rag-stats-chunk {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.chat-page-warm .rag-stats-chunk-rank {
+  color: var(--text-warm-muted);
+}
+
+.chat-page-warm .rag-stats-chunk-cat {
+  color: var(--accent-coral);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.66rem;
+}
+
+.chat-page-warm .rag-stats-chunk-title {
+  color: var(--text-warm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.chat-page-warm .rag-stats-chunk-sim {
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-page-warm .rag-stats-tokens {
+  margin: 0;
+  color: var(--text-warm-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
 /* Mode buttons (Professional / Friendly / Casual / Funny) */
 .chat-page-warm .chat-mode-btn {
   background: transparent;
