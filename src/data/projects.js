@@ -2,7 +2,7 @@ export const projects = [
   {
     id: 'fab-stats',
     title: 'FaB Stats',
-    tagline: 'Competitive TCG Analytics Platform',
+    tagline: 'Stats site and Discord bot for the Flesh and Blood TCG.',
     description: 'Full-stack analytics platform with 3,000+ registered users and 1,000,000+ tracked matches for the Flesh and Blood TCG competitive community.',
     longDescription: `FaB Stats is a production analytics platform serving the competitive Flesh and Blood community. Players track match results, explore hero-level performance data, compare matchup win rates, and climb leaderboards.
 
@@ -26,7 +26,7 @@ The app includes player profiles, match history, head-to-head matchup tools, com
   {
     id: 'embedroute',
     title: 'EmbedRoute',
-    tagline: 'Unified Embedding API Gateway',
+    tagline: 'Embedding API gateway. One key, four providers.',
     description: 'Single API for embeddings across OpenAI, Voyage, Cohere, and Mistral with consistent request and response formats.',
     longDescription: `EmbedRoute is a unified embedding API gateway designed to reduce provider lock-in and integration overhead.
 
@@ -49,7 +49,7 @@ It provides one authentication model, one request shape, and one response contra
   {
     id: 'azoni-mcp',
     title: 'Azoni MCP Server',
-    tagline: 'Cross-App Tooling Layer for AI Agents',
+    tagline: 'Shared tooling backbone. Agents call this for live data.',
     description: 'Domain-based API server exposing live tools for fitness, gaming, content, and ops workflows used by autonomous agents.',
     longDescription: `Azoni MCP Server is the shared tooling backbone across multiple products in this workspace. It exposes authenticated endpoints for activity logs, app health, analytics, and action execution.
 
@@ -72,7 +72,7 @@ The server is organized by domain modules and used by both interactive chat expe
   {
     id: 'moltbook-agent',
     title: 'Azoni Moltbook Agent',
-    tagline: 'LangGraph Autonomous Social Agent',
+    tagline: 'LangGraph agent running a social presence on autopilot.',
     description: 'Autonomous agent that observes feed context, decides actions, drafts content, quality-checks output, and executes on schedule.',
     longDescription: `Azoni Moltbook Agent is a LangGraph-powered system that runs an end-to-end agent loop: observe, decide, draft, evaluate, execute, and log.
 
@@ -95,7 +95,7 @@ It is built as a production workflow with explicit state transitions, external A
   {
     id: 'old-ways-today',
     title: 'Old Ways Today',
-    tagline: 'AI-Powered Consumer Wellness Platform',
+    tagline: 'Wellness site about non-toxic household alternatives.',
     description: 'Full-stack product helping families find non-toxic alternatives with AI chat, editorial content, and conversion-focused product pages.',
     longDescription: `Old Ways Today combines editorial publishing, product discovery, and AI assistance into a single production platform.
 
@@ -118,7 +118,7 @@ The stack includes a Next.js frontend and FastAPI backend with OpenAI integratio
   {
     id: 'bench-only',
     title: 'Bench Only',
-    tagline: 'AI Strength Training PWA',
+    tagline: 'Strength training app that writes the program for you.',
     description: 'Progressive web app for lifters with workout tracking, goal management, group coaching, and AI training assistance.',
     longDescription: `Bench Only is a production fitness application focused on measurable progress for strength athletes.
 
@@ -141,7 +141,7 @@ It combines structured workout logging with AI-assisted recommendations and anal
   {
     id: 'row-crew',
     title: 'Row Crew',
-    tagline: 'Social Fitness App with Vision Verification',
+    tagline: 'Rowing tracker with photo-verified meters.',
     description: 'Rowing tracker with AI-assisted workout verification, social challenges, and real-time progress features.',
     longDescription: `Row Crew turns solitary rowing sessions into a connected social product with accountability and competition mechanics.
 
@@ -164,7 +164,7 @@ The app uses vision-based workout verification and supports challenges, rankings
   {
     id: 'azoni-ai',
     title: 'azoni.ai',
-    tagline: 'Portfolio Platform with AI Assistant',
+    tagline: 'This site. Chatbot, agents, and the stack underneath.',
     description: 'Personal portfolio platform with chat assistant, activity dashboards, and live system integrations.',
     longDescription: `This portfolio is built as an operational product rather than a static brochure site.
 
@@ -187,7 +187,7 @@ It includes interactive project detail pages, AI chat workflows, activity teleme
   {
     id: 'fab-stats-bot',
     title: 'FaB Stats Discord Bot',
-    tagline: 'Companion Bot for Competitive Analytics',
+    tagline: 'Companion bot for FaB Stats. Lives in 20+ servers.',
     description: 'TypeScript Discord bot with command routing, analytics tracking, and game-specific utilities connected to platform data.',
     longDescription: `FaB Stats Bot extends analytics workflows into Discord with slash commands, autocomplete, scheduled jobs, and usage tracking.
 
@@ -210,7 +210,7 @@ It acts as a companion layer to the main platform, providing quick access to sta
   {
     id: 'tcgdoku',
     title: 'TCGDoku',
-    tagline: 'Daily Trading Card Puzzle Game',
+    tagline: 'Daily TCG puzzle. Wordle for card games.',
     description: 'Daily puzzle game blending category logic and card knowledge with shareable outcomes and community play.',
     longDescription: `TCGDoku applies daily puzzle mechanics to trading card games, combining repeatable retention loops with community participation.
 
@@ -233,7 +233,7 @@ The product includes seeded daily puzzles, custom puzzle creation, and game-spec
   {
     id: 'spell-brigade',
     title: 'Spell Brigade',
-    tagline: 'Multiplayer Survival Game Platform',
+    tagline: 'Real-time multiplayer wizard game with AI-generated characters.',
     description: 'Real-time multiplayer wizard game with class systems, progression, and persistent backend state.',
     longDescription: `Spell Brigade pairs a React game client with a Socket.IO/Express backend for live multiplayer sessions.
 
@@ -256,7 +256,7 @@ The system includes class mechanics, zone progression, persistent player data, a
   {
     id: 'polymarket-tool',
     title: 'Polymarket Edge Finder',
-    tagline: 'Prediction Market Signal Discovery',
+    tagline: 'Edge-finder for prediction markets.',
     description: 'Full-stack analysis tool for identifying potential edge cases in prediction markets using multiple strategy modules.',
     longDescription: `Polymarket Edge Finder combines a FastAPI backend with a React frontend to ingest market data and surface candidate opportunities.
 
@@ -279,7 +279,7 @@ The project explores detection patterns such as spread inefficiencies, volume an
   {
     id: 'image-pipeline-api',
     title: 'Image Pipeline API',
-    tagline: 'Background Job Processing Service',
+    tagline: 'FastAPI image worker with job queues and observability.',
     description: 'FastAPI service for image processing with job queues, observability middleware, and agent-managed worker lifecycles.',
     longDescription: `Image Pipeline API is a backend service that manages image uploads, processing jobs, and runtime observability.
 
@@ -302,7 +302,7 @@ It includes request tracing, metrics collection, background execution orchestrat
   {
     id: 'scryfall-ai',
     title: 'Scryfall AI',
-    tagline: 'Natural Language Card Search',
+    tagline: 'Natural-language card search over Scryfall.',
     description: 'Service that translates natural-language card requests into structured Scryfall query syntax.',
     longDescription: `Scryfall AI focuses on one practical interface problem: making complex card database search accessible to non-expert users.
 
@@ -325,7 +325,7 @@ Users ask in plain language, and the service returns structured query syntax sui
   {
     id: 'dustbunny',
     title: 'Dustbunny',
-    tagline: 'Distributed NFT Trading Automation',
+    tagline: '50 Dockerized bots, 2,500 req/min, 24/7 uptime.',
     description: 'Distributed bidding operation across 50 machines with high request throughput and real-time pricing logic.',
     longDescription: `Dustbunny was an automation-heavy trading system built for high-frequency NFT market monitoring and bidding.
 

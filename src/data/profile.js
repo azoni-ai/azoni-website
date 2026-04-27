@@ -6,9 +6,12 @@ export const profile = {
   email: "charltonuw@gmail.com",
   phone: "(360) 349-1661",
   tagline: "Senior Software Engineer · AI Systems in Production",
-  bio: `Full-stack engineer with 7+ years building production systems and AI-powered applications. 
-Currently focused on LLM agents and prediction markets. Background includes startup co-founder 
+  bio: `Full-stack engineer with 7+ years building production systems and AI-powered applications.
+Currently focused on LLM agents and prediction markets. Background includes startup co-founder
 (published ACM research), senior engineer at Capital One, and multiple hackathon wins.`,
+  // Surfaced as the "Now ·" pill in the home hero. Falls back to the latest
+  // Scribe blog post if not set. Keep it short — one sentence max.
+  currentlyBuilding: "Tightening the agent stack and the site that runs it.",
   links: {
     github: "https://github.com/azoni",
     linkedin: "https://linkedin.com/in/charltonsmith",

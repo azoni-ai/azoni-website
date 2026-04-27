@@ -2,20 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, onSnapshot, orderBy, query, limit, where } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { profile as staticProfile } from '../../data/profile';
 
 /**
  * Small "Now" line between hero tagline and stats.
  *
  * Source priority:
- *   1. profile.currentlyBuilding (hand-edited override)
- *   2. Latest blog_published event in agent_activity (Scribe's title)
+ *   1. Live profile.currentlyBuilding from Firestore
+ *   2. Static profile.currentlyBuilding (hand-edited fallback)
+ *   3. Latest blog_published event in agent_activity (Scribe's title)
  *
- * Falls back to rendering nothing if neither is available.
+ * Falls back to rendering nothing if none of the above are available.
  */
 const CurrentlyBuilding = ({ profile }) => {
   const [latestPost, setLatestPost] = useState(null);
 
-  const overrideText = profile?.currentlyBuilding || profile?.currentFocus;
+  const overrideText =
+    profile?.currentlyBuilding ||
+    profile?.currentFocus ||
+    staticProfile?.currentlyBuilding ||
+    staticProfile?.currentFocus;
 
   useEffect(() => {
     if (overrideText) return undefined;
