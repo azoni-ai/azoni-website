@@ -21,7 +21,10 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         today: 0,
         last7Days: 0,
+        thisMonth: 0,
+        thisYear: 0,
         last30Days: 0,
+        commitSplit: { sampleSize: 0, claudeCode: 0, codexCode: 0, solo: 0 },
         recentCommits: [],
         repos: [],
         updatedAt: new Date().toISOString()
@@ -168,8 +171,14 @@ exports.handler = async (event, context) => {
     `;
 
     const now = new Date();
-    const thirtyDaysAgo = new Date(now);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // GraphQL contributionsCollection caps the range at 1 year. Use the
+    // larger of (start of current calendar year) and (1 year ago) so we
+    // always get the full year-to-date for the thisYear/thisMonth tallies.
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const oneYearAgo = new Date(now);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    oneYearAgo.setDate(oneYearAgo.getDate() + 1); // GraphQL caps at < 1 year, so add a day buffer
+    const fromDate = startOfYear.getTime() > oneYearAgo.getTime() ? oneYearAgo : startOfYear;
 
     const response = await fetch('https://api.github.com/graphql', {
       method: 'POST',
@@ -181,7 +190,7 @@ exports.handler = async (event, context) => {
         query,
         variables: {
           username,
-          from: thirtyDaysAgo.toISOString(),
+          from: fromDate.toISOString(),
           to: now.toISOString()
         }
       })
@@ -410,6 +419,26 @@ exports.handler = async (event, context) => {
         branch: commit.branch || defaultBranchByRepo.get(commit.repo) || 'main',
       }));
 
+    // Author split across the sampled commits. The per-year totals come from
+    // the contribution calendar (accurate but no author info); this split is
+    // a sample over the recent commits we already fetched and tagged.
+    const commitSplit = (() => {
+      let claudeCount = 0;
+      let codexCount = 0;
+      let mineCount = 0;
+      for (const c of topCommits) {
+        if (c.claudeCode) claudeCount += 1;
+        else if (c.codexCode) codexCount += 1;
+        else mineCount += 1;
+      }
+      return {
+        sampleSize: topCommits.length,
+        claudeCode: claudeCount,
+        codexCode: codexCount,
+        solo: mineCount,
+      };
+    })();
+
     // Build repo list - only repos that have visible commits in the returned list.
     const activeRepoNames = new Set(topCommits.map(c => c.repo));
     const seenRepos = new Set();
@@ -431,6 +460,7 @@ exports.handler = async (event, context) => {
         thisMonth,
         thisYear,
         last30Days,
+        commitSplit,
         recentCommits: topCommits,
         repos: repoList,
         updatedAt: now.toISOString()

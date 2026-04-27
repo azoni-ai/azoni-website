@@ -201,6 +201,77 @@
   color: var(--text-warm-muted);
 }
 
+.hero-split {
+  margin: -8px 0 var(--space-xl);
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-split-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted);
+}
+
+.hero-split-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-warm-card) 80%, transparent);
+}
+
+.hero-split-seg {
+  display: inline-block;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.hero-split-seg--solo {
+  background: var(--accent-coral);
+}
+.hero-split-seg--claude {
+  background: var(--accent-amber);
+}
+.hero-split-seg--codex {
+  background: var(--accent-sage);
+}
+
+.hero-split-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-warm-soft);
+}
+
+.hero-split-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-split-legend strong {
+  color: var(--text-warm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-split-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
 @media (max-width: 480px) {
   .hero-stats {
     grid-template-columns: 1fr 1fr;

@@ -158,8 +158,35 @@ const ProjectShowcase = ({ appStats }) => {
   const [trackIdx, setTrackIdx] = useState(TOTAL);
   const [animate, setAnimate] = useState(true);
   const trackRef = useRef(null);
+  const viewportRef = useRef(null);
+  const prevActiveRef = useRef(null);
 
   const activeIdx = ((trackIdx % TOTAL) + TOTAL) % TOTAL;
+
+  // When the active project changes (via prev/next/tab/keyboard), scroll the
+  // carousel viewport so the top of the active card is visible. Without this,
+  // visitors who scroll to the bottom of one card and click 'Next' end up
+  // looking at the bottom of the next one.
+  useEffect(() => {
+    if (prevActiveRef.current === null) {
+      prevActiveRef.current = activeIdx;
+      return;
+    }
+    if (prevActiveRef.current === activeIdx) return;
+    prevActiveRef.current = activeIdx;
+
+    const node = viewportRef.current;
+    if (!node) return;
+    const rect = node.getBoundingClientRect();
+    // Only scroll if the active card top is currently above the navbar or
+    // the user has scrolled past the viewport entirely. This avoids jumping
+    // when the card is already visible at the top.
+    const navbarHeight = 96;
+    if (rect.top < navbarHeight - 4 || rect.top > window.innerHeight) {
+      const targetY = window.scrollY + rect.top - navbarHeight - 16;
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+    }
+  }, [activeIdx]);
 
   const step = useCallback((dir) => {
     setAnimate(true);
@@ -244,7 +271,7 @@ const ProjectShowcase = ({ appStats }) => {
         </nav>
       </div>
 
-      <div className="project-carousel-viewport" aria-roledescription="carousel">
+      <div className="project-carousel-viewport" aria-roledescription="carousel" ref={viewportRef}>
         <button
           type="button"
           className="project-carousel-edge project-carousel-edge--prev"

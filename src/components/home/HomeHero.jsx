@@ -1,42 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { profile as staticProfile } from '../../data/profile';
 import CurrentlyBuilding from './CurrentlyBuilding';
-
-const EMAIL = 'charltonuw@gmail.com';
-
-const EmailCta = () => {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef(null);
-
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  const handleClick = async () => {
-    try {
-      await navigator.clipboard?.writeText(EMAIL);
-      setCopied(true);
-      clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 2000);
-    } catch (_err) {
-      // Clipboard not available (older browsers, http context, etc.) — fall through to mailto
-    }
-    // Always also try to launch the user's mail client
-    window.location.href = `mailto:${EMAIL}`;
-  };
-
-  return (
-    <button
-      type="button"
-      className="home-hero-cta"
-      onClick={handleClick}
-      aria-label={`Email ${EMAIL}`}
-      title={EMAIL}
-    >
-      {copied ? 'Copied!' : 'Email me'}
-      <span aria-hidden="true">{copied ? '✓' : '↗'}</span>
-    </button>
-  );
-};
 
 const HomeHero = ({ profile, aside, stats }) => {
   const data = profile || staticProfile;
@@ -72,9 +37,7 @@ const HomeHero = ({ profile, aside, stats }) => {
           <div className="home-hero-ctas">
             <Link to="/resume" className="home-hero-cta home-hero-cta--primary">
               Resume
-              <span aria-hidden="true">→</span>
             </Link>
-            <EmailCta />
             <a
               href={profile?.links?.github || 'https://github.com/azoni'}
               className="home-hero-cta"
@@ -82,7 +45,6 @@ const HomeHero = ({ profile, aside, stats }) => {
               rel="noopener noreferrer"
             >
               GitHub
-              <span aria-hidden="true">↗</span>
             </a>
           </div>
         </div>
