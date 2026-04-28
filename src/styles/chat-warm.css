@@ -32,6 +32,48 @@
   color: var(--text-warm-muted);
 }
 
+.chat-page-warm .chat-settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-warm-soft);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.chat-page-warm .chat-settings-toggle:hover {
+  color: var(--text-warm);
+  border-color: var(--border-warm-strong);
+}
+
+.chat-page-warm .chat-settings-label {
+  color: var(--text-warm);
+}
+
+.chat-page-warm .chat-settings-sep {
+  opacity: 0.5;
+}
+
+.chat-page-warm .chat-settings-chevron {
+  margin-left: 4px;
+  color: var(--text-warm-muted);
+}
+
+.chat-page-warm .chat-settings-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md) 0;
+  align-items: center;
+}
+
 .chat-page-warm .chat-select {
   background-color: var(--bg-warm-card);
   border: 1px solid var(--border-warm-strong);

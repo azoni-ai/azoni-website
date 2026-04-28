@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Loading from "./components/Loading";
@@ -35,6 +35,9 @@ const App = () => {
           <Suspense fallback={<Loading fullScreen message="Loading..." />}>
             <Routes>
               <Route path="/" element={<Home />} />
+              {/* Old /about page was folded into the home; keep redirect for old SEO links */}
+              <Route path="/about" element={<Navigate to="/" replace />} />
+              <Route path="/aboutme" element={<Navigate to="/" replace />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/chat" element={<Chat />} />
@@ -58,20 +61,63 @@ const App = () => {
 
 // Simple 404 component
 const NotFound = () => (
-  <div style={{ 
-    minHeight: '100vh', 
-    display: 'flex', 
+  <div style={{
+    minHeight: '100vh',
+    display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center', 
+    alignItems: 'center',
     justifyContent: 'center',
     padding: '2rem',
-    textAlign: 'center'
+    textAlign: 'center',
+    background: 'var(--bg-warm, var(--bg-primary))',
+    color: 'var(--text-warm, var(--text-primary))',
   }}>
-    <h1 style={{ fontSize: '4rem', marginBottom: '1rem' }}>404</h1>
-    <p style={{ fontSize: '1.25rem', marginBottom: '2rem', color: 'var(--text-secondary)' }}>
-      Page not found
+    <p style={{
+      fontFamily: 'var(--font-mono)',
+      fontSize: '0.72rem',
+      letterSpacing: '0.18em',
+      textTransform: 'uppercase',
+      color: 'var(--accent-coral)',
+      margin: '0 0 1rem',
+    }}>
+      404
     </p>
-    <a href="/" className="btn btn-primary">Go Home</a>
+    <h1 style={{
+      fontFamily: 'var(--font-serif)',
+      fontWeight: 500,
+      fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+      letterSpacing: '-0.02em',
+      lineHeight: 1.05,
+      margin: '0 0 1rem',
+    }}>
+      Page not found.
+    </h1>
+    <p style={{
+      fontSize: '1.05rem',
+      color: 'var(--text-warm-soft, var(--text-secondary))',
+      marginBottom: '2rem',
+      maxWidth: '40ch',
+    }}>
+      The link you followed has moved or never existed.
+    </p>
+    <a
+      href="/"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '10px 18px',
+        background: 'var(--accent-coral)',
+        border: '1px solid var(--accent-coral)',
+        borderRadius: '999px',
+        color: '#18110e',
+        fontFamily: 'var(--font-body)',
+        fontWeight: 500,
+        textDecoration: 'none',
+      }}
+    >
+      Back to home
+    </a>
   </div>
 );
 

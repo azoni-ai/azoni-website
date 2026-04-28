@@ -430,9 +430,12 @@ const Chat = () => {
 
   const [diagramCollapsed, setDiagramCollapsed] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const inputRef = useRef(null);
   const location = useLocation();
   const seededRef = useRef(false);
+  const activeModelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name || model;
+  const activeModeName = MODES.find((m) => m.id === chatMode)?.name || chatMode;
 
   // Initialize with random suggestions on mount
   useEffect(() => {
@@ -494,39 +497,51 @@ const Chat = () => {
       <div className="chat-container chat-page-warm">
         <div className="chat-header">
           <h1 className="chat-title">Azoni AI</h1>
-          
-          <div className="chat-controls">
+
+          <button
+            type="button"
+            className="chat-settings-toggle"
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            aria-expanded={settingsOpen}
+            aria-controls="chat-settings-panel"
+          >
+            <span className="chat-settings-label">{activeModelName}</span>
+            <span className="chat-settings-sep" aria-hidden="true">·</span>
+            <span className="chat-settings-label">{activeModeName}</span>
+            <span className="chat-settings-chevron" aria-hidden="true">
+              {settingsOpen ? '▴' : '▾'}
+            </span>
+          </button>
+        </div>
+
+        {settingsOpen && (
+          <div className="chat-settings-panel" id="chat-settings-panel">
             <div className="chat-control">
               <label>Model</label>
-              <select 
-                value={model} 
+              <select
+                value={model}
                 onChange={(e) => changeModel(e.target.value)}
                 className="chat-select"
               >
                 {AVAILABLE_MODELS.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
+                  <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
             </div>
-            
             <div className="chat-control">
               <label>Tone</label>
-              <select 
-                value={chatMode} 
+              <select
+                value={chatMode}
                 onChange={(e) => changeMode(e.target.value)}
                 className="chat-select"
               >
                 {MODES.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
+                  <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="chat-messages">
           {/* RAG Architecture Diagram - inside scroll area */}

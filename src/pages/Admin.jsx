@@ -1267,7 +1267,7 @@ const CommentsTab = () => {
 
               {c.replies?.length > 0 && (
                 <div className="admin-replies">
-                  <strong>Your Replies:</strong>
+                  <strong>Your replies</strong>
                   {c.replies.map((reply, i) => (
                     <div key={i} className="admin-reply">
                       <p>{reply.text}</p>
@@ -1995,7 +1995,7 @@ const RAGTestPanel = ({ apiCall }) => {
 
       {intentResult && (
         <div className="rag-intent-result">
-          <h4>Intent Detection</h4>
+          <h4>Intent detection</h4>
           <p>
             <strong>Intent:</strong> <span className="rag-intent-badge">{intentResult.intent}</span>
             <span className={`rag-confidence rag-confidence-${intentResult.confidence}`}>
@@ -2012,7 +2012,7 @@ const RAGTestPanel = ({ apiCall }) => {
 
       {results && (
         <div className="rag-retrieval-results">
-          <h4>Retrieval Results</h4>
+          <h4>Retrieval results</h4>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             Searched {results.chunksSearched} chunks • 
             Embedding tokens: {results.embeddingTokens}
@@ -2900,7 +2900,7 @@ const MoltbookTab = () => {
 
       {/* Feed */}
       <div className="moltbook-card">
-        <h3>Moltbook Feed</h3>
+        <h3>Moltbook feed</h3>
         <div className="moltbook-feed">
           {feed.length === 0 ? (
             <div className="moltbook-empty">No posts found</div>
@@ -2931,7 +2931,7 @@ const MoltbookTab = () => {
 
       {/* Activity Log */}
       <div className="moltbook-card">
-        <h3>Activity Log</h3>
+        <h3>Activity log</h3>
         <div className="moltbook-activity">
           {activity.length === 0 ? (
             <div className="moltbook-empty">No activity yet</div>
