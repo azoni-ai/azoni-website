@@ -261,20 +261,21 @@ Respond ONLY with JSON: { "category": "bio|experience|projects|skills|agents|neg
       chunkId = ref.id;
     }
 
-    // Log to activity feed
+    // Log to activity feed — keep cost/model/tokens at the top level so the
+    // portfolio cost-breakdown reads them.
     db.collection('agent_activity').add({
       type: 'knowledge_generated',
       title: `Learned: ${chunk.title}`,
       description: `Someone asked "${query.slice(0, 80)}..." — generated new knowledge on the spot`,
       reasoning: 'Real-time knowledge gap detected during chat. Generated and saved a new knowledge chunk to answer the question.',
       source: 'azoni-ai',
+      model: 'gpt-4o-mini',
+      tokens: { prompt: usage.prompt_tokens || 0, completion: usage.completion_tokens || 0, total: (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) },
+      cost: (usage.prompt_tokens || 0) * 0.00000015 + (usage.completion_tokens || 0) * 0.0000006,
       metadata: {
         chunkId,
         chunkTitle: chunk.title,
         sourceQuery: query.slice(0, 200),
-        model: 'gpt-4o-mini',
-        tokens: { prompt: usage.prompt_tokens, completion: usage.completion_tokens },
-        cost: (usage.prompt_tokens || 0) * 0.00000015 + (usage.completion_tokens || 0) * 0.0000006,
         realtime: true
       },
       timestamp: admin.firestore.FieldValue.serverTimestamp()

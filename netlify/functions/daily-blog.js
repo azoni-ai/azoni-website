@@ -311,6 +311,7 @@ Respond with ONLY a JSON object (no markdown fences):
   "tags": ["tag1", "tag2", "tag3"] (2-4 relevant tags like "python", "devops", "ai", "react", "firebase", etc)
 }`;
 
+  const model = 'anthropic/claude-sonnet-4';
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -318,7 +319,7 @@ Respond with ONLY a JSON object (no markdown fences):
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-4',
+      model,
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }]
     })
@@ -332,9 +333,23 @@ Respond with ONLY a JSON object (no markdown fences):
     throw new Error('No content from LLM');
   }
 
+  // Sonnet 4 OpenRouter pricing: $3/M input, $15/M output
+  const usage = data.usage || {};
+  const promptTokens = usage.prompt_tokens || 0;
+  const completionTokens = usage.completion_tokens || 0;
+  const cost = (promptTokens / 1e6) * 3 + (completionTokens / 1e6) * 15;
+
   // Parse JSON (strip markdown fences if present)
   const cleaned = text.replace(/```json\n?|\n?```/g, '').trim();
-  return JSON.parse(cleaned);
+  const parsed = JSON.parse(cleaned);
+  return {
+    ...parsed,
+    _usage: {
+      model,
+      tokens: { prompt: promptTokens, completion: completionTokens, total: promptTokens + completionTokens },
+      cost,
+    },
+  };
 }
 
 
@@ -615,7 +630,7 @@ exports.handler = async (event, context) => {
         repoNames.map(r => REPO_TO_STATION[r]).filter(Boolean).filter(s => s !== 'blog' && s !== 'mcp')
       )];
 
-      await db.collection('agent_activity').add({
+      const blogActivity = {
         type: 'blog_generated',
         title: `Published: ${blogPost.title}`,
         description: `${totalCommits} commits across ${repoNames.length} project${repoNames.length > 1 ? 's' : ''} — ${repoNames.join(', ')}`,
@@ -629,7 +644,13 @@ exports.handler = async (event, context) => {
         },
         source: 'daily-blog',
         timestamp: admin.firestore.FieldValue.serverTimestamp()
-      });
+      };
+      if (blogPost._usage) {
+        blogActivity.model = blogPost._usage.model;
+        blogActivity.tokens = blogPost._usage.tokens;
+        blogActivity.cost = blogPost._usage.cost;
+      }
+      await db.collection('agent_activity').add(blogActivity);
       
       console.log('[daily-blog] Logged activity to agent_activity');
     }

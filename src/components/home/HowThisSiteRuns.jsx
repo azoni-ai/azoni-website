@@ -48,6 +48,7 @@ const SOURCE_DISPLAY = {
   oldwaystoday: { label: 'Old Ways Today', color: '#d97706' },
   'old-ways-today': { label: 'Old Ways Today', color: '#d97706' },
   embedroute: { label: 'EmbedRoute', color: '#20d9d2' },
+  launchpad: { label: 'Launchpad', color: '#f472b6' },
 };
 
 const useAgentOpsStats = () => {
@@ -115,7 +116,7 @@ const formatCost = (n) => {
 const HowThisSiteRuns = () => {
   const { cost, actionCount, errors7d, bySource } = useAgentOpsStats();
   const showCost = Number.isFinite(cost) && cost > 0;
-  const topSources = bySource.slice(0, 4);
+  const topSources = bySource.slice(0, 8);
   const topSourceTotal = topSources.reduce((sum, s) => sum + s.value, 0);
 
   return (

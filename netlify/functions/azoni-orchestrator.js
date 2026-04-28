@@ -669,15 +669,21 @@ async function fetchRequestedData(endpoint) {
 
 async function logStep(type, title, description, reasoning, metadata = {}) {
   try {
-    await db.collection('agent_activity').add({
+    // Promote cost/model/tokens out of metadata so the dashboard cost breakdown picks them up.
+    const { cost, model, tokens, ...rest } = metadata || {};
+    const doc = {
       type,
       title,
       description,
       reasoning,
-      metadata: { ...metadata, orchestrator: true },
+      metadata: { ...rest, orchestrator: true },
       source: 'orchestrator',
       timestamp: admin.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    if (Number.isFinite(cost)) doc.cost = cost;
+    if (model) doc.model = model;
+    if (tokens) doc.tokens = tokens;
+    await db.collection('agent_activity').add(doc);
   } catch (err) {
     console.error('[orchestrator] Failed to log:', err.message);
   }
