@@ -198,6 +198,49 @@ const FALLBACK_CHUNK = {
   keywords: ['charlton', 'about', 'contact', 'seattle']
 };
 
+function getFallbackChunks(query, intent) {
+  const q = (query || '').toLowerCase();
+  const chunks = [{ ...FALLBACK_CHUNK, score: 1, vectorSimilarity: null }];
+
+  if (intent?.intent === 'experience' || /devops|infra|infrastructure|aws|cloud|backend|production/.test(q)) {
+    chunks.unshift({
+      id: 'fallback-infra-experience',
+      category: 'experience',
+      title: 'DevOps and infrastructure experience',
+      content: `Charlton has production infrastructure experience across AWS, Netlify Functions, Firebase/Firestore, Docker, Render, FastAPI, Node, and CI/CD-style deployment flows. At Capital One he worked on automated testing pipelines with AWS Lambda and S3. In his independent product work, he has shipped serverless functions, authenticated backends, observability, cost logging, health checks, scheduled agents, and live activity feeds. Recent infrastructure-heavy projects include EmbedRoute, the Azoni MCP server, the RAG chatbot pipeline, Old Ways Today, and the multi-agent systems behind the portfolio.`,
+      keywords: ['devops', 'infra', 'infrastructure', 'aws', 'lambda', 's3', 'docker', 'render', 'netlify', 'observability'],
+      score: 50,
+      vectorSimilarity: null
+    });
+  }
+
+  if (intent?.intent === 'projects' || /built|projects|apps|products/.test(q)) {
+    chunks.unshift({
+      id: 'fallback-projects',
+      category: 'projects',
+      title: 'Recent product work',
+      content: `Charlton has built and shipped FaB Stats, EmbedRoute, the Azoni MCP server, the Azoni Moltbook agent, Old Ways Today, Bench Only, Row Crew, Spell Brigade, and the azoni.ai portfolio. These projects combine full-stack product engineering with AI workflows, serverless or managed infrastructure, live data, and operational logging.`,
+      keywords: ['projects', 'products', 'fab stats', 'embedroute', 'mcp', 'old ways today', 'bench only', 'row crew', 'spell brigade'],
+      score: 45,
+      vectorSimilarity: null
+    });
+  }
+
+  if (intent?.intent === 'skills' || /skills|stack|technologies|languages/.test(q)) {
+    chunks.unshift({
+      id: 'fallback-skills',
+      category: 'skills',
+      title: 'Technical stack',
+      content: `Charlton's core stack includes React, JavaScript/TypeScript, Python, Node.js, FastAPI, Firebase/Firestore, PostgreSQL, AWS, Docker, Netlify Functions, Render, OpenAI APIs, Claude API, RAG systems, and LLM agents. He is strongest where product engineering meets backend systems and AI infrastructure.`,
+      keywords: ['skills', 'stack', 'typescript', 'python', 'react', 'fastapi', 'firebase', 'postgresql', 'aws', 'llm agents'],
+      score: 40,
+      vectorSimilarity: null
+    });
+  }
+
+  return chunks;
+}
+
 function buildLocalFallbackAnswer(query, intent, chunks = []) {
   const q = (query || '').toLowerCase();
 
@@ -653,7 +696,7 @@ async function retrieveChunks(query, intent, maxChunks = 5, options = {}) {
 
   if (!chunks || chunks.length === 0) {
     console.warn('No chunks available, using fallback');
-    return [{ ...FALLBACK_CHUNK, score: 1 }];
+    return getFallbackChunks(query, intent).slice(0, maxChunks);
   }
 
   // Generate query embedding for vector similarity search
@@ -1558,7 +1601,7 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
         // RAG debug info
         _rag: {
           enabled: true,
-          retrievalMethod: retrievedChunks.some(c => c.vectorSimilarity !== null) ? 'vector' : 'keyword',
+          retrievalMethod: retrievedChunks.some(c => c.vectorSimilarity != null) ? 'vector' : 'keyword',
           intent: intent.intent,
           intentConfidence: intent.confidence,
           reason: intent.reason,
