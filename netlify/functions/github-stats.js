@@ -253,9 +253,9 @@ exports.handler = async (event, context) => {
       .reduce((sum, d) => sum + d.contributionCount, 0);
 
     // Calendar-year total (since Jan 1 of the current year)
-    const startOfYear = `${now.getFullYear()}-01-01`;
+    const startOfYearStr = `${now.getFullYear()}-01-01`;
     const thisYear = allDays
-      .filter(d => d.date >= startOfYear && d.date <= today)
+      .filter(d => d.date >= startOfYearStr && d.date <= today)
       .reduce((sum, d) => sum + d.contributionCount, 0);
 
     // Note: GitHub's contributionCalendar covers the trailing ~365 days,
