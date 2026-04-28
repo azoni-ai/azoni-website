@@ -13,6 +13,28 @@ const MODEL_PRICING = {
 
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function promiseWithTimeout(promise, timeoutMs, label) {
+  let timeout;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeout = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeout));
+}
+
 // ============ VECTOR SEARCH CONFIG ============
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const EMBEDDING_MODEL = 'text-embedding-3-small';
@@ -31,7 +53,7 @@ function cosineSimilarity(a, b) {
 async function embedQuery(text) {
   if (!OPENAI_API_KEY) return null;
   try {
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
+    const response = await fetchWithTimeout('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +63,7 @@ async function embedQuery(text) {
         model: EMBEDDING_MODEL,
         input: text.slice(0, 8000)
       })
-    });
+    }, 6000);
     const data = await response.json();
     if (data.error) {
       console.error('[chat] Embedding error:', data.error.message);
@@ -63,7 +85,7 @@ async function callMCPTool(endpoint) {
     if (process.env.MCP_READ_KEY) {
       headers['Authorization'] = `Bearer ${process.env.MCP_READ_KEY}`;
     }
-    const response = await fetch(`${MCP_BASE_URL}${endpoint}`, { headers });
+    const response = await fetchWithTimeout(`${MCP_BASE_URL}${endpoint}`, { headers }, 5000);
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {
@@ -176,16 +198,115 @@ const FALLBACK_CHUNK = {
   keywords: ['charlton', 'about', 'contact', 'seattle']
 };
 
+function buildLocalFallbackAnswer(query, intent, chunks = []) {
+  const q = (query || '').toLowerCase();
+
+  if (intent?.intent === 'experience' || /devops|infra|infrastructure|aws|cloud|backend|production/.test(q)) {
+    return `Charlton has production infrastructure experience across AWS, Netlify Functions, Firebase/Firestore, Docker, Render, FastAPI, Node, and CI/CD-style deployment flows. At Capital One he worked on automated testing pipelines with AWS Lambda and S3; independently, he has shipped apps with serverless functions, authenticated backends, observability, cost logging, and live agent activity feeds. His recent portfolio work is especially infrastructure-heavy: EmbedRoute, the Azoni MCP server, RAG pipelines, and multi-agent systems that run on schedules and log their own actions.`;
+  }
+
+  if (intent?.intent === 'projects' || /built|projects|apps|products/.test(q)) {
+    return `Charlton has built a cluster of real products: FaB Stats, EmbedRoute, Old Ways Today, Bench Only, Row Crew, Spell Brigade, and this Azoni AI portfolio. The common thread is full-stack product work with AI features, live data, serverless or managed infrastructure, and enough observability to keep the systems understandable after they ship.`;
+  }
+
+  if (intent?.intent === 'skills' || /skills|stack|technologies|languages/.test(q)) {
+    return `Charlton's core stack is React, JavaScript/TypeScript, Python, Node.js, FastAPI, Firebase/Firestore, PostgreSQL, AWS, Docker, and AI APIs. He is strongest where product engineering meets backend systems: building the user-facing app, the data model, the API layer, and the AI workflow behind it.`;
+  }
+
+  if (intent?.intent === 'contact' || /contact|email|hire|resume/.test(q)) {
+    return `The best way to reach Charlton is charltonuw@gmail.com. His GitHub is github.com/azoni, LinkedIn is linkedin.com/in/charltonsmith, and the resume is linked from the site navigation.`;
+  }
+
+  const bestChunk = chunks.find((chunk) => chunk?.content)?.content;
+  if (bestChunk) {
+    return `${bestChunk}\n\nI am answering from the local portfolio knowledge because the live model call is unavailable in this environment.`;
+  }
+
+  return `Charlton Smith is a Seattle-based software engineer with 7+ years of experience building production systems and AI-powered applications. His recent work centers on LLM agents, RAG systems, product infrastructure, and portfolio projects with real users.`;
+}
+
+function buildFallbackChatResponse({ query, intent, retrievedChunks, model, pricing, reason }) {
+  const answer = buildLocalFallbackAnswer(query, intent, retrievedChunks);
+  const topChunks = (retrievedChunks || []).slice(0, 3).map((chunk) => ({
+    id: chunk.id,
+    title: chunk.title,
+    category: chunk.category,
+    similarity: chunk.vectorSimilarity !== null && chunk.vectorSimilarity !== undefined
+      ? chunk.vectorSimilarity.toFixed(3)
+      : 'fallback',
+    method: chunk.vectorSimilarity !== null && chunk.vectorSimilarity !== undefined ? 'vector' : 'fallback'
+  }));
+
+  return {
+    id: `local_fallback_${Date.now()}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model,
+    modelName: `${pricing.name} unavailable`,
+    provider: pricing.provider,
+    choices: [{
+      index: 0,
+      message: { role: 'assistant', content: answer },
+      finish_reason: 'fallback'
+    }],
+    _rag: {
+      enabled: true,
+      retrievalMethod: 'fallback',
+      intent: intent?.intent || 'general',
+      intentConfidence: intent?.confidence || 'LOW',
+      reason,
+      chunksRetrieved: retrievedChunks?.length || 0,
+      topChunks,
+      realtimeGenerated: false,
+      realtimeTitle: null
+    },
+    usage: {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+      model,
+      modelName: `${pricing.name} unavailable`,
+      provider: pricing.provider,
+      inputCost: '0.000000',
+      outputCost: '0.000000',
+      totalCost: '0.000000'
+    }
+  };
+}
+
+async function readJsonResponse(response, label) {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    const preview = text.slice(0, 300);
+    console.error(`[chat] ${label} returned non-JSON response`, {
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+      preview
+    });
+    throw new Error(`${label} returned non-JSON response (${response.status})`);
+  }
+}
+
 // REMOVED: Old hardcoded KNOWLEDGE_CHUNKS array
 // Chunks are now fetched from Firestore collection: rag_knowledge_base
 
 // ============ REAL-TIME KNOWLEDGE GENERATION ============
 async function generateKnowledgeOnTheFly(query, intent) {
+  const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
+  if (!openRouterKey) {
+    console.warn('[chat] Skipping real-time knowledge generation: OpenRouter API key not configured');
+    return null;
+  }
+
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.REACT_APP_OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${openRouterKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://azoni.ai',
         'X-Title': 'Azoni AI Knowledge Gen'
@@ -218,9 +339,17 @@ Respond ONLY with JSON: { "category": "bio|experience|projects|skills|agents|neg
         max_tokens: 600,
         response_format: { type: 'json_object' }
       })
-    });
+    }, 9000);
 
-    const data = await res.json();
+    const data = await readJsonResponse(res, 'OpenRouter knowledge generation');
+    if (!res.ok) {
+      console.error('[chat] Knowledge generation API error:', {
+        status: res.status,
+        message: data.error?.message || data.message || 'Unknown upstream error'
+      });
+      return null;
+    }
+
     const content = data.choices?.[0]?.message?.content || '{}';
     const usage = data.usage || {};
     const chunk = JSON.parse(content);
@@ -361,6 +490,16 @@ function detectIntent(query) {
   if (experiencePatterns.some(p => p.test(q))) {
     return { intent: 'experience', confidence: 'HIGH', reason: 'work_pattern' };
   }
+
+  const infraExperienceTriggers = [
+    'devops', 'infra', 'infrastructure', 'platform engineering', 'platform engineer',
+    'cloud', 'aws', 'lambda', 's3', 'docker', 'ci/cd', 'cicd',
+    'deployment', 'deploy', 'observability', 'monitoring', 'serverless',
+    'netlify functions', 'render', 'production systems'
+  ];
+  if (infraExperienceTriggers.some(t => q.includes(t))) {
+    return { intent: 'experience', confidence: 'HIGH', reason: 'infra_keyword' };
+  }
   
   // PRIORITY 2.5: App-specific queries with live data
   const fabStatsTriggers = ['fab stats', 'fabstats', 'flesh and blood', 'tcg', 'card game', 'fab bot'];
@@ -498,9 +637,19 @@ function detectIntent(query) {
 }
 
 // ============ CHUNK RETRIEVAL (Hybrid Vector + Keyword) ============
-async function retrieveChunks(query, intent, maxChunks = 5) {
+async function retrieveChunks(query, intent, maxChunks = 5, options = {}) {
   const q = query.toLowerCase();
-  const chunks = await getKnowledgeChunks();
+  const useEmbedding = options.useEmbedding !== false;
+  let chunks = [];
+  try {
+    chunks = await promiseWithTimeout(
+      getKnowledgeChunks(),
+      options.chunkTimeoutMs || 4000,
+      'RAG chunk load'
+    );
+  } catch (err) {
+    console.error('[chat] RAG chunk load failed:', err.message);
+  }
 
   if (!chunks || chunks.length === 0) {
     console.warn('No chunks available, using fallback');
@@ -508,7 +657,7 @@ async function retrieveChunks(query, intent, maxChunks = 5) {
   }
 
   // Generate query embedding for vector similarity search
-  const queryEmbedding = await embedQuery(query);
+  const queryEmbedding = useEmbedding ? await embedQuery(query) : null;
   const embeddedChunkCount = chunks.filter(c => c.embedding).length;
   if (queryEmbedding) {
     console.log(`[chat] Vector search active: ${embeddedChunkCount}/${chunks.length} chunks have embeddings`);
@@ -1034,7 +1183,15 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { messages, mode, model: requestedModel, context: requestContext, sessionId: requestSessionId, liveStats } = JSON.parse(event.body);
+    const {
+      messages,
+      mode,
+      model: requestedModel,
+      context: requestContext,
+      sessionId: requestSessionId,
+      liveStats,
+      fast = false
+    } = JSON.parse(event.body);
     
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
@@ -1042,11 +1199,16 @@ exports.handler = async (event, context) => {
     // Get the latest user message for intent detection
     const latestUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
     
+    const isFastRequest = fast === true || requestContext === 'home-hero' || requestContext === 'fast';
+
     // Detect intent
     const intent = detectIntent(latestUserMessage);
     
     // Retrieve relevant chunks from Firestore
-    const retrievedChunks = await retrieveChunks(latestUserMessage, intent);
+    const retrievedChunks = await retrieveChunks(latestUserMessage, intent, isFastRequest ? 3 : 5, {
+      useEmbedding: !isFastRequest,
+      chunkTimeoutMs: isFastRequest ? 1200 : 4000
+    });
     
     // ===== REAL-TIME SELF-IMPROVEMENT =====
     // If retrieval is weak and it's a substantive question, generate knowledge on the spot
@@ -1083,9 +1245,12 @@ exports.handler = async (event, context) => {
     ];
     const isBlocked = blockPatterns.some(p => p.test(latestUserMessage));
     
+    const allowSyncKnowledgeGeneration =
+      process.env.ENABLE_SYNC_KNOWLEDGE_GEN === 'true' && !isFastRequest;
+
     // Rate limit: max 5 real-time generations per hour (check Firestore)
     let rateLimited = false;
-    if (!isBlocked && isGeneratableIntent && isSubstantive && bestScore < generationThreshold && db) {
+    if (allowSyncKnowledgeGeneration && !isBlocked && isGeneratableIntent && isSubstantive && bestScore < generationThreshold && db) {
       try {
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         const recentGens = await db.collection('agent_activity')
@@ -1102,7 +1267,7 @@ exports.handler = async (event, context) => {
       }
     }
     
-    if (bestScore < generationThreshold && isSubstantive && isGeneratableIntent && !isBlocked && !rateLimited && db) {
+    if (allowSyncKnowledgeGeneration && bestScore < generationThreshold && isSubstantive && isGeneratableIntent && !isBlocked && !rateLimited && db) {
       console.log(`[chat] Low retrieval score (${bestScore}, threshold: ${generationThreshold}) — generating knowledge on the fly`);
       realtimeChunk = await generateKnowledgeOnTheFly(latestUserMessage, intent.intent);
       if (realtimeChunk) {
@@ -1205,33 +1370,94 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       }
     }
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.REACT_APP_OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://azoni.ai',
-        'X-Title': 'Azoni Portfolio Chat'
-      },
-      body: JSON.stringify({
+    const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
+    if (!openRouterKey) {
+      const fallback = buildFallbackChatResponse({
+        query: latestUserMessage,
+        intent,
+        retrievedChunks,
         model,
-        messages: [
-          { role: 'system', content: finalSystemPrompt },
-          ...messages
-        ],
-        max_tokens: 1000,
-        temperature: mode === 'funny' ? 0.9 : 0.7
-      })
-    });
+        pricing,
+        reason: 'OpenRouter API key not configured'
+      });
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(fallback)
+      };
+    }
 
-    const data = await response.json();
+    let response;
+    try {
+      response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openRouterKey}`,
+          'HTTP-Referer': 'https://azoni.ai',
+          'X-Title': 'Azoni Portfolio Chat'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: finalSystemPrompt },
+            ...messages
+          ],
+          max_tokens: isFastRequest ? 450 : 800,
+          temperature: mode === 'funny' ? 0.9 : 0.7
+        })
+      }, isFastRequest ? 3500 : 11000);
+    } catch (err) {
+      console.error('[chat] OpenRouter fetch failed, using local fallback:', err.message);
+      const fallback = buildFallbackChatResponse({
+        query: latestUserMessage,
+        intent,
+        retrievedChunks,
+        model,
+        pricing,
+        reason: `OpenRouter fetch failed: ${err.message}`
+      });
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(fallback)
+      };
+    }
+
+    let data;
+    try {
+      data = await readJsonResponse(response, 'OpenRouter chat completion');
+    } catch (err) {
+      const fallback = buildFallbackChatResponse({
+        query: latestUserMessage,
+        intent,
+        retrievedChunks,
+        model,
+        pricing,
+        reason: err.message
+      });
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(fallback)
+      };
+    }
 
     if (!response.ok) {
-      console.error('OpenRouter error:', data);
+      const upstreamMessage = data.error?.message || data.message || 'API error';
+      console.error('OpenRouter error:', { status: response.status, message: upstreamMessage });
+      const fallback = buildFallbackChatResponse({
+        query: latestUserMessage,
+        intent,
+        retrievedChunks,
+        model,
+        pricing,
+        reason: `OpenRouter error ${response.status}: ${upstreamMessage}`
+      });
       return {
-        statusCode: response.status,
+        statusCode: 200,
         headers,
-        body: JSON.stringify({ error: data.error?.message || 'API error' })
+        body: JSON.stringify(fallback)
       };
     }
 

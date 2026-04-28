@@ -38,6 +38,8 @@ const HeroChatPrompt = () => {
           mode: 'professional',
           model: MODEL,
           sessionId: sessionIdRef.current,
+          context: 'home-hero',
+          fast: true,
         }),
       });
       const data = await res.json();
