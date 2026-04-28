@@ -1215,7 +1215,7 @@ exports.handler = async (event, context) => {
     let realtimeChunk = null;
     const bestScore = retrievedChunks.length > 0 ? Math.max(...retrievedChunks.map(c => c.score)) : 0;
     // Vector-scored chunks have higher baselines — adjust threshold accordingly
-    const hasVectorScores = retrievedChunks.some(c => c.vectorSimilarity !== null);
+    const hasVectorScores = retrievedChunks.some(c => c.vectorSimilarity != null);
     const generationThreshold = hasVectorScores ? 25 : 10;
     
     // Only generate for intents where we'd reasonably have knowledge
@@ -1472,10 +1472,10 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       id: c.id,
       title: c.title,
       category: c.category,
-      similarity: c.vectorSimilarity !== null
+      similarity: c.vectorSimilarity != null
         ? c.vectorSimilarity.toFixed(3)
         : Math.min(c.score / maxScore, 1.0).toFixed(2),
-      method: c.vectorSimilarity !== null ? 'vector' : 'keyword'
+      method: c.vectorSimilarity != null ? 'vector' : 'keyword'
     }));
 
     // ===== SELF-IMPROVEMENT: Log knowledge gaps + conversations =====
