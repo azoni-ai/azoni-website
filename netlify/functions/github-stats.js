@@ -316,10 +316,6 @@ exports.handler = async (event, context) => {
         const authorLogin = commit.author?.user?.login;
         const ownerLogin = repo.owner?.login;
         const isOwnedRepo = ownerLogin === username || ownerLogin === 'azoni-ai';
-        if (authorLogin && authorLogin !== username) continue;
-        if (!authorLogin && !isOwnedRepo) continue;
-        if (repo.name === 'autoenhance') continue;
-
         const tags = detectAgentTags({
           message: commit.message || '',
           authorName: commit.author?.name || '',
@@ -329,6 +325,11 @@ exports.handler = async (event, context) => {
           committerEmail: commit.committer?.email || '',
           committerLogin: commit.committer?.user?.login || '',
         });
+        const isAgentAuthored = tags.claudeCode || tags.codexCode;
+        if (authorLogin && authorLogin !== username && !isAgentAuthored) continue;
+        if (!authorLogin && !isOwnedRepo && !isAgentAuthored) continue;
+        if (repo.name === 'autoenhance') continue;
+
         upsertCommit({
           message: firstLine(commit.message),
           sha: commit.oid?.substring(0, 7),
