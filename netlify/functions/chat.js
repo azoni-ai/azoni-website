@@ -2,16 +2,26 @@
 // RAG-Enhanced Chat with Intent Detection + Anti-Hallucination + Fitness MCP
 
 // ============ MODEL CONFIGURATION ============
+// Prices are USD per 1K tokens (input / output). Verified against the OpenRouter
+// catalog — keep these in sync with AVAILABLE_MODELS in src/hooks/useChat.js.
 const MODEL_PRICING = {
+  'openai/gpt-5-mini': { input: 0.00025, output: 0.002, name: 'GPT-5 Mini', provider: 'OpenAI' },
+  'openai/gpt-5-nano': { input: 0.00005, output: 0.0004, name: 'GPT-5 Nano', provider: 'OpenAI' },
   'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006, name: 'GPT-4o Mini', provider: 'OpenAI' },
-  'anthropic/claude-3-5-haiku-latest': { input: 0.0008, output: 0.004, name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
-  'google/gemini-2.0-flash-001': { input: 0.0001, output: 0.0004, name: 'Gemini 2.0 Flash', provider: 'Google' },
-  'meta-llama/llama-3.3-70b-instruct': { input: 0.0003, output: 0.0004, name: 'Llama 3.3 70B', provider: 'Meta' },
-  'mistralai/mistral-small-24b-instruct-2501': { input: 0.00014, output: 0.00014, name: 'Mistral Small', provider: 'Mistral' },
-  'deepseek/deepseek-chat': { input: 0.00014, output: 0.00028, name: 'DeepSeek V3', provider: 'DeepSeek' },
+  'anthropic/claude-haiku-4.5': { input: 0.001, output: 0.005, name: 'Claude Haiku 4.5', provider: 'Anthropic' },
+  'google/gemini-2.5-flash': { input: 0.0003, output: 0.0025, name: 'Gemini 2.5 Flash', provider: 'Google' },
+  'google/gemini-2.5-flash-lite': { input: 0.0001, output: 0.0004, name: 'Gemini 2.5 Flash Lite', provider: 'Google' },
+  'meta-llama/llama-4-scout': { input: 0.0001, output: 0.0003, name: 'Llama 4 Scout', provider: 'Meta' },
+  'deepseek/deepseek-v3.2': { input: 0.000229, output: 0.000343, name: 'DeepSeek V3.2', provider: 'DeepSeek' },
+  'mistralai/mistral-small-3.2-24b-instruct': { input: 0.000075, output: 0.0002, name: 'Mistral Small 3.2', provider: 'Mistral' },
 };
 
-const DEFAULT_MODEL = 'openai/gpt-4o-mini';
+const DEFAULT_MODEL = 'openai/gpt-5-mini';
+
+// GPT-5 family only accepts the default temperature (1); sending a custom value errors.
+function supportsCustomTemperature(model) {
+  return !/^openai\/gpt-5/.test(model);
+}
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
   const controller = new AbortController();
@@ -79,13 +89,14 @@ async function embedQuery(text) {
 // ============ MCP SERVER CONFIG ============
 const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.com';
 
-async function callMCPTool(endpoint) {
+async function callMCPTool(endpoint, options = {}) {
   try {
     const headers = {};
     if (process.env.MCP_READ_KEY) {
       headers['Authorization'] = `Bearer ${process.env.MCP_READ_KEY}`;
     }
-    const response = await fetchWithTimeout(`${MCP_BASE_URL}${endpoint}`, { headers }, 5000);
+    const timeoutMs = options.timeoutMs || 5000;
+    const response = await fetchWithTimeout(`${MCP_BASE_URL}${endpoint}`, { headers }, timeoutMs);
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {
@@ -244,6 +255,30 @@ function getFallbackChunks(query, intent) {
 function buildLocalFallbackAnswer(query, intent, chunks = []) {
   const q = (query || '').toLowerCase();
 
+  if (intent?.intent === 'fabstats') {
+    return `FaB Stats is Charlton's Flesh and Blood match-tracking and community stats app. It combines player profiles, match imports, rankings, meta views, teams, achievements, daily games, and a Discord bot around live community data. When the MCP feed is reachable, Azoni AI can pull current FaB Stats numbers directly; this answer is using the local portfolio fallback instead.`;
+  }
+
+  if (intent?.intent === 'rowcrew') {
+    return `RowCrew is Charlton's rowing verification project, focused on making submitted rowing results more trustworthy with product design, backend validation, and live stats. When the MCP feed is reachable, Azoni AI can pull current RowCrew metrics directly.`;
+  }
+
+  if (intent?.intent === 'spellbrigade') {
+    return `Spell Brigade is Charlton's multiplayer wizard-combat game project, including game systems, AI-assisted character creation, and live operational data. When the MCP feed is reachable, Azoni AI can pull current status or leaderboard data directly.`;
+  }
+
+  if (intent?.intent === 'moltbook' || intent?.intent === 'agents' || intent?.intent === 'activity') {
+    return `Azoni AI is connected to Charlton's broader agent system: portfolio knowledge, live app data, activity logging, and autonomous workflows around writing, social posting, fitness, and games. When the MCP and activity feeds are reachable, it can answer with current activity, cost, and app-status numbers; this answer is using the local portfolio fallback instead.`;
+  }
+
+  if (intent?.intent === 'oldways') {
+    return `Old Ways Today is one of Charlton's shipped product experiments, focused on natural, non-toxic living content and tooling. When its live feed is reachable, Azoni AI can pull current health or usage stats directly.`;
+  }
+
+  if (intent?.intent === 'fitness') {
+    return `Charlton's fitness data comes from BenchPressOnly, his own training and coaching app. When the MCP feed is reachable, Azoni AI can pull current workouts, maxes, streaks, goals, and body stats from the live training log; this answer is using the local portfolio fallback instead.`;
+  }
+
   if (intent?.intent === 'experience' || /devops|infra|infrastructure|aws|cloud|backend|production/.test(q)) {
     return `Charlton has production infrastructure experience across AWS, Netlify Functions, Firebase/Firestore, Docker, Render, FastAPI, Node, and CI/CD-style deployment flows. At Capital One he worked on automated testing pipelines with AWS Lambda and S3; independently, he has shipped apps with serverless functions, authenticated backends, observability, cost logging, and live agent activity feeds. His recent portfolio work is especially infrastructure-heavy: EmbedRoute, the Azoni MCP server, RAG pipelines, and multi-agent systems that run on schedules and log their own actions.`;
   }
@@ -334,6 +369,42 @@ async function readJsonResponse(response, label) {
   }
 }
 
+function sanitizeChatMessages(rawMessages) {
+  if (!Array.isArray(rawMessages)) return [];
+
+  return rawMessages
+    .filter((message) => (
+      message &&
+      (message.role === 'user' || message.role === 'assistant') &&
+      typeof message.content === 'string' &&
+      message.content.trim()
+    ))
+    .map((message) => ({
+      role: message.role,
+      content: message.content.slice(0, 4000)
+    }))
+    .slice(-12);
+}
+
+function selectModelMessages(messages, isFastRequest) {
+  return messages.slice(isFastRequest ? -4 : -10);
+}
+
+function getUserFormatInstruction(query) {
+  const q = query || '';
+  const sentenceLimit = q.match(/(?:in|under|within)?\s*(\d+)\s+sentences?\s*(?:or less|max|maximum)?/i);
+  if (sentenceLimit) {
+    return `The user requested ${sentenceLimit[1]} sentences or less. Do not exceed that sentence count.`;
+  }
+  if (/\b(short|brief|concise|quick|tl;dr|tldr)\b/i.test(q)) {
+    return 'The user requested a brief answer. Keep it concise and avoid extra background.';
+  }
+  if (/\bbullets?\b|\blist\b/i.test(q)) {
+    return 'The user requested bullets or a list. Use concise bullets.';
+  }
+  return '';
+}
+
 // REMOVED: Old hardcoded KNOWLEDGE_CHUNKS array
 // Chunks are now fetched from Firestore collection: rag_knowledge_base
 
@@ -355,9 +426,9 @@ async function generateKnowledgeOnTheFly(query, intent) {
         'X-Title': 'Azoni AI Knowledge Gen'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'openai/gpt-5-nano',
         messages: [
-          { role: 'system', content: `You generate knowledge base entries for Charlton Smith's portfolio chatbot. 
+          { role: 'system', content: `You generate knowledge base entries for Charlton Smith's portfolio chatbot.
 Charlton is a software engineer in Seattle with 7+ years of experience. Key facts:
 - B.S. Computer Science from UW Tacoma (2017, honors), M.S. Software Engineering from Colorado Technical University (2021)
 - 4 years at T-Mobile building an internal automation platform (consolidated 4-5 tools, 80% reduction in manual work)
@@ -378,7 +449,6 @@ Examples of when to skip: personal gossip, unrelated trivia, anything requiring 
 Respond ONLY with JSON: { "category": "bio|experience|projects|skills|agents|negotiation|general", "title": "Short descriptive title", "content": "2-3 paragraph answer", "keywords": ["relevant", "keywords"] }` },
           { role: 'user', content: `Question: "${query}" (intent: ${intent})` }
         ],
-        temperature: 0.4,
         max_tokens: 600,
         response_format: { type: 'json_object' }
       })
@@ -441,9 +511,9 @@ Respond ONLY with JSON: { "category": "bio|experience|projects|skills|agents|neg
       description: `Someone asked "${query.slice(0, 80)}..." — generated new knowledge on the spot`,
       reasoning: 'Real-time knowledge gap detected during chat. Generated and saved a new knowledge chunk to answer the question.',
       source: 'azoni-ai',
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-nano',
       tokens: { prompt: usage.prompt_tokens || 0, completion: usage.completion_tokens || 0, total: (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) },
-      cost: (usage.prompt_tokens || 0) * 0.00000015 + (usage.completion_tokens || 0) * 0.0000006,
+      cost: (usage.prompt_tokens || 0) * 0.00000005 + (usage.completion_tokens || 0) * 0.0000004,
       metadata: {
         chunkId,
         chunkTitle: chunk.title,
@@ -476,10 +546,10 @@ function detectIntent(query) {
   const q = query.toLowerCase();
   
   // PRIORITY 0: Agent architecture / orchestrator / "what do you do" queries
-  const agentTriggers = ['orchestrat', 'agent system', 'agent architect', 'how do you work', 'what do you do', 
+  const agentTriggers = ['orchestrat', 'agent system', 'agent architect', 'how do you work', 'what do you do',
     'what are you', 'tell me about yourself', 'how does this work', 'how does azoni ai',
     'azoni ai', 'ai agent', 'blog.*agent', 'fitness.*agent', 'gaming.*agent', 'social.*agent', 'blog writer',
-    'multi.?agent', 'central intelligence'];
+    'multi.?agent', 'central intelligence', 'chatbot', 'how (does|do) (this|the|you).*(work|bot)'];
   if (agentTriggers.some(t => new RegExp(t).test(q))) {
     return { intent: 'agents', confidence: 'HIGH', reason: 'agent_keyword' };
   }
@@ -528,10 +598,27 @@ function detectIntent(query) {
     /previous\s+(job|role|position|employer)/,
     /work\s+history/,
     /career/,
-    /employment/
+    /employment/,
+    /where (did|does|has) (he|charlton).*(work|job|employ)/,
+    /work(ed)?\s+before/
   ];
   if (experiencePatterns.some(p => p.test(q))) {
     return { intent: 'experience', confidence: 'HIGH', reason: 'work_pattern' };
+  }
+
+  const interviewStoryPatterns = [
+    /technical decision.*regret/,
+    /decision.*regret/,
+    /missed signal/,
+    /signal.*miss/,
+    /risky.*assumption/,
+    /assumption.*validate/,
+    /lesson(s)? learned/,
+    /customer[-\s]?facing/,
+    /real users/
+  ];
+  if (interviewStoryPatterns.some(p => p.test(q))) {
+    return { intent: 'experience', confidence: 'HIGH', reason: 'interview_story' };
   }
 
   const infraExperienceTriggers = [
@@ -542,6 +629,15 @@ function detectIntent(query) {
   ];
   if (infraExperienceTriggers.some(t => q.includes(t))) {
     return { intent: 'experience', confidence: 'HIGH', reason: 'infra_keyword' };
+  }
+
+  const roleFitPatterns = [
+    /where (would|does) (he|charlton).*(fit|slot)/,
+    /(best|ideal).*(role|team|fit).*(for|with)? (him|charlton)?/,
+    /fit.*(software|engineering|product|platform|backend|ai).*team/
+  ];
+  if (roleFitPatterns.some(p => p.test(q))) {
+    return { intent: 'experience', confidence: 'HIGH', reason: 'role_fit' };
   }
   
   // PRIORITY 2.5: App-specific queries with live data
@@ -566,6 +662,15 @@ function detectIntent(query) {
   }
 
   // PRIORITY 3: Project name triggers → projects
+  const projectIntentPatterns = [
+    /what (has|did) (he|charlton).*(built|build|ship|shipped|make|made|create|created)/,
+    /(his|charlton's|charlton).*(projects?|apps?|products?|portfolio work)/,
+    /\b(projects?|portfolio projects?|products he built)\b/
+  ];
+  if (projectIntentPatterns.some(p => p.test(q))) {
+    return { intent: 'projects', confidence: 'HIGH', reason: 'project_pattern' };
+  }
+
   const projectTriggers = [
     'dumarket', 'du market',
     'dustbunny', 'dust bunny',
@@ -699,6 +804,16 @@ async function retrieveChunks(query, intent, maxChunks = 5, options = {}) {
     return getFallbackChunks(query, intent).slice(0, maxChunks);
   }
 
+  const fallbackChunks = getFallbackChunks(query, intent);
+  const seenChunkKeys = new Set(chunks.map(c => c.id || c.title).filter(Boolean));
+  for (const fallbackChunk of fallbackChunks) {
+    const key = fallbackChunk.id || fallbackChunk.title;
+    if (!key || !seenChunkKeys.has(key)) {
+      chunks.push(fallbackChunk);
+      if (key) seenChunkKeys.add(key);
+    }
+  }
+
   // Generate query embedding for vector similarity search
   const queryEmbedding = useEmbedding ? await embedQuery(query) : null;
   const embeddedChunkCount = chunks.filter(c => c.embedding).length;
@@ -772,10 +887,11 @@ async function retrieveChunks(query, intent, maxChunks = 5, options = {}) {
 }
 
 // ============ FITNESS DATA RETRIEVAL ============
-async function getFitnessContext(query) {
+async function getFitnessContext(query, options = {}) {
   const q = query.toLowerCase();
   const context = [];
   const toolsCalled = [];
+  const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
   
   const username = 'azoni';
   
@@ -814,13 +930,13 @@ async function getFitnessContext(query) {
   
   try {
     if (isCoachQuery) {
-      const summary = await callMCPTool(`/benchpressonly/coach/${username}`);
+      const summary = await callMCPTool(`/benchpressonly/coach/${username}`, mcpOptions);
       if (summary && !summary.error) {
         context.push({ title: 'Coaching Overview', data: summary });
         toolsCalled.push('get_coach_summary');
       }
       
-      const athletes = await callMCPTool(`/benchpressonly/coach/${username}/athletes`);
+      const athletes = await callMCPTool(`/benchpressonly/coach/${username}/athletes`, mcpOptions);
       if (athletes && !athletes.error) {
         context.push({ title: 'Athlete Progress', data: athletes });
         toolsCalled.push('get_athlete_progress');
@@ -828,7 +944,7 @@ async function getFitnessContext(query) {
     }
     
     if (isMaxQuery) {
-      const maxes = await callMCPTool(`/benchpressonly/maxes/${username}`);
+      const maxes = await callMCPTool(`/benchpressonly/maxes/${username}`, mcpOptions);
       if (maxes && !maxes.error) {
         context.push({ title: 'Personal Records', data: maxes });
         toolsCalled.push('get_max_lifts');
@@ -836,7 +952,7 @@ async function getFitnessContext(query) {
     }
     
     if (isGoalQuery) {
-      const goals = await callMCPTool(`/benchpressonly/goals/${username}`);
+      const goals = await callMCPTool(`/benchpressonly/goals/${username}`, mcpOptions);
       if (goals && !goals.error) {
         context.push({ title: 'Fitness Goals', data: goals });
         toolsCalled.push('get_goals');
@@ -844,13 +960,13 @@ async function getFitnessContext(query) {
     }
     
     if (isStreakQuery) {
-      const streak = await callMCPTool(`/benchpressonly/streak/${username}`);
+      const streak = await callMCPTool(`/benchpressonly/streak/${username}`, mcpOptions);
       if (streak && !streak.error) {
         context.push({ title: 'Workout Streak', data: streak });
         toolsCalled.push('get_streak');
       }
       
-      const consistency = await callMCPTool(`/benchpressonly/consistency/${username}`);
+      const consistency = await callMCPTool(`/benchpressonly/consistency/${username}`, mcpOptions);
       if (consistency && !consistency.error) {
         context.push({ title: 'Training Consistency', data: consistency });
         toolsCalled.push('get_consistency');
@@ -858,7 +974,7 @@ async function getFitnessContext(query) {
     }
     
     if (isVolumeQuery) {
-      const volume = await callMCPTool(`/benchpressonly/volume/${username}`);
+      const volume = await callMCPTool(`/benchpressonly/volume/${username}`, mcpOptions);
       if (volume && !volume.error) {
         context.push({ title: 'Training Volume', data: volume });
         toolsCalled.push('get_training_volume');
@@ -866,7 +982,7 @@ async function getFitnessContext(query) {
     }
     
     if (isExerciseQuery) {
-      const exercises = await callMCPTool(`/benchpressonly/exercises/${username}`);
+      const exercises = await callMCPTool(`/benchpressonly/exercises/${username}`, mcpOptions);
       if (exercises && !exercises.error) {
         context.push({ title: 'Top Exercises', data: exercises });
         toolsCalled.push('get_top_exercises');
@@ -874,7 +990,7 @@ async function getFitnessContext(query) {
     }
     
     if (isBodyQuery) {
-      const body = await callMCPTool(`/benchpressonly/body/${username}`);
+      const body = await callMCPTool(`/benchpressonly/body/${username}`, mcpOptions);
       if (body && !body.error) {
         context.push({ title: 'Body Stats', data: body });
         toolsCalled.push('get_body_stats');
@@ -882,7 +998,7 @@ async function getFitnessContext(query) {
     }
     
     if (isProfileQuery) {
-      const profile = await callMCPTool(`/benchpressonly/profile/${username}`);
+      const profile = await callMCPTool(`/benchpressonly/profile/${username}`, mcpOptions);
       if (profile && !profile.error) {
         context.push({ title: 'Fitness Profile', data: profile });
         toolsCalled.push('get_user_profile');
@@ -890,7 +1006,7 @@ async function getFitnessContext(query) {
     }
     
     if (isWorkoutQuery || context.length === 0) {
-      const workouts = await callMCPTool(`/benchpressonly/workouts/${username}`);
+      const workouts = await callMCPTool(`/benchpressonly/workouts/${username}`, mcpOptions);
       if (workouts && !workouts.error) {
         context.push({ title: 'Recent Workouts', data: workouts });
         toolsCalled.push('get_recent_workouts');
@@ -904,14 +1020,15 @@ async function getFitnessContext(query) {
 }
 
 // ============ ACTIVITY CONTEXT (from MCP) ============
-async function getActivityContext(query) {
+async function getActivityContext(query, options = {}) {
   const q = query.toLowerCase();
   const context = [];
   const toolsCalled = [];
+  const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
 
   try {
     // Always fetch recent activity
-    const recent = await callMCPTool('/activity/recent?limit=15');
+    const recent = await callMCPTool('/activity/recent?limit=15', mcpOptions);
     if (recent && !recent.error) {
       context.push({ title: 'Recent AI Activity', data: recent });
       toolsCalled.push('get_recent_activity');
@@ -920,7 +1037,7 @@ async function getActivityContext(query) {
     // Fetch costs if cost/spend/usage related
     if (/cost|spend|usage|token|price|expensive|cheap|money|dollar|\$|budget/.test(q)) {
       const days = /month|30/.test(q) ? 30 : /week|7/.test(q) ? 7 : /year|365/.test(q) ? 365 : 30;
-      const costs = await callMCPTool(`/activity/costs?days=${days}`);
+      const costs = await callMCPTool(`/activity/costs?days=${days}`, mcpOptions);
       if (costs && !costs.error) {
         context.push({ title: `AI Cost Summary (${days} days)`, data: costs });
         toolsCalled.push('get_cost_summary');
@@ -930,7 +1047,7 @@ async function getActivityContext(query) {
     // Fetch stats if frequency/trend related
     if (/active|busy|frequent|trend|stats|how (much|often|many)/.test(q)) {
       const days = /month|30/.test(q) ? 30 : 7;
-      const stats = await callMCPTool(`/activity/stats?days=${days}`);
+      const stats = await callMCPTool(`/activity/stats?days=${days}`, mcpOptions);
       if (stats && !stats.error) {
         context.push({ title: `Activity Stats (${days} days)`, data: stats });
         toolsCalled.push('get_activity_stats');
@@ -991,20 +1108,21 @@ async function getScribeContext(query) {
 }
 
 // ============ FAB STATS CONTEXT (from MCP) ============
-async function getFabStatsContext(query) {
+async function getFabStatsContext(query, options = {}) {
   const q = query.toLowerCase();
   const context = [];
   const toolsCalled = [];
+  const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
 
   try {
-    const community = await callMCPTool('/fabstats/community');
+    const community = await callMCPTool('/fabstats/community', mcpOptions);
     if (community && !community.error) {
       context.push({ title: 'FaB Stats Community Overview', data: community });
       toolsCalled.push('get_community_stats');
     }
 
     if (/leaderboard|ranking|top|best|elo/.test(q)) {
-      const lb = await callMCPTool('/fabstats/leaderboard');
+      const lb = await callMCPTool('/fabstats/leaderboard', mcpOptions);
       if (lb && !lb.error) {
         context.push({ title: 'FaB Stats Leaderboard', data: lb });
         toolsCalled.push('get_leaderboard');
@@ -1013,7 +1131,7 @@ async function getFabStatsContext(query) {
 
     if (/minigame|puzzle|daily|fabdoku|crossword/.test(q)) {
       const game = q.includes('crossword') ? 'crossword' : 'fabdoku';
-      const mg = await callMCPTool(`/fabstats/minigame/${game}`);
+      const mg = await callMCPTool(`/fabstats/minigame/${game}`, mcpOptions);
       if (mg && !mg.error) {
         context.push({ title: `Minigame Stats: ${game}`, data: mg });
         toolsCalled.push('get_minigame_stats');
@@ -1027,12 +1145,13 @@ async function getFabStatsContext(query) {
 }
 
 // ============ ROWCREW CONTEXT (from MCP) ============
-async function getRowCrewContext() {
+async function getRowCrewContext(options = {}) {
   const context = [];
   const toolsCalled = [];
+  const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
 
   try {
-    const stats = await callMCPTool('/rowcrew/stats');
+    const stats = await callMCPTool('/rowcrew/stats', mcpOptions);
     if (stats && !stats.error) {
       context.push({ title: 'RowCrew Rowing Stats', data: stats });
       toolsCalled.push('get_rowing_stats');
@@ -1045,20 +1164,21 @@ async function getRowCrewContext() {
 }
 
 // ============ SPELL BRIGADE CONTEXT (from MCP) ============
-async function getSpellBrigadeContext(query) {
+async function getSpellBrigadeContext(query, options = {}) {
   const q = query.toLowerCase();
   const context = [];
   const toolsCalled = [];
+  const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
 
   try {
-    const status = await callMCPTool('/spellbrigade/status');
+    const status = await callMCPTool('/spellbrigade/status', mcpOptions);
     if (status && !status.error) {
       context.push({ title: 'Spell Brigade Status', data: status });
       toolsCalled.push('get_spellbrigade_status');
     }
 
     if (/leaderboard|ranking|top|best|winner/.test(q)) {
-      const lb = await callMCPTool('/spellbrigade/leaderboard');
+      const lb = await callMCPTool('/spellbrigade/leaderboard', mcpOptions);
       if (lb && !lb.error) {
         context.push({ title: 'Spell Brigade Leaderboard', data: lb });
         toolsCalled.push('get_spellbrigade_leaderboard');
@@ -1072,20 +1192,21 @@ async function getSpellBrigadeContext(query) {
 }
 
 // ============ MOLTBOOK CONTEXT (from MCP) ============
-async function getMoltbookContext(query) {
+async function getMoltbookContext(query, options = {}) {
   const q = query.toLowerCase();
   const context = [];
   const toolsCalled = [];
+  const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
 
   try {
-    const status = await callMCPTool('/moltbook/status');
+    const status = await callMCPTool('/moltbook/status', mcpOptions);
     if (status && !status.error) {
       context.push({ title: 'Moltbook Agent Status', data: status });
       toolsCalled.push('get_moltbook_status');
     }
 
     if (/feed|post|content|recent|what.*post/.test(q)) {
-      const feed = await callMCPTool('/moltbook/feed');
+      const feed = await callMCPTool('/moltbook/feed', mcpOptions);
       if (feed && !feed.error) {
         context.push({ title: 'Moltbook Recent Feed', data: feed });
         toolsCalled.push('get_moltbook_feed');
@@ -1099,20 +1220,21 @@ async function getMoltbookContext(query) {
 }
 
 // ============ OLD WAYS TODAY CONTEXT (from MCP) ============
-async function getOWTContext(query) {
+async function getOWTContext(query, options = {}) {
   const q = query.toLowerCase();
   const context = [];
   const toolsCalled = [];
+  const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
 
   try {
-    const health = await callMCPTool('/oldwaystoday/health');
+    const health = await callMCPTool('/oldwaystoday/health', mcpOptions);
     if (health && !health.error) {
       context.push({ title: 'Old Ways Today Health', data: health });
       toolsCalled.push('get_owt_health');
     }
 
     if (/stats|usage|request|token|traffic/.test(q)) {
-      const stats = await callMCPTool('/oldwaystoday/stats');
+      const stats = await callMCPTool('/oldwaystoday/stats', mcpOptions);
       if (stats && !stats.error) {
         context.push({ title: 'Old Ways Today Usage Stats', data: stats });
         toolsCalled.push('get_owt_stats');
@@ -1125,13 +1247,18 @@ async function getOWTContext(query) {
   return { context, toolsCalled };
 }
 
-function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], activityData = [], appData = [], hasRealtimeChunk = false) {
+function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], activityData = [], appData = [], hasRealtimeChunk = false, options = {}) {
   const toneInstructions = {
     professional: 'Be professional, concise, and highlight relevant qualifications.',
     friendly: 'Be warm and approachable while remaining informative.',
     casual: 'Be relaxed and conversational, like talking to a friend.',
     funny: 'Add humor and wit while still being helpful and informative.'
   };
+  const isFastRequest = !!options.isFastRequest;
+  const userFormatInstruction = options.userFormatInstruction || '';
+  const responseShape = isFastRequest
+    ? 'This is a compact home-page chat. Answer quickly in 2-4 useful sentences or a short bullet list. Do not mention model names, RAG, MCP, chunks, or internal pipeline details unless the user directly asks how the chatbot works.'
+    : 'This is the full chat page. Be direct first, then add detail where it helps. Do not lead with implementation details unless the user asks for them.';
 
   const contextSection = retrievedChunks.length > 0
     ? `\n\nRETRIEVED CONTEXT (use ONLY this information to answer):\n${retrievedChunks.map(c => `--- ${c.title} ---\n${c.content}`).join('\n\n')}`
@@ -1151,9 +1278,9 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], acti
 
   return `You are Azoni AI, the portfolio chatbot for Charlton Smith, a software engineer in Seattle. You are part of a multi-agent AI system that Charlton built — you serve as the user-facing interface while a central orchestrator coordinates blog writing, social posting, fitness tracking, and gaming agents behind the scenes.
 
-Your primary job is helping recruiters, hiring managers, and visitors learn about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton.
+Your primary job is helping recruiters, hiring managers, and visitors learn about Charlton's background, skills, projects, and experience. Always speak in third person about Charlton. Give the useful answer first; keep the chatbot's internal mechanics in the background unless asked.
 
-When asked about yourself or "what do you do" or "how does this work," explain the agent architecture — you're one of 5 AI agents running autonomously across Charlton's portfolio. You can reference the orchestrator, blog agent, social agent, fitness agent, and gaming agent.
+When asked about yourself, "what do you do," or "how does this work," give a brief plain-language answer. Mention that Azoni AI uses portfolio knowledge, retrieval, and live app data when relevant. Only go deep on the agent architecture if the user explicitly asks for implementation details.
 
 HANDLING "YOU" QUESTIONS:
 When someone says "you" — figure out if they mean YOU (Azoni AI) or Charlton:
@@ -1166,10 +1293,12 @@ When someone says "you" — figure out if they mean YOU (Azoni AI) or Charlton:
 General rule: If the question makes sense for an AI chatbot to answer about itself, answer as Azoni AI. If it's clearly about skills, experience, location, or background, answer about Charlton. If ambiguous, briefly acknowledge both — "As an AI, I don't personally [X], but Charlton [answer about Charlton]." Keep it natural and don't overthink it.
 
 TONE: ${toneInstructions[mode] || toneInstructions.professional}
+RESPONSE STYLE: ${responseShape}
+${userFormatInstruction ? `USER FORMAT REQUEST: ${userFormatInstruction}` : ''}
 
 CRITICAL RULES - YOU MUST FOLLOW THESE:
 1. ONLY use information from the RETRIEVED CONTEXT, LIVE FITNESS DATA, LIVE AI ACTIVITY DATA, and LIVE APP DATA below. Do not make up details.
-2. If the context doesn't contain specific information about what the user is asking, say "I don't have detailed information about that in my knowledge base" and suggest they contact Charlton directly.
+2. If the context doesn't contain specific information about what the user is asking, say that you do not have that specific detail in the knowledge base and suggest contacting Charlton directly.
 3. NEVER invent dates, job titles, company names, or responsibilities that aren't in the context.
 4. NEVER fabricate project details, technologies, or achievements.
 5. If you're unsure, say so. It's better to be honest than to hallucinate.
@@ -1227,7 +1356,7 @@ exports.handler = async (event, context) => {
 
   try {
     const {
-      messages,
+      messages: rawMessages = [],
       mode,
       model: requestedModel,
       context: requestContext,
@@ -1238,14 +1367,57 @@ exports.handler = async (event, context) => {
     
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
+    const messages = sanitizeChatMessages(rawMessages);
 
     // Get the latest user message for intent detection
     const latestUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
     
     const isFastRequest = fast === true || requestContext === 'home-hero' || requestContext === 'fast';
+    const modelMessages = selectModelMessages(messages, isFastRequest);
+
+    if (!latestUserMessage) {
+      const fallback = buildFallbackChatResponse({
+        query: '',
+        intent: { intent: 'greeting', confidence: 'LOW', reason: 'empty_message' },
+        retrievedChunks: getFallbackChunks('', { intent: 'general' }),
+        model,
+        pricing,
+        reason: 'No user message provided'
+      });
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(fallback)
+      };
+    }
 
     // Detect intent
     const intent = detectIntent(latestUserMessage);
+    const liveContextIntents = new Set([
+      'fitness',
+      'activity',
+      'agents',
+      'fabstats',
+      'rowcrew',
+      'spellbrigade',
+      'moltbook',
+      'oldways'
+    ]);
+    const shouldFetchLiveContext = !isFastRequest || liveContextIntents.has(intent.intent);
+    const liveLookupOptions = {
+      mcpTimeoutMs: isFastRequest ? 1600 : 5000
+    };
+    const runLiveLookup = async (label, loader) => {
+      if (!shouldFetchLiveContext) return null;
+      if (!isFastRequest) return loader();
+
+      try {
+        return await promiseWithTimeout(loader(), 1800, label);
+      } catch (err) {
+        console.warn(`[chat] ${label} skipped: ${err.message}`);
+        return null;
+      }
+    };
     
     // Retrieve relevant chunks from Firestore
     const retrievedChunks = await retrieveChunks(latestUserMessage, intent, isFastRequest ? 3 : 5, {
@@ -1322,46 +1494,56 @@ exports.handler = async (event, context) => {
     let fitnessContext = [];
     let fitnessToolsCalled = [];
     if (intent.intent === 'fitness') {
-      const fitnessResult = await getFitnessContext(latestUserMessage);
-      fitnessContext = fitnessResult.context;
-      fitnessToolsCalled = fitnessResult.toolsCalled;
+      const fitnessResult = await runLiveLookup('Fitness MCP context', () => getFitnessContext(latestUserMessage, liveLookupOptions));
+      if (fitnessResult) {
+        fitnessContext = fitnessResult.context;
+        fitnessToolsCalled = fitnessResult.toolsCalled;
+      }
     }
     
     // Fetch AI activity data if relevant
     let activityContext = [];
     let activityToolsCalled = [];
     if (intent.intent === 'activity' || intent.intent === 'agents') {
-      const activityResult = await getActivityContext(latestUserMessage);
-      activityContext = activityResult.context;
-      activityToolsCalled = activityResult.toolsCalled;
+      const activityResult = await runLiveLookup('Activity MCP context', () => getActivityContext(latestUserMessage, liveLookupOptions));
+      if (activityResult) {
+        activityContext = activityResult.context;
+        activityToolsCalled = activityResult.toolsCalled;
+      }
 
       // Also fetch Scribe's live commit inbox
-      const scribeResult = await getScribeContext(latestUserMessage);
-      activityContext = activityContext.concat(scribeResult.context);
-      activityToolsCalled = activityToolsCalled.concat(scribeResult.toolsCalled);
+      if (!isFastRequest) {
+        const scribeResult = await getScribeContext(latestUserMessage);
+        activityContext = activityContext.concat(scribeResult.context);
+        activityToolsCalled = activityToolsCalled.concat(scribeResult.toolsCalled);
+      }
     }
 
     // Fetch app-specific live data
     let appData = [];
     if (intent.intent === 'fabstats') {
-      const result = await getFabStatsContext(latestUserMessage);
-      appData = result.context;
+      const result = await runLiveLookup('FaB Stats MCP context', () => getFabStatsContext(latestUserMessage, liveLookupOptions));
+      appData = result?.context || [];
     } else if (intent.intent === 'rowcrew') {
-      const result = await getRowCrewContext();
-      appData = result.context;
+      const result = await runLiveLookup('RowCrew MCP context', () => getRowCrewContext(liveLookupOptions));
+      appData = result?.context || [];
     } else if (intent.intent === 'spellbrigade') {
-      const result = await getSpellBrigadeContext(latestUserMessage);
-      appData = result.context;
+      const result = await runLiveLookup('Spell Brigade MCP context', () => getSpellBrigadeContext(latestUserMessage, liveLookupOptions));
+      appData = result?.context || [];
     } else if (intent.intent === 'moltbook') {
-      const result = await getMoltbookContext(latestUserMessage);
-      appData = result.context;
+      const result = await runLiveLookup('Moltbook MCP context', () => getMoltbookContext(latestUserMessage, liveLookupOptions));
+      appData = result?.context || [];
     } else if (intent.intent === 'oldways') {
-      const result = await getOWTContext(latestUserMessage);
-      appData = result.context;
+      const result = await runLiveLookup('Old Ways Today MCP context', () => getOWTContext(latestUserMessage, liveLookupOptions));
+      appData = result?.context || [];
     }
 
     // Build system prompt with context
-    let finalSystemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext, activityContext, appData, !!realtimeChunk);
+    let finalSystemPrompt = buildSystemPrompt(mode, retrievedChunks, intent, fitnessContext, activityContext, appData, !!realtimeChunk, {
+      isFastRequest,
+      requestContext,
+      userFormatInstruction: getUserFormatInstruction(latestUserMessage)
+    });
 
     // Inject interview-specific context when called from the Autoenhance batch downloader page
     if (requestContext === 'autoenhance-interview') {
@@ -1444,12 +1626,14 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
           model,
           messages: [
             { role: 'system', content: finalSystemPrompt },
-            ...messages
+            ...modelMessages
           ],
-          max_tokens: isFastRequest ? 450 : 800,
-          temperature: mode === 'funny' ? 0.9 : 0.7
+          max_tokens: isFastRequest ? 320 : 750,
+          ...(supportsCustomTemperature(model)
+            ? { temperature: mode === 'funny' ? 0.85 : 0.45 }
+            : {})
         })
-      }, isFastRequest ? 3500 : 11000);
+      }, isFastRequest ? 4500 : 11000);
     } catch (err) {
       console.error('[chat] OpenRouter fetch failed, using local fallback:', err.message);
       const fallback = buildFallbackChatResponse({
@@ -1531,8 +1715,8 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
 
       // Log knowledge gap if retrieval was weak or response admits ignorance
       // Skip if we already generated knowledge in real-time for this query
-      if (!realtimeChunk && (lowRetrievalScore || responseIndicatesGap) && intent.intent !== 'greeting' && latestUserMessage.length > 10) {
-        await db.collection('knowledge_gaps').add({
+      if (db && !realtimeChunk && (lowRetrievalScore || responseIndicatesGap) && intent.intent !== 'greeting' && latestUserMessage.length > 10) {
+        db.collection('knowledge_gaps').add({
           query: latestUserMessage.slice(0, 500),
           intent: intent.intent,
           bestRetrievalScore: bestScore,
@@ -1540,13 +1724,14 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
           topChunkTitles: topChunks.slice(0, 3).map(c => c.title),
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
           resolved: false
-        });
-        console.log(`[chat] Knowledge gap logged: "${latestUserMessage.slice(0, 80)}..." (score: ${bestScore})`);
+        })
+          .then(() => console.log(`[chat] Knowledge gap logged: "${latestUserMessage.slice(0, 80)}..." (score: ${bestScore})`))
+          .catch(err => console.error('[chat] Failed to log knowledge gap:', err.message));
       }
 
       // Log conversation for analysis (async, non-blocking)
       // Field names match frontend useChat.js so admin panel displays them correctly
-      db.collection('chatLogs').add({
+      if (db) db.collection('chatLogs').add({
         sessionId: requestSessionId || `server_${Date.now()}`,
         userMessage: latestUserMessage.slice(0, 1000),
         assistantMessage: assistantResponse.slice(0, 1000),
@@ -1575,7 +1760,7 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
         fitness: 'benchpressonly', fabstats: 'fabstats', rowcrew: 'rowcrew',
         spellbrigade: 'spellbrigade', moltbook: 'moltbook', oldways: 'oldwaystoday', activity: 'activity',
       };
-      db.collection('agent_activity').add({
+      if (db) db.collection('agent_activity').add({
         type: 'assistant_chat',
         title: `Chat: ${latestUserMessage.slice(0, 60)}`,
         description: assistantResponse.slice(0, 200),
@@ -1639,10 +1824,20 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
   } catch (error) {
     console.error('Function error:', error);
     logError('chat', error.message, 'high', { function: 'main-handler' }).catch(() => {});
+    const model = DEFAULT_MODEL;
+    const pricing = MODEL_PRICING[model];
+    const fallback = buildFallbackChatResponse({
+      query: '',
+      intent: { intent: 'general', confidence: 'LOW', reason: 'handler_error' },
+      retrievedChunks: getFallbackChunks('', { intent: 'general' }),
+      model,
+      pricing,
+      reason: `Function fallback: ${error.message}`
+    });
     return {
-      statusCode: 500,
+      statusCode: 200,
       headers,
-      body: JSON.stringify({ error: 'Internal server error' })
+      body: JSON.stringify(fallback)
     };
   }
 };

@@ -9,7 +9,8 @@ const SUGGESTIONS = [
 
 const SYSTEM_GREETING = null; // no pre-seeded history; keeps the one-shot clean
 
-const MODEL = 'openai/gpt-4o-mini';
+// Hero is the fast path (tight timeout) — use a low-latency, temperature-friendly model.
+const MODEL = 'google/gemini-2.5-flash-lite';
 
 const HeroChatPrompt = () => {
   const [input, setInput] = useState('');

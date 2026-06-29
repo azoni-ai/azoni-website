@@ -38,6 +38,9 @@ const Admin = () => {
     if (password === ADMIN_PASSWORD) {
       setAuthenticated(true);
       sessionStorage.setItem('admin_authenticated', 'true');
+      // Also use the entered password as the bearer token for write-protected
+      // backend endpoints (rag-admin). Set RAG_ADMIN_KEY in Netlify to this value.
+      sessionStorage.setItem('rag_admin_token', password);
     } else {
       setLoginError('Invalid password');
     }
@@ -46,6 +49,7 @@ const Admin = () => {
   const handleLogout = () => {
     setAuthenticated(false);
     sessionStorage.removeItem('admin_authenticated');
+    sessionStorage.removeItem('rag_admin_token');
     navigate('/');
   };
 
@@ -98,6 +102,12 @@ const Admin = () => {
               Chat usage
             </button>
             <button
+              className={`admin-main-tab ${activeTab === 'monitor' ? 'active' : ''}`}
+              onClick={() => setActiveTab('monitor')}
+            >
+              Chat monitor
+            </button>
+            <button
               className={`admin-main-tab ${activeTab === 'comments' ? 'active' : ''}`}
               onClick={() => setActiveTab('comments')}
             >
@@ -131,6 +141,7 @@ const Admin = () => {
 
           {activeTab === 'agents' && <AgentsTab />}
           {activeTab === 'usage' && <UsageTab />}
+          {activeTab === 'monitor' && <MonitorTab />}
           {activeTab === 'comments' && <CommentsTab />}
           {activeTab === 'blog' && <BlogTab />}
           {activeTab === 'rag' && <RAGTab />}
@@ -929,19 +940,22 @@ code block
 
 // ============ USAGE TAB ============
 const AVAILABLE_MODELS = [
+  { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', provider: 'OpenAI', cost: '~$0.0006' },
+  { id: 'openai/gpt-5-nano', name: 'GPT-5 Nano', provider: 'OpenAI', cost: '~$0.0002' },
   { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', cost: '~$0.0003' },
-  { id: 'anthropic/claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', provider: 'Anthropic', cost: '~$0.002' },
-  { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google', cost: '~$0.0002' },
-  { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', provider: 'Meta', cost: '~$0.0003' },
-  { id: 'mistralai/mistral-small-24b-instruct-2501', name: 'Mistral Small', provider: 'Mistral', cost: '~$0.0001' },
-  { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3', provider: 'DeepSeek', cost: '~$0.0002' },
+  { id: 'anthropic/claude-haiku-4.5', name: 'Claude Haiku 4.5', provider: 'Anthropic', cost: '~$0.003' },
+  { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', cost: '~$0.0009' },
+  { id: 'google/gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', provider: 'Google', cost: '~$0.0002' },
+  { id: 'meta-llama/llama-4-scout', name: 'Llama 4 Scout', provider: 'Meta', cost: '~$0.0002' },
+  { id: 'deepseek/deepseek-v3.2', name: 'DeepSeek V3.2', provider: 'DeepSeek', cost: '~$0.0002' },
+  { id: 'mistralai/mistral-small-3.2-24b-instruct', name: 'Mistral Small 3.2', provider: 'Mistral', cost: '~$0.0001' },
 ];
 
 const UsageTab = () => {
   const [chatLogs, setChatLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedSession, setExpandedSession] = useState(null);
-  const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-5-mini');
   const [savingModel, setSavingModel] = useState(false);
   const [stats, setStats] = useState({
     totalChats: 0,
@@ -1173,6 +1187,399 @@ const UsageTab = () => {
   );
 };
 
+// ============ CHAT MONITOR TAB (audit trail + eval) ============
+const monitorTokenHeaders = () => {
+  const token = sessionStorage.getItem('rag_admin_token') || '';
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const scoreColor = (n) => (n == null ? '#64748b' : n >= 0.7 ? '#10b981' : n >= 0.4 ? '#f59e0b' : '#ef4444');
+const verdictColor = (v) => (v === 'pass' ? '#10b981' : v === 'warn' ? '#f59e0b' : '#ef4444');
+
+// Both the chat function and useChat log a turn, so collapse duplicates by
+// (session + question), keeping the richest fields from each copy.
+const mergeChatLogs = (logs) => {
+  const groups = new Map();
+  for (const log of logs) {
+    const key = `${log.sessionId || '?'}::${(log.userMessage || '').slice(0, 200)}`;
+    if (!groups.has(key)) {
+      groups.set(key, { ...log, _scoreId: log.id });
+      continue;
+    }
+    const cur = groups.get(key);
+    const curTop = Array.isArray(cur.rag?.topChunks) && cur.rag.topChunks.length;
+    const newTop = Array.isArray(log.rag?.topChunks) && log.rag.topChunks.length;
+    if (!curTop && newTop) { cur.rag = log.rag; cur._scoreId = log.id; }
+    if (!cur.usage?.totalCost && log.usage?.totalCost) cur.usage = log.usage;
+    if (cur.latencyMs == null && log.latencyMs != null) cur.latencyMs = log.latencyMs;
+    if (cur.streamed == null && log.streamed != null) cur.streamed = log.streamed;
+    if (!cur.context && log.context) cur.context = log.context;
+    if (!cur.eval && log.eval) cur.eval = log.eval;
+    if (!cur.modelName && log.modelName) cur.modelName = log.modelName;
+    if ((!cur.assistantMessage || cur.assistantMessage.length < (log.assistantMessage || '').length)) {
+      cur.assistantMessage = log.assistantMessage;
+    }
+  }
+  return [...groups.values()];
+};
+
+const ragBestScore = (rag) => {
+  if (!rag) return null;
+  if (Array.isArray(rag.topChunks) && rag.topChunks.length) return Number(rag.topChunks[0].similarity);
+  if (rag.bestRetrievalScore != null) return Number(rag.bestRetrievalScore);
+  return null;
+};
+
+const MonitorTab = () => {
+  const [view, setView] = useState('audit');
+  const [logs, setLogs] = useState([]);
+  const [evalRuns, setEvalRuns] = useState([]);
+  const [gaps, setGaps] = useState([]);
+  const [errors, setErrors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState('');
+  const [intentFilter, setIntentFilter] = useState('all');
+  const [onlyFlagged, setOnlyFlagged] = useState(false);
+  const [expanded, setExpanded] = useState(null);
+
+  const [evalModel, setEvalModel] = useState('openai/gpt-5-mini');
+  const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState(null);
+  const [scoring, setScoring] = useState({});
+
+  useEffect(() => {
+    const q = query(collection(db, 'chatLogs'), orderBy('timestamp', 'desc'), limit(300));
+    return onSnapshot(q, (snap) => {
+      setLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    }, () => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, 'chat_evals'), orderBy('createdAt', 'desc'), limit(20));
+    return onSnapshot(q, (snap) => setEvalRuns(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), () => {});
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, 'knowledge_gaps'), orderBy('timestamp', 'desc'), limit(50));
+    return onSnapshot(q, (snap) => setGaps(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), () => {});
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, 'error_logs'), orderBy('timestamp', 'desc'), limit(80));
+    return onSnapshot(q, (snap) => {
+      const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setErrors(all.filter((e) => /chat/i.test(e.source || '')));
+    }, () => {});
+  }, []);
+
+  const merged = useMemo(() => mergeChatLogs(logs), [logs]);
+  const latestRun = evalRuns[0];
+
+  const stats = useMemo(() => {
+    const n = merged.length || 1;
+    let cost = 0, lat = 0, latCount = 0, streamed = 0, gapCount = 0;
+    merged.forEach((l) => {
+      cost += parseFloat(l.usage?.totalCost || 0);
+      if (l.latencyMs != null) { lat += l.latencyMs; latCount++; }
+      if (l.streamed) streamed++;
+      const best = ragBestScore(l.rag);
+      const indicatesGap = (Array.isArray(l.rag?.topChunks) && l.rag.topChunks.length === 0) || (best != null && best < 0.25);
+      if (indicatesGap) gapCount++;
+    });
+    return {
+      total: merged.length,
+      cost: cost.toFixed(5),
+      avgLatency: latCount ? Math.round(lat / latCount) : null,
+      streamedPct: Math.round((streamed / n) * 100),
+      gapRate: Math.round((gapCount / n) * 100),
+    };
+  }, [merged]);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    return merged.filter((l) => {
+      if (intentFilter !== 'all' && l.rag?.intent !== intentFilter) return false;
+      if (onlyFlagged) {
+        const flagged = (l.eval && l.eval.verdict !== 'pass') || (Array.isArray(l.rag?.topChunks) && l.rag.topChunks.length === 0);
+        if (!flagged) return false;
+      }
+      if (s && !(`${l.userMessage} ${l.assistantMessage}`.toLowerCase().includes(s))) return false;
+      return true;
+    });
+  }, [merged, search, intentFilter, onlyFlagged]);
+
+  const runSuite = async () => {
+    setRunning(true);
+    setRunError(null);
+    try {
+      const res = await fetch('/.netlify/functions/chat-eval/run-suite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...monitorTokenHeaders() },
+        body: JSON.stringify({ model: evalModel }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.details || e.error || `HTTP ${res.status}`);
+      }
+      await res.json();
+      setView('eval');
+    } catch (err) {
+      setRunError(err.message);
+    }
+    setRunning(false);
+  };
+
+  const scoreTurn = async (log) => {
+    const id = log._scoreId || log.id;
+    setScoring((p) => ({ ...p, [id]: true }));
+    try {
+      const res = await fetch('/.netlify/functions/chat-eval/score-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...monitorTokenHeaders() },
+        body: JSON.stringify({
+          question: log.userMessage,
+          answer: log.assistantMessage,
+          chunkIds: (log.rag?.topChunks || []).map((c) => c.id),
+        }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.details || e.error || `HTTP ${res.status}`);
+      }
+      const result = await res.json();
+      await updateDoc(doc(db, 'chatLogs', id), { eval: { ...result, scoredAt: Timestamp.now() } });
+    } catch (err) {
+      alert(`Scoring failed: ${err.message}`);
+    }
+    setScoring((p) => ({ ...p, [id]: false }));
+  };
+
+  const fmt = (ts) => (ts?.toDate ? ts.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A');
+  const intents = ['all', 'general', 'experience', 'projects', 'skills', 'fitness', 'activity', 'agents', 'fabstats', 'rowcrew', 'spellbrigade', 'moltbook', 'oldways', 'education', 'contact', 'negotiation', 'services'];
+
+  const card = { background: 'var(--surface, #111827)', border: '1px solid var(--border, #1f2937)', borderRadius: 10, padding: '12px 14px' };
+  const badge = (text, color) => (<span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: 999, background: `${color}22`, color, border: `1px solid ${color}55`, whiteSpace: 'nowrap' }}>{text}</span>);
+
+  if (loading) return <p>Loading chat monitor…</p>;
+
+  return (
+    <div className="monitor-tab">
+      {/* Aggregate cards */}
+      <div className="stats-grid">
+        <div className="stat-card"><div className="stat-value">{stats.total}</div><div className="stat-label">Turns (deduped)</div></div>
+        <div className="stat-card"><div className="stat-value">{stats.avgLatency != null ? `${stats.avgLatency}ms` : '—'}</div><div className="stat-label">Avg latency</div></div>
+        <div className="stat-card"><div className="stat-value">${stats.cost}</div><div className="stat-label">Logged cost</div></div>
+        <div className="stat-card"><div className="stat-value">{stats.streamedPct}%</div><div className="stat-label">Streamed</div></div>
+        <div className="stat-card highlight"><div className="stat-value" style={{ color: stats.gapRate > 20 ? '#f59e0b' : undefined }}>{stats.gapRate}%</div><div className="stat-label">Weak retrieval</div></div>
+        {latestRun && (
+          <div className="stat-card highlight"><div className="stat-value" style={{ color: scoreColor(latestRun.aggregate?.passRate) }}>{Math.round((latestRun.aggregate?.passRate || 0) * 100)}%</div><div className="stat-label">Eval pass rate</div></div>
+        )}
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="admin-tabs" style={{ marginTop: 'var(--space-lg)' }}>
+        {[['audit', `Audit trail (${merged.length})`], ['eval', 'Eval'], ['gaps', `Gaps & errors (${gaps.length + errors.length})`]].map(([v, label]) => (
+          <button key={v} className={`admin-tab ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>{label}</button>
+        ))}
+      </div>
+
+      {/* ===== AUDIT TRAIL ===== */}
+      {view === 'audit' && (
+        <div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '12px 0' }}>
+            <input className="comment-input" style={{ flex: '1 1 220px', minWidth: 180 }} placeholder="Search question or answer…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <select className="comment-input" style={{ flex: '0 0 auto', width: 160 }} value={intentFilter} onChange={(e) => setIntentFilter(e.target.value)}>
+              {intents.map((i) => <option key={i} value={i}>{i === 'all' ? 'All intents' : i}</option>)}
+            </select>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
+              <input type="checkbox" checked={onlyFlagged} onChange={(e) => setOnlyFlagged(e.target.checked)} /> Flagged only
+            </label>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{filtered.length} shown</span>
+          </div>
+
+          {filtered.length === 0 ? <p className="comments-empty">No turns match.</p> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {filtered.slice(0, 150).map((l) => {
+                const best = ragBestScore(l.rag);
+                const tools = l.rag?.toolsCalled || [];
+                const isOpen = expanded === l.id;
+                const flagged = (l.eval && l.eval.verdict !== 'pass') || (Array.isArray(l.rag?.topChunks) && l.rag.topChunks.length === 0);
+                return (
+                  <div key={l.id} style={{ ...card, borderColor: flagged ? '#f59e0b55' : card.border }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', cursor: 'pointer' }} onClick={() => setExpanded(isOpen ? null : l.id)}>
+                      <span style={{ color: '#94a3b8', fontSize: '0.78rem', width: 96 }}>{fmt(l.timestamp)}</span>
+                      {l.rag?.intent && badge(l.rag.intent, '#6366f1')}
+                      {l.rag?.intentConfidence && badge(l.rag.intentConfidence, l.rag.intentConfidence === 'HIGH' ? '#10b981' : l.rag.intentConfidence === 'LOW' ? '#ef4444' : '#f59e0b')}
+                      {l.rag?.retrievalMethod && badge(l.rag.retrievalMethod, '#0ea5e9')}
+                      {l.streamed && badge('stream', '#a855f7')}
+                      {tools.length > 0 && badge(`🔧 ${tools.length}`, '#14b8a6')}
+                      {l.eval && badge(l.eval.verdict, verdictColor(l.eval.verdict))}
+                      <span style={{ flex: 1, minWidth: 120, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.userMessage}</span>
+                      {best != null && <span style={{ fontSize: '0.78rem', color: scoreColor(best) }}>sim {best.toFixed(2)}</span>}
+                      {l.latencyMs != null && <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{l.latencyMs}ms</span>}
+                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>${parseFloat(l.usage?.totalCost || 0).toFixed(5)}</span>
+                      <span style={{ color: '#64748b' }}>{isOpen ? '▼' : '▶'}</span>
+                    </div>
+
+                    {isOpen && (
+                      <div style={{ marginTop: 10, fontSize: '0.88rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div><strong style={{ color: '#94a3b8' }}>Q:</strong> {l.userMessage}</div>
+                        <div style={{ whiteSpace: 'pre-wrap' }}><strong style={{ color: '#94a3b8' }}>A:</strong> {l.assistantMessage}</div>
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', color: '#94a3b8', fontSize: '0.8rem' }}>
+                          <span>model: {l.modelName || l.model}</span>
+                          <span>mode: {l.mode}</span>
+                          {l.usage && <span>in {l.usage.prompt_tokens} / out {l.usage.completion_tokens} tok</span>}
+                          {l.rag?.reason && <span>reason: {l.rag.reason}</span>}
+                          {l.context && <span>ctx: {l.context}</span>}
+                        </div>
+                        {Array.isArray(l.rag?.topChunks) && l.rag.topChunks.length > 0 && (
+                          <div>
+                            <strong style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Retrieved chunks</strong>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                              {l.rag.topChunks.map((c, i) => (
+                                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.8rem' }}>
+                                  <span style={{ color: scoreColor(Number(c.similarity)), width: 44 }}>{Number(c.similarity).toFixed(2)}</span>
+                                  {badge(c.method, '#0ea5e9')}
+                                  <span style={{ color: '#64748b' }}>{c.category}</span>
+                                  <span>{c.title}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {tools.length > 0 && <div style={{ fontSize: '0.8rem', color: '#14b8a6' }}>Tools called: {tools.join(', ')}</div>}
+                        {l.eval && (
+                          <div style={{ ...card, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                            {badge(`verdict: ${l.eval.verdict}`, verdictColor(l.eval.verdict))}
+                            <span style={{ color: scoreColor(l.eval.groundedness) }}>grounded {l.eval.groundedness?.toFixed(2)}</span>
+                            <span style={{ color: scoreColor(l.eval.relevance) }}>relevant {l.eval.relevance?.toFixed(2)}</span>
+                            <span style={{ color: scoreColor(l.eval.helpfulness) }}>helpful {l.eval.helpfulness?.toFixed(2)}</span>
+                            {l.eval.notes && <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{l.eval.notes}</span>}
+                          </div>
+                        )}
+                        <div>
+                          <button className="btn btn-secondary btn-sm" disabled={scoring[l._scoreId || l.id]} onClick={() => scoreTurn(l)}>
+                            {scoring[l._scoreId || l.id] ? 'Scoring…' : l.eval ? 'Re-score' : 'Score this turn'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===== EVAL ===== */}
+      {view === 'eval' && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <strong>Run eval suite</strong>
+            <select className="comment-input" style={{ width: 200 }} value={evalModel} onChange={(e) => setEvalModel(e.target.value)}>
+              {AVAILABLE_MODELS.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            <button className="btn btn-primary btn-sm" disabled={running} onClick={runSuite}>{running ? 'Running…' : '▶ Run suite'}</button>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>End-to-end against /chat, judged for groundedness + relevance.</span>
+          </div>
+          {runError && <p className="error-text" style={{ marginTop: 8 }}>{runError}</p>}
+
+          {!latestRun ? <p className="comments-empty" style={{ marginTop: 12 }}>No eval runs yet. Run the suite to get a baseline.</p> : (
+            <div style={{ marginTop: 12 }}>
+              <div className="stats-grid">
+                <div className="stat-card"><div className="stat-value" style={{ color: scoreColor(latestRun.aggregate.passRate) }}>{Math.round(latestRun.aggregate.passRate * 100)}%</div><div className="stat-label">Pass rate</div></div>
+                <div className="stat-card"><div className="stat-value" style={{ color: scoreColor(latestRun.aggregate.intentAccuracy) }}>{Math.round(latestRun.aggregate.intentAccuracy * 100)}%</div><div className="stat-label">Intent accuracy</div></div>
+                <div className="stat-card"><div className="stat-value" style={{ color: scoreColor(latestRun.aggregate.avgGroundedness) }}>{latestRun.aggregate.avgGroundedness.toFixed(2)}</div><div className="stat-label">Groundedness</div></div>
+                <div className="stat-card"><div className="stat-value" style={{ color: scoreColor(latestRun.aggregate.avgRelevance) }}>{latestRun.aggregate.avgRelevance.toFixed(2)}</div><div className="stat-label">Relevance</div></div>
+                <div className="stat-card"><div className="stat-value">{latestRun.aggregate.avgLatencyMs}ms</div><div className="stat-label">Avg latency</div></div>
+                <div className="stat-card"><div className="stat-value">${(latestRun.aggregate.totalCost || 0).toFixed(4)}</div><div className="stat-label">Run cost</div></div>
+              </div>
+              <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '8px 0' }}>
+                Latest: {fmt(latestRun.createdAt)} · {latestRun.model} · {latestRun.aggregate.passed}/{latestRun.aggregate.total} passed
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                {(latestRun.cases || []).map((c) => (
+                  <div key={c.id} style={{ ...card, borderColor: c.pass ? '#10b98144' : '#ef444444' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {badge(c.pass ? 'PASS' : 'FAIL', c.pass ? '#10b981' : '#ef4444')}
+                      <span style={{ flex: 1, minWidth: 160 }}>{c.question}</span>
+                      {badge(c.intentMatch ? `intent ✓ ${c.detectedIntent}` : `intent ✗ ${c.detectedIntent}≠${c.expectIntent}`, c.intentMatch ? '#10b981' : '#ef4444')}
+                      <span style={{ color: scoreColor(c.groundedness) }}>G {c.groundedness?.toFixed(2) ?? '—'}</span>
+                      <span style={{ color: scoreColor(c.relevance) }}>R {c.relevance?.toFixed(2) ?? '—'}</span>
+                      {!c.factsPassed && badge('facts ✗', '#ef4444')}
+                    </div>
+                    {(c.notes || c.error) && <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: c.error ? '#ef4444' : '#94a3b8' }}>{c.error || c.notes}</p>}
+                  </div>
+                ))}
+              </div>
+
+              {evalRuns.length > 1 && (
+                <div style={{ marginTop: 16 }}>
+                  <strong style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Run history</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                    {evalRuns.map((r) => (
+                      <div key={r.id} style={{ display: 'flex', gap: 12, fontSize: '0.8rem', color: '#94a3b8', padding: '4px 0', borderBottom: '1px solid #1f2937' }}>
+                        <span style={{ width: 110 }}>{fmt(r.createdAt)}</span>
+                        <span style={{ color: scoreColor(r.aggregate?.passRate) }}>pass {Math.round((r.aggregate?.passRate || 0) * 100)}%</span>
+                        <span>intent {Math.round((r.aggregate?.intentAccuracy || 0) * 100)}%</span>
+                        <span>G {r.aggregate?.avgGroundedness?.toFixed(2)}</span>
+                        <span>{r.model}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===== GAPS & ERRORS ===== */}
+      {view === 'gaps' && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div>
+            <strong>Knowledge gaps ({gaps.length})</strong>
+            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '2px 0 8px' }}>Questions where retrieval was weak or the bot admitted it didn&rsquo;t know — candidates for new KB chunks.</p>
+            {gaps.length === 0 ? <p className="comments-empty">No gaps logged.</p> : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {gaps.map((g) => (
+                  <div key={g.id} style={{ ...card, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.78rem', width: 96 }}>{fmt(g.timestamp)}</span>
+                    {g.intent && badge(g.intent, '#6366f1')}
+                    {g.bestRetrievalScore != null && <span style={{ fontSize: '0.78rem', color: scoreColor(Number(g.bestRetrievalScore) > 1 ? Number(g.bestRetrievalScore) / 100 : Number(g.bestRetrievalScore)) }}>score {Number(g.bestRetrievalScore).toFixed(1)}</span>}
+                    <span style={{ flex: 1, minWidth: 160 }}>{g.query}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <strong>Chat errors ({errors.length})</strong>
+            {errors.length === 0 ? <p className="comments-empty">No chat errors logged.</p> : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {errors.map((e) => (
+                  <div key={e.id} style={{ ...card, borderColor: '#ef444444' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ color: '#94a3b8', fontSize: '0.78rem', width: 96 }}>{fmt(e.timestamp)}</span>
+                      {badge(e.source, '#ef4444')}
+                      {e.severity && badge(e.severity, e.severity === 'high' ? '#ef4444' : '#f59e0b')}
+                      <span style={{ flex: 1, minWidth: 160, fontSize: '0.85rem' }}>{e.error}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ============ COMMENTS TAB ============
 const CommentsTab = () => {
   const [comments, setComments] = useState([]);
@@ -1328,16 +1735,21 @@ const RAGTab = () => {
   const [error, setError] = useState(null);
 
   const apiCall = useCallback(async (endpoint, options = {}) => {
+    const token = sessionStorage.getItem('rag_admin_token') || '';
     const response = await fetch(`/.netlify/functions/rag-admin${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
     });
 
     if (!response.ok) {
-      const err = await response.json();
+      const err = await response.json().catch(() => ({}));
+      if (response.status === 401 || response.status === 503) {
+        throw new Error(err.details || err.error || 'Write access denied — set RAG_ADMIN_KEY in Netlify to match your admin password.');
+      }
       throw new Error(err.error || err.details || 'API error');
     }
 

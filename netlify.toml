@@ -9,6 +9,12 @@
 [functions."chat"]
   timeout = 26
 
+[functions."chat-stream"]
+  timeout = 26
+
+[functions."chat-eval"]
+  timeout = 26
+
 [functions."daily-blog"]
   schedule = "0 17 * * *"
 
