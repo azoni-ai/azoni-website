@@ -33,7 +33,8 @@ const BEACON_SITES = [
 ];
 
 // ---- Launchpad apps (each fires the shared beacon; `key` = its source) -------
-const LAUNCHPAD_ICON = '/images/launchpad-rocket.svg';
+// Each app shows its OWN icon (copied from the app's public/icon.svg into
+// /images/launchpad/); the `group: 'launchpad'` tag carries the rocket marker.
 const LAUNCHPAD_SITES = [
   { key: 'meeplematch',     label: 'MeepleMatch',   url: 'https://meeplematch.netlify.app',              color: '#f472b6' },
   { key: 'blackdiamond',    label: 'Black Diamond', url: 'https://blackdiamond-alpine-wash.netlify.app', color: '#38bdf8' },
@@ -43,7 +44,7 @@ const LAUNCHPAD_SITES = [
   { key: 'pyroguard',       label: 'PyroGuard',     url: 'https://pyroguard-demo.netlify.app',           color: '#f87171' },
   { key: 'dayrun',          label: 'Daily',         url: 'https://dayrun-app.netlify.app',               color: '#818cf8' },
   { key: 'macromarket',     label: 'MacroMarket',   url: 'https://macromarket-app.netlify.app',          color: '#2dd4bf' },
-].map((s) => ({ ...s, icon: LAUNCHPAD_ICON, group: 'launchpad' }));
+].map((s) => ({ ...s, icon: `/images/launchpad/${s.key}.svg`, group: 'launchpad' }));
 
 const ALL_SITES = [...BEACON_SITES, ...LAUNCHPAD_SITES];
 

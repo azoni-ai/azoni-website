@@ -140,7 +140,12 @@ const Leaderboard = () => {
                         <a className="lb-name" href={s.url} target="_blank" rel="noopener noreferrer">
                           {s.label} <span className="lb-ext" aria-hidden="true">↗</span>
                         </a>
-                        {s.group === 'launchpad' && <span className="lb-tag lb-tag-lp">Launchpad</span>}
+                        {s.group === 'launchpad' && (
+                          <span className="lb-tag lb-tag-lp">
+                            <img src="/images/launchpad-rocket.svg" alt="" className="lb-tag-icon" />
+                            Launchpad
+                          </span>
+                        )}
                       </div>
                       <div className="lb-bar" aria-hidden="true">
                         <div className="lb-bar-fill" style={{ width: `${pct}%` }} />

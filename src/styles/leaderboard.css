@@ -203,9 +203,17 @@
   white-space: nowrap;
 }
 .lb-tag-lp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: #f472b6;
   background: rgba(244, 114, 182, 0.12);
   border: 1px solid rgba(244, 114, 182, 0.3);
+}
+.lb-tag-icon {
+  width: 10px;
+  height: 10px;
+  object-fit: contain;
 }
 
 .lb-bar {
