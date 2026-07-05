@@ -17,7 +17,7 @@ const CACHE_DOC = { collection: 'settings', id: 'leaderboard' };
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 // The day visitor tracking went live. Shown so the numbers have context.
-const START_DATE = '2026-07-05';
+const START_DATE = '2026-07-06';
 
 const WINDOWS = { d1: 1, d7: 7, d30: 30 };
 
