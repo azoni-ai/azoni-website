@@ -140,24 +140,41 @@ exports.handler = async (event) => {
   }
 
   const force = event.queryStringParameters?.refresh === '1';
+  const cacheRef = db.collection(CACHE_DOC.collection).doc(CACHE_DOC.id);
+
+  // Cache read is best-effort — a quota error here must not blank the board.
+  let previous = null;
+  try {
+    const snap = await cacheRef.get();
+    previous = snap.exists ? snap.data() : null;
+  } catch (e) {
+    console.error('[leaderboard] cache read failed:', e.message);
+  }
+
+  if (!force && previous) {
+    const age = Date.now() - new Date(previous.updatedAt || 0).getTime();
+    if (age >= 0 && age < CACHE_TTL_MS) {
+      return { statusCode: 200, headers, body: JSON.stringify({ ...previous, cached: true }) };
+    }
+  }
 
   try {
-    const cacheRef = db.collection(CACHE_DOC.collection).doc(CACHE_DOC.id);
-    const cachedSnap = await cacheRef.get();
-    const previous = cachedSnap.exists ? cachedSnap.data() : null;
-
-    if (!force && previous) {
-      const age = Date.now() - new Date(previous.updatedAt || 0).getTime();
-      if (age >= 0 && age < CACHE_TTL_MS) {
-        return { statusCode: 200, headers, body: JSON.stringify({ ...previous, cached: true }) };
-      }
-    }
-
+    // Individual counts already swallow their errors (return null), so this
+    // returns the full 14-site roster even when Firestore is over quota —
+    // just with empty counts until the DB recovers.
     const board = await buildBoard();
     await cacheRef.set(board).catch((e) => console.error('[leaderboard] cache write failed:', e.message));
     return { statusCode: 200, headers, body: JSON.stringify({ ...board, cached: false }) };
   } catch (error) {
     console.error('[leaderboard] error:', error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+    // Last resort: the static roster (all sites, empty counts) or stale cache,
+    // so visitors always see the full lineup rather than an error.
+    const fallback = previous || {
+      sites: ALL_SITES.map((s) => ({ ...s, provider: 'beacon', visits: { d1: null, d7: null, d30: null }, total: null })),
+      windows: Object.keys(WINDOWS),
+      startDate: START_DATE,
+      updatedAt: new Date().toISOString(),
+    };
+    return { statusCode: 200, headers, body: JSON.stringify({ ...fallback, degraded: true }) };
   }
 };
