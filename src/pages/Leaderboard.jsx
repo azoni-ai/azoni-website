@@ -14,6 +14,13 @@ const fmt = (n) => {
   return n.toLocaleString();
 };
 
+const formatStart = (iso) => {
+  if (!iso) return null;
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const Leaderboard = () => {
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,14 +46,13 @@ const Leaderboard = () => {
     return () => { alive = false; };
   }, []);
 
-  // Sort sites by the active window; measured-but-zero and unmeasured sink to the bottom.
+  // Sort by the active window, then by all-time total as a tiebreaker so sites
+  // with history still order sensibly before the windowed index is live.
   const rows = useMemo(() => {
     const sites = board?.sites || [];
-    const val = (s) => {
-      const v = s.visits?.[win];
-      return Number.isFinite(v) ? v : -1;
-    };
-    return [...sites].sort((a, b) => val(b) - val(a));
+    const val = (s) => (Number.isFinite(s.visits?.[win]) ? s.visits[win] : -1);
+    const tot = (s) => (Number.isFinite(s.total) ? s.total : -1);
+    return [...sites].sort((a, b) => val(b) - val(a) || tot(b) - tot(a));
   }, [board, win]);
 
   const maxVal = useMemo(
@@ -59,6 +65,8 @@ const Leaderboard = () => {
     [rows, win]
   );
 
+  const startLabel = formatStart(board?.startDate);
+
   return (
     <Layout>
       <div className="lb-page">
@@ -70,6 +78,13 @@ const Leaderboard = () => {
               Every site I run, ranked by visitors. One shared beacon per site,
               aggregated live. Pick a window.
             </p>
+
+            {startLabel && (
+              <p className="lb-since">
+                <span className="lb-since-dot" aria-hidden="true" />
+                Tracking since {startLabel}
+              </p>
+            )}
 
             <div className="lb-controls">
               <div className="lb-windows" role="tablist" aria-label="Time window">
@@ -113,7 +128,7 @@ const Leaderboard = () => {
                 const raw = s.visits?.[win];
                 const has = Number.isFinite(raw);
                 const pct = maxVal > 0 && has ? Math.max(2, Math.round((raw / maxVal) * 100)) : 0;
-                const approx = s.approxWindow && win !== 'd1';
+                const totalStr = fmt(s.total);
                 return (
                   <li key={s.key} className="lb-row" style={{ '--row-color': s.color || '#8a8178' }}>
                     <span className="lb-rank">{i + 1}</span>
@@ -133,7 +148,7 @@ const Leaderboard = () => {
                     </div>
                     <div className="lb-metric">
                       <span className="lb-count">{has ? fmt(raw) : '—'}</span>
-                      {approx && <span className="lb-approx" title="Lifetime total (windowed data not available yet)">total</span>}
+                      <span className="lb-total-views">{totalStr != null ? totalStr : '0'} total</span>
                     </div>
                   </li>
                 );
@@ -144,7 +159,7 @@ const Leaderboard = () => {
           {board?.updatedAt && !loading && !failed && (
             <p className="lb-footnote">
               Updated {new Date(board.updatedAt).toLocaleString()} · cached ~15&nbsp;min ·
-              launchpad apps report 24h + lifetime total.
+              one session beacon per site.
             </p>
           )}
         </div>

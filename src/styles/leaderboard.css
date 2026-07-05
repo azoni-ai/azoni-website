@@ -34,7 +34,26 @@
   line-height: 1.6;
   color: var(--text-warm-soft, var(--text-secondary));
   max-width: 52ch;
-  margin: 0 0 1.75rem;
+  margin: 0 0 1rem;
+}
+
+.lb-since {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted, var(--text-secondary));
+}
+.lb-since-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-coral, #e5735a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-coral, #e5735a) 22%, transparent);
 }
 
 .lb-controls {
@@ -214,6 +233,15 @@
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-warm, var(--text-primary));
+}
+.lb-total-views {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-warm-muted, var(--text-secondary));
+  opacity: 0.85;
+  white-space: nowrap;
 }
 .lb-approx {
   font-family: var(--font-mono);
