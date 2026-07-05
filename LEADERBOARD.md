@@ -45,17 +45,19 @@ No new env vars — reuses the existing `FIREBASE_*` and `MCP_*` values.
 
 | Site | How it reports | Source key | Status |
 |---|---|---|---|
-| azoni.ai | top-level beacon in `App.jsx` → `/log-visit` | `azoni` | ✅ live |
-| benchpressonly.com | module beacon in `benchonly/src/main.jsx` | `benchpressonly` | ✅ code in place |
-| oldwaystoday.com | `VisitTracker.jsx` in Next layout (CSP allows https:) | `oldwaystoday` | ✅ code in place |
-| fabstats.net | `VisitTracker.tsx` → same-origin proxy `log-visit.mts` (strict CSP) | `fabstats` | ✅ code in place |
-| embedroute.com | `VisitTracker.tsx` → Next route forwards once | `embedroute` | ✅ code in place |
+| azoni.ai | top-level beacon in `App.jsx` → `/log-visit` | `azoni` | ✅ deployed |
+| benchpressonly.com | module beacon in `benchonly/src/main.jsx` | `benchpressonly` | ✅ deployed |
+| oldwaystoday.com | `VisitTracker.jsx` in Next layout (CSP allows https:) | `oldwaystoday` | ✅ deployed |
+| fabstats.net | existing `PageVisitTracker` redirected → same-origin proxy `log-visit.mts` (strict CSP) | `fabstats` | ✅ deployed |
+| embedroute.com | `VisitTracker.tsx` → Next route forwards once | `embedroute` | ✅ deployed |
 | **rowcrew** | repo not in Meme — needs the snippet below | `rowcrew` | ⚠️ pending |
 | Launchpad ×8 | existing MCP `/launchpad/stats` | (per app) | ✅ auto |
 
-> Note: `benchonly`, `oldways-app`, and `fab-stats` had uncommitted work when
-> instrumented — the beacon files are additive and don't touch that WIP, but
-> per fab-stats' rules they should land on their own branch/PR.
+> Note: benchonly (local was 39 behind + dirty) and fab-stats (feature branch +
+> WIP) were shipped via a `git worktree` off `origin/main` so only the beacon
+> landed — no local WIP was committed. fab-stats already had a `PageVisitTracker`
+> logging one visit/session to the MCP ecosystem; that single log was redirected
+> to the shared sink (not duplicated).
 
 ## rowcrew snippet (drop into the rowing-tracker repo)
 
