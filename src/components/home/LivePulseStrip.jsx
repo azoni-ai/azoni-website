@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import useHomeSummary from '../../hooks/useHomeSummary';
 
 const REPO_TO_SITE = {
   'rowing-tracker': 'https://rowcrew.netlify.app',
@@ -56,31 +55,9 @@ const formatTimeAgo = (timestamp) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-const toMs = (t) => (t?.toDate ? t.toDate().getTime() : new Date(t).getTime());
-
 const LivePulseStrip = ({ githubStats }) => {
-  const [agentItems, setAgentItems] = useState([]);
-
-  useEffect(() => {
-    const q = query(
-      collection(db, 'agent_activity'),
-      orderBy('timestamp', 'desc'),
-      limit(30)
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const items = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((a) => AGENT_TYPES_TO_SHOW.has(a.type));
-        setAgentItems(items);
-      },
-      (err) => {
-        console.error('agent_activity listen failed', err);
-      }
-    );
-    return () => unsub();
-  }, []);
+  const summary = useHomeSummary();
+  const agentItems = (summary?.recentFeed || []).filter((a) => AGENT_TYPES_TO_SHOW.has(a.type));
 
   // Normalize commits + agent activity into a single time-sorted feed.
   const commitItems = (githubStats?.recentCommits || []).map((c) => ({
@@ -97,15 +74,15 @@ const LivePulseStrip = ({ githubStats }) => {
   const agentNormalized = agentItems.map((a) => ({
     kind: 'agent',
     id: `agent-${a.id}`,
-    title: a.title || a.description || a.type,
+    title: a.title || a.type,
     source: a.source,
-    link: a.metadata?.slug
-      ? `/blog/${a.metadata.slug}`
+    link: a.slug
+      ? `/blog/${a.slug}`
       : a.source === 'moltbook-agent'
         ? '/moltbook'
         : null,
-    timestamp: a.timestamp,
-    ms: toMs(a.timestamp),
+    timestamp: a.ms,
+    ms: a.ms,
   }));
 
   const feed = [...commitItems, ...agentNormalized]
@@ -123,7 +100,7 @@ const LivePulseStrip = ({ githubStats }) => {
           </div>
           {(() => {
             const todayCommits = githubStats?.today;
-            const agents24h = agentItems.filter((a) => Date.now() - toMs(a.timestamp) < 86400000).length;
+            const agents24h = agentItems.filter((a) => Date.now() - a.ms < 86400000).length;
             const parts = [];
             if (todayCommits != null) {
               parts.push(<span key="commits"><strong>{todayCommits}</strong> commits today</span>);

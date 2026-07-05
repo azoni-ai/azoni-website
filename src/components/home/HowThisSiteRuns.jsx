@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import useHomeSummary from '../../hooks/useHomeSummary';
 
 const ROWS = [
   {
@@ -34,8 +33,6 @@ const ROWS = [
   },
 ];
 
-const ERROR_TYPES = new Set(['error_logged', 'error_reviewed', 'health_alert']);
-
 const SOURCE_DISPLAY = {
   orchestrator: { label: 'Conductor', color: '#a78bfa' },
   'daily-blog': { label: 'Scribe', color: '#fbbf24' },
@@ -51,57 +48,16 @@ const SOURCE_DISPLAY = {
   launchpad: { label: 'Launchpad', color: '#f472b6' },
 };
 
+// Reads the shared cached summary instead of streaming the whole
+// `agent_activity` collection to every home-page visitor.
 const useAgentOpsStats = () => {
-  const [cost, setCost] = useState(null);
-  const [actionCount, setActionCount] = useState(null);
-  const [errors7d, setErrors7d] = useState(null);
-  const [bySource, setBySource] = useState([]);
-
-  useEffect(() => {
-    const since30 = Timestamp.fromDate(new Date(Date.now() - 30 * 86_400_000));
-    const since7 = Date.now() - 7 * 86_400_000;
-    const q = query(
-      collection(db, 'agent_activity'),
-      where('timestamp', '>=', since30)
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        let total = 0;
-        let errCount = 0;
-        const sourceTotals = new Map();
-
-        snap.docs.forEach((d) => {
-          const data = d.data();
-          const c = data?.cost;
-          if (Number.isFinite(c)) {
-            total += c;
-            if (c > 0) {
-              const src = data?.source || 'unknown';
-              sourceTotals.set(src, (sourceTotals.get(src) || 0) + c);
-            }
-          }
-          if (ERROR_TYPES.has(data?.type)) {
-            const ts = data?.timestamp?.toDate ? data.timestamp.toDate().getTime() : 0;
-            if (ts >= since7) errCount += 1;
-          }
-        });
-
-        const sourceList = Array.from(sourceTotals.entries())
-          .map(([source, value]) => ({ source, value }))
-          .sort((a, b) => b.value - a.value);
-
-        setCost(total);
-        setActionCount(snap.size);
-        setErrors7d(errCount);
-        setBySource(sourceList);
-      },
-      (err) => console.error('ops stats failed', err)
-    );
-    return () => unsub();
-  }, []);
-
-  return { cost, actionCount, errors7d, bySource };
+  const summary = useHomeSummary();
+  return {
+    cost: Number.isFinite(summary?.cost30d) ? summary.cost30d : null,
+    actionCount: Number.isFinite(summary?.actionCount30d) ? summary.actionCount30d : null,
+    errors7d: Number.isFinite(summary?.errors7d) ? summary.errors7d : null,
+    bySource: Array.isArray(summary?.bySource) ? summary.bySource : [],
+  };
 };
 
 const formatCost = (n) => {
