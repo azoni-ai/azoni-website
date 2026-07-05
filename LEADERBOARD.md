@@ -22,10 +22,18 @@ each site  ──(1 session beacon)──►  azoni.ai/.netlify/functions/log-vi
 - **Cheap aggregation.** `leaderboard.js` uses Firestore `count()` aggregations
   (≈1 read per site per window) and caches the whole board in
   `settings/leaderboard` for 15 min. The page fetches ONE endpoint.
-- **Launchpad reuses existing data.** The 10 launchpad apps are already tracked
-  by the MCP server, so they're merged in via `/launchpad/stats` (no second
-  logging path). Their 24h count is real; 7d/30d fall back to lifetime total
-  (flagged `total` in the UI).
+- **Launchpad reuses its own beacon.** The 8 launchpad apps already fire a
+  once-per-session view beacon to the MCP server (`/launchpad/view`, their
+  documented standard). We bridge those counts in via `/launchpad/stats` — no
+  second logging path, no touching the apps. Only 24h is a true window from MCP,
+  so their cards lean on the always-visible total. The fetch is resilient: on a
+  Render cold-start miss it keeps the last-known launchpad rows (function timeout
+  raised to 26s in `netlify.toml`).
+- **Total views per card.** Every card shows all-time total regardless of the
+  selected window. For beacon sites the total uses the auto single-field index,
+  so it works even before the composite index below exists.
+- **Start date.** The board shows "Tracking since 2026-07-05" — visitor logging
+  went live that day, so numbers build from there.
 
 ## One-time setup (Firebase console — not in repo)
 
@@ -50,32 +58,21 @@ No new env vars — reuses the existing `FIREBASE_*` and `MCP_*` values.
 | oldwaystoday.com | `VisitTracker.jsx` in Next layout (CSP allows https:) | `oldwaystoday` | ✅ deployed |
 | fabstats.net | existing `PageVisitTracker` redirected → same-origin proxy `log-visit.mts` (strict CSP) | `fabstats` | ✅ deployed |
 | embedroute.com | `VisitTracker.tsx` → Next route forwards once | `embedroute` | ✅ deployed |
-| **rowcrew** | repo not in Meme — needs the snippet below | `rowcrew` | ⚠️ pending |
-| Launchpad ×8 | existing MCP `/launchpad/stats` | (per app) | ✅ auto |
+| rowcrew | beacon in `prediction/Webapp/rowing-tracker/src/index.js` | `rowcrew` | ✅ deployed |
+| Launchpad ×8 | their own `/launchpad/view` beacon, bridged via MCP `/launchpad/stats` | (per app) | ✅ auto (not re-instrumented) |
 
-> Note: benchonly (local was 39 behind + dirty) and fab-stats (feature branch +
-> WIP) were shipped via a `git worktree` off `origin/main` so only the beacon
-> landed — no local WIP was committed. fab-stats already had a `PageVisitTracker`
-> logging one visit/session to the MCP ecosystem; that single log was redirected
-> to the shared sink (not duplicated).
-
-## rowcrew snippet (drop into the rowing-tracker repo)
-
-React/Vite entry (`src/main.jsx`) — same pattern as benchonly:
-
-```js
-if (typeof window !== 'undefined' && !sessionStorage.getItem('_av_lb')) {
-  sessionStorage.setItem('_av_lb', '1')
-  fetch('https://azoni.ai/.netlify/functions/log-visit', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source: 'rowcrew' }),
-  }).catch(() => {})
-}
-```
-
-If rowcrew has a restrictive CSP `connect-src`, either add `https://azoni.ai`
-to it, or proxy through a same-origin function (see fab-stats' `log-visit.mts`).
+> Notes:
+> - benchonly (local was 39 behind + dirty) and fab-stats (feature branch + WIP)
+>   were shipped via a `git worktree` off `origin/main` so only the beacon landed.
+>   fab-stats already had a `PageVisitTracker` logging one visit/session to the
+>   MCP ecosystem; that single log was redirected to the shared sink (not dup'd).
+> - **rowcrew** was hiding at `prediction/Webapp/rowing-tracker` (repo
+>   `rowing-tracker`), not a rowing-named folder.
+> - **Launchpad** apps are NOT beaconed — they already have their own
+>   documented once-per-session beacon (`launchpad/CLAUDE.md`). Adding ours would
+>   double-log, so we bridge instead. If they don't appear on the board, the MCP
+>   read key (`MCP_READ_KEY` / `MCP_ADMIN_KEY`) isn't set in azoni-website's
+>   Netlify env, or Render was cold on the last refresh.
 
 ## Adding a new site to the board
 
