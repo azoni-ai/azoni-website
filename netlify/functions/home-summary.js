@@ -155,13 +155,23 @@ async function build() {
   };
 }
 
+// Cap a promise so a quota-stalled Firestore op (SDK retries ~20s) can't hang
+// the request. Resolves to `fallback` on timeout or error.
+function fast(promise, ms = 5000, fallback = null) {
+  return Promise.race([
+    Promise.resolve(promise).catch(() => fallback),
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
-    // CDN-cache so most visitors are served without touching the function.
-    'Cache-Control': 'public, max-age=300, s-maxage=300',
+    // Serve instantly from CDN and refresh in the background — a slow rebuild
+    // never blocks the home page.
+    'Cache-Control': 'public, max-age=120, stale-while-revalidate=600',
   };
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
@@ -169,26 +179,27 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: JSON.stringify({ error: 'no-db' }) };
   }
 
-  try {
-    const ref = db.collection(CACHE_DOC.collection).doc(CACHE_DOC.id);
-    const cached = await ref.get();
-    if (cached.exists) {
-      const data = cached.data();
-      const age = Date.now() - new Date(data.updatedAt || 0).getTime();
-      if (age >= 0 && age < CACHE_TTL_MS) {
-        return { statusCode: 200, headers, body: JSON.stringify({ ...data, cached: true }) };
-      }
+  const ref = db.collection(CACHE_DOC.collection).doc(CACHE_DOC.id);
+
+  const cached = await fast(ref.get());
+  if (cached && cached.exists) {
+    const data = cached.data();
+    const age = Date.now() - new Date(data.updatedAt || 0).getTime();
+    if (age >= 0 && age < CACHE_TTL_MS) {
+      return { statusCode: 200, headers, body: JSON.stringify({ ...data, cached: true }) };
     }
-    const summary = await build();
-    await ref.set(summary).catch((e) => console.error('[home-summary] cache write failed:', e.message));
-    return { statusCode: 200, headers, body: JSON.stringify({ ...summary, cached: false }) };
-  } catch (error) {
-    console.error('[home-summary] error:', error);
-    // Fall back to any stale cache rather than failing the home page.
-    try {
-      const stale = await db.collection(CACHE_DOC.collection).doc(CACHE_DOC.id).get();
-      if (stale.exists) return { statusCode: 200, headers, body: JSON.stringify({ ...stale.data(), cached: true, stale: true }) };
-    } catch {}
-    return { statusCode: 200, headers, body: JSON.stringify({ error: error.message }) };
   }
+
+  // Build with an overall cap; individual queries already swallow errors.
+  const summary = await fast(build(), 9000, null);
+  if (!summary) {
+    // Couldn't rebuild in time — serve stale cache if we have it.
+    if (cached && cached.exists) {
+      return { statusCode: 200, headers, body: JSON.stringify({ ...cached.data(), cached: true, stale: true }) };
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ error: 'timeout' }) };
+  }
+
+  await fast(ref.set(summary)); // time-capped write
+  return { statusCode: 200, headers, body: JSON.stringify({ ...summary, cached: false }) };
 };

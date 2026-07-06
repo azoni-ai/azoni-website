@@ -72,32 +72,30 @@ function initFirebase() {
 
 function asNumber(v, f = 0) { const n = Number(v); return Number.isFinite(n) ? n : f; }
 
+// Resolve to null instead of hanging: the Firestore SDK retries RESOURCE_EXHAUSTED
+// with backoff (~20s), so we cap each query and move on. Keeps the endpoint snappy
+// even when the DB is over quota — the row just shows no count until it recovers.
+const QUERY_TIMEOUT_MS = 4000;
+function fast(promise) {
+  return Promise.race([
+    promise.catch(() => null),
+    new Promise((resolve) => setTimeout(() => resolve(null), QUERY_TIMEOUT_MS)),
+  ]);
+}
+
 // All-time count for a source. Only needs the auto single-field index, so it
 // works before the composite (source, ts) index is created.
 async function countTotal(source) {
-  try {
-    const snap = await db.collection('site_visits').where('source', '==', source).count().get();
-    return asNumber(snap.data().count);
-  } catch (err) {
-    console.error(`[leaderboard] total(${source}) failed:`, err.message);
-    return null;
-  }
+  const snap = await fast(db.collection('site_visits').where('source', '==', source).count().get());
+  return snap ? asNumber(snap.data().count) : null;
 }
 
 // Windowed count. Needs a composite index on site_visits(source ASC, ts ASC).
 async function countWindow(source, sinceTs) {
-  try {
-    const snap = await db
-      .collection('site_visits')
-      .where('source', '==', source)
-      .where('ts', '>=', sinceTs)
-      .count()
-      .get();
-    return asNumber(snap.data().count);
-  } catch (err) {
-    console.error(`[leaderboard] window(${source}) failed:`, err.message);
-    return null;
-  }
+  const snap = await fast(
+    db.collection('site_visits').where('source', '==', source).where('ts', '>=', sinceTs).count().get()
+  );
+  return snap ? asNumber(snap.data().count) : null;
 }
 
 async function buildBoard() {
@@ -132,7 +130,9 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
-    'Cache-Control': 'public, max-age=120',
+    // Serve instantly from CDN; refresh in the background so a slow rebuild
+    // never blocks a visitor.
+    'Cache-Control': 'public, max-age=60, stale-while-revalidate=600',
   };
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
@@ -143,14 +143,10 @@ exports.handler = async (event) => {
   const force = event.queryStringParameters?.refresh === '1';
   const cacheRef = db.collection(CACHE_DOC.collection).doc(CACHE_DOC.id);
 
-  // Cache read is best-effort — a quota error here must not blank the board.
-  let previous = null;
-  try {
-    const snap = await cacheRef.get();
-    previous = snap.exists ? snap.data() : null;
-  } catch (e) {
-    console.error('[leaderboard] cache read failed:', e.message);
-  }
+  // Cache read is best-effort and time-capped — a quota-stalled read must not
+  // blank the board or hang the request.
+  const snap = await fast(cacheRef.get());
+  const previous = snap && snap.exists ? snap.data() : null;
 
   if (!force && previous) {
     const age = Date.now() - new Date(previous.updatedAt || 0).getTime();
@@ -164,7 +160,7 @@ exports.handler = async (event) => {
     // returns the full 14-site roster even when Firestore is over quota —
     // just with empty counts until the DB recovers.
     const board = await buildBoard();
-    await cacheRef.set(board).catch((e) => console.error('[leaderboard] cache write failed:', e.message));
+    await fast(cacheRef.set(board)); // time-capped; won't block on a quota-stalled write
     return { statusCode: 200, headers, body: JSON.stringify({ ...board, cached: false }) };
   } catch (error) {
     console.error('[leaderboard] error:', error);
