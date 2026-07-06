@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
+import ExtensionsBoard from '../components/ExtensionsBoard';
 import '../styles/leaderboard.css';
 
 // Short window labels (the long "7 days / 30 days" ran too wide). `longer` points
@@ -50,6 +51,7 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [win, setWin] = useState('d1');
+  const [tab, setTab] = useState('sites'); // 'sites' | 'extensions'
 
   useEffect(() => {
     let alive = true;
@@ -161,54 +163,80 @@ const Leaderboard = () => {
         <div className="lb-container">
           <header className="lb-header">
             <p className="lb-eyebrow">Portfolio</p>
-            <h1 className="lb-title">Traffic leaderboard</h1>
+            <h1 className="lb-title">
+              {tab === 'sites' ? 'Traffic leaderboard' : 'Extension leaderboard'}
+            </h1>
             <p className="lb-lede">
-              Every site I run, ranked by visitors — one shared beacon per site,
-              aggregated live.
+              {tab === 'sites'
+                ? 'Every site I run, ranked by visitors — one shared beacon per site, aggregated live.'
+                : "Browser extensions I've shipped, ranked by installs from the Chrome Web Store."}
             </p>
 
-            {startLabel && (
-              <p className="lb-since">
-                <span className="lb-since-dot" aria-hidden="true" />
-                Tracking since {startLabel}
-              </p>
-            )}
-
-            {hasRows && !loading && (
-              <div className="lb-kpis">
-                {kpis.map((k) => (
-                  <div className="lb-kpi" key={k.label}>
-                    <span className={`lb-kpi-val${k.text ? ' is-text' : ''}`}>{k.value}</span>
-                    <span className="lb-kpi-label">{k.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="lb-controls">
-              <div className="lb-windows" role="tablist" aria-label="Time window">
-                {WINDOW_OPTS.map((w) => (
-                  <button
-                    key={w.key}
-                    role="tab"
-                    aria-selected={win === w.key}
-                    className={`lb-window-btn ${win === w.key ? 'active' : ''}`}
-                    onClick={() => setWin(w.key)}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
-              <p className="lb-sortnote">
-                {windowsLive ? (
-                  <>Ranked by visits in the <strong>{winOpt.full}</strong></>
-                ) : (
-                  <>Ranked by <strong>all-time visits</strong> · windows indexing</>
-                )}
-              </p>
+            <div className="lb-tabs" role="tablist" aria-label="Leaderboard">
+              {[
+                ['sites', 'Sites'],
+                ['extensions', 'Extensions'],
+              ].map(([k, label]) => (
+                <button
+                  key={k}
+                  role="tab"
+                  aria-selected={tab === k}
+                  className={`lb-tab ${tab === k ? 'active' : ''}`}
+                  onClick={() => setTab(k)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+
+            {tab === 'sites' && (
+              <>
+                {startLabel && (
+                  <p className="lb-since">
+                    <span className="lb-since-dot" aria-hidden="true" />
+                    Tracking since {startLabel}
+                  </p>
+                )}
+
+                {hasRows && !loading && (
+                  <div className="lb-kpis">
+                    {kpis.map((k) => (
+                      <div className="lb-kpi" key={k.label}>
+                        <span className={`lb-kpi-val${k.text ? ' is-text' : ''}`}>{k.value}</span>
+                        <span className="lb-kpi-label">{k.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="lb-controls">
+                  <div className="lb-windows" role="tablist" aria-label="Time window">
+                    {WINDOW_OPTS.map((w) => (
+                      <button
+                        key={w.key}
+                        role="tab"
+                        aria-selected={win === w.key}
+                        className={`lb-window-btn ${win === w.key ? 'active' : ''}`}
+                        onClick={() => setWin(w.key)}
+                      >
+                        {w.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="lb-sortnote">
+                    {windowsLive ? (
+                      <>Ranked by visits in the <strong>{winOpt.full}</strong></>
+                    ) : (
+                      <>Ranked by <strong>all-time visits</strong> · windows indexing</>
+                    )}
+                  </p>
+                </div>
+              </>
+            )}
           </header>
 
+          {tab === 'sites' ? (
+            <>
           {loading ? (
             <div className="lb-state">
               <div className="lb-spinner" />
@@ -317,6 +345,10 @@ const Leaderboard = () => {
               Updated {new Date(board.updatedAt).toLocaleString()} · cached ~15&nbsp;min ·
               one session beacon per site.
             </p>
+          )}
+            </>
+          ) : (
+            <ExtensionsBoard />
           )}
         </div>
       </div>
