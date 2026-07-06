@@ -234,6 +234,14 @@ const Leaderboard = () => {
                     className={`lb-row${rank === 1 ? ' is-leader' : ''}`}
                     style={{ '--row-color': s.color || '#8a8178' }}
                   >
+                    {/* Stretched link — makes the entire card navigate to the site */}
+                    <a
+                      className="lb-card-link"
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${s.label} — open site`}
+                    />
                     <div className="lb-rank">
                       <span className={`lb-rank-badge${medal ? ` ${medal}` : ''}`}>{rank}</span>
                     </div>
@@ -248,10 +256,10 @@ const Leaderboard = () => {
 
                     <div className="lb-body">
                       <div className="lb-name-row">
-                        <a className="lb-name" href={s.url} target="_blank" rel="noopener noreferrer">
+                        <span className="lb-name">
                           {s.label}
                           <span className="lb-ext" aria-hidden="true">↗</span>
-                        </a>
+                        </span>
                         {s.group === 'launchpad' && (
                           <span className="lb-tag lb-tag-lp">
                             <img src="/images/launchpad-rocket.svg" alt="" className="lb-tag-icon" />

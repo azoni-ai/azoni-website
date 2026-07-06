@@ -163,6 +163,7 @@
 }
 
 .lb-row {
+  position: relative;
   display: grid;
   grid-template-columns: auto 2.9rem 1fr auto;
   grid-template-areas: "rank icon body stats";
@@ -172,7 +173,21 @@
   background: var(--bg-warm-card, #1c1a17);
   border: 1px solid var(--border-warm, rgba(237, 231, 221, 0.08));
   border-radius: 15px;
+  cursor: pointer;
   transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+/* Stretched card link: absolute (so it's out of grid flow) and covers the row.
+   Transparent — content shows through; every click routes to the site. */
+.lb-card-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+.lb-card-link:focus-visible {
+  outline: 2px solid var(--accent-coral, #ff7a5c);
+  outline-offset: 2px;
 }
 .lb-row:hover {
   transform: translateY(-1px);
@@ -268,7 +283,7 @@
   align-items: center;
   gap: 0.3rem;
 }
-.lb-name:hover { color: var(--row-color); }
+.lb-row:hover .lb-name { color: var(--row-color); }
 .lb-ext { font-size: 0.72rem; opacity: 0.5; }
 
 .lb-tag {
