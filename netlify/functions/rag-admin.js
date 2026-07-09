@@ -2,8 +2,48 @@
 // Admin API for RAG knowledge base management
 // Requires Firebase Admin SDK credentials to function
 
+const crypto = require('crypto');
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const EMBEDDING_MODEL = 'text-embedding-3-small';
+
+// Write operations require a bearer token matching RAG_ADMIN_KEY (server-only env var).
+// Reads stay open (the same content is already public via the chatbot), but anything
+// that mutates the knowledge base, spends money, or destroys data is gated.
+const ADMIN_KEY = process.env.RAG_ADMIN_KEY;
+
+function checkAdminAuth(event, headers) {
+  if (!ADMIN_KEY) {
+    return {
+      statusCode: 503,
+      headers,
+      body: JSON.stringify({
+        error: 'Admin write access not configured',
+        details: 'Set RAG_ADMIN_KEY in Netlify environment variables to enable write operations on the knowledge base.'
+      })
+    };
+  }
+
+  const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  const provided = Buffer.from(token);
+  const expected = Buffer.from(ADMIN_KEY);
+  const ok = provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
+
+  if (!ok) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({
+        error: 'Unauthorized',
+        details: 'A valid admin key is required for write operations. Send it as "Authorization: Bearer <RAG_ADMIN_KEY>".'
+      })
+    };
+  }
+
+  return null;
+}
 
 // Firebase Admin - check if credentials are available
 let db = null;
@@ -73,6 +113,12 @@ exports.handler = async (event) => {
     };
   }
 
+  // Gate every write/compute operation behind the admin key. Reads (GET) stay open.
+  if (event.httpMethod !== 'GET') {
+    const authError = checkAdminAuth(event, headers);
+    if (authError) return authError;
+  }
+
   try {
     const path = event.path.replace('/.netlify/functions/rag-admin', '');
     const body = event.body ? JSON.parse(event.body) : {};
@@ -114,7 +160,7 @@ exports.handler = async (event) => {
         return await getStats(headers);
 
       case event.httpMethod === 'POST' && path === '/seed-defaults':
-        return await seedDefaults(headers);
+        return await seedDefaults(headers, body);
 
       case event.httpMethod === 'POST' && path === '/migrate-projects':
         return await migrateProjects(headers);
@@ -567,7 +613,8 @@ async function getStats(headers) {
 
 // ===== SEED DEFAULTS =====
 
-async function seedDefaults(headers) {
+async function seedDefaults(headers, options = {}) {
+  const { updateExisting = false } = options;
   const defaultChunks = [
     // ============ BIO (4) ============
     {
@@ -1309,9 +1356,9 @@ Note: This chatbot (Azoni) represents Charlton and can answer questions about hi
 
 Charlton's career moves have been deliberate and forward-looking:
 
-T-Mobile (2017-2021, 4 years): Left after completing his M.S. while working full-time. He had built and shipped a major internal platform, earned his master's degree, and was ready for a new challenge at a higher level.
+T-Mobile (June 2018 – April 2022, ~4 years): Left after completing his M.S. while working full-time. He had built and shipped a major internal platform, earned his master's degree, and was ready for a new challenge at a higher level.
 
-Capital One (2021-2022, ~1 year): Left to pursue building his own products full-time. After years in enterprise environments, he wanted to apply his skills to his own ideas — specifically AI-powered applications and tools. This was a calculated decision to go independent and build a portfolio of real, shipped products rather than continuing to climb the corporate ladder.
+Capital One (November 2022 – November 2023, ~1 year): Left to pursue building his own products full-time. After years in enterprise environments, he wanted to apply his skills to his own ideas — specifically AI-powered applications and tools. This was a calculated decision to go independent and build a portfolio of real, shipped products rather than continuing to climb the corporate ladder.
 
 Since leaving: Charlton has shipped multiple production applications with real users (BenchPressOnly, Spell Brigade, EmbedRoute), built an autonomous AI agent system, and demonstrated the ability to take projects from zero to production independently. He's now open to the right full-time opportunity where he can bring this builder mentality to a team.
 
@@ -1357,6 +1404,7 @@ LinkedIn: linkedin.com/in/charltonsmith`
   ];
 
   let created = 0;
+  let updated = 0;
   let errors = 0;
 
   for (const chunk of defaultChunks) {
@@ -1376,6 +1424,22 @@ LinkedIn: linkedin.com/in/charltonsmith`
         await generateAndStoreEmbedding(docRef.id, chunk.content);
         created++;
         await new Promise(r => setTimeout(r, 100));
+      } else if (updateExisting) {
+        // Idempotent upsert: refresh content (and re-embed) only when the canonical
+        // default text has changed. Lets us push corrections to live chunks without
+        // clobbering anything that already matches.
+        const docSnap = existing.docs[0];
+        if ((docSnap.data().content || '') !== chunk.content) {
+          await db.collection(COLLECTION).doc(docSnap.id).update({
+            category: chunk.category,
+            content: chunk.content,
+            tokenEstimate: Math.ceil(chunk.content.length / 4),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          await generateAndStoreEmbedding(docSnap.id, chunk.content);
+          updated++;
+          await new Promise(r => setTimeout(r, 100));
+        }
       }
     } catch (error) {
       console.error(`Error seeding ${chunk.title}:`, error);
@@ -1389,7 +1453,8 @@ LinkedIn: linkedin.com/in/charltonsmith`
     body: JSON.stringify({
       message: 'Seeding complete',
       created,
-      skipped: defaultChunks.length - created - errors,
+      updated,
+      skipped: defaultChunks.length - created - updated - errors,
       errors
     })
   };

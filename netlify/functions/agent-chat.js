@@ -27,7 +27,11 @@ function initFirebase() {
   }
 }
 
+// Persona chat keeps a high temperature (0.9) for playful, varied replies, so it
+// uses a temperature-friendly model rather than the GPT-5 family.
+const AGENT_MODEL = 'google/gemini-2.5-flash';
 const MODEL_PRICING = {
+  'google/gemini-2.5-flash': { input: 0.0003, output: 0.0025 },
   'openai/gpt-4o-mini': { input: 0.00015, output: 0.0006 },
 };
 
@@ -212,7 +216,7 @@ exports.handler = async (event) => {
         'X-Title': 'Azoni AI Agent Chat'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: AGENT_MODEL,
         messages,
         max_tokens: 200,
         temperature: 0.9,
@@ -224,7 +228,7 @@ exports.handler = async (event) => {
     if (data.choices?.[0]) {
       const reply = data.choices[0].message.content;
       const usage = data.usage || {};
-      const pricing = MODEL_PRICING['openai/gpt-4o-mini'];
+      const pricing = MODEL_PRICING[AGENT_MODEL];
       const inputCost = ((usage.prompt_tokens || 0) / 1000) * pricing.input;
       const outputCost = ((usage.completion_tokens || 0) / 1000) * pricing.output;
       const totalCost = (inputCost + outputCost).toFixed(6);
@@ -242,7 +246,7 @@ exports.handler = async (event) => {
             total_tokens: usage.total_tokens || 0,
             totalCost,
           },
-          model: 'openai/gpt-4o-mini',
+          model: AGENT_MODEL,
           source: 'server',
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
         }).catch(err => console.error('Log error:', err));

@@ -19,6 +19,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "audit:chat-knowledge": "node scripts/audit-chat-knowledge.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

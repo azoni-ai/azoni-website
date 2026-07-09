@@ -13,39 +13,47 @@ if (!admin.apps.length) {
 
 const db = admin.apps.length ? admin.firestore() : null;
 
-const MCP_URL = process.env.MCP_URL || "https://azoni-mcp.onrender.com";
-const MCP_KEY = process.env.MCP_ADMIN_KEY;
+// How long a raw visit row lives before Firestore TTL cleans it up.
+// We only ever aggregate over the last 30 days, so ~40 days is plenty of buffer.
+const TTL_DAYS = 40;
+
+// Keep the source list bounded so a stray/hostile caller can't invent sources.
+// This is the single canonical visit sink for every portfolio site.
+const SOURCE_MAX_LEN = 40;
+
+function cleanSource(raw) {
+  if (typeof raw !== 'string') return 'azoni';
+  const s = raw.trim().toLowerCase().slice(0, SOURCE_MAX_LEN);
+  // allow letters, numbers, dash — nothing else
+  return /^[a-z0-9-]+$/.test(s) ? s : 'azoni';
+}
 
 exports.handler = async (event) => {
   const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Content-Type": "application/json",
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
   };
 
-  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers };
-  if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: '{"error":"POST only"}' };
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: '{"error":"POST only"}' };
 
-  let source = "azoni";
-  try { const b = JSON.parse(event.body || "{}"); if (b.source) source = b.source; } catch {}
+  let source = 'azoni';
+  try {
+    const b = JSON.parse(event.body || '{}');
+    if (b.source) source = cleanSource(b.source);
+  } catch {}
 
-  const promises = [];
-
-  // Write directly to portfolio Firestore (primary — this is what the dashboard reads)
+  // Single source of truth: one tiny row per session-visit in `site_visits`.
+  // Kept out of `agent_activity` on purpose so it never bloats the ops feed.
   if (db) {
-    promises.push(
-      db.collection('agent_activity').add({
-        type: 'site_visit',
-        title: 'Site visit',
-        source,
-        description: '',
-        timestamp: admin.firestore.Timestamp.now(),
-      }).catch(err => console.error('[log-visit] Firestore write failed:', err.message))
-    );
+    const now = admin.firestore.Timestamp.now();
+    const ttl = admin.firestore.Timestamp.fromMillis(now.toMillis() + TTL_DAYS * 86_400_000);
+    await db
+      .collection('site_visits')
+      .add({ source, ts: now, ttl })
+      .catch((err) => console.error('[log-visit] Firestore write failed:', err.message));
   }
 
-  // MCP mirror removed — portfolio Firestore is the single source of truth for visits
-
-  await Promise.allSettled(promises);
   return { statusCode: 200, headers, body: '{"ok":true}' };
 };

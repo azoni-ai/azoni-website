@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Dark background -->
+  <rect width="512" height="512" rx="96" fill="#1B1B1B"/>
+
+  <!-- Diamond shape — rotated square with teal fill -->
+  <g transform="translate(256, 240) rotate(45)">
+    <rect x="-100" y="-100" width="200" height="200" rx="24" fill="#4ECDC4"/>
+    <!-- Inner highlight -->
+    <rect x="-100" y="-100" width="200" height="100" rx="24" fill="#FFFFFF" opacity="0.12"/>
+  </g>
+
+  <!-- Water droplet on the diamond -->
+  <g transform="translate(288, 280)">
+    <path d="M0 -28 Q16 0 0 24 Q-16 0 0 -28 Z" fill="#FFFFFF" opacity="0.9"/>
+    <ellipse cx="0" cy="16" rx="8" ry="4" fill="#FFFFFF" opacity="0.3"/>
+  </g>
+
+  <!-- Subtle mountain silhouette behind diamond -->
+  <path d="M80 380 L200 200 L256 260 L320 180 L432 380 Z" fill="#FFFFFF" opacity="0.05"/>
+
+  <!-- Brand text bar -->
+  <rect x="120" y="400" width="272" height="4" rx="2" fill="#4ECDC4" opacity="0.4"/>
+</svg>

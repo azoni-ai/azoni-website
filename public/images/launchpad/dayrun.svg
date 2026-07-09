@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Deep teal rounded square -->
+  <rect x="0" y="0" width="512" height="512" rx="110" fill="#1A2E2E"/>
+
+  <!-- Subtle inner highlight for paper-on-ink feel -->
+  <rect x="24" y="24" width="464" height="464" rx="92" fill="none" stroke="#F2EBDB" stroke-opacity="0.06" stroke-width="2"/>
+
+  <!-- Big lowercase 'd' in a serif silhouette — hand-drawn as paths for crisp rendering -->
+  <!-- Bowl of the d -->
+  <circle cx="220" cy="320" r="105" fill="none" stroke="#F2EBDB" stroke-width="36"/>
+  <!-- Vertical stem of the d -->
+  <rect x="307" y="120" width="36" height="320" fill="#F2EBDB"/>
+  <!-- Stem cap serif (subtle) -->
+  <rect x="290" y="120" width="70" height="14" fill="#F2EBDB"/>
+  <!-- Bottom serif under the stem -->
+  <rect x="285" y="426" width="80" height="14" fill="#F2EBDB"/>
+
+  <!-- Trailing period in warm brick — the signature -->
+  <circle cx="400" cy="430" r="22" fill="#B65340"/>
+</svg>

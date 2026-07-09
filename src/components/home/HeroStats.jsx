@@ -1,24 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import React from 'react';
 import { PROJECT_STORIES } from '../../data/project-stories';
+import useHomeSummary from '../../hooks/useHomeSummary';
 
 const HeroStats = ({ githubStats }) => {
-  const [agentCount24h, setAgentCount24h] = useState(null);
-
-  useEffect(() => {
-    const since = Timestamp.fromDate(new Date(Date.now() - 86_400_000));
-    const q = query(
-      collection(db, 'agent_activity'),
-      where('timestamp', '>=', since)
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => setAgentCount24h(snap.size),
-      (err) => console.error('hero stats agent count failed', err)
-    );
-    return () => unsub();
-  }, []);
+  const summary = useHomeSummary();
+  const agentCount24h = Number.isFinite(summary?.agentCount24h) ? summary.agentCount24h : null;
 
   const yearLabel = new Date().getFullYear();
   const stats = [

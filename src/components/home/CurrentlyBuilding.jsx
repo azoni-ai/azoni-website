@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, orderBy, query, limit, where } from 'firebase/firestore';
-import { db } from '../../config/firebase';
 import { profile as staticProfile } from '../../data/profile';
+import useHomeSummary from '../../hooks/useHomeSummary';
 
 /**
  * Small "Now" line between hero tagline and stats.
@@ -15,38 +14,15 @@ import { profile as staticProfile } from '../../data/profile';
  * Falls back to rendering nothing if none of the above are available.
  */
 const CurrentlyBuilding = ({ profile }) => {
-  const [latestPost, setLatestPost] = useState(null);
-
   const overrideText =
     profile?.currentlyBuilding ||
     profile?.currentFocus ||
     staticProfile?.currentlyBuilding ||
     staticProfile?.currentFocus;
 
-  useEffect(() => {
-    if (overrideText) return undefined;
-
-    const q = query(
-      collection(db, 'agent_activity'),
-      where('type', '==', 'blog_published'),
-      orderBy('timestamp', 'desc'),
-      limit(1)
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const doc = snap.docs[0];
-        if (!doc) return;
-        const data = doc.data();
-        setLatestPost({
-          title: data.title,
-          slug: data.metadata?.slug,
-        });
-      },
-      (err) => console.error('currently-building lookup failed', err)
-    );
-    return () => unsub();
-  }, [overrideText]);
+  // Latest blog comes from the shared cached summary (no live listener).
+  const summary = useHomeSummary();
+  const latestPost = overrideText ? null : summary?.latestBlog || null;
 
   let text = null;
   let href = null;
