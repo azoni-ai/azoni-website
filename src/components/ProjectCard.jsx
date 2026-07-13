@@ -17,7 +17,16 @@ const FALLBACK_LABELS = {
   hashmaps: 'HM',
   'fab-stats': 'FAB',
   'spell-brigade': 'SB',
-  'image-pipeline-api': 'IPA'
+  'image-pipeline-api': 'IPA',
+  launchpad: 'LP',
+  meeplematch: 'MM',
+  blackdiamond: 'BD',
+  benchmark: 'BM',
+  repmatch: 'RM',
+  'crypto-tax-2025': 'TAX',
+  pyroguard: 'PG',
+  dayrun: 'DAY',
+  macromarket: 'MKT'
 };
 
 const ProjectCard = ({ project }) => {

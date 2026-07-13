@@ -185,6 +185,212 @@ Scribe writes a blog post every weekday from my GitHub commits. Conductor runs e
     category: 'web'
   },
   {
+    id: 'launchpad',
+    title: 'Launchpad',
+    tagline: 'Monorepo and checklist for shipping small web apps fast.',
+    description: 'App factory: a monorepo + quality checklist that turns one prompt into a deployed app. 8 apps shipped so far.',
+    longDescription: `I kept losing app ideas to setup friction. Launchpad is a Next.js template plus a CLAUDE.md quality checklist — SEO, llms.txt, analytics, OG images, PWA icons, Firebase, Netlify, security headers — that gets one prompt from idea to deployed app.
+
+Every app deploys independently from one monorepo and reports back to a central console: views, errors, and uptime in one place. Eight apps shipped from the template so far, and each one beacons traffic into the site leaderboard.`,
+    tech: ['Next.js', 'TypeScript', 'Firebase', 'Netlify', 'Claude Code'],
+    highlights: [
+      'One prompt from idea to a deployed, SEO-complete app',
+      'Quality checklist: SEO, llms.txt, PWA icons, OG images, security headers, LLM cost logging',
+      'Central console gallery aggregating views and errors across apps',
+      '8 apps shipped: MeepleMatch, PyroGuard, MacroMarket, Daily, and more'
+    ],
+    links: {
+      live: 'https://launchpad-console.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad-rocket.svg',
+    featured: true,
+    category: 'launchpad'
+  },
+  {
+    id: 'meeplematch',
+    title: 'MeepleMatch',
+    tagline: 'Swipe to discover your next board game.',
+    description: 'Board game discovery with swipe-based voting. Swipe through curated games, get recommendations, buy on Amazon.',
+    longDescription: `Tinder-style discovery for board games. Swipe through a curated catalog, and your votes drive personalized recommendations you can buy straight on Amazon.
+
+First app shipped from the Launchpad template, and the design reference for the rest of the set: Comic Neue and Lilita One type, kraft-cardboard cards, candy colors, chunky offset-shadow buttons. No generic AI aesthetic allowed.`,
+    tech: ['Next.js', 'Firebase', 'Amazon API', 'Tailwind'],
+    highlights: [
+      'Swipe-based discovery over a curated game catalog',
+      'Personalized recommendations driven by your votes',
+      'Amazon affiliate integration for instant buying',
+      'Set the design bar for the launchpad — kraft cards, candy colors'
+    ],
+    links: {
+      live: 'https://meeplematch.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/meeplematch.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
+    id: 'blackdiamond',
+    title: 'Black Diamond Alpine Wash',
+    tagline: 'Exterior cleaning company site with quote flow.',
+    description: 'Exterior cleaning company site with service pages, quote request form, and local SEO.',
+    longDescription: `Small-business site for an exterior cleaning company — service pages, a quote request form backed by Firebase, and local SEO so it shows up for nearby searches.
+
+The least flashy app in the launchpad set, which is the point: the template handles a plain services business as cleanly as an AI toy.`,
+    tech: ['Next.js', 'Firebase', 'Tailwind'],
+    highlights: [
+      'Service pages plus a quote request flow',
+      'Local SEO: metadata, JSON-LD, and sitemap done properly',
+      'Firebase-backed quote submissions',
+      'Proof the template handles real client work'
+    ],
+    links: {
+      live: 'https://blackdiamond-alpine-wash.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/blackdiamond.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
+    id: 'benchmark',
+    title: 'Benchmark',
+    tagline: 'Turn any achievement into a bench press max.',
+    description: 'A memeable, shareable universal achievement-to-bench-press translator powered by AI.',
+    longDescription: `Tell it anything you've done — ran a marathon, shipped a startup, survived a group project — and Claude converts it into the one metric that matters: pounds on the bench.
+
+Built to be shared, with screenshot-ready result cards. Every LLM call is cost-logged to the portfolio's activity feed like the rest of the ecosystem.`,
+    tech: ['React', 'Vite', 'Claude API', 'Netlify Functions'],
+    highlights: [
+      'Claude translates any achievement into a bench max',
+      'Screenshot-ready, shareable result cards',
+      'API key stays server-side via Netlify Functions',
+      'Per-call cost logging into the portfolio activity feed'
+    ],
+    links: {
+      live: 'https://benchmark-app-azoni.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/benchmark.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
+    id: 'repmatch',
+    title: 'RepMatch',
+    tagline: 'Workout rep-equivalence calculator for friends.',
+    description: 'Input your max, roll a random rep count, and compete with friends at equal effort.',
+    longDescription: `Lifting with friends who are stronger or weaker than you stops being fun when the loads aren't comparable. RepMatch normalizes effort: everyone enters their max, the app rolls a rep count, and each lifter gets a weight that's equally hard for them.
+
+Small, fast Vite app from the launchpad template.`,
+    tech: ['React', 'Vite', 'Tailwind'],
+    highlights: [
+      'Normalizes effort across different strength levels',
+      'Roll a rep count, get everyone\'s equivalent weight',
+      'Built for competing with friends at equal difficulty'
+    ],
+    links: {
+      live: 'https://repmatch-app.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/repmatch.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
+    id: 'crypto-tax-2025',
+    title: 'Crypto Tax 2025',
+    tagline: 'Wallet-first crypto tax reconstruction. Single-user, auth-gated.',
+    description: 'Personal 2025 crypto tax reconstruction. Wallet-first imports, deterministic FIFO, audit-ready exports for TurboTax.',
+    longDescription: `Built to solve my own problem: reconstructing a year of crypto activity for taxes without trusting a black-box service. Wallet-first imports, deterministic FIFO cost-basis math, and a review queue for the transactions that need a human call.
+
+Exports are audit-ready and TurboTax-shaped. Single-user and auth-gated — this one's for me, but the pipeline generalizes.`,
+    tech: ['React', 'Vite', 'Firebase', 'Claude API'],
+    highlights: [
+      'Wallet-first transaction imports',
+      'Deterministic FIFO cost-basis engine',
+      'Audit-ready, TurboTax-friendly exports',
+      'Single-user and auth-gated — built for my own filing'
+    ],
+    links: {
+      live: 'https://crypto-tax-2025.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/crypto-tax-2025.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
+    id: 'pyroguard',
+    title: 'PyroGuard',
+    tagline: 'Ops platform for fire & life-safety inspection contractors.',
+    description: 'All-in-one operations platform for fire/life-safety inspection contractors — a SedonaOffice replacement in ground-up rebuild.',
+    longDescription: `All-in-one operations platform for fire and life-safety inspection contractors — a ground-up replacement for SedonaOffice, the legacy system the industry runs on.
+
+The demo is playable: "A Day in the Field" walks one real NFPA 25 inspection from riser to invoice, including offline photo capture in a cellular dead zone.`,
+    tech: ['Next.js', 'TypeScript', 'Tailwind'],
+    highlights: [
+      'Playable demo: one real NFPA 25 inspection, riser to invoice',
+      'Offline photo capture in a cellular dead zone',
+      'SedonaOffice replacement, rebuilt from the ground up',
+      'Tactical ops-console design language'
+    ],
+    links: {
+      live: 'https://pyroguard-demo.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/pyroguard.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
+    id: 'dayrun',
+    title: 'Daily',
+    tagline: 'An opt-in calendar and interview pipeline.',
+    description: 'Sign in with Google, sync your Calendar, track interviews and opportunities, and toggle what the world sees on your public profile.',
+    longDescription: `An opt-in calendar. Sign in with Google, sync your real Calendar, and choose exactly which events the world can see on your public /u/username profile.
+
+Underneath it is an interview-and-opportunity pipeline — applications, follow-ups, and scheduling tracked in one place instead of a spreadsheet.`,
+    tech: ['Next.js', 'Firebase', 'Google Calendar API', 'Claude API'],
+    highlights: [
+      'Google sign-in with real Calendar sync',
+      'Public /u/username profile with per-event visibility',
+      'Interview and opportunity pipeline tracking',
+      'Opt-in by design — nothing is public unless you toggle it'
+    ],
+    links: {
+      live: 'https://dayrun-app.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/dayrun.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
+    id: 'macromarket',
+    title: 'MacroMarket',
+    tagline: 'Foods ranked by cost per gram of protein.',
+    description: 'Ranks 187 foods, snacks, and supplements by dollars per gram of protein, with a goal calculator, deals tab, and AI protein coach.',
+    longDescription: `Protein is the macro everyone's chasing and nobody prices. MacroMarket ranks 187 foods, snacks, and supplements by dollars per gram of protein so you can hit your number without overpaying.
+
+Includes a protein-goal calculator, a deals tab, and a Claude-powered coach that recommends the cheapest picks for your target. Amazon affiliate links close the loop.`,
+    tech: ['Next.js', 'Firebase', 'Claude API', 'Amazon Affiliate'],
+    highlights: [
+      '187 foods ranked by dollars per gram of protein',
+      'Protein-goal calculator plus a deals tab',
+      'Claude-powered coach recommends the cheapest picks',
+      'Amazon affiliate integration'
+    ],
+    links: {
+      live: 'https://macromarket-app.netlify.app',
+      github: null
+    },
+    image: '/images/launchpad/macromarket.svg',
+    featured: false,
+    category: 'launchpad'
+  },
+  {
     id: 'fab-stats-bot',
     title: 'FaB Stats Discord Bot',
     tagline: 'Companion bot for FaB Stats. Lives in 20+ servers.',
@@ -397,6 +603,7 @@ export const categories = {
   all: 'All Projects',
   ai: 'AI and ML',
   infra: 'Platforms and Infra',
+  launchpad: 'Launchpad',
   fintech: 'Fintech',
   web3: 'Web3',
   games: 'Games',

@@ -152,8 +152,8 @@ export const PROJECT_STORIES = [
     role: 'Solo · 2025',
     accent: '#FF6B35',
     icon: '/images/launchpad-rocket.svg',
-    url: null,
-    metric: { value: '5', label: 'apps shipped from the template' },
+    url: 'https://launchpad-console.netlify.app',
+    metric: { value: '8', label: 'apps shipped from the template' },
     story: [
       "I kept losing app ideas to setup friction. Launchpad is a Next.js template + CLAUDE.md checklist (SEO, llms.txt, analytics, OG images, Firebase, Netlify, security headers) that gets one prompt from idea to deployed app.",
       "Each app deploys independently and reports back to a central console. One place to see views, errors, and uptime across the whole set.",
@@ -161,7 +161,7 @@ export const PROJECT_STORIES = [
     built: [
       "Launch checklist covering SEO, AI crawlers, analytics, deploys",
       "Central console aggregating views and errors across apps",
-      "Shipped: MeepleMatch, Black Diamond, Benchmark, RepMatch, Crypto Tax 2025",
+      "Shipped: MeepleMatch, PyroGuard, MacroMarket, Daily, Benchmark, RepMatch, Crypto Tax 2025, Black Diamond",
     ],
     tech: ['Next.js', 'Netlify', 'Firebase', 'PostHog', 'GA4'],
   },
