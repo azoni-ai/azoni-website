@@ -15,6 +15,7 @@
  */
 
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -45,10 +46,44 @@ function sanitizeTask(input = {}) {
   if (PRIORITIES.includes(input.priority)) out.priority = input.priority;
   else if (input.priority === null || input.priority === '') out.priority = null;
   if (VISIBILITIES.includes(input.visibility)) out.visibility = input.visibility;
-  if (typeof input.link === 'string') out.link = input.link.slice(0, 300);
+  if (typeof input.link === 'string') {
+    // Only http(s) URLs are stored — anything else (javascript:, data:) is dropped.
+    const link = input.link.slice(0, 300).trim();
+    out.link = /^https?:\/\//i.test(link) ? link : '';
+  }
   if (typeof input.source === 'string') out.source = input.source.slice(0, 60);
   if (typeof input.order === 'number') out.order = input.order;
+  if (typeof input.seedId === 'string' && /^[\w-]{1,60}$/.test(input.seedId)) {
+    out.seedId = input.seedId;
+  }
   return out;
+}
+
+// Constant-time password check.
+function tokenOk(token) {
+  const secret = process.env.BOARD_ADMIN_PASSWORD;
+  if (!secret || typeof token !== 'string' || !token) return false;
+  const a = crypto.createHash('sha256').update(token).digest();
+  const b = crypto.createHash('sha256').update(secret).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+// Best-effort brute-force throttle (per warm lambda instance): after 10
+// failures from an IP within 10 minutes, reject before comparing.
+const failedAuth = new Map();
+function throttled(ip) {
+  const rec = failedAuth.get(ip);
+  return !!rec && rec.count >= 10 && Date.now() - rec.first < 10 * 60 * 1000;
+}
+function recordFailure(ip) {
+  const now = Date.now();
+  const rec = failedAuth.get(ip);
+  if (!rec || now - rec.first > 10 * 60 * 1000) {
+    failedAuth.set(ip, { count: 1, first: now });
+  } else {
+    rec.count += 1;
+  }
+  if (failedAuth.size > 500) failedAuth.clear(); // cap memory on hot instances
 }
 
 exports.handler = async (event) => {
@@ -70,8 +105,21 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
 
+  const ip =
+    event.headers['x-nf-client-connection-ip'] ||
+    (event.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+    'unknown';
+  if (throttled(ip)) {
+    return {
+      statusCode: 429,
+      headers,
+      body: JSON.stringify({ error: 'Too many attempts — try again later' }),
+    };
+  }
+
   const token = body.token || event.headers['x-board-token'];
-  if (!process.env.BOARD_ADMIN_PASSWORD || token !== process.env.BOARD_ADMIN_PASSWORD) {
+  if (!tokenOk(token)) {
+    recordFailure(ip);
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
@@ -94,6 +142,13 @@ exports.handler = async (event) => {
         if (typeof data.order !== 'number') data.order = now.toMillis();
         data.createdAt = now;
         data.updatedAt = now;
+        // Seed imports use a deterministic doc id so a retried import
+        // overwrites instead of duplicating.
+        if (data.seedId) {
+          const ref = db.collection('tasks').doc(`seed_${data.seedId}`);
+          await ref.set(data);
+          return { statusCode: 200, headers, body: JSON.stringify({ id: ref.id }) };
+        }
         const ref = await db.collection('tasks').add(data);
         return { statusCode: 200, headers, body: JSON.stringify({ id: ref.id }) };
       }
@@ -118,6 +173,10 @@ exports.handler = async (event) => {
         }
         const patch = { status: body.status, updatedAt: now };
         if (typeof body.order === 'number') patch.order = body.order;
+        // Cross-swimlane drops also re-file the task under the target epic.
+        if (typeof body.projectId === 'string' && body.projectId) {
+          patch.projectId = body.projectId.slice(0, 80);
+        }
         await db.collection('tasks').doc(body.id).update(patch);
         return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
       }

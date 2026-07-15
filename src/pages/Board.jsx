@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Layout from '../components/Layout';
 import EpicSwimlane from '../components/board/EpicSwimlane';
@@ -10,29 +10,40 @@ import { boardWrite } from '../utils/boardApi';
 import { projects } from '../data/projects';
 import { SEED_TASKS, seedToTaskPayload } from '../data/boardSeed';
 import {
-  BOARD_COLUMNS,
   PHASE_META,
   deriveEpicPhase,
   epicActivityCounts,
+  toMs,
+  timeAgo,
 } from '../utils/boardStatus';
 import '../styles/board-warm.css';
 
 const PHASE_WEIGHT = { active: 0, live: 1, maintained: 2, idle: 3 };
+const COLLAPSE_KEY = 'board_collapsed_epics';
 
 const resolveEpic = (id) => {
   if (id === '_meta') {
-    return { id: '_meta', title: 'Portfolio', tagline: 'Cross-project & site work' };
+    return { id: '_meta', title: 'Portfolio', tagline: 'Cross-project & site work', hasPage: false };
   }
   const p = projects.find((proj) => proj.id === id);
   return p
-    ? { id: p.id, title: p.title, tagline: p.tagline }
-    : { id, title: id, tagline: '' };
+    ? { id: p.id, title: p.title, tagline: p.tagline, hasPage: true }
+    : { id, title: id, tagline: '', hasPage: false };
+};
+
+const readCollapseMap = () => {
+  try {
+    return JSON.parse(localStorage.getItem(COLLAPSE_KEY)) || {};
+  } catch {
+    return {};
+  }
 };
 
 export default function Board() {
-  const { tasks, boardState, activity, loading } = useBoardData();
-  const { githubStats } = useGithubStats();
-  const { isOwner, token, login, logout, checking, error: authError } = useOwnerAuth();
+  const { isOwner, token, login, logout, invalidate, checking, error: authError } = useOwnerAuth();
+  // Visitors get one-shot reads; realtime listeners are owner-only (quota).
+  const { tasks, boardState, activity, loading } = useBoardData(isOwner);
+  const { githubStats, loading: ghLoading } = useGithubStats();
 
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState('');
@@ -41,12 +52,22 @@ export default function Board() {
   const [saveError, setSaveError] = useState('');
   const [actionError, setActionError] = useState('');
   const [importing, setImporting] = useState(false);
+  const [importFailed, setImportFailed] = useState(false);
+  // Default lens: only actively-worked projects. Falls back to all (below)
+  // if nothing derives as active once the data lands.
+  const [phaseFilter, setPhaseFilter] = useState('active');
+  const [filterTouched, setFilterTouched] = useState(false);
+  const [collapseMap, setCollapseMap] = useState(readCollapseMap);
   const dragTask = useRef(null);
 
   const noRealTasks = !loading && tasks.length === 0;
   // Owner works with real tasks; visitors see starter cards on an empty board.
   const usingSeed = !isOwner && noRealTasks;
-  const effectiveTasks = usingSeed ? SEED_TASKS : tasks;
+  const effectiveTasks = useMemo(() => {
+    const base = usingSeed ? SEED_TASKS : tasks;
+    // "Private" tasks never render for visitors.
+    return isOwner ? base : base.filter((t) => t.visibility !== 'private');
+  }, [usingSeed, tasks, isOwner]);
 
   const phaseOverrides = useMemo(() => boardState.phaseOverrides || {}, [boardState]);
 
@@ -66,12 +87,16 @@ export default function Board() {
 
     const built = Object.keys(byProject)
       .filter((id) => !hidden.has(id))
-      .map((id) => ({
-        epic: resolveEpic(id),
-        phase: deriveEpicPhase(id, githubStats, activity, phaseOverrides),
-        counts: epicActivityCounts(id, githubStats, activity),
-        tasks: byProject[id],
-      }));
+      .map((id) => {
+        const epicTasks = byProject[id];
+        const latestTaskMs = epicTasks.reduce((m, t) => Math.max(m, toMs(t.updatedAt)), 0);
+        return {
+          epic: resolveEpic(id),
+          phase: deriveEpicPhase(id, githubStats, activity, phaseOverrides, latestTaskMs),
+          counts: epicActivityCounts(id, githubStats, activity),
+          tasks: epicTasks,
+        };
+      });
 
     built.sort((a, b) => {
       const oa = orderIndex(a.epic.id);
@@ -86,7 +111,54 @@ export default function Board() {
     return built;
   }, [effectiveTasks, boardState, githubStats, activity, phaseOverrides]);
 
+  const visibleEpics = useMemo(
+    () => (phaseFilter ? epicsData.filter((e) => e.phase === phaseFilter) : epicsData),
+    [epicsData, phaseFilter]
+  );
+
+  // Board-level freshness: newest task edit. Computed from the tasks that
+  // are actually shown, so a private edit never leaks its timestamp.
+  const lastUpdatedMs = useMemo(
+    () => (usingSeed ? 0 : effectiveTasks.reduce((m, t) => Math.max(m, toMs(t.updatedAt)), 0)),
+    [effectiveTasks, usingSeed]
+  );
+  const inFlightCount = useMemo(
+    () =>
+      effectiveTasks.filter((t) => ['in_progress', 'review'].includes(t.status || 'backlog'))
+        .length,
+    [effectiveTasks]
+  );
+
+  // Quiet (idle) epics start collapsed; explicit toggles win and persist.
+  const isCollapsed = useCallback(
+    (epicId, phase) => collapseMap[epicId] ?? phase === 'idle',
+    [collapseMap]
+  );
+  const toggleCollapse = useCallback((epicId, currentlyCollapsed) => {
+    setCollapseMap((prev) => {
+      const next = { ...prev, [epicId]: !currentlyCollapsed };
+      try {
+        localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+      } catch {
+        /* private mode etc. */
+      }
+      return next;
+    });
+  }, []);
+
   // ── Owner actions ──
+  const handle401 = useCallback(
+    (err) => {
+      if (err?.status === 401) {
+        invalidate();
+        setShowLogin(true);
+        return 'Session expired — please sign in again.';
+      }
+      return null;
+    },
+    [invalidate]
+  );
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     const ok = await login(password);
@@ -124,11 +196,11 @@ export default function Board() {
         setSaving(false);
         setEditorTask(null);
       } catch (err) {
-        setSaveError(err.message || 'Save failed');
+        setSaveError(handle401(err) || err.message || 'Save failed');
         setSaving(false);
       }
     },
-    [token]
+    [token, handle401]
   );
 
   const deleteTask = useCallback(
@@ -140,11 +212,11 @@ export default function Board() {
         setSaving(false);
         setEditorTask(null);
       } catch (err) {
-        setSaveError(err.message || 'Delete failed');
+        setSaveError(handle401(err) || err.message || 'Delete failed');
         setSaving(false);
       }
     },
-    [token]
+    [token, handle401]
   );
 
   const handleDragStart = useCallback((e, task) => {
@@ -162,19 +234,27 @@ export default function Board() {
   }, []);
 
   const handleDropTask = useCallback(
-    async (e, colId) => {
+    async (e, colId, epicId) => {
       const task = dragTask.current;
       const id = task?.id || e.dataTransfer?.getData('text/plain');
-      if (!id) return;
-      if (task && (task.status || 'backlog') === colId) return;
+      // Guard the dataTransfer fallback: stray drags (selected text, URLs)
+      // put arbitrary strings in text/plain — never send those as doc ids.
+      if (!id || !/^[\w-]{1,80}$/.test(id)) return;
+      const sameStatus = task && (task.status || 'backlog') === colId;
+      const sameEpic = task ? (task.projectId || '_meta') === epicId : false;
+      if (sameStatus && sameEpic) return;
       setActionError('');
       try {
-        await boardWrite(token, 'moveTask', { id, status: colId, order: Date.now() });
+        const payload = { id, status: colId, order: Date.now() };
+        // Dropping into another swimlane also re-files the task under that
+        // epic (re-filing into its own epic is a harmless no-op).
+        if (!sameEpic && epicId) payload.projectId = epicId;
+        await boardWrite(token, 'moveTask', payload);
       } catch (err) {
-        setActionError(err.message || 'Move failed');
+        setActionError(handle401(err) || err.message || 'Move failed');
       }
     },
-    [token]
+    [token, handle401]
   );
 
   const setPhase = useCallback(
@@ -186,10 +266,10 @@ export default function Board() {
           phase: value === 'auto' ? null : value,
         });
       } catch (err) {
-        setActionError(err.message || 'Phase update failed');
+        setActionError(handle401(err) || err.message || 'Phase update failed');
       }
     },
-    [token]
+    [token, handle401]
   );
 
   const importSeed = useCallback(async () => {
@@ -197,18 +277,37 @@ export default function Board() {
     setActionError('');
     try {
       for (const t of SEED_TASKS) {
-        // sequential so ordering stays stable and we surface the first failure
+        // sequential so ordering stays stable and we surface the first failure;
+        // seedId makes each write idempotent, so a retry never duplicates.
         // eslint-disable-next-line no-await-in-loop
         await boardWrite(token, 'createTask', { task: seedToTaskPayload(t) });
       }
+      setImportFailed(false);
     } catch (err) {
-      setActionError(`Import stopped: ${err.message || 'write failed'}`);
+      // Keep the button around for a retry — the first successful write
+      // flips noRealTasks, which would otherwise unmount it mid-failure.
+      setImportFailed(true);
+      setActionError(handle401(err) || `Import stopped: ${err.message || 'write failed'}`);
     } finally {
       setImporting(false);
     }
-  }, [token]);
+  }, [token, handle401]);
 
-  const dragHandlers = { onDragStart: handleDragStart, onDragEnd: handleDragEnd };
+  const dragHandlers = useMemo(
+    () => ({ onDragStart: handleDragStart, onDragEnd: handleDragEnd }),
+    [handleDragStart, handleDragEnd]
+  );
+
+  // The default "Active" lens falls back to all projects once the data has
+  // fully landed and nothing derives as active. Runs only until the user
+  // touches the filter themselves — their explicit choices (including an
+  // empty result + "Show all" button) are never overridden.
+  useEffect(() => {
+    if (filterTouched || loading || ghLoading) return;
+    if (phaseFilter === 'active' && epicsData.length > 0 && !epicsData.some((e) => e.phase === 'active')) {
+      setPhaseFilter(null);
+    }
+  }, [filterTouched, loading, ghLoading, phaseFilter, epicsData]);
 
   return (
     <Layout>
@@ -220,90 +319,134 @@ export default function Board() {
                 <p className="board-eyebrow">Workflow</p>
                 <h1 className="board-heading">Board</h1>
               </div>
-              <div className="board-owner-controls">
-                {isOwner ? (
-                  <>
-                    <span className="board-owner-badge">Owner</span>
-                    {noRealTasks && (
-                      <button
-                        className="board-btn ghost"
-                        onClick={importSeed}
-                        disabled={importing}
-                        title="Copy the GitHub-derived starter tasks into Firestore"
-                      >
-                        {importing ? 'Importing…' : `Import ${SEED_TASKS.length} starter tasks`}
-                      </button>
-                    )}
-                    <button className="board-btn primary" onClick={() => openCreate()}>
-                      + Add task
-                    </button>
-                    <button className="board-btn ghost" onClick={logout}>
-                      Sign out
-                    </button>
-                  </>
-                ) : showLogin ? (
-                  <form className="board-login" onSubmit={handleLoginSubmit}>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Board password"
-                      autoFocus
-                    />
-                    <button className="board-btn primary" type="submit" disabled={checking}>
-                      {checking ? '…' : 'Sign in'}
-                    </button>
+              {isOwner && (
+                <div className="board-owner-controls">
+                  <span className="board-owner-badge">Owner</span>
+                  {(noRealTasks || importFailed) && (
                     <button
                       className="board-btn ghost"
-                      type="button"
-                      onClick={() => setShowLogin(false)}
+                      onClick={importSeed}
+                      disabled={importing}
+                      title="Copy the GitHub-derived starter tasks into Firestore (safe to re-run)"
                     >
-                      Cancel
+                      {importing
+                        ? 'Importing…'
+                        : importFailed
+                          ? 'Retry starter-task import'
+                          : `Import ${SEED_TASKS.length} starter tasks`}
                     </button>
-                    {authError && <span className="board-login-error">{authError}</span>}
-                  </form>
-                ) : (
-                  <button className="board-btn ghost" onClick={() => setShowLogin(true)}>
-                    Sign in to edit
+                  )}
+                  <button className="board-btn primary" onClick={() => openCreate()}>
+                    + Add task
                   </button>
-                )}
-              </div>
+                  <button className="board-btn ghost" onClick={logout}>
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
             <p className="board-tagline">
-              Every project is an epic, every agent an assignee. Card status is
-              auto-derived from live commits and agent activity.
+              The live kanban behind everything on this site — every project is an epic, every
+              agent an assignee. Each project&rsquo;s phase is derived from real commits and
+              agent activity.
+            </p>
+            <p className="board-summary">
+              {visibleEpics.length} project{visibleEpics.length === 1 ? '' : 's'}
+              <span className="board-dot-sep">·</span>
+              {effectiveTasks.length} task{effectiveTasks.length === 1 ? '' : 's'}
+              {inFlightCount > 0 && (
+                <>
+                  <span className="board-dot-sep">·</span>
+                  {inFlightCount} in flight
+                </>
+              )}
+              {lastUpdatedMs > 0 && (
+                <>
+                  <span className="board-dot-sep">·</span>
+                  updated {timeAgo(lastUpdatedMs)} ago
+                </>
+              )}
             </p>
           </header>
 
           <div className="board-legend">
             {Object.entries(PHASE_META).map(([key, meta]) => (
-              <span key={key} className="board-legend-item">
+              <button
+                key={key}
+                type="button"
+                className={`board-legend-item${phaseFilter === key ? ' is-active' : ''}`}
+                onClick={() => {
+                  setFilterTouched(true);
+                  setPhaseFilter((cur) => (cur === key ? null : key));
+                }}
+                aria-pressed={phaseFilter === key}
+                title={
+                  phaseFilter === key
+                    ? 'Show all projects'
+                    : `Show only ${meta.label.toLowerCase()} projects`
+                }
+              >
                 <span className="board-phase-dot" style={{ background: meta.color }} />
                 {meta.label}
-              </span>
+              </button>
             ))}
             {usingSeed && (
               <span className="board-sample-note">
-                Starter tasks pulled from your GitHub — sign in to import &amp; manage them.
+                Example cards drawn from real GitHub work — live tasks land here as they&rsquo;re
+                filed.
               </span>
             )}
             {actionError && <span className="board-login-error">{actionError}</span>}
-          </div>
-
-          <div className="board-grid board-columns-header">
-            {BOARD_COLUMNS.map((col) => (
-              <div key={col.id} className="board-col-header">
-                {col.label}
-              </div>
-            ))}
+            {!isOwner &&
+              (showLogin ? (
+                <form className="board-login" onSubmit={handleLoginSubmit}>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Board password"
+                    autoFocus
+                  />
+                  <button className="board-btn primary" type="submit" disabled={checking}>
+                    {checking ? '…' : 'Sign in'}
+                  </button>
+                  <button
+                    className="board-btn ghost"
+                    type="button"
+                    onClick={() => setShowLogin(false)}
+                  >
+                    Cancel
+                  </button>
+                  {authError && <span className="board-login-error">{authError}</span>}
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className="board-signin-link"
+                  onClick={() => setShowLogin(true)}
+                >
+                  owner sign-in
+                </button>
+              ))}
           </div>
 
           {loading ? (
             <p className="board-loading">Loading board…</p>
-          ) : epicsData.length === 0 ? (
+          ) : visibleEpics.length === 0 ? (
             <div className="board-empty">
-              <p>No tasks yet.</p>
-              {isOwner && (
+              <p>{phaseFilter ? 'No projects in this phase right now.' : 'No tasks yet.'}</p>
+              {phaseFilter && (
+                <button
+                  className="board-btn ghost"
+                  onClick={() => {
+                    setFilterTouched(true);
+                    setPhaseFilter(null);
+                  }}
+                >
+                  Show all projects
+                </button>
+              )}
+              {isOwner && !phaseFilter && (
                 <div className="board-empty-actions">
                   <button
                     className="board-btn primary"
@@ -319,7 +462,7 @@ export default function Board() {
               )}
             </div>
           ) : (
-            epicsData.map(({ epic, phase, counts, tasks: epicTasks }) => (
+            visibleEpics.map(({ epic, phase, counts, tasks: epicTasks }) => (
               <EpicSwimlane
                 key={epic.id}
                 epic={epic}
@@ -327,6 +470,8 @@ export default function Board() {
                 phaseOverride={phaseOverrides[epic.id]}
                 counts={counts}
                 tasks={epicTasks}
+                collapsed={isCollapsed(epic.id, phase)}
+                onToggleCollapse={toggleCollapse}
                 isOwner={isOwner}
                 onEditTask={openEdit}
                 onAddTask={openCreate}

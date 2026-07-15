@@ -87,7 +87,7 @@ export const SEED_TASKS = [
     id: 'seed-board-ship',
     projectId: 'azoni-ai',
     title: 'Ship the Board view',
-    description: 'Jira-style kanban unifying projects, agents, and the live activity feed. Set BOARD_ADMIN_PASSWORD + deploy to enable editing.',
+    description: 'Jira-style kanban unifying projects, agents, and the live activity feed.',
     status: 'in_progress',
     agentIds: ['orchestrator'],
     priority: 'high',
@@ -198,6 +198,8 @@ export const SEED_TASKS = [
 ];
 
 // Payload for one-click import into Firestore (drops display-only fields).
+// seedId gives the server a deterministic doc id, so re-running the import
+// after a mid-way failure overwrites instead of duplicating.
 export const seedToTaskPayload = (t) => ({
   title: t.title,
   description: t.description || '',
@@ -208,4 +210,5 @@ export const seedToTaskPayload = (t) => ({
   visibility: 'public',
   source: t.source || '',
   link: t.link || '',
+  seedId: t.id,
 });

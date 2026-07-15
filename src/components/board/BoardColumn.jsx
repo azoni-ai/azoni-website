@@ -1,28 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import TaskCard from './TaskCard';
 
-export default function BoardColumn({
-  column,
-  tasks,
-  isOwner = false,
-  onEditTask,
-  onAdd,
-  onDrop,
-  dragHandlers,
-}) {
+function BoardColumn({ column, tasks, isOwner = false, onEditTask, onAdd, onDrop, dragHandlers }) {
   const [isOver, setIsOver] = useState(false);
+  // dragenter/dragleave fire for every child element; a depth counter keeps
+  // the highlight from strobing while dragging across cards inside the column.
+  const depth = useRef(0);
   const { onDragStart, onDragEnd } = dragHandlers || {};
 
-  const handleDragOver = isOwner
-    ? (e) => {
-        e.preventDefault();
-        if (!isOver) setIsOver(true);
+  const handleDragEnter = isOwner
+    ? () => {
+        depth.current += 1;
+        setIsOver(true);
       }
     : undefined;
-  const handleDragLeave = isOwner ? () => setIsOver(false) : undefined;
+  const handleDragOver = isOwner ? (e) => e.preventDefault() : undefined;
+  const handleDragLeave = isOwner
+    ? () => {
+        depth.current = Math.max(0, depth.current - 1);
+        if (depth.current === 0) setIsOver(false);
+      }
+    : undefined;
   const handleDrop = isOwner
     ? (e) => {
         e.preventDefault();
+        depth.current = 0;
         setIsOver(false);
         onDrop?.(e);
       }
@@ -31,6 +33,7 @@ export default function BoardColumn({
   return (
     <div
       className={`board-column${isOwner ? ' is-droppable' : ''}${isOver ? ' is-over' : ''}`}
+      onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -68,3 +71,5 @@ export default function BoardColumn({
     </div>
   );
 }
+
+export default React.memo(BoardColumn);

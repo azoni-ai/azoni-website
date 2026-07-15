@@ -81,13 +81,26 @@ const activityBelongsToProject = (item, projectId) => {
   return !!(station && STATION_TO_PROJECT[station] === projectId);
 };
 
-const activityMs = (item) => {
-  const ts = item.timestamp;
+// Firestore Timestamp | ISO string | Date | ms → epoch ms (0 if unparseable)
+export const toMs = (ts) => {
   if (!ts) return 0;
   if (typeof ts.toDate === 'function') return ts.toDate().getTime();
+  if (typeof ts === 'number') return ts;
   const t = new Date(ts).getTime();
   return Number.isNaN(t) ? 0 : t;
 };
+
+// Compact relative time for card footers: "5m", "3h", "2d", "4mo".
+export const timeAgo = (ms) => {
+  if (!ms) return '';
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m`;
+  if (s < 86400) return `${Math.round(s / 3600)}h`;
+  if (s < 86400 * 60) return `${Math.round(s / 86400)}d`;
+  return `${Math.round(s / (86400 * 30))}mo`;
+};
+
+const activityMs = (item) => toMs(item.timestamp);
 
 // Most recent commit time (ms) across a project's repos, or 0.
 function latestCommitMs(projectId, githubStats) {
@@ -111,15 +124,25 @@ function latestActivityMs(projectId, activityItems) {
 }
 
 /**
- * Auto-derive an epic's phase from git + activity recency.
+ * Auto-derive an epic's phase from git + activity + task-edit recency.
  * A manual override in phaseOverrides always wins.
+ *
+ * `latestTaskMs` (most recent task updatedAt in the epic) matters for epics
+ * with no station/repo mapping — e.g. the Portfolio (_meta) lane — which
+ * would otherwise be stuck on Idle no matter how actively the board is used.
  */
-export function deriveEpicPhase(projectId, githubStats, activityItems, phaseOverrides = {}) {
+export function deriveEpicPhase(
+  projectId,
+  githubStats,
+  activityItems,
+  phaseOverrides = {},
+  latestTaskMs = 0
+) {
   if (phaseOverrides && phaseOverrides[projectId]) return phaseOverrides[projectId];
 
   const now = Date.now();
   const commitT = latestCommitMs(projectId, githubStats);
-  const activityT = latestActivityMs(projectId, activityItems);
+  const activityT = Math.max(latestActivityMs(projectId, activityItems), latestTaskMs || 0);
   const recent = Math.max(commitT, activityT);
   const hasLive = !!projects.find((p) => p.id === projectId)?.links?.live;
 

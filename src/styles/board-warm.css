@@ -1,6 +1,10 @@
 /* ─── Board (Jira-style kanban) — warm palette ─── */
 
 .board-page {
+  /* Local muted tone: the site-wide --text-warm-muted (#6f675c) sits at
+     ~3.4:1 on this background — below AA for the board's tiny mono labels.
+     #8d8478 measures ≥5:1 on both card and page backgrounds. */
+  --board-muted: #8d8478;
   min-height: 100vh;
   background: var(--bg-warm);
   color: var(--text-warm);
@@ -43,6 +47,18 @@
   margin: 0;
 }
 
+.board-summary {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--board-muted);
+  margin: var(--space-sm) 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* Legend */
 .board-legend {
   display: flex;
@@ -54,6 +70,7 @@
   border-bottom: 1px solid var(--border-warm);
 }
 
+/* Legend chips double as phase filters */
 .board-legend-item {
   display: inline-flex;
   align-items: center;
@@ -62,7 +79,45 @@
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-warm-muted);
+  color: var(--board-muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.board-legend-item:hover {
+  color: var(--text-warm);
+}
+
+.board-legend-item.is-active {
+  color: var(--text-warm);
+  border-color: var(--border-warm-strong);
+  background: var(--bg-warm-hover);
+}
+
+.board-signin-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--board-muted);
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.board-signin-link:hover {
+  color: var(--text-warm-soft);
+  opacity: 1;
+}
+
+.board-legend .board-login {
+  margin-left: auto;
 }
 
 .board-sample-note {
@@ -80,29 +135,11 @@
   flex: none;
 }
 
-/* Shared 4-column grid — used by the header row and each swimlane */
+/* Shared 4-column grid — one per swimlane (labels live in each column head) */
 .board-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-md);
-}
-
-.board-columns-header {
-  position: sticky;
-  top: 64px;
-  z-index: 5;
-  background: var(--bg-warm);
-  padding: var(--space-sm) 0;
-  margin-bottom: var(--space-sm);
-}
-
-.board-col-header {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-warm-muted);
-  padding: 0 var(--space-xs);
 }
 
 /* Epic swimlane */
@@ -129,6 +166,48 @@
   font-size: 1.4rem;
   letter-spacing: -0.01em;
   margin: 0;
+}
+
+.board-epic-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.board-epic-link:hover {
+  color: var(--accent-coral);
+  border-bottom-color: rgba(255, 122, 92, 0.4);
+}
+
+.board-epic-toggle {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  margin-left: -8px;
+  color: var(--board-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.board-epic-toggle:hover {
+  color: var(--text-warm);
+}
+
+.board-epic-collapsed-summary {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--board-muted);
+}
+
+.board-epic.is-collapsed {
+  margin-bottom: var(--space-md);
+}
+
+.board-epic.is-collapsed .board-epic-head {
+  margin-bottom: 0;
 }
 
 .board-phase-chip {
@@ -166,7 +245,7 @@
 .board-epic-counts {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: var(--text-warm-muted);
+  color: var(--board-muted);
   display: inline-flex;
   gap: 6px;
 }
@@ -176,7 +255,7 @@
 }
 
 .board-epic-quiet {
-  opacity: 0.6;
+  color: var(--board-muted);
 }
 
 /* Column */
@@ -211,13 +290,13 @@
   font-size: 0.66rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-warm-muted);
+  color: var(--board-muted);
 }
 
 .board-column-count {
   font-family: var(--font-mono);
   font-size: 0.66rem;
-  color: var(--text-warm-muted);
+  color: var(--board-muted);
   background: var(--bg-warm-hover);
   border-radius: var(--radius-full);
   padding: 1px 7px;
@@ -263,6 +342,18 @@
   border-style: dashed;
 }
 
+.board-task.is-dragging {
+  opacity: 0.35;
+}
+
+.board-task.is-private {
+  border-style: dotted;
+}
+
+.board-private-mark {
+  font-size: 0.7em;
+}
+
 .board-task-top {
   display: flex;
   align-items: flex-start;
@@ -279,12 +370,16 @@
   color: var(--text-warm);
 }
 
-.board-priority-dot {
-  width: 8px;
-  height: 8px;
+.board-priority-chip {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid;
   border-radius: var(--radius-full);
+  padding: 1px 7px;
   flex: none;
-  margin-top: 5px;
+  margin-top: 2px;
 }
 
 .board-task-desc {
@@ -333,25 +428,40 @@
   display: block;
 }
 
+.board-task-foot-right {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  max-width: 60%;
+}
+
 .board-task-source {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.02em;
-  color: var(--text-warm-muted);
+  color: var(--board-muted);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 55%;
-  flex: none;
+  min-width: 0;
 }
 
 a.board-task-source:hover {
   color: var(--accent-coral);
 }
 
+.board-task-time {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--board-muted);
+  white-space: nowrap;
+  flex: none;
+}
+
 .board-loading {
-  color: var(--text-warm-muted);
+  color: var(--board-muted);
   font-family: var(--font-mono);
   font-size: 0.85rem;
   padding: var(--space-xl) 0;
@@ -519,6 +629,7 @@ a.board-task-source:hover {
 
 /* ─── Modal ─── */
 .board-modal-overlay {
+  --board-muted: #8d8478;
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -587,12 +698,22 @@ a.board-task-source:hover {
   font-size: 0.66rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-warm-muted);
+  color: var(--board-muted);
 }
 
 .board-field-row {
   display: flex;
   gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.board-field-row .board-field {
+  min-width: 160px;
+}
+
+.board-field select {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .board-field textarea {
@@ -649,21 +770,59 @@ a.board-task-source:hover {
   margin-left: auto;
 }
 
-/* Responsive — stack columns on narrow screens */
-@media (max-width: 860px) {
+.board-delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Keyboard affordance — cards act as buttons for the owner */
+.board-task:focus-visible,
+.board-btn:focus-visible,
+.board-add-mini:focus-visible,
+.board-modal-x:focus-visible,
+.board-epic-toggle:focus-visible,
+.board-legend-item:focus-visible,
+.board-signin-link:focus-visible {
+  outline: 2px solid var(--accent-coral);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-task,
+  .board-column,
+  .board-btn,
+  .board-epic-link {
+    transition: none;
+  }
+  .board-task.is-draggable:hover {
+    transform: none;
+  }
+}
+
+/* Responsive — 4 columns → 2×2 → single stack, instead of one 860px cliff */
+@media (max-width: 1100px) {
+  .board-grid.board-epic-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
   .board-page {
     padding-top: 96px;
   }
   .board-page-inner {
     padding: 0 var(--space-md);
   }
-  .board-columns-header {
-    display: none;
-  }
   .board-grid.board-epic-columns {
     grid-template-columns: 1fr;
   }
   .board-column {
     min-height: 0;
+  }
+  /* Visitors don't need placeholder columns on a phone — hide empties.
+     Owner columns (.is-droppable) stay: they're drop targets + add buttons. */
+  .board-column:not(.is-droppable):not(:has(.board-task)) {
+    display: none;
   }
 }

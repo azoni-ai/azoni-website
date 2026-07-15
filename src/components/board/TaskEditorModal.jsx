@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AgentChip } from './TaskCard';
 import { AGENTS, AGENT_ORDER } from '../../data/agents';
@@ -29,6 +29,35 @@ export default function TaskEditorModal({ task, onClose, onSave, onDelete, savin
   const [visibility, setVisibility] = useState(task?.visibility || 'public');
   const [link, setLink] = useState(task?.link || '');
   const [agentIds, setAgentIds] = useState(task?.agentIds || []);
+  const [armDelete, setArmDelete] = useState(false);
+
+  // Anything typed since open? Overlay clicks only close a pristine editor —
+  // explicit Cancel/X/Escape still always work.
+  const dirty =
+    title !== (task?.title || '') ||
+    description !== (task?.description || '') ||
+    projectId !== (task?.projectId || '_meta') ||
+    status !== (task?.status || 'backlog') ||
+    priority !== (task?.priority || '') ||
+    visibility !== (task?.visibility || 'public') ||
+    link !== (task?.link || '') ||
+    JSON.stringify(agentIds) !== JSON.stringify(task?.agentIds || []);
+
+  // Escape closes; focus returns to whatever opened the modal. The opener is
+  // captured in a state initializer (runs during the first render) — by the
+  // time effects fire, the autofocused Title input already holds focus.
+  const [opener] = useState(() => document.activeElement);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (opener && typeof opener.focus === 'function') opener.focus();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleAgent = (key) =>
     setAgentIds((prev) =>
@@ -60,10 +89,15 @@ export default function TaskEditorModal({ task, onClose, onSave, onDelete, savin
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={onClose}
+      onClick={() => {
+        if (!dirty) onClose();
+      }}
     >
       <motion.div
         className="board-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="board-modal-title"
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -71,7 +105,7 @@ export default function TaskEditorModal({ task, onClose, onSave, onDelete, savin
         onClick={(e) => e.stopPropagation()}
       >
         <div className="board-modal-head">
-          <h3>{isEdit ? 'Edit task' : 'New task'}</h3>
+          <h3 id="board-modal-title">{isEdit ? 'Edit task' : 'New task'}</h3>
           <button className="board-modal-x" onClick={onClose} aria-label="Close">
             ×
           </button>
@@ -136,7 +170,7 @@ export default function TaskEditorModal({ task, onClose, onSave, onDelete, savin
               <span>Visibility</span>
               <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
                 <option value="public">Public</option>
-                <option value="private">Private (owner only)</option>
+                <option value="private">Private (off the public board)</option>
               </select>
             </label>
           </div>
@@ -160,6 +194,7 @@ export default function TaskEditorModal({ task, onClose, onSave, onDelete, savin
                   className={`board-agent-option${agentIds.includes(key) ? ' selected' : ''}`}
                   onClick={() => toggleAgent(key)}
                   title={AGENTS[key]?.name || key}
+                  aria-pressed={agentIds.includes(key)}
                   style={agentIds.includes(key) ? { borderColor: AGENTS[key]?.color } : undefined}
                 >
                   <AgentChip agentKey={key} size={18} className="sm" />
@@ -172,16 +207,36 @@ export default function TaskEditorModal({ task, onClose, onSave, onDelete, savin
           {error && <p className="board-modal-error">{error}</p>}
 
           <div className="board-modal-actions">
-            {isEdit && (
-              <button
-                type="button"
-                className="board-btn danger"
-                onClick={() => onDelete(task.id)}
-                disabled={saving}
-              >
-                Delete
-              </button>
-            )}
+            {isEdit &&
+              (armDelete ? (
+                <span className="board-delete-confirm">
+                  <button
+                    type="button"
+                    className="board-btn danger"
+                    onClick={() => onDelete(task.id)}
+                    disabled={saving}
+                  >
+                    Really delete?
+                  </button>
+                  <button
+                    type="button"
+                    className="board-btn ghost"
+                    onClick={() => setArmDelete(false)}
+                    disabled={saving}
+                  >
+                    Keep
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="board-btn danger"
+                  onClick={() => setArmDelete(true)}
+                  disabled={saving}
+                >
+                  Delete
+                </button>
+              ))}
             <div className="board-modal-actions-right">
               <button type="button" className="board-btn ghost" onClick={onClose} disabled={saving}>
                 Cancel
