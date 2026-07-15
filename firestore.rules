@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Comments - public read, validated create, admin update/delete
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.keys().hasAll(['projectId', 'name', 'comment', 'approved', 'createdAt']) &&
+        request.resource.data.approved == false &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() <= 50 &&
+        request.resource.data.comment is string &&
+        request.resource.data.comment.size() >= 1 &&
+        request.resource.data.comment.size() <= 1000 &&
+        request.resource.data.projectId is string &&
+        request.resource.data.projectId.size() <= 100;
+      allow update, delete: if true;
+    }
+
+    // Stars - public read, controlled increments
+    match /stars/{projectId} {
+      allow read: if true;
+      allow create: if request.resource.data.count == 1;
+      allow update: if request.resource.data.count == resource.data.count + 1;
+    }
+
+    // Chat logs - public create for logging, public read for admin
+    match /chatLogs/{logId} {
+      allow read: if true;
+      allow create: if true;
+    }
+
+    // Settings - stores default chat model, public read/write
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Blog posts - public read, admin write
+    match /blogPosts/{postId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Profile content
+    match /profile/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Projects
+    match /projects/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Sync state
+    match /syncState/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Content (profile data used on homepage)
+    match /content/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Agent activity feed
+    match /agent_activity/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // RAG chunks for chatbot
+    match /rag_chunks/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Board tasks - public read (the /board page renders these for visitors);
+    // all writes go through the board-admin Netlify function, whose Admin SDK
+    // bypasses rules, so client writes stay denied.
+    match /tasks/{taskId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Board owner-config (phase overrides, epic order, hidden projects)
+    match /boardState/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

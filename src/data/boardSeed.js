@@ -181,6 +181,38 @@ export const SEED_TASKS = [
     isSeed: true,
   },
 
+  // ── PyroGuard (launchpad — deployed demo, v2 rebuild in the works) ──────
+  {
+    id: 'seed-pyro-rebuild',
+    projectId: 'pyroguard',
+    title: 'v2 ground-up rebuild — SedonaOffice replacement',
+    description:
+      'Demo retired; rebuilding as a real ops platform for fire/life-safety inspection contractors. The tactical mission-console design shell survives.',
+    status: 'in_progress',
+    agentIds: [],
+    priority: 'high',
+    source: 'REBUILD.md',
+    link: 'https://github.com/azoni/launchpad/tree/main/pyroguard',
+    order: 14,
+    isSeed: true,
+  },
+
+  // ── MacroMarket (launchpad — live, needs a work pass) ───────────────────
+  {
+    id: 'seed-macro-improve',
+    projectId: 'macromarket',
+    title: 'Post-launch improvement pass',
+    description:
+      'Refresh the $/g protein rankings, widen deals coverage, and tune the protein coach.',
+    status: 'backlog',
+    agentIds: [],
+    priority: 'med',
+    source: 'launchpad',
+    link: 'https://github.com/azoni/launchpad/tree/main/macromarket',
+    order: 15,
+    isSeed: true,
+  },
+
   // ── Portfolio / cross-project ────────────────────────────────────────────
   {
     id: 'seed-launchpad-polish',
