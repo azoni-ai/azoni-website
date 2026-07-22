@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import ExtensionsBoard from '../components/ExtensionsBoard';
+import DiscordBotsBoard from '../components/DiscordBotsBoard';
 import '../styles/leaderboard.css';
 
 // Short window labels (the long "7 days / 30 days" ran too wide). `longer` points
@@ -164,18 +165,25 @@ const Leaderboard = () => {
           <header className="lb-header">
             <p className="lb-eyebrow">Portfolio</p>
             <h1 className="lb-title">
-              {tab === 'sites' ? 'Traffic leaderboard' : 'Extension leaderboard'}
+              {tab === 'sites'
+                ? 'Traffic leaderboard'
+                : tab === 'extensions'
+                  ? 'Extension leaderboard'
+                  : 'Discord bot leaderboard'}
             </h1>
             <p className="lb-lede">
               {tab === 'sites'
                 ? 'Every site I run, ranked by visitors — one shared beacon per site, aggregated live.'
-                : "Browser extensions I've shipped, ranked by installs from the Chrome Web Store."}
+                : tab === 'extensions'
+                  ? "Browser extensions I've shipped, ranked by installs from the Chrome Web Store."
+                  : "Discord bots I run, ranked by the servers they live in — counts reported by the bots themselves."}
             </p>
 
             <div className="lb-tabs" role="tablist" aria-label="Leaderboard">
               {[
                 ['sites', 'Sites'],
                 ['extensions', 'Extensions'],
+                ['bots', 'Discord Bots'],
               ].map(([k, label]) => (
                 <button
                   key={k}
@@ -347,8 +355,10 @@ const Leaderboard = () => {
             </p>
           )}
             </>
-          ) : (
+          ) : tab === 'extensions' ? (
             <ExtensionsBoard />
+          ) : (
+            <DiscordBotsBoard />
           )}
         </div>
       </div>
