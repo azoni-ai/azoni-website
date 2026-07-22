@@ -21,7 +21,7 @@ const BOTS = [
     key: 'fabstats-bot',
     name: 'FaB Stats Bot',
     link: 'https://www.fabstats.net',
-    icon: '/images/bots.png',
+    icon: '/images/fabstats-bot.png',
     color: '#ef4444',
     game: 'Flesh and Blood',
     blurb:
@@ -33,7 +33,7 @@ const BOTS = [
     key: 'riftbound-card-bot',
     name: 'Riftbound Card Bot',
     link: 'https://github.com/azoni/riftbound-card-bot',
-    icon: null,
+    icon: '/images/riftbot.svg',
     color: '#a78bfa',
     game: 'Riftbound (LoL TCG)',
     blurb:
