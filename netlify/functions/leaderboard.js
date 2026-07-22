@@ -21,30 +21,11 @@ const START_DATE = '2026-07-06';
 
 const WINDOWS = { d1: 1, d7: 7, d30: 30 };
 
-// ---- Beacon sites (counted from site_visits) --------------------------------
-// `key` must match the `source` each site's beacon POSTs to /log-visit.
-const BEACON_SITES = [
-  { key: 'azoni',          label: 'azoni.ai',       url: 'https://azoni.ai',            icon: '/images/azoni.png',           color: '#60a5fa' },
-  { key: 'benchpressonly', label: 'Bench Only',     url: 'https://benchpressonly.com',  icon: '/images/benchpressonly.svg',  color: '#4ade80' },
-  { key: 'rowcrew',        label: 'RowCrew',        url: 'https://rowcrew.netlify.app', icon: '/images/rowing-favicon.svg',  color: '#34d399' },
-  { key: 'oldwaystoday',   label: 'Old Ways Today', url: 'https://oldwaystoday.com',    icon: '/images/oldways.png',         color: '#d97706' },
-  { key: 'fabstats',       label: 'FaB Stats',      url: 'https://www.fabstats.net',    icon: '/images/fabstats-icon.svg',   color: '#ef4444' },
-  { key: 'embedroute',     label: 'EmbedRoute',     url: 'https://www.embedroute.com',  icon: '/images/embedroute-icon.svg', color: '#20d9d2' },
-];
-
-// ---- Launchpad apps (each fires the shared beacon; `key` = its source) -------
-// Each app shows its OWN icon (copied from the app's public/icon.svg into
-// /images/launchpad/); the `group: 'launchpad'` tag carries the rocket marker.
-const LAUNCHPAD_SITES = [
-  { key: 'meeplematch',     label: 'MeepleMatch',   url: 'https://meeplematch.netlify.app',              color: '#f472b6' },
-  { key: 'blackdiamond',    label: 'Black Diamond', url: 'https://blackdiamond-alpine-wash.netlify.app', color: '#38bdf8' },
-  { key: 'benchmark',       label: 'Benchmark',     url: 'https://benchmark-app-azoni.netlify.app',      color: '#facc15' },
-  { key: 'repmatch',        label: 'RepMatch',      url: 'https://repmatch-app.netlify.app',             color: '#a3e635' },
-  { key: 'crypto-tax-2025', label: 'Crypto Tax',    url: 'https://crypto-tax-2025.netlify.app',          color: '#fb923c' },
-  { key: 'pyroguard',       label: 'PyroGuard',     url: 'https://pyroguard-demo.netlify.app',           color: '#f87171' },
-  { key: 'dayrun',          label: 'Daily',         url: 'https://dayrun-app.netlify.app',               color: '#818cf8' },
-  { key: 'macromarket',     label: 'MacroMarket',   url: 'https://macromarket-app.netlify.app',          color: '#2dd4bf' },
-].map((s) => ({ ...s, icon: `/images/launchpad/${s.key}.svg`, group: 'launchpad' }));
+// ---- Site rosters ------------------------------------------------------------
+// Derived from the canonical registry (src/data/sites.js) — `key` must match
+// the `source` each site's beacon POSTs to /log-visit. esbuild bundles the
+// cross-boundary require and interops the registry's ESM named exports.
+const { BEACON_SITES, LAUNCHPAD_SITES } = require('../../src/data/sites');
 
 const ALL_SITES = [...BEACON_SITES, ...LAUNCHPAD_SITES];
 

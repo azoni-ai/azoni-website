@@ -92,5 +92,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // Hub owner-state (per-site notes, cadence overrides, snoozes) — written
+    // only via the hub-admin Netlify function (Admin SDK bypasses rules).
+    match /hubState/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

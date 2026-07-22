@@ -43,6 +43,9 @@ export const TYPE_TO_STATION = {
   'chat_answered': 'chatbot',
   // Activity Feed
   'health_alert': 'activity',
+  // Canonical cross-site content event (hub cadence tracking); the emitting
+  // site's `source` normally routes it — this is only the fallback.
+  'content_posted': 'activity',
   // EmbedRoute
   'embed_request': 'embedroute',
   'rag_chunk_created': 'embedroute',
@@ -327,6 +330,7 @@ export const IMPORTANT_EVENTS = new Set([
 
 export const MEDIUM_EVENTS = new Set([
   'assistant_chat', 'knowledge_generated', 'moltbook_post',
+  'content_posted',
   'owt_blog', 'owt_blog_viewed', 'owt_chat',
   'workout_generated', 'program_generated', 'rowing_session',
   'wizard_created', 'match_logged', 'discord_command',
