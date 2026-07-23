@@ -103,7 +103,7 @@
 .chat-page-warm .chat-message {
   font-family: var(--font-body);
   line-height: 1.7;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 
 .chat-page-warm .chat-message.assistant {

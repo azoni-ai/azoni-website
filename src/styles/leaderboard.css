@@ -104,7 +104,7 @@
   padding: 0.8rem 0.9rem;
   background: var(--bg-warm-card, #1c1a17);
   border: 1px solid var(--border-warm, rgba(237, 231, 221, 0.08));
-  border-radius: 13px;
+  border-radius: var(--radius-lg);
 }
 .lb-kpi-val {
   font-family: var(--font-serif);
@@ -201,7 +201,7 @@
   padding: 0.95rem 1.25rem;
   background: var(--bg-warm-card, #1c1a17);
   border: 1px solid var(--border-warm, rgba(237, 231, 221, 0.08));
-  border-radius: 15px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
 }
@@ -275,7 +275,7 @@
   grid-area: icon;
   width: 2.9rem;
   height: 2.9rem;
-  border-radius: 13px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   display: flex;
   align-items: center;

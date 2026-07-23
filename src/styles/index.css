@@ -12,7 +12,9 @@
   --text-muted: #5c5c5a;
 
   /* Single accent */
-  --accent-primary: #6b8afd;
+  /* Legacy "primary" accent now points at the warm coral so any older rule
+     that still references --accent-primary renders on-brand instead of blue. */
+  --accent-primary: #ff7a5c;
   --accent-hover: #8da3fe;
   --accent-subtle: rgba(107, 138, 253, 0.1);
 
@@ -112,7 +114,7 @@ button {
 
 /* ===== Typography ===== */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+  font-family: var(--font-serif);
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -487,7 +489,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
   gap: var(--space-sm);
 }
 
-/* Hero - basic fallback, overridden by bento.css */
+/* Hero - basic fallback */
 .hero {
   padding-top: 70px;
 }

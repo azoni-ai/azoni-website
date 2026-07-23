@@ -64,10 +64,10 @@
   align-items: center;
   gap: 8px;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-warm-muted);
+  color: var(--accent-coral);
   margin: 0 0 var(--space-lg);
 }
 
