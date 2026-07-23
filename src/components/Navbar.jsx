@@ -6,15 +6,13 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Live-ecosystem cluster (Live / Board / Hub) sits between the work links and
-  // the engage links. Board + Hub are public and read-only for visitors — the
-  // live tooling is a deliberate showcase; the owner just signs in to edit.
+  // Hub retired into the live product cards on /projects. Board (the kanban)
+  // stays as a public read-only showcase alongside the /live feeds.
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/projects', label: 'Projects' },
     { path: '/live', label: 'Live' },
     { path: '/board', label: 'Board' },
-    { path: '/hub', label: 'Hub' },
     { path: '/blog', label: 'Writing' },
     { path: '/chat', label: 'Chat' },
     { path: '/resume', label: 'Resume' },

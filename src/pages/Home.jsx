@@ -1,58 +1,81 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import HomeHero from '../components/home/HomeHero';
 import HeroChatPrompt from '../components/home/HeroChatPrompt';
-import ProjectShowcase from '../components/ProjectShowcase';
+import LivePulseStrip from '../components/home/LivePulseStrip';
+import ProductCard from '../components/ProductCard';
 import CareerSection from '../components/CareerSection';
 import EducationSection from '../components/EducationSection';
+import { getFeaturedProjects } from '../data/projects';
+import useProductMetrics from '../hooks/useProductMetrics';
 import '../styles/home-v2.css';
-import '../styles/project-showcase.css';
+import '../styles/products-warm.css';
 
-// Portfolio-first landing: identity (hero + live chat demo) → the work
-// (project showcase) → experience → education. The live-ops surfaces
-// (agent activity, commits, traffic, "how it runs") now live on /live so the
-// home page reads as a curated portfolio rather than a dashboard.
+// Portfolio-first, proof-led landing: identity (hero + live chat) → a live
+// activity pulse (actively shipping) → selected live products with real
+// metrics → experience → education. The deeper live-ops surfaces live on /live.
+
+const FEATURED_LIMIT = 6;
 
 const Home = () => {
   const [profile, setProfile] = useState(null);
-  const [appStats, setAppStats] = useState(null);
+  const [githubStats, setGithubStats] = useState(null);
+  const productMetrics = useProductMetrics();
+  const metricsMap = productMetrics?.map || {};
+
+  const featured = getFeaturedProjects()
+    .filter((p) => !p.archived)
+    .slice(0, FEATURED_LIMIT);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    (async () => {
       try {
-        const docRef = doc(db, 'content', 'profile');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) setProfile(docSnap.data());
+        const snap = await getDoc(doc(db, 'content', 'profile'));
+        if (snap.exists()) setProfile(snap.data());
       } catch (err) {
         console.error('Failed to fetch profile:', err);
       }
-    };
-    fetchProfile();
+    })();
   }, []);
 
   useEffect(() => {
-    const fetchAppStats = async () => {
+    (async () => {
       try {
-        const res = await fetch('/.netlify/functions/app-stats');
+        const res = await fetch('/.netlify/functions/github-stats');
         if (!res.ok) return;
-        const contentType = res.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) return;
+        if (!(res.headers.get('content-type') || '').includes('application/json')) return;
         const data = await res.json();
-        if (!data.error) setAppStats(data);
+        if (!data.error) setGithubStats(data);
       } catch (_err) { /* silent */ }
-    };
-    fetchAppStats();
-    const id = setInterval(fetchAppStats, 60_000);
-    return () => clearInterval(id);
+    })();
   }, []);
 
   return (
     <Layout>
       <div className="home-page-v2">
         <HomeHero profile={profile} aside={<HeroChatPrompt />} />
-        <ProjectShowcase appStats={appStats} />
+
+        <LivePulseStrip githubStats={githubStats} />
+
+        <section className="home-featured">
+          <div className="home-featured-inner">
+            <header className="home-featured-head">
+              <h2 className="home-featured-heading">Selected work</h2>
+              <Link to="/projects" className="home-featured-link">
+                All projects &rarr;
+              </Link>
+            </header>
+            <div className="product-grid">
+              {featured.map((project) => (
+                <ProductCard key={project.id} project={project} metrics={metricsMap[project.id]} />
+              ))}
+            </div>
+          </div>
+        </section>
+
         <CareerSection />
         <EducationSection />
       </div>

@@ -25,6 +25,7 @@ Players log matches, browse hero-level performance, compare matchup win rates, a
   },
   {
     id: 'embedroute',
+    metric: { value: '4', label: 'providers, one key' },
     title: 'EmbedRoute',
     tagline: 'Embedding API gateway. One key, four providers.',
     description: 'Embedding API gateway. One key, four providers, drop-in OpenAI-compatible endpoint.',
@@ -48,6 +49,7 @@ OpenAI-compatible endpoint — drop-in for existing SDK code. Routes to OpenAI, 
   },
   {
     id: 'azoni-mcp',
+    metric: { value: '37', label: 'tools across 9 domains' },
     title: 'Azoni MCP Server',
     tagline: 'Shared tooling backbone. Agents call this for live data.',
     description: 'Shared tooling backbone for the agent ecosystem. 37 tools across 9 domains, behind auth + rate limits.',
@@ -392,6 +394,7 @@ Includes a protein-goal calculator, a deals tab, and a Claude-powered coach that
   },
   {
     id: 'fab-stats-bot',
+    metric: { value: '24', label: 'slash commands' },
     title: 'FaB Stats Discord Bot',
     tagline: 'Companion bot for FaB Stats. Lives in 20+ servers.',
     description: 'TypeScript Discord bot with 24 slash commands. Lives in 20+ FaB community servers.',
@@ -438,6 +441,7 @@ Card validation hits the Scryfall API on submit. Streaks and shares persist in F
   },
   {
     id: 'spell-brigade',
+    metric: { value: '6', label: 'zones · 3 classes' },
     title: 'Spell Brigade',
     tagline: 'Real-time multiplayer wizard game with AI-generated characters.',
     description: 'Real-time multiplayer wizard game with AI-generated characters. Server-authoritative Socket.IO loop.',
@@ -461,6 +465,8 @@ Started as a single Node.js file. After it grew past readable I refactored the s
   },
   {
     id: 'polymarket-tool',
+    archived: true,
+    metric: { value: '3', label: 'strategy modules' },
     title: 'Polymarket Edge Finder',
     tagline: 'Edge-finder for prediction markets.',
     description: 'Edge-finder for Polymarket. FastAPI backend ingests markets, React frontend explores spreads.',
@@ -484,6 +490,7 @@ Research tool, not a trading bot. The frontend is for poking around and forming 
   },
   {
     id: 'image-pipeline-api',
+    archived: true,
     title: 'Image Pipeline API',
     tagline: 'FastAPI image worker with job queues and observability.',
     description: 'FastAPI image worker. Job queues, request tracing, agent lifecycles, dashboard endpoint.',
@@ -507,6 +514,7 @@ Every request gets a trace ID and a duration metric. Background workers spin up 
   },
   {
     id: 'scryfall-ai',
+    archived: true,
     title: 'Scryfall AI',
     tagline: 'Natural-language card search over Scryfall.',
     description: 'Plain-English to Scryfall query syntax. Ask for "blue counter spells under 3 mana", get the search string.',
@@ -530,6 +538,8 @@ Constrained output — the prompt forces structured Scryfall syntax, no chatter.
   },
   {
     id: 'dustbunny',
+    archived: true,
+    metric: { value: '2,500/min', label: 'bids at peak' },
     title: 'Dustbunny',
     tagline: '50 Dockerized bots, 2,500 req/min, 24/7 uptime.',
     description: 'Distributed NFT bidding bot. 50 Dockerized workers, Redis coordination, ~2,500 req/min, 24/7 uptime.',
@@ -553,6 +563,8 @@ Sustained around 2,500 req/min for six months. Adapted the strategy daily — wh
   },
   {
     id: 'oli-fitness',
+    archived: true,
+    metric: { value: 'CHI 2017', label: 'ACM published' },
     title: 'OLI Fitness',
     tagline: 'Co-founded a Kinect-based form analyzer. ACM CHI 2017.',
     description: 'Real-time weightlifting form analyzer using Kinect — 25 joints at 30fps, scored against expert references.',
@@ -577,6 +589,8 @@ Led a team of five through an ACM CHI 2017 publication and multiple startup comp
   },
   {
     id: 'hashmaps',
+    archived: true,
+    metric: { value: '1st', label: 'hackathon win' },
     title: 'HashMaps',
     tagline: 'OpenCV + geolocation hashtag generator. 1st place, T-Mobile Big Data Hackathon.',
     description: 'Contextual hashtag generator combining image analysis with location data. Built in a weekend, won 1st place.',

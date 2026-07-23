@@ -17,7 +17,6 @@ const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
 const Board = lazy(() => import("./pages/Board"));
-const Hub = lazy(() => import("./pages/Hub"));
 const Live = lazy(() => import("./pages/Live"));
 
 const App = () => {
@@ -53,9 +52,9 @@ const App = () => {
               <Route path="/activity" element={<Navigate to="/live?view=activity" replace />} />
               <Route path="/commits" element={<Navigate to="/live?view=commits" replace />} />
               <Route path="/leaderboard" element={<Navigate to="/live?view=traffic" replace />} />
-              {/* Live-ecosystem tools — public + read-only for visitors, owner edits after sign-in */}
+              {/* Board kanban stays; Hub retired into the live project cards */}
               <Route path="/board" element={<Board />} />
-              <Route path="/hub" element={<Hub />} />
+              <Route path="/hub" element={<Navigate to="/projects" replace />} />
               {/* 404 catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
