@@ -5,8 +5,9 @@ import Footer from './Footer';
 const Layout = ({ children, hideFooter = false }) => {
   return (
     <>
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <Navbar />
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
       {!hideFooter && <Footer />}
     </>
   );

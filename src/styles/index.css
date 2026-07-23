@@ -9,7 +9,7 @@
 
   --text-primary: #ededec;
   --text-secondary: #9a9a98;
-  --text-muted: #5c5c5a;
+  --text-muted: #8a8278;
 
   /* Single accent */
   /* Legacy "primary" accent now points at the warm coral so any older rule
@@ -64,7 +64,7 @@
   --bg-warm-hover: #252320;
   --text-warm: #ede7dd;
   --text-warm-soft: #b8b0a4;
-  --text-warm-muted: #6f675c;
+  --text-warm-muted: #8a8278;
   --border-warm: rgba(237, 231, 221, 0.08);
   --border-warm-strong: rgba(237, 231, 221, 0.16);
   --accent-coral: #ff7a5c;
@@ -103,6 +103,37 @@ a {
 img {
   max-width: 100%;
   height: auto;
+}
+
+/* Accessibility: skip link + visible keyboard focus */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -60px;
+  z-index: 2000;
+  padding: 10px 16px;
+  background: var(--accent-coral);
+  color: #18110e;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent-coral);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 button {

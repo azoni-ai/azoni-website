@@ -2,31 +2,34 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import useHomeSummary from '../../hooks/useHomeSummary';
 
+// Agent accents are constrained to the warm family (coral / amber / gold /
+// terracotta / sage, plus the established teal) so the agents read as one
+// system instead of a saturated rainbow on the warm palette.
 const ROWS = [
   {
     label: 'Scribe',
-    accent: '#fbbf24',
+    accent: '#e0a83a',
     icon: '/images/scribe-pen.svg',
     desc: 'Netlify scheduled function, 5pm UTC. GitHub GraphQL → Claude Sonnet via OpenRouter → published Firestore doc with auto-generated SVG cover.',
     link: { to: '/blog', label: 'Latest post' },
   },
   {
     label: 'Azoni AI',
-    accent: '#60a5fa',
+    accent: '#ff7a5c',
     icon: '/images/azoni.png',
     desc: 'The chatbot above. RAG over a Firestore knowledge base that generates new chunks when retrieval scores drop.',
     link: { to: '/chat', label: 'Open chat' },
   },
   {
     label: 'Conductor',
-    accent: '#a78bfa',
+    accent: '#c98a6a',
     icon: null,
     desc: 'Netlify cron, every 3h. Pulls activity, errors, and RAG health from Firestore in parallel, then asks GPT-4o-mini what to do. Owns the error-review pipeline.',
     link: { to: '/live?view=activity', label: 'Agent log' },
   },
   {
     label: 'Moltbook agent',
-    accent: '#fb923c',
+    accent: '#d9a05b',
     icon: '/images/moltbook-lobster.svg',
     desc: 'LangGraph workflow on Render. Decides whether to post, comment, or upvote. Self-evaluates, respects the rate-limit cooldown, logs every transition.',
     link: { to: '/moltbook', label: 'Moltbook' },
@@ -34,18 +37,18 @@ const ROWS = [
 ];
 
 const SOURCE_DISPLAY = {
-  orchestrator: { label: 'Conductor', color: '#a78bfa' },
-  'daily-blog': { label: 'Scribe', color: '#fbbf24' },
-  'azoni-ai': { label: 'Azoni AI', color: '#60a5fa' },
-  azoni: { label: 'Azoni AI', color: '#60a5fa' },
-  'moltbook-agent': { label: 'Moltbook agent', color: '#fb923c' },
-  benchpressonly: { label: 'Bench Only', color: '#4ade80' },
-  rowcrew: { label: 'RowCrew', color: '#34d399' },
-  'spell-brigade': { label: 'Spell Brigade', color: '#c084fc' },
+  orchestrator: { label: 'Conductor', color: '#c98a6a' },
+  'daily-blog': { label: 'Scribe', color: '#e0a83a' },
+  'azoni-ai': { label: 'Azoni AI', color: '#ff7a5c' },
+  azoni: { label: 'Azoni AI', color: '#ff7a5c' },
+  'moltbook-agent': { label: 'Moltbook agent', color: '#d9a05b' },
+  benchpressonly: { label: 'Bench Only', color: '#9bb08a' },
+  rowcrew: { label: 'RowCrew', color: '#4ecdc4' },
+  'spell-brigade': { label: 'Spell Brigade', color: '#cf8a7a' },
   oldwaystoday: { label: 'Old Ways Today', color: '#d97706' },
   'old-ways-today': { label: 'Old Ways Today', color: '#d97706' },
-  embedroute: { label: 'EmbedRoute', color: '#20d9d2' },
-  launchpad: { label: 'Launchpad', color: '#f472b6' },
+  embedroute: { label: 'EmbedRoute', color: '#8fb0a8' },
+  launchpad: { label: 'Launchpad', color: '#e08a5c' },
 };
 
 // Reads the shared cached summary instead of streaming the whole

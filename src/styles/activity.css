@@ -120,10 +120,10 @@
   padding: 0.6rem 1.2rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #fff;
+  color: #18110e;
   background: var(--accent-primary);
   border: none;
-  border-radius: 20px;
+  border-radius: 999px;
   cursor: pointer;
 }
 

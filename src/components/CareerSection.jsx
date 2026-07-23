@@ -4,6 +4,12 @@ import '../styles/career-section.css';
 
 const careerEntries = STATION_DEFS.filter((s) => s.category === 'career');
 
+// The stations carry literal corporate brand hexes (magenta/navy/violet/cyan) so
+// the ecosystem map can render true logos. On the warm home timeline those read
+// as a random rainbow, so the type accent uses a cohesive warm progression
+// instead — the logo chip still carries the real brand color.
+const WARM_ACCENTS = ['#ff7a5c', '#d9a05b', '#9bb08a', '#c98a6a'];
+
 const formatIndex = (i) => String(i + 1).padStart(2, '0');
 
 const CareerSection = () => {
@@ -22,7 +28,7 @@ const CareerSection = () => {
           <li
             key={role.id}
             className="career-entry"
-            style={{ '--role-color': role.color }}
+            style={{ '--role-color': WARM_ACCENTS[i % WARM_ACCENTS.length] }}
           >
             <div className="career-entry-index">{formatIndex(i)}</div>
 
