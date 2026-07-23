@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import HomeHero from '../components/home/HomeHero';
 import HeroChatPrompt from '../components/home/HeroChatPrompt';
+import CommitStats from '../components/home/CommitStats';
 import LivePulseStrip from '../components/home/LivePulseStrip';
 import ProductCard from '../components/ProductCard';
 import CareerSection from '../components/CareerSection';
@@ -57,6 +58,8 @@ const Home = () => {
     <Layout>
       <div className="home-page-v2">
         <HomeHero profile={profile} aside={<HeroChatPrompt />} />
+
+        <CommitStats githubStats={githubStats} />
 
         <LivePulseStrip githubStats={githubStats} />
 

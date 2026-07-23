@@ -1,0 +1,156 @@
+/* ─── Home commit-activity band ─── */
+
+.commit-band {
+  padding: var(--space-xl) 0;
+  border-top: 1px solid var(--border-warm);
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.commit-band-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-xl);
+}
+
+.commit-band-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.commit-band-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+  margin: 0 0 var(--space-xs);
+}
+
+.commit-band-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+  animation: commit-pulse 2s ease-in-out infinite;
+}
+
+@keyframes commit-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.commit-band-heading {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.commit-band-link {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--accent-coral);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.commit-band-link:hover {
+  text-decoration: underline;
+}
+
+/* Cadence tiles */
+.commit-band-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin: 0 0 var(--space-lg);
+}
+
+.commit-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-md);
+  background: var(--bg-warm-card);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-lg);
+}
+
+.commit-tile-value {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1;
+  margin: 0;
+  color: var(--text-warm);
+  font-variant-numeric: tabular-nums;
+}
+
+.commit-tile-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--board-muted, #8d8478);
+}
+
+/* Author split (reuses .hero-split-seg / .hero-split-dot colours) */
+.commit-split-caption {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--board-muted, #8d8478);
+  margin: 0 0 8px;
+}
+
+.commit-split-bar {
+  height: 12px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.commit-split-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-warm-soft);
+}
+
+.commit-split-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.commit-split-legend strong {
+  color: var(--text-warm);
+}
+
+@media (max-width: 720px) {
+  .commit-band-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .commit-band-inner {
+    padding: 0 var(--space-md);
+  }
+  .commit-band-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
