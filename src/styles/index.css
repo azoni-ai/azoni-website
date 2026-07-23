@@ -233,6 +233,8 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 .navbar-links {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 2px;
   list-style: none;
   margin: 0;
@@ -260,28 +262,6 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 .navbar-link.active {
   color: var(--accent-coral, #ff7a5c);
   background: color-mix(in srgb, var(--accent-coral, #ff7a5c) 12%, transparent);
-}
-
-/* Owner-only tools (Board / Hub) — visually set apart, low-key */
-.navbar-owner-sep {
-  width: 1px;
-  align-self: stretch;
-  margin: 6px 6px;
-  background: var(--border-warm, rgba(237, 231, 221, 0.12));
-}
-
-.navbar-link--owner {
-  color: var(--text-warm-muted, #8d8478);
-  font-size: 0.82rem;
-}
-
-.navbar-link--owner::after {
-  content: '';
-  width: 5px;
-  height: 5px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: var(--accent-sage, #8ba888);
 }
 
 .navbar-social {

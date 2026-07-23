@@ -53,7 +53,7 @@ const App = () => {
               <Route path="/activity" element={<Navigate to="/live?view=activity" replace />} />
               <Route path="/commits" element={<Navigate to="/live?view=commits" replace />} />
               <Route path="/leaderboard" element={<Navigate to="/live?view=traffic" replace />} />
-              {/* Owner tools — reachable by URL / footer, not in the public nav */}
+              {/* Live-ecosystem tools — public + read-only for visitors, owner edits after sign-in */}
               <Route path="/board" element={<Board />} />
               <Route path="/hub" element={<Hub />} />
               {/* 404 catch-all */}
