@@ -4,18 +4,19 @@ import { db } from '../config/firebase';
 import Layout from '../components/Layout';
 import HomeHero from '../components/home/HomeHero';
 import HeroChatPrompt from '../components/home/HeroChatPrompt';
-import HeroStats from '../components/home/HeroStats';
-import LivePulseStrip from '../components/home/LivePulseStrip';
 import ProjectShowcase from '../components/ProjectShowcase';
 import CareerSection from '../components/CareerSection';
 import EducationSection from '../components/EducationSection';
-import HowThisSiteRuns from '../components/home/HowThisSiteRuns';
 import '../styles/home-v2.css';
 import '../styles/project-showcase.css';
 
+// Portfolio-first landing: identity (hero + live chat demo) → the work
+// (project showcase) → experience → education. The live-ops surfaces
+// (agent activity, commits, traffic, "how it runs") now live on /live so the
+// home page reads as a curated portfolio rather than a dashboard.
+
 const Home = () => {
   const [profile, setProfile] = useState(null);
-  const [githubStats, setGithubStats] = useState(null);
   const [appStats, setAppStats] = useState(null);
 
   useEffect(() => {
@@ -29,20 +30,6 @@ const Home = () => {
       }
     };
     fetchProfile();
-  }, []);
-
-  useEffect(() => {
-    const fetchGithubStats = async () => {
-      try {
-        const res = await fetch('/.netlify/functions/github-stats');
-        if (!res.ok) return;
-        const contentType = res.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) return;
-        const data = await res.json();
-        if (!data.error) setGithubStats(data);
-      } catch (_err) { /* silent */ }
-    };
-    fetchGithubStats();
   }, []);
 
   useEffect(() => {
@@ -64,16 +51,10 @@ const Home = () => {
   return (
     <Layout>
       <div className="home-page-v2">
-        <HomeHero
-          profile={profile}
-          stats={<HeroStats githubStats={githubStats} />}
-          aside={<HeroChatPrompt />}
-        />
-        <LivePulseStrip githubStats={githubStats} />
+        <HomeHero profile={profile} aside={<HeroChatPrompt />} />
         <ProjectShowcase appStats={appStats} />
         <CareerSection />
         <EducationSection />
-        <HowThisSiteRuns />
       </div>
     </Layout>
   );

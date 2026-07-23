@@ -4,6 +4,8 @@ import Layout from '../components/Layout';
 import Leaderboard from './Leaderboard';
 import Activity from './Activity';
 import Commits from './Commits';
+import HowThisSiteRuns from '../components/home/HowThisSiteRuns';
+import '../styles/home-v2.css'; // .how-runs-* styles used by HowThisSiteRuns
 import '../styles/live-warm.css';
 
 // One "Live" page that consolidates the ecosystem-proof views that used to be
@@ -16,6 +18,7 @@ const VIEWS = [
   { key: 'traffic', label: 'Traffic', blurb: 'Every site, app, extension, and bot I run — ranked by real usage.' },
   { key: 'activity', label: 'Agent activity', blurb: 'Every action my agents take across the ecosystem, logged in real time.' },
   { key: 'commits', label: 'Commits', blurb: 'A live feed of every commit I push, across every repo.' },
+  { key: 'stack', label: 'How it runs', blurb: 'The agents and infrastructure behind this site — and what each one costs.' },
 ];
 
 export default function Live() {
@@ -66,6 +69,7 @@ export default function Live() {
           {view === 'traffic' && <Leaderboard embedded />}
           {view === 'activity' && <Activity embedded />}
           {view === 'commits' && <Commits embedded />}
+          {view === 'stack' && <HowThisSiteRuns />}
         </div>
       </div>
     </Layout>
