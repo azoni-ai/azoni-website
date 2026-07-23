@@ -5,7 +5,10 @@
     <link rel="icon" type="image/png" href="/favicon-64.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#13110f" />
-    <meta name="description" content="Charlton Smith — software engineer in Seattle. I build AI products and the infrastructure they run on: FaB Stats (2,900+ users, 1.2M+ matches tracked), a live agent stack, and 15+ shipped apps. Chat with my AI assistant or read the résumé." />
+    <!-- Per-route <meta name="description"> is emitted by src/components/Seo.jsx
+         (React 19 head hoisting). No static description here — two would conflict,
+         and the static one would win by tree order on every route. Social crawlers
+         read og:description / twitter:description below, which are static. -->
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

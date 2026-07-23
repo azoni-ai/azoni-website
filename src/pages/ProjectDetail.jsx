@@ -200,7 +200,7 @@ const ProjectDetail = () => {
           </header>
 
           {cs && (
-            <section className="cs-facts" aria-label="Project facts">
+            <dl className="cs-facts" aria-label="Project facts">
               <div className="cs-fact">
                 <dt className="cs-fact-label">Role</dt>
                 <dd className="cs-fact-value">{cs.role}</dd>
@@ -213,7 +213,7 @@ const ProjectDetail = () => {
                 <dt className="cs-fact-label">Stack</dt>
                 <dd className="cs-fact-value">{cs.stack || project.tech.slice(0, 4).join(' · ')}</dd>
               </div>
-            </section>
+            </dl>
           )}
 
           {cs?.metrics?.length > 0 && (
@@ -227,7 +227,7 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {cs ? (
+          {cs?.sections ? (
             cs.sections.map((s, i) => (
               <section className="project-detail-block" key={i}>
                 <h2 className="project-detail-block-heading">{s.heading}</h2>

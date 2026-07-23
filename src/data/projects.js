@@ -61,7 +61,7 @@ Players log matches, browse hero-level performance, compare matchup win rates, a
         },
         {
           heading: 'What I’d do differently',
-          body: `I'd compute matchup aggregates server-side from day one — an early client-side increment pattern over-counts on full-set re-imports, which I've since had to work around. I'd also turn on point-in-time recovery before I needed it, not after a close call.`,
+          body: `I'd compute matchup aggregates server-side from day one — an early client-side increment pattern over-counts on full-set re-imports, which I've since had to work around. I'd also turn on point-in-time recovery from the start, rather than reaching for it later.`,
         },
       ],
     },
@@ -223,7 +223,7 @@ RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and p
           heading: 'Approach & key decisions',
           body: `I grounded the assistant in a curated Firestore knowledge base and treated the model's output as untrusted until verified.`,
           decisions: [
-            'Retrieval over a curated knowledge base via EmbedRoute, so answers are grounded in vetted content instead of the model\'s memory.',
+            'Retrieval over a curated knowledge base via EmbedRoute, so answers are grounded in curated content instead of the model\'s memory.',
             'Streaming responses with a buffer that holds back structured product blocks until they\'re validated — the UI never flashes a half-formed recommendation.',
             'Every product link is checked: a hallucinated affiliate URL that would 404 is caught and downgraded to a safe search link rather than shipped to the user.',
             'Per-call cost logging into the same agent-activity feed as the rest of the ecosystem.',
@@ -235,7 +235,7 @@ RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and p
         },
         {
           heading: 'Outcomes',
-          body: `A live, grounded assistant that answers from vetted content, streams smoothly, and fails safe when the model reaches for something that isn't real. The link-validation layer in particular turned a recurring hallucination into a non-event.`,
+          body: `A live, grounded assistant that answers from curated content, streams smoothly, and fails safe when the model reaches for something that isn't real. The link-validation layer in particular turned a recurring hallucination into a non-event.`,
         },
         {
           heading: 'What I’d do differently',

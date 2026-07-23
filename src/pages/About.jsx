@@ -42,8 +42,6 @@ const METHOD = [
 ];
 
 const About = () => {
-  const email = profile.email;
-
   return (
     <Layout>
       <Seo
@@ -72,7 +70,7 @@ const About = () => {
             <div className="about-prose">
               <p>
                 I started by co-founding <strong>OLI Fitness</strong>, where we built computer-vision
-                fitness tracking on the Kinect and published the work at <strong>ACM CHI 2017</strong>.
+                fitness tracking on the Kinect and published an extended abstract at <strong>ACM CHI 2017</strong>.
                 Turning a research idea into something people could actually use taught me that the
                 interesting engineering usually lives in the gap between &ldquo;it works in the demo&rdquo;
                 and &ldquo;it works for a stranger.&rdquo;
