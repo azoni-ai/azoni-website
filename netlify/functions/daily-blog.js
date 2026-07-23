@@ -311,19 +311,30 @@ Respond with ONLY a JSON object (no markdown fences):
   "tags": ["tag1", "tag2", "tag3"] (2-4 relevant tags like "python", "devops", "ai", "react", "firebase", etc)
 }`;
 
-  const model = 'anthropic/claude-haiku-4.5';
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
+  // OpenRouter's balance drains silently and takes the blog down; OpenAI is
+  // billed on a separate key (the one chat already uses for embeddings), so
+  // generate directly against OpenAI when that key is present, and fall back to
+  // OpenRouter/Haiku otherwise.
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const useOpenAI = !!OPENAI_API_KEY;
+  const model = useOpenAI ? 'gpt-4o-mini' : 'anthropic/claude-haiku-4.5';
+  const response = await fetch(
+    useOpenAI
+      ? 'https://api.openai.com/v1/chat/completions'
+      : 'https://openrouter.ai/api/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${useOpenAI ? OPENAI_API_KEY : OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    }
+  );
 
   const data = await response.json();
   const text = data.choices?.[0]?.message?.content;
@@ -333,13 +344,14 @@ Respond with ONLY a JSON object (no markdown fences):
     throw new Error('No content from LLM');
   }
 
-  // Haiku 4.5 OpenRouter pricing: $1/M input, $5/M output (~15x cheaper than
-  // Sonnet 4 — a daily blog doesn't need Sonnet, and this makes a drained
-  // OpenRouter balance far less likely).
+  // Pricing per model: gpt-4o-mini $0.15/M in, $0.60/M out; Haiku 4.5 (via
+  // OpenRouter) $1/M in, $5/M out. Both are far cheaper than the old Sonnet 4.
   const usage = data.usage || {};
   const promptTokens = usage.prompt_tokens || 0;
   const completionTokens = usage.completion_tokens || 0;
-  const cost = (promptTokens / 1e6) * 1 + (completionTokens / 1e6) * 5;
+  const cost = useOpenAI
+    ? (promptTokens / 1e6) * 0.15 + (completionTokens / 1e6) * 0.60
+    : (promptTokens / 1e6) * 1 + (completionTokens / 1e6) * 5;
 
   // Parse JSON (strip markdown fences if present)
   const cleaned = text.replace(/```json\n?|\n?```/g, '').trim();
