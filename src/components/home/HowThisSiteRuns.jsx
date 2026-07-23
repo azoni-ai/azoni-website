@@ -22,7 +22,7 @@ const ROWS = [
     accent: '#a78bfa',
     icon: null,
     desc: 'Netlify cron, every 3h. Pulls activity, errors, and RAG health from Firestore in parallel, then asks GPT-4o-mini what to do. Owns the error-review pipeline.',
-    link: { to: '/activity', label: 'Agent log' },
+    link: { to: '/live?view=activity', label: 'Agent log' },
   },
   {
     label: 'Moltbook agent',
@@ -82,8 +82,8 @@ const HowThisSiteRuns = () => {
           How this site works
         </h2>
         <p className="how-runs-lede">
-          The blog, the chatbot, and the activity feed are all live systems. Same stack I run in
-          production.
+          The blog, the chatbot, and the activity feed aren&rsquo;t demos &mdash; they&rsquo;re the same
+          stack I run in production for every other app here.
         </p>
       </header>
 

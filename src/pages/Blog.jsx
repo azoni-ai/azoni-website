@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import useVisitTracker from '../hooks/useVisitTracker';
 import { db } from '../config/firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -44,6 +45,11 @@ const Blog = () => {
 
   return (
     <Layout>
+      <Seo
+        title="Writing"
+        description="Notes on AI-assisted development, shipping in public, and the systems that run my portfolio — posted daily by an agent that reads my commits."
+        path="/blog"
+      />
       <div className="blog-page-warm">
         <div className="blog-page-inner">
           <header className="blog-page-header">

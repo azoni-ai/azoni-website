@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import HomeHero from '../components/home/HomeHero';
 import HeroChatPrompt from '../components/home/HeroChatPrompt';
 import CommitStats from '../components/home/CommitStats';
@@ -10,6 +11,7 @@ import LivePulseStrip from '../components/home/LivePulseStrip';
 import ProductCard from '../components/ProductCard';
 import CareerSection from '../components/CareerSection';
 import EducationSection from '../components/EducationSection';
+import ContactBand from '../components/home/ContactBand';
 import { getFeaturedProjects } from '../data/projects';
 import useProductMetrics from '../hooks/useProductMetrics';
 import '../styles/home-v2.css';
@@ -56,17 +58,22 @@ const Home = () => {
 
   return (
     <Layout>
+      <Seo
+        path="/"
+        description="Charlton Smith — software engineer in Seattle building AI products and the infrastructure they run on. FaB Stats (2,900+ users), a live agent stack, and 15+ shipped apps, instrumented in public."
+      />
       <div className="home-page-v2">
         <HomeHero profile={profile} aside={<HeroChatPrompt />} />
 
         <CommitStats githubStats={githubStats} />
 
-        <LivePulseStrip githubStats={githubStats} />
-
         <section className="home-featured">
           <div className="home-featured-inner">
             <header className="home-featured-head">
-              <h2 className="home-featured-heading">Selected work</h2>
+              <div>
+                <p className="home-featured-eyebrow">Selected work</p>
+                <h2 className="home-featured-heading">Products, live &mdash; not screenshots</h2>
+              </div>
               <Link to="/projects" className="home-featured-link">
                 All projects &rarr;
               </Link>
@@ -79,8 +86,11 @@ const Home = () => {
           </div>
         </section>
 
+        <LivePulseStrip githubStats={githubStats} />
+
         <CareerSection />
         <EducationSection />
+        <ContactBand profile={profile} />
       </div>
     </Layout>
   );

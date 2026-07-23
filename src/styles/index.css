@@ -15,8 +15,8 @@
   /* Legacy "primary" accent now points at the warm coral so any older rule
      that still references --accent-primary renders on-brand instead of blue. */
   --accent-primary: #ff7a5c;
-  --accent-hover: #8da3fe;
-  --accent-subtle: rgba(107, 138, 253, 0.1);
+  --accent-hover: #e8613f;
+  --accent-subtle: rgba(255, 122, 92, 0.1);
 
   --success: #4ade80;
   --warning: #fbbf24;
@@ -1188,7 +1188,7 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 }
 
 .commit-repo:hover {
-  background: rgba(107, 138, 253, 0.2);
+  background: rgba(255, 122, 92, 0.16);
 }
 
 span.commit-repo.private {
@@ -1227,7 +1227,7 @@ span.commit-message.private {
 }
 
 .commit-live-link:hover {
-  background: rgba(107, 138, 253, 0.2);
+  background: rgba(255, 122, 92, 0.16);
   transform: translateY(-1px);
 }
 
@@ -2723,7 +2723,7 @@ span.commit-message.private {
 }
 
 .blog-tag.editable:hover {
-  background: rgba(107, 138, 253, 0.2);
+  background: rgba(255, 122, 92, 0.16);
 }
 
 .blog-card-title {
@@ -3439,7 +3439,7 @@ span.commit-message.private {
 }
 
 .rag-confidence-high {
-  background: rgba(107, 138, 253, 0.2);
+  background: rgba(74, 222, 128, 0.18);
   color: var(--success);
 }
 
@@ -5381,7 +5381,7 @@ span.commit-message.private {
 
 .rag-badge {
   background: var(--accent-subtle);
-  border: 1px solid rgba(107, 138, 253, 0.3);
+  border: 1px solid rgba(255, 122, 92, 0.3);
   color: var(--accent-primary);
 }
 

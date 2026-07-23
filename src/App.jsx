@@ -4,10 +4,12 @@ import { AppProvider } from "./context/AppContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Loading from "./components/Loading";
 import ScrollToTop from "./components/ScrollToTop";
-import SpellBrigade from "./components/SpellBrigade";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
+// SpellBrigade is a ~15k-line game engine; keep it out of the main bundle so the
+// recruiter-facing pages don't pay to parse it. Only /game pulls the chunk.
+const SpellBrigade = lazy(() => import("./components/SpellBrigade"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Chat = lazy(() => import("./pages/Chat"));
@@ -18,6 +20,7 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
 const Board = lazy(() => import("./pages/Board"));
 const Live = lazy(() => import("./pages/Live"));
+const About = lazy(() => import("./pages/About"));
 
 const App = () => {
   useEffect(() => {
@@ -35,9 +38,8 @@ const App = () => {
           <Suspense fallback={<Loading fullScreen message="Loading..." />}>
             <Routes>
               <Route path="/" element={<Home />} />
-              {/* Old /about page was folded into the home; keep redirect for old SEO links */}
-              <Route path="/about" element={<Navigate to="/" replace />} />
-              <Route path="/aboutme" element={<Navigate to="/" replace />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/aboutme" element={<Navigate to="/about" replace />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/chat" element={<Chat />} />

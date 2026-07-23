@@ -99,21 +99,15 @@ const LivePulseStrip = ({ githubStats }) => {
             <span>Recent activity</span>
           </div>
           {(() => {
-            const todayCommits = githubStats?.today;
+            // One combined liveness number so this doesn't restate the commit
+            // counts that the CommitStats band above already owns.
+            const todayCommits = githubStats?.today || 0;
             const agents24h = agentItems.filter((a) => Date.now() - a.ms < 86400000).length;
-            const parts = [];
-            if (todayCommits != null) {
-              parts.push(<span key="commits"><strong>{todayCommits}</strong> commits today</span>);
-            }
-            if (agents24h > 0) {
-              parts.push(<span key="agents"><strong>{agents24h}</strong> agent actions · 24h</span>);
-            }
-            if (parts.length === 0) return null;
+            const total = todayCommits + agents24h;
+            if (total <= 0) return null;
             return (
               <div className="pulse-strip-stats">
-                {parts.flatMap((p, i) => i === 0
-                  ? [p]
-                  : [<span key={`d-${i}`} className="pulse-strip-divider" aria-hidden="true">·</span>, p])}
+                <span><strong>{total}</strong> updates &middot; 24h</span>
               </div>
             );
           })()}
@@ -180,8 +174,8 @@ const LivePulseStrip = ({ githubStats }) => {
         )}
 
         <div className="pulse-strip-footer">
-          <Link to="/commits" className="pulse-strip-link">All commits →</Link>
-          <Link to="/activity" className="pulse-strip-link">All agent actions →</Link>
+          <Link to="/live?view=commits" className="pulse-strip-link">All commits →</Link>
+          <Link to="/live?view=activity" className="pulse-strip-link">All agent actions →</Link>
           <Link to="/blog" className="pulse-strip-link">Today&rsquo;s post →</Link>
         </div>
       </div>

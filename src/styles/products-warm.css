@@ -13,16 +13,26 @@
 
 .home-featured-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
+}
+
+.home-featured-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+  margin: 0 0 var(--space-xs);
 }
 
 .home-featured-heading {
   font-family: var(--font-serif);
   font-weight: 500;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -47,7 +57,7 @@
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-md);
+  gap: var(--space-lg);
 }
 
 .product-card {

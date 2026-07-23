@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import Comments from '../components/Comments';
 import { useProjects } from '../hooks/useProjects';
 import useVisitTracker from '../hooks/useVisitTracker';
 import { db } from '../config/firebase';
 import { doc, getDoc, setDoc, onSnapshot, increment } from 'firebase/firestore';
 import '../styles/project-detail-warm.css';
+
+// A case-study body can be a single string (with \n\n breaks) or an array of
+// paragraphs. Normalize to <p> elements either way.
+const toParagraphs = (body) => {
+  const parts = Array.isArray(body) ? body : String(body || '').split(/\n\n+/);
+  return parts
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p, i) => <p key={i}>{p}</p>);
+};
 
 const StarButton = ({ projectId }) => {
   const [stars, setStars] = useState(0);
@@ -119,8 +130,15 @@ const ProjectDetail = () => {
     );
   }
 
+  const cs = project.caseStudy;
+
   return (
     <Layout>
+      <Seo
+        title={project.title}
+        description={project.description || project.tagline}
+        path={`/projects/${id}`}
+      />
       <div className="project-detail-page">
         <div className="project-detail-inner">
           <div className="project-detail-nav">
@@ -181,12 +199,58 @@ const ProjectDetail = () => {
             </div>
           </header>
 
-          <section className="project-detail-block">
-            <h2 className="project-detail-block-heading">Overview</h2>
-            <div className="project-detail-prose">
-              {project.longDescription}
+          {cs && (
+            <section className="cs-facts" aria-label="Project facts">
+              <div className="cs-fact">
+                <dt className="cs-fact-label">Role</dt>
+                <dd className="cs-fact-value">{cs.role}</dd>
+              </div>
+              <div className="cs-fact">
+                <dt className="cs-fact-label">Timeline</dt>
+                <dd className="cs-fact-value">{cs.timeline}</dd>
+              </div>
+              <div className="cs-fact">
+                <dt className="cs-fact-label">Stack</dt>
+                <dd className="cs-fact-value">{cs.stack || project.tech.slice(0, 4).join(' · ')}</dd>
+              </div>
+            </section>
+          )}
+
+          {cs?.metrics?.length > 0 && (
+            <div className="cs-metrics">
+              {cs.metrics.map((m) => (
+                <div className="cs-metric" key={m.label}>
+                  <span className="cs-metric-value">{m.value}</span>
+                  <span className="cs-metric-label">{m.label}</span>
+                </div>
+              ))}
             </div>
-          </section>
+          )}
+
+          {cs ? (
+            cs.sections.map((s, i) => (
+              <section className="project-detail-block" key={i}>
+                <h2 className="project-detail-block-heading">{s.heading}</h2>
+                <div className="project-detail-prose">
+                  {toParagraphs(s.body)}
+                  {s.decisions?.length > 0 && (
+                    <ul className="cs-decisions">
+                      {s.decisions.map((d, j) => (
+                        <li key={j}>{d}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </section>
+            ))
+          ) : (
+            <section className="project-detail-block">
+              <h2 className="project-detail-block-heading">Overview</h2>
+              <div className="project-detail-prose">
+                {toParagraphs(project.longDescription)}
+              </div>
+            </section>
+          )}
 
           {project.highlights?.length > 0 && (
             <section className="project-detail-block">

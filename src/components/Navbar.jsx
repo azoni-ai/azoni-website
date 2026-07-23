@@ -10,6 +10,7 @@ const Navbar = () => {
   // stays as a public read-only showcase alongside the /live feeds.
   const navLinks = [
     { path: '/', label: 'Home' },
+    { path: '/about', label: 'About' },
     { path: '/projects', label: 'Projects' },
     { path: '/live', label: 'Live' },
     { path: '/board', label: 'Board' },
@@ -59,10 +60,11 @@ const Navbar = () => {
           </a>
         </div>
 
-        <button 
+        <button
           className="navbar-mobile-toggle"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
+          aria-expanded={mobileMenuOpen}
         >
           <span></span>
           <span></span>

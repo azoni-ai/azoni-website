@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
 import useVisitTracker from '../hooks/useVisitTracker';
 import '../styles/chat-warm.css';
@@ -494,6 +495,11 @@ const Chat = () => {
 
   return (
     <Layout hideFooter>
+      <Seo
+        title="Chat with my AI"
+        description="Ask my portfolio anything — a RAG assistant grounded in my résumé and project notes, built on the same stack I run in production."
+        path="/chat"
+      />
       <div className="chat-container chat-page-warm">
         <div className="chat-header">
           <h1 className="chat-title">Azoni AI</h1>
@@ -628,7 +634,7 @@ const Chat = () => {
           </form>
           
           <p className="chat-disclaimer">
-            AI responses may be inaccurate • Powered by RAG
+            Answers are generated from Charlton&rsquo;s résumé and project notes, and may be imperfect.
           </p>
         </div>
       </div>

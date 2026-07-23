@@ -7,6 +7,9 @@ const HomeHero = ({ profile, aside, stats }) => {
   const data = profile || staticProfile;
   const name = data?.name || staticProfile.name;
   const location = data?.location || staticProfile.location;
+  const email = data?.email || staticProfile.email;
+  const github = data?.links?.github || staticProfile.links.github;
+  const linkedin = data?.links?.linkedin || staticProfile.links.linkedin;
 
   return (
     <header className="home-hero">
@@ -29,22 +32,33 @@ const HomeHero = ({ profile, aside, stats }) => {
 
           <div className="home-hero-bio">
             <p>
-              Ten years shipping software. Startups, T-Mobile, Capital One. For the last year,
-              solo &mdash; building products with real users and agents that keep them running.
+              Seven years shipping software &mdash; startups, T-Mobile, Capital One. For the past
+              two-plus years, solo: products with real users, and agents that keep them running.
             </p>
           </div>
 
           <div className="home-hero-ctas">
-            <Link to="/resume" className="home-hero-cta home-hero-cta--primary">
-              Resume
+            <a href={`mailto:${email}`} className="home-hero-cta home-hero-cta--primary">
+              Get in touch
+            </a>
+            <Link to="/resume" className="home-hero-cta">
+              Résumé
             </Link>
             <a
-              href={profile?.links?.github || 'https://github.com/azoni'}
+              href={github}
               className="home-hero-cta"
               target="_blank"
               rel="noopener noreferrer"
             >
               GitHub
+            </a>
+            <a
+              href={linkedin}
+              className="home-hero-cta"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              LinkedIn
             </a>
           </div>
         </div>

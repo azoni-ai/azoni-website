@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import ProductCard from '../components/ProductCard';
 import { useProjects } from '../hooks/useProjects';
 import useProductMetrics from '../hooks/useProductMetrics';
@@ -35,6 +36,11 @@ const Projects = () => {
 
   return (
     <Layout>
+      <Seo
+        title="Projects"
+        description="Every product I run, live — real traffic, status, and usage across FaB Stats, EmbedRoute, an agent stack, and 15+ shipped apps. No screenshots."
+        path="/projects"
+      />
       <div className="projects-page">
         <div className="projects-page-inner">
           <header className="projects-page-header">

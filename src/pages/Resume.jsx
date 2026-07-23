@@ -1,5 +1,6 @@
 import React from 'react';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import { profile } from '../data/profile';
 import '../styles/resume-warm.css';
 
@@ -8,6 +9,11 @@ const Resume = () => {
 
   return (
     <Layout>
+      <Seo
+        title="Résumé"
+        description="Charlton Smith's résumé — software engineer building AI products, full-stack systems, and the infrastructure underneath."
+        path="/resume"
+      />
       <div className="resume-page">
         <div className="resume-page-inner">
           <header className="resume-header">

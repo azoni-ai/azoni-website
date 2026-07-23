@@ -271,12 +271,123 @@
   letter-spacing: -0.005em;
 }
 
+.project-detail-prose p {
+  margin: 0 0 var(--space-md);
+}
+
+.project-detail-prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Case study: facts box, headline metrics, decision bullets ── */
+.cs-facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  margin: 0 0 var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--bg-warm-card);
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+}
+
+.cs-fact {
+  margin: 0;
+}
+
+.cs-fact-label {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+  margin: 0 0 4px;
+}
+
+.cs-fact-value {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--text-warm);
+  margin: 0;
+}
+
+.cs-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xl);
+  margin: 0 0 var(--space-2xl);
+  padding: var(--space-lg) var(--space-xl);
+  border-top: 1px solid var(--border-warm);
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.cs-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cs-metric-value {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  line-height: 1;
+  color: var(--accent-coral);
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-metric-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--board-muted, #8d8478);
+}
+
+.cs-decisions {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-md) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cs-decisions li {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text-warm-soft);
+  padding-left: 1.3rem;
+  position: relative;
+}
+
+.cs-decisions li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent-coral);
+  font-family: var(--font-mono);
+}
+
 @media (max-width: 768px) {
   .project-detail-page {
     padding-top: 96px;
   }
 
   .project-detail-block {
+    padding: var(--space-md);
+  }
+
+  .cs-facts {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  .cs-metrics {
+    gap: var(--space-xl);
     padding: var(--space-md);
   }
 }

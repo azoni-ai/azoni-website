@@ -58,7 +58,7 @@ export const PROJECT_TO_REPOS = (() => {
 
 export const PHASE_META = {
   active: { label: 'Active', color: '#4ade80' },
-  live: { label: 'Live', color: '#60a5fa' },
+  live: { label: 'Live', color: '#4ecdc4' },
   maintained: { label: 'Maintained', color: '#d9a05b' },
   idle: { label: 'Idle', color: '#6f675c' },
 };

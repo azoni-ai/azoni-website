@@ -35,7 +35,7 @@ const CommitStats = ({ githubStats }) => {
               Commit activity
             </p>
             <h2 id="commit-band-heading" className="commit-band-heading">
-              Actively shipping, every day
+              The work, as it lands
             </h2>
           </div>
           <Link to="/live?view=commits" className="commit-band-link">

@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import EpicSwimlane from '../components/board/EpicSwimlane';
 import TaskEditorModal from '../components/board/TaskEditorModal';
 import useBoardData from '../hooks/useBoardData';
@@ -311,6 +312,11 @@ export default function Board() {
 
   return (
     <Layout>
+      <Seo
+        title="Board"
+        description="The live kanban that actually runs my portfolio — every project an epic, every agent an assignee, drawn from real GitHub work."
+        path="/board"
+      />
       <div className="board-page">
         <div className="board-page-inner">
           <header className="board-page-header">

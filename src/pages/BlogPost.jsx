@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import '../styles/blog-post-warm.css';
 import { db } from '../config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -192,6 +193,11 @@ const BlogPost = () => {
 
   return (
     <Layout>
+      <Seo
+        title={post.title}
+        description={post.excerpt || undefined}
+        path={`/blog/${slug}`}
+      />
       <article className="section blog-post-page blog-post-page-warm">
         <div className="container">
           <Link to="/blog" className="blog-back-link">← Back to Blog</Link>

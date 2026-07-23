@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
+import Seo from '../components/Seo';
 import Leaderboard from './Leaderboard';
 import Activity from './Activity';
 import Commits from './Commits';
@@ -39,6 +40,11 @@ export default function Live() {
 
   return (
     <Layout>
+      <Seo
+        title="Live"
+        description="Real traffic, agent activity, commit cadence, and the stack behind every product I run — instrumented like production, not a demo."
+        path="/live"
+      />
       <div className="live-page">
         <div className="live-header-wrap">
           <header className="live-header">
