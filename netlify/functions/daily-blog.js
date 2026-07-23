@@ -311,7 +311,7 @@ Respond with ONLY a JSON object (no markdown fences):
   "tags": ["tag1", "tag2", "tag3"] (2-4 relevant tags like "python", "devops", "ai", "react", "firebase", etc)
 }`;
 
-  const model = 'anthropic/claude-sonnet-4';
+  const model = 'anthropic/claude-haiku-4.5';
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -333,11 +333,13 @@ Respond with ONLY a JSON object (no markdown fences):
     throw new Error('No content from LLM');
   }
 
-  // Sonnet 4 OpenRouter pricing: $3/M input, $15/M output
+  // Haiku 4.5 OpenRouter pricing: $1/M input, $5/M output (~15x cheaper than
+  // Sonnet 4 — a daily blog doesn't need Sonnet, and this makes a drained
+  // OpenRouter balance far less likely).
   const usage = data.usage || {};
   const promptTokens = usage.prompt_tokens || 0;
   const completionTokens = usage.completion_tokens || 0;
-  const cost = (promptTokens / 1e6) * 3 + (completionTokens / 1e6) * 15;
+  const cost = (promptTokens / 1e6) * 1 + (completionTokens / 1e6) * 5;
 
   // Parse JSON (strip markdown fences if present)
   const cleaned = text.replace(/```json\n?|\n?```/g, '').trim();
