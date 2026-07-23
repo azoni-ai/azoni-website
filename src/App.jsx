@@ -16,11 +16,9 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
-const Activity = lazy(() => import("./pages/Activity"));
-const Commits = lazy(() => import("./pages/Commits"));
 const Board = lazy(() => import("./pages/Board"));
 const Hub = lazy(() => import("./pages/Hub"));
-const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const Live = lazy(() => import("./pages/Live"));
 
 const App = () => {
   useEffect(() => {
@@ -50,11 +48,14 @@ const App = () => {
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/moltbook" element={<MoltbookAgent />} />
               <Route path="/game" element={<SpellBrigade />} />
-              <Route path="/activity" element={<Activity />} />
-              <Route path="/commits" element={<Commits />} />
+              <Route path="/live" element={<Live />} />
+              {/* Consolidated into /live; keep redirects for old links + SEO */}
+              <Route path="/activity" element={<Navigate to="/live?view=activity" replace />} />
+              <Route path="/commits" element={<Navigate to="/live?view=commits" replace />} />
+              <Route path="/leaderboard" element={<Navigate to="/live?view=traffic" replace />} />
+              {/* Owner tools — reachable by URL / footer, not in the public nav */}
               <Route path="/board" element={<Board />} />
               <Route path="/hub" element={<Hub />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
               {/* 404 catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>

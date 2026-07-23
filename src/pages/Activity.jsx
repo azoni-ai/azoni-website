@@ -240,7 +240,7 @@ const SOURCE_FILTERS = [
   { value: 'old-ways-today', label: 'Old Ways Today', color: '#d97706', sources: ['old-ways-today', 'oldwaystoday'] },
 ];
 
-const Activity = () => {
+const Activity = ({ embedded = false }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -358,20 +358,21 @@ const Activity = () => {
     setNewActivityCount(0);
   };
 
-  return (
-    <Layout>
-      <div className="activity-page activity-page-warm">
+  const body = (
+      <div className={`activity-page activity-page-warm${embedded ? ' is-embedded' : ''}`}>
         <div className="activity-container">
           {/* Header */}
           <div className="activity-page-header">
-            <div className="activity-title-section">
-              <h1>
-                <span className="activity-pulse"></span>
-                Agent activity
-              </h1>
-              <p>Every action my agents take, logged in real time.</p>
-            </div>
-            
+            {!embedded && (
+              <div className="activity-title-section">
+                <h1>
+                  <span className="activity-pulse"></span>
+                  Agent activity
+                </h1>
+                <p>Every action my agents take, logged in real time.</p>
+              </div>
+            )}
+
             <div className="activity-controls">
               <div className="source-filters">
                 {SOURCE_FILTERS.map(opt => (
@@ -531,8 +532,8 @@ const Activity = () => {
           </div>
         </div>
       </div>
-    </Layout>
   );
+  return embedded ? body : <Layout>{body}</Layout>;
 };
 
 export default Activity;

@@ -9,15 +9,23 @@ const Navbar = () => {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/projects', label: 'Projects' },
-    { path: '/hub', label: 'Hub' },
-    { path: '/board', label: 'Board' },
+    { path: '/live', label: 'Live' },
     { path: '/blog', label: 'Writing' },
     { path: '/chat', label: 'Chat' },
-    { path: '/commits', label: 'Commits' },
-    { path: '/activity', label: 'Activity' },
-    { path: '/leaderboard', label: 'Leaderboard' },
     { path: '/resume', label: 'Resume' },
   ];
+
+  // Owner-only tools (Board kanban, Hub mission-control). Shown only after the
+  // owner signs in on one of those pages (shared board_owner_token). Kept out
+  // of the public recruiter-facing nav.
+  const isOwner =
+    typeof window !== 'undefined' && !!window.sessionStorage.getItem('board_owner_token');
+  const ownerLinks = isOwner
+    ? [
+        { path: '/board', label: 'Board' },
+        { path: '/hub', label: 'Hub' },
+      ]
+    : [];
 
   const isActive = (path) => location.pathname === path;
 
@@ -34,6 +42,20 @@ const Navbar = () => {
               <Link
                 to={link.path}
                 className={`navbar-link ${isActive(link.path) ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+          {ownerLinks.length > 0 && (
+            <li className="navbar-owner-sep" aria-hidden="true" />
+          )}
+          {ownerLinks.map((link) => (
+            <li key={link.path}>
+              <Link
+                to={link.path}
+                className={`navbar-link navbar-link--owner ${isActive(link.path) ? 'active' : ''}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}

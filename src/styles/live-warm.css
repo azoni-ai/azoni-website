@@ -1,0 +1,99 @@
+/* ─── Live (consolidated ecosystem views) — warm palette ─── */
+
+.live-page {
+  min-height: 100vh;
+  background: var(--bg-warm);
+  color: var(--text-warm);
+  padding: 120px 0 var(--space-3xl);
+}
+
+.live-header-wrap {
+  max-width: 1200px;
+  margin: 0 auto var(--space-lg);
+  padding: 0 var(--space-xl);
+}
+
+.live-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-coral);
+  margin: 0 0 var(--space-sm);
+}
+
+.live-heading {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0 0 var(--space-sm);
+}
+
+.live-lede {
+  color: var(--text-warm-soft);
+  font-size: 1.02rem;
+  max-width: 60ch;
+  margin: 0 0 var(--space-lg);
+}
+
+/* Primary view switcher */
+.live-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-warm-card);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-full);
+  flex-wrap: wrap;
+}
+
+.live-tab {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-warm-soft);
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.live-tab:hover {
+  color: var(--text-warm);
+}
+
+.live-tab.is-active {
+  color: #18110e;
+  background: var(--accent-coral);
+}
+
+.live-viewnote {
+  font-size: 0.9rem;
+  color: var(--text-warm-muted);
+  margin: var(--space-md) 0 0;
+}
+
+/* The embedded pages drop their own top padding / full-height background /
+   page title so they sit cleanly inside the Live shell. Their inner
+   containers keep providing width + horizontal padding. */
+.live-body .activity-page.is-embedded,
+.live-body .commits-page.is-embedded,
+.live-body .lb-page.is-embedded {
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .live-page {
+    padding-top: 96px;
+  }
+  .live-header-wrap {
+    padding: 0 var(--space-md);
+  }
+}

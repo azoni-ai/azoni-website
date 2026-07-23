@@ -47,7 +47,7 @@ const formatStart = (iso) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-const Leaderboard = () => {
+const Leaderboard = ({ embedded = false }) => {
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -158,26 +158,29 @@ const Leaderboard = () => {
 
   const hasRows = rows.length > 0;
 
-  return (
-    <Layout>
-      <div className="lb-page">
+  const body = (
+      <div className={`lb-page${embedded ? ' is-embedded' : ''}`}>
         <div className="lb-container">
           <header className="lb-header">
-            <p className="lb-eyebrow">Portfolio</p>
-            <h1 className="lb-title">
-              {tab === 'sites'
-                ? 'Traffic leaderboard'
-                : tab === 'extensions'
-                  ? 'Extension leaderboard'
-                  : 'Discord bot leaderboard'}
-            </h1>
-            <p className="lb-lede">
-              {tab === 'sites'
-                ? 'Every site I run, ranked by visitors — one shared beacon per site, aggregated live.'
-                : tab === 'extensions'
-                  ? "Browser extensions I've shipped, ranked by installs from the Chrome Web Store."
-                  : "Discord bots I run, ranked by the servers they live in — counts reported by the bots themselves."}
-            </p>
+            {!embedded && (
+              <>
+                <p className="lb-eyebrow">Portfolio</p>
+                <h1 className="lb-title">
+                  {tab === 'sites'
+                    ? 'Traffic leaderboard'
+                    : tab === 'extensions'
+                      ? 'Extension leaderboard'
+                      : 'Discord bot leaderboard'}
+                </h1>
+                <p className="lb-lede">
+                  {tab === 'sites'
+                    ? 'Every site I run, ranked by visitors — one shared beacon per site, aggregated live.'
+                    : tab === 'extensions'
+                      ? "Browser extensions I've shipped, ranked by installs from the Chrome Web Store."
+                      : "Discord bots I run, ranked by the servers they live in — counts reported by the bots themselves."}
+                </p>
+              </>
+            )}
 
             <div className="lb-tabs" role="tablist" aria-label="Leaderboard">
               {[
@@ -362,8 +365,8 @@ const Leaderboard = () => {
           )}
         </div>
       </div>
-    </Layout>
   );
+  return embedded ? body : <Layout>{body}</Layout>;
 };
 
 export default Leaderboard;

@@ -29,7 +29,7 @@ const REPO_COLORS = {
   'kalshi': '#34d399',
 };
 
-const Commits = () => {
+const Commits = ({ embedded = false }) => {
   const [githubStats, setGithubStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [repoFilter, setRepoFilter] = useState('all');
@@ -103,12 +103,12 @@ const Commits = () => {
 
   const getRepoColor = (repo) => REPO_COLORS[repo] || '#888';
 
-  return (
-    <Layout>
-      <div className="commits-page commits-page-warm">
+  const body = (
+      <div className={`commits-page commits-page-warm${embedded ? ' is-embedded' : ''}`}>
         <div className="commits-container">
           {/* Header */}
           <div className="commits-page-header">
+            {!embedded && (
             <div className="commits-title-section">
               <div className="commits-breadcrumb">
                 <Link to="/" className="breadcrumb-link">Home</Link>
@@ -125,6 +125,7 @@ const Commits = () => {
               </h1>
               <p>Live feed across every repo I push to.</p>
             </div>
+            )}
 
             {/* Stats bar */}
             {githubStats && (
@@ -270,8 +271,8 @@ const Commits = () => {
           )}
         </div>
       </div>
-    </Layout>
   );
+  return embedded ? body : <Layout>{body}</Layout>;
 };
 
 export default Commits;
