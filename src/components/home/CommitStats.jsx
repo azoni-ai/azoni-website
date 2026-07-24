@@ -32,10 +32,10 @@ const CommitStats = ({ githubStats }) => {
           <div>
             <p className="commit-band-eyebrow">
               <span className="commit-band-pulse" aria-hidden="true" />
-              Commit activity
+              GitHub
             </p>
             <h2 id="commit-band-heading" className="commit-band-heading">
-              The work, as it lands
+              Commit activity
             </h2>
           </div>
           <Link to="/live?view=commits" className="commit-band-link">

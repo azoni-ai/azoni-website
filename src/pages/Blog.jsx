@@ -47,7 +47,7 @@ const Blog = () => {
     <Layout>
       <Seo
         title="Writing"
-        description="Notes on AI-assisted development, shipping in public, and the systems that run my portfolio — posted daily by an agent that reads my commits."
+        description="Notes on AI-assisted development and the systems that run my portfolio, posted daily by an agent that reads my commits."
         path="/blog"
       />
       <div className="blog-page-warm">
@@ -55,8 +55,8 @@ const Blog = () => {
           <header className="blog-page-header">
             <h1 className="blog-page-heading">Writing</h1>
             <p className="blog-page-tagline">
-              Posts written daily by Scribe. Reads my GitHub commits at 5pm UTC, asks Claude
-              Sonnet to write what shipped, publishes.
+              Posts written daily by Scribe, an agent that reads my GitHub commits at 5pm UTC and
+              writes up what shipped.
             </p>
           </header>
 

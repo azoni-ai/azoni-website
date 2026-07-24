@@ -4,15 +4,14 @@ export const profile = {
   degree: "M.S. Software Engineering",
   location: "Seattle, WA",
   email: "charltonuw@gmail.com",
-  tagline: "Software Engineer · AI products in production",
-  bio: `Full-stack engineer with 7+ years building production systems and AI-powered applications.
-Currently building an agent stack that runs a portfolio of live products — a competitive-TCG
-analytics platform (2,900+ users), fitness and search apps, and the shared infrastructure
-underneath. Background: startup co-founder (published ACM CHI research), senior engineer at
-Capital One, and multiple hackathon wins.`,
+  tagline: "Software Engineer · AI applications",
+  bio: `Full-stack engineer with 7+ years of experience building production systems and AI
+applications. I currently run a set of live products on a shared agent stack, including FaB Stats
+(2,900+ users) and several fitness and search apps. Earlier: startup co-founder (published ACM
+CHI research), senior engineer at Capital One, and several hackathon wins.`,
   // Surfaced as the "Now ·" pill in the home hero. Falls back to the latest
-  // Scribe blog post if not set. Keep it short — one sentence max.
-  currentlyBuilding: "Tightening the agent stack and the site that runs it.",
+  // Scribe blog post if not set. Keep it short, one sentence max.
+  currentlyBuilding: "Working on the agent stack and this site.",
   links: {
     github: "https://github.com/azoni",
     linkedin: "https://linkedin.com/in/charltonsmith",

@@ -11,7 +11,7 @@ const Resume = () => {
     <Layout>
       <Seo
         title="Résumé"
-        description="Charlton Smith's résumé — software engineer building AI products, full-stack systems, and the infrastructure underneath."
+        description="Charlton Smith's résumé. Software engineer building AI products and full-stack systems."
         path="/resume"
       />
       <div className="resume-page">
@@ -19,8 +19,7 @@ const Resume = () => {
           <header className="resume-header">
             <h1 className="resume-heading">Resume</h1>
             <p className="resume-tagline">
-              Charlton Smith &middot; Software engineer &middot; AI products, full-stack systems,
-              and the infrastructure underneath.
+              Charlton Smith &middot; Software engineer building AI products and full-stack systems.
             </p>
             <ul className="resume-meta">
               <li>{profile.location}</li>

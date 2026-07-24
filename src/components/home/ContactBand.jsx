@@ -16,13 +16,13 @@ const ContactBand = ({ profile }) => {
   return (
     <section className="contact-band" aria-labelledby="contact-band-heading">
       <div className="contact-band-inner">
-        <p className="contact-band-eyebrow">Work with me</p>
+        <p className="contact-band-eyebrow">Contact</p>
         <h2 id="contact-band-heading" className="contact-band-heading">
-          Building something, hiring, or just want to talk shop?
+          Get in touch
         </h2>
         <p className="contact-band-lede">
-          I build AI products end to end and instrument them so I can prove they work. If that&rsquo;s
-          useful to your team, I read every email.
+          I build AI products and the infrastructure behind them. If you&rsquo;re hiring or want to
+          work together, email me.
         </p>
         <div className="contact-band-actions">
           <a href={`mailto:${email}`} className="contact-band-cta contact-band-cta--primary">

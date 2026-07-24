@@ -85,8 +85,7 @@ const HowThisSiteRuns = () => {
           How this site works
         </h2>
         <p className="how-runs-lede">
-          The blog, the chatbot, and the activity feed aren&rsquo;t demos &mdash; they&rsquo;re the same
-          stack I run in production for every other app here.
+          The blog, chatbot, and activity feed run on the same stack as my other apps.
         </p>
       </header>
 
@@ -198,7 +197,7 @@ const HowThisSiteRuns = () => {
           </span>
         </div>
         <figcaption className="how-runs-diagram-caption">
-          Triggered by visitors and cron. Every action logged.
+          Triggered by visitors and cron. Every action is logged.
         </figcaption>
       </figure>
 

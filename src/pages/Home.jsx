@@ -60,7 +60,7 @@ const Home = () => {
     <Layout>
       <Seo
         path="/"
-        description="Charlton Smith — software engineer in Seattle building AI products and the infrastructure they run on. FaB Stats (2,900+ users), a live agent stack, and 15+ shipped apps, instrumented in public."
+        description="Charlton Smith, a software engineer in Seattle. I build AI products and the infrastructure behind them: FaB Stats (2,900+ users), a live agent stack, and 15+ apps."
       />
       <div className="home-page-v2">
         <HomeHero profile={profile} aside={<HeroChatPrompt />} />
@@ -70,10 +70,7 @@ const Home = () => {
         <section className="home-featured">
           <div className="home-featured-inner">
             <header className="home-featured-head">
-              <div>
-                <p className="home-featured-eyebrow">Selected work</p>
-                <h2 className="home-featured-heading">Products, live &mdash; not screenshots</h2>
-              </div>
+              <h2 className="home-featured-heading">Live Products</h2>
               <Link to="/projects" className="home-featured-link">
                 All projects &rarr;
               </Link>

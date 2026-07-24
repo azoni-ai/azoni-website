@@ -314,7 +314,7 @@ export default function Board() {
     <Layout>
       <Seo
         title="Board"
-        description="The live kanban that actually runs my portfolio — every project an epic, every agent an assignee, drawn from real GitHub work."
+        description="A kanban board of my projects. Every project is an epic, built from GitHub activity."
         path="/board"
       />
       <div className="board-page">
@@ -352,9 +352,8 @@ export default function Board() {
               )}
             </div>
             <p className="board-tagline">
-              The live kanban behind everything on this site — every project is an epic, every
-              agent an assignee. Each project&rsquo;s phase is derived from real commits and
-              agent activity.
+              The kanban board behind everything on this site. Every project is an epic and every
+              agent an assignee, and each project&rsquo;s phase comes from commits and agent activity.
             </p>
             <p className="board-summary">
               {visibleEpics.length} project{visibleEpics.length === 1 ? '' : 's'}
@@ -398,8 +397,7 @@ export default function Board() {
             ))}
             {usingSeed && (
               <span className="board-sample-note">
-                Example cards drawn from real GitHub work — live tasks land here as they&rsquo;re
-                filed.
+                Example cards based on GitHub activity. Live tasks appear here once they&rsquo;re filed.
               </span>
             )}
             {actionError && <span className="board-login-error">{actionError}</span>}

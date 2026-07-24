@@ -38,7 +38,7 @@ const Projects = () => {
     <Layout>
       <Seo
         title="Projects"
-        description="Every product I run, live — real traffic, status, and usage across FaB Stats, EmbedRoute, an agent stack, and 15+ shipped apps. No screenshots."
+        description="Every product I run, with live traffic and status: FaB Stats, EmbedRoute, an agent stack, and 15+ apps."
         path="/projects"
       />
       <div className="projects-page">
@@ -46,8 +46,7 @@ const Projects = () => {
           <header className="projects-page-header">
             <h1 className="projects-heading">Projects</h1>
             <p className="projects-tagline">
-              Every product I run, live. Real traffic, real status, real usage &mdash; not
-              screenshots. Click any card for the story behind it.
+              Every product I run, with live traffic and status. Click any card for the details.
             </p>
             {productMetrics?.updatedAt && (
               <p className="projects-metrics-note">
