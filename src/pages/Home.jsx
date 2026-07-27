@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Layout from '../components/Layout';
@@ -7,31 +6,20 @@ import Seo from '../components/Seo';
 import HomeHero from '../components/home/HomeHero';
 import HeroChatPrompt from '../components/home/HeroChatPrompt';
 import CommitStats from '../components/home/CommitStats';
+import LivePreview from '../components/home/LivePreview';
 import LivePulseStrip from '../components/home/LivePulseStrip';
-import ProductCard from '../components/ProductCard';
 import CareerSection from '../components/CareerSection';
 import EducationSection from '../components/EducationSection';
 import ContactBand from '../components/home/ContactBand';
-import { getFeaturedProjects } from '../data/projects';
-import useProductMetrics from '../hooks/useProductMetrics';
 import '../styles/home-v2.css';
-import '../styles/products-warm.css';
 
-// Portfolio-first, proof-led landing: identity (hero + live chat) → a live
-// activity pulse (actively shipping) → selected live products with real
-// metrics → experience → education. The deeper live-ops surfaces live on /live.
-
-const FEATURED_LIMIT = 6;
+// Proof-led landing: identity (hero + live chat) → commit activity → a preview
+// of the live ecosystem (top sites + agents, links into /live) → recent
+// activity → experience → education → contact.
 
 const Home = () => {
   const [profile, setProfile] = useState(null);
   const [githubStats, setGithubStats] = useState(null);
-  const productMetrics = useProductMetrics();
-  const metricsMap = productMetrics?.map || {};
-
-  const featured = getFeaturedProjects()
-    .filter((p) => !p.archived)
-    .slice(0, FEATURED_LIMIT);
 
   useEffect(() => {
     (async () => {
@@ -67,21 +55,7 @@ const Home = () => {
 
         <CommitStats githubStats={githubStats} />
 
-        <section className="home-featured">
-          <div className="home-featured-inner">
-            <header className="home-featured-head">
-              <h2 className="home-featured-heading">Live Products</h2>
-              <Link to="/projects" className="home-featured-link">
-                All projects &rarr;
-              </Link>
-            </header>
-            <div className="product-grid">
-              {featured.map((project) => (
-                <ProductCard key={project.id} project={project} metrics={metricsMap[project.id]} />
-              ))}
-            </div>
-          </div>
-        </section>
+        <LivePreview />
 
         <LivePulseStrip githubStats={githubStats} />
 
