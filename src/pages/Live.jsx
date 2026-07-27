@@ -37,6 +37,8 @@ export default function Live() {
   );
 
   const active = VIEWS.find((v) => v.key === view) || VIEWS[0];
+  const tabParam = params.get('tab');
+  const initialTab = ['sites', 'extensions', 'bots'].includes(tabParam) ? tabParam : 'sites';
 
   return (
     <Layout>
@@ -72,7 +74,7 @@ export default function Live() {
         </div>
 
         <div className="live-body">
-          {view === 'traffic' && <Leaderboard embedded />}
+          {view === 'traffic' && <Leaderboard embedded initialTab={initialTab} />}
           {view === 'activity' && <Activity embedded />}
           {view === 'commits' && <Commits embedded />}
           {view === 'stack' && <HowThisSiteRuns />}

@@ -10,7 +10,6 @@ import LivePreview from '../components/home/LivePreview';
 import LivePulseStrip from '../components/home/LivePulseStrip';
 import CareerSection from '../components/CareerSection';
 import EducationSection from '../components/EducationSection';
-import ContactBand from '../components/home/ContactBand';
 import '../styles/home-v2.css';
 
 // Proof-led landing: identity (hero + live chat) → commit activity → a preview
@@ -61,7 +60,6 @@ const Home = () => {
 
         <CareerSection />
         <EducationSection />
-        <ContactBand profile={profile} />
       </div>
     </Layout>
   );

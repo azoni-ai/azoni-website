@@ -47,12 +47,12 @@ const formatStart = (iso) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-const Leaderboard = ({ embedded = false }) => {
+const Leaderboard = ({ embedded = false, initialTab = 'sites' }) => {
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [win, setWin] = useState('d1');
-  const [tab, setTab] = useState('sites'); // 'sites' | 'extensions'
+  const [tab, setTab] = useState(initialTab); // 'sites' | 'extensions' | 'bots'
 
   useEffect(() => {
     let alive = true;
