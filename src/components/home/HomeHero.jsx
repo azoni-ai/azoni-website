@@ -7,7 +7,6 @@ const HomeHero = ({ profile, aside, stats }) => {
   const data = profile || staticProfile;
   const name = data?.name || staticProfile.name;
   const location = data?.location || staticProfile.location;
-  const email = data?.email || staticProfile.email;
   const github = data?.links?.github || staticProfile.links.github;
   const linkedin = data?.links?.linkedin || staticProfile.links.linkedin;
 
@@ -39,10 +38,7 @@ const HomeHero = ({ profile, aside, stats }) => {
           </div>
 
           <div className="home-hero-ctas">
-            <a href={`mailto:${email}`} className="home-hero-cta home-hero-cta--primary">
-              Get in touch
-            </a>
-            <Link to="/resume" className="home-hero-cta">
+            <Link to="/resume" className="home-hero-cta home-hero-cta--primary">
               Résumé
             </Link>
             <a
