@@ -8,7 +8,7 @@
 }
 
 .live-header-wrap {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto var(--space-lg);
   padding: 0 var(--space-xl);
 }
@@ -89,11 +89,34 @@
   background: transparent;
 }
 
+/* Align the embedded views' inner containers with the page header: same width
+   and horizontal padding, so the sub-tabs, cards, and rows line up with the
+   heading instead of sitting in a narrower, off-center column. */
+.live-body .lb-container,
+.live-body .activity-container,
+.live-body .commits-container {
+  max-width: 1000px;
+  padding-left: var(--space-xl);
+  padding-right: var(--space-xl);
+}
+
+/* In embedded mode the leaderboard's own title is hidden, so drop the tab
+   strip's top margin that was meant to sit beneath it. */
+.live-body .lb-page.is-embedded .lb-tabs {
+  margin-top: 0;
+}
+
 @media (max-width: 640px) {
   .live-page {
     padding-top: 96px;
   }
   .live-header-wrap {
     padding: 0 var(--space-md);
+  }
+  .live-body .lb-container,
+  .live-body .activity-container,
+  .live-body .commits-container {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
   }
 }
