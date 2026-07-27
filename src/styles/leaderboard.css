@@ -97,6 +97,14 @@
   gap: 0.6rem;
   margin: 1.5rem 0 0;
 }
+
+/* On the extensions / discord-bots boards the KPI row is immediately followed
+   by the list (no window controls in between), so add the gap the controls
+   strip would otherwise provide — keeps the first row off the KPI labels. */
+.lb-kpis + .lb-list {
+  margin-top: var(--space-lg);
+}
+
 .lb-kpi {
   display: flex;
   flex-direction: column;
