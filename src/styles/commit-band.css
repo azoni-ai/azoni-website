@@ -139,6 +139,74 @@
   color: var(--text-warm);
 }
 
+/* ── Loading skeleton: same structure as the loaded band (no layout shift),
+      with a shimmer on the numbers and a coral sweep across the split bar. ── */
+.cs-skel {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-warm-hover) 0%,
+    color-mix(in srgb, var(--accent-coral) 18%, var(--bg-warm-hover)) 50%,
+    var(--bg-warm-hover) 100%
+  );
+  background-size: 220% 100%;
+  animation: cs-shimmer 1.5s ease-in-out infinite;
+  animation-delay: var(--cs-delay, 0s);
+}
+
+@keyframes cs-shimmer {
+  0% { background-position: 160% 0; }
+  100% { background-position: -160% 0; }
+}
+
+.cs-skel-num {
+  height: 1em;
+  width: 2.4ch;
+}
+
+.cs-skel-caption {
+  height: 1rem;
+  width: min(60%, 24ch);
+}
+
+.cs-skel-legend {
+  height: 0.9rem;
+  width: 7ch;
+}
+
+.hero-split-dot.cs-skel-dot {
+  background: var(--border-warm-strong);
+  animation: commit-pulse 1.6s ease-in-out infinite;
+}
+
+/* Indeterminate coral sweep on the author-split bar */
+.cs-skel-bar {
+  position: relative;
+  background: var(--bg-warm-hover);
+  overflow: hidden;
+}
+
+.cs-skel-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--accent-coral), transparent);
+  animation: cs-sweep 1.3s ease-in-out infinite;
+}
+
+@keyframes cs-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-skel { animation: none; }
+  .cs-skel-bar::after { display: none; }
+  .hero-split-dot.cs-skel-dot { animation: none; }
+}
+
 @media (max-width: 720px) {
   .commit-band-tiles {
     grid-template-columns: repeat(2, 1fr);

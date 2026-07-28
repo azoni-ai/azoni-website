@@ -8,7 +8,54 @@ import '../../styles/commit-band.css';
 // how I work. Data from the cached github-stats endpoint (passed from Home).
 
 const CommitStats = ({ githubStats }) => {
-  if (!githubStats) return null;
+  // While the cached github-stats endpoint is in flight, render a skeleton with
+  // the exact same structure so the band reserves its space (no layout shift)
+  // and has something alive to look at.
+  if (!githubStats) {
+    const labels = ['today', 'this week', 'this month', `in ${new Date().getFullYear()}`];
+    return (
+      <section className="commit-band" aria-labelledby="commit-band-heading" aria-busy="true">
+        <div className="commit-band-inner">
+          <div className="commit-band-head">
+            <div>
+              <p className="commit-band-eyebrow">
+                <span className="commit-band-pulse" aria-hidden="true" />
+                GitHub
+              </p>
+              <h2 id="commit-band-heading" className="commit-band-heading">Commit activity</h2>
+            </div>
+            <Link to="/live?view=commits" className="commit-band-link">Full commit feed &rarr;</Link>
+          </div>
+
+          <dl className="commit-band-tiles">
+            {labels.map((label, i) => (
+              <div key={label} className="commit-tile" style={{ '--cs-delay': `${i * 0.12}s` }}>
+                <dd className="commit-tile-value"><span className="cs-skel cs-skel-num" /></dd>
+                <dt className="commit-tile-label">commits {label}</dt>
+              </div>
+            ))}
+          </dl>
+
+          <div className="commit-band-split">
+            <p className="commit-split-caption"><span className="cs-skel cs-skel-caption" /></p>
+            <div
+              className="hero-split-bar commit-split-bar cs-skel-bar"
+              role="img"
+              aria-label="Loading commit activity"
+            />
+            <ul className="hero-split-legend commit-split-legend">
+              {[0, 1, 2].map((i) => (
+                <li key={i}>
+                  <span className="hero-split-dot cs-skel-dot" />
+                  <span className="cs-skel cs-skel-legend" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const tiles = [
     { value: githubStats.today, label: 'today' },
