@@ -76,9 +76,9 @@ async function probe(url, headers = {}, timeoutMs = 4500) {
 }
 
 async function checkHealthAll() {
-  const mcpHeaders = process.env.MCP_READ_KEY
-    ? { Authorization: `Bearer ${process.env.MCP_READ_KEY}` }
-    : {};
+  // Use whichever MCP key is present (READ preferred, ADMIN fallback) — same as app-stats.
+  const mcpKey = process.env.MCP_READ_KEY || process.env.MCP_ADMIN_KEY;
+  const mcpHeaders = mcpKey ? { Authorization: `Bearer ${mcpKey}` } : {};
   const targets = SITES.filter((s) => s.health);
   const results = await Promise.all(
     targets.map(async (s) => {

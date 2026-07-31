@@ -98,11 +98,15 @@ async function embedQuery(text) {
 
 // ============ MCP SERVER ============
 const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.com';
+// Use whichever key is present, same as app-stats. All chat calls are GETs, so the
+// admin key is a safe fallback; without this the chat sends unauthenticated requests
+// (401 → null → canned fallback) whenever only MCP_ADMIN_KEY is set in the env.
+const MCP_KEY = process.env.MCP_READ_KEY || process.env.MCP_ADMIN_KEY;
 
 async function callMCPTool(endpoint, options = {}) {
   try {
     const headers = {};
-    if (process.env.MCP_READ_KEY) headers['Authorization'] = `Bearer ${process.env.MCP_READ_KEY}`;
+    if (MCP_KEY) headers['Authorization'] = `Bearer ${MCP_KEY}`;
     const timeoutMs = options.timeoutMs || 5000;
     const response = await fetchWithTimeout(`${MCP_BASE_URL}${endpoint}`, { headers }, timeoutMs);
     if (!response.ok) return null;
