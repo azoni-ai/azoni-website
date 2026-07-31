@@ -234,7 +234,13 @@ exports.handler = async (event, context) => {
     // Calculate contribution stats
     const calendar = user.contributionsCollection?.contributionCalendar;
     const allDays = calendar?.weeks?.flatMap(week => week.contributionDays) || [];
-    const today = now.toISOString().split('T')[0];
+    // GitHub buckets contribution days in the account's timezone (Pacific), so
+    // compare against the Pacific date rather than UTC. Otherwise "today" reads
+    // 0 all evening once UTC has rolled over to the next calendar day.
+    const laDate = (d) => new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date(d));
+    const today = laDate(now);
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
@@ -420,6 +426,13 @@ exports.handler = async (event, context) => {
         branch: commit.branch || defaultBranchByRepo.get(commit.repo) || 'main',
       }));
 
+    // Cross-check "today" against the actual recent commits (bucketed to the
+    // Pacific day), so a fresh commit still counts even if the contribution
+    // calendar hasn't caught up yet.
+    const todayFromCommits = topCommits
+      .filter((c) => c.timestamp && laDate(c.timestamp) === today).length;
+    const todayTotal = Math.max(todayCommits, todayFromCommits);
+
     // Author split across the sampled commits. The per-year totals come from
     // the contribution calendar (accurate but no author info); this split is
     // a sample over the recent commits we already fetched and tagged.
@@ -456,7 +469,7 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        today: todayCommits,
+        today: todayTotal,
         last7Days,
         thisMonth,
         thisYear,
