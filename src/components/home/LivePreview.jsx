@@ -3,16 +3,23 @@ import { Link } from 'react-router-dom';
 import '../../styles/live-preview.css';
 
 // A compact preview of the /live page for the home page: the top sites by
-// traffic, the Chrome extensions and Discord bots (each links out to the store
-// / bot), and the running agents incl. Moltbook (each links to where you can
-// see it). Reuses the cached leaderboard / extensions / discord-bots endpoints,
-// so no extra Firestore reads.
+// traffic, the running agents (incl. Moltbook), the Chrome extensions and
+// Discord bots (each links out to the store / bot), and the tools/APIs I've
+// built (linking to their write-ups). Reuses the cached leaderboard /
+// extensions / discord-bots endpoints, so no extra Firestore reads.
 
 const AGENTS = [
   { label: 'Conductor', desc: 'Orchestrates the other agents', to: '/live?view=activity' },
   { label: 'Scribe', desc: 'Writes the daily blog', to: '/blog' },
   { label: 'Azoni AI', desc: 'Answers questions about my work', to: '/chat' },
   { label: 'Moltbook', desc: 'Posts to a social network on its own', to: '/moltbook' },
+];
+
+// Tools / APIs I've built. Metric is each one's defining stat (static, from the
+// project data); links go to the project write-up.
+const TOOLS = [
+  { key: 'azoni-mcp', label: 'Azoni MCP Server', icon: '/images/mcp-logo-nodes.svg', href: '/projects/azoni-mcp', metric: '37 tools' },
+  { key: 'embedroute', label: 'EmbedRoute', icon: '/images/embedroute-icon.svg', href: '/projects/embedroute', metric: '4 providers' },
 ];
 
 const fmt = (n) => {
@@ -24,10 +31,11 @@ const fmt = (n) => {
 
 const brand = (name) => String(name || '').split('—')[0].trim() || name || '—';
 
-// A panel of external resources (sites / extensions / bots): icon, name, a
-// metric, and an ↗ that opens the destination.
-const ResourcePanel = ({ title, linkTo, linkLabel, items }) => (
-  <div className="lp-panel">
+// A panel of resources (sites / extensions / bots / tools): icon, name, a
+// metric, and an arrow. External links open the destination (↗); internal ones
+// go to a page on this site (→).
+const ResourcePanel = ({ title, linkTo, linkLabel, items, internal = false, wide = false }) => (
+  <div className={`lp-panel${wide ? ' lp-panel--wide' : ''}`}>
     <div className="lp-panel-head">
       <h3 className="lp-panel-title">{title}</h3>
       <Link to={linkTo} className="lp-panel-link">{linkLabel} &rarr;</Link>
@@ -37,18 +45,27 @@ const ResourcePanel = ({ title, linkTo, linkLabel, items }) => (
       {items !== null && items.length === 0 && (
         <li className="lp-empty"><Link to={linkTo}>See on the live page &rarr;</Link></li>
       )}
-      {(items || []).map((it) => (
-        <li key={it.key}>
-          <a href={it.href} target="_blank" rel="noopener noreferrer" className="lp-row lp-site-link">
+      {(items || []).map((it) => {
+        const body = (
+          <>
             <span className="lp-site-icon" aria-hidden="true">
               {it.icon ? <img src={it.icon} alt="" loading="lazy" /> : <span>{it.label?.charAt(0)}</span>}
             </span>
             <span className="lp-site-name">{it.label}</span>
             {it.metric != null && <span className="lp-site-visits">{it.metric}</span>}
-            <span className="lp-ext" aria-hidden="true">↗</span>
-          </a>
-        </li>
-      ))}
+            <span className={internal ? 'lp-arrow' : 'lp-ext'} aria-hidden="true">{internal ? '→' : '↗'}</span>
+          </>
+        );
+        return (
+          <li key={it.key}>
+            {internal ? (
+              <Link to={it.href} className="lp-row lp-site-link">{body}</Link>
+            ) : (
+              <a href={it.href} target="_blank" rel="noopener noreferrer" className="lp-row lp-site-link">{body}</a>
+            )}
+          </li>
+        );
+      })}
     </ul>
   </div>
 );
@@ -144,6 +161,8 @@ const LivePreview = () => {
           <ResourcePanel title="Chrome extensions" linkTo="/live?view=traffic&tab=extensions" linkLabel="Extensions" items={exts} />
 
           <ResourcePanel title="Discord bots" linkTo="/live?view=traffic&tab=bots" linkLabel="Discord bots" items={bots} />
+
+          <ResourcePanel title="Tools" linkTo="/projects" linkLabel="Projects" items={TOOLS} internal wide />
         </div>
       </div>
     </section>

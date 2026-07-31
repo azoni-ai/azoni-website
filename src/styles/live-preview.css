@@ -211,12 +211,27 @@
   text-decoration: none;
 }
 
+/* Full-width panel (Tools) spanning both columns, with its items laid out in
+   two columns so the panel doesn't read as half-empty. */
+.lp-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.lp-panel--wide .lp-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: var(--space-2xl);
+}
+
 @media (max-width: 720px) {
   .live-preview-grid {
     grid-template-columns: 1fr;
   }
   .lp-agent-desc {
     display: none;
+  }
+  .lp-panel--wide .lp-list {
+    grid-template-columns: 1fr;
   }
 }
 
