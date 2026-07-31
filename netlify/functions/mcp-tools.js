@@ -55,6 +55,7 @@ async function fetchTools() {
     totalCalls: Number.isFinite(data.totalCalls) ? data.totalCalls : tools.reduce((s, t) => s + t.calls, 0),
     domainCount: Array.isArray(data.domains) ? data.domains.length : null,
     callsUpdatedAt: data.callsUpdatedAt || null,
+    since: data.since || null,
     tools,
     updatedAt: new Date().toISOString(),
   };

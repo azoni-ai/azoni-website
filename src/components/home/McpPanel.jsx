@@ -12,6 +12,13 @@ const fmt = (n) => {
   return n.toLocaleString();
 };
 
+const formatSince = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const TOP_N = 6;
 
 const McpPanel = () => {
@@ -44,7 +51,14 @@ const McpPanel = () => {
           <h3 className="lp-panel-title">MCP server</h3>
           <span className="mcp-summary">
             {totalTools} tools
-            {data !== null && <> &middot; <strong>{fmt(totalCalls)}</strong> calls</>}
+            {data !== null && (
+              <>
+                {' '}&middot; <strong>{fmt(totalCalls)}</strong> calls
+                {formatSince(data.since) && (
+                  <span className="mcp-since"> since {formatSince(data.since)}</span>
+                )}
+              </>
+            )}
           </span>
         </div>
         <Link to="/projects/azoni-mcp" className="lp-panel-link">Details &rarr;</Link>
