@@ -110,7 +110,8 @@ export default async (req) => {
                 messages: conversation,
                 tools: core.TOOL_DEFINITIONS,
                 tool_choice: 'auto',
-                max_tokens: 700,
+                max_tokens: 1200,
+                ...(/gpt-5|o1|o3|o4/i.test(model) ? { reasoning: { effort: 'low' } } : {}),
                 ...temperatureField,
               }),
             }, 12000);
@@ -145,7 +146,10 @@ export default async (req) => {
             model,
             messages: conversation,
             stream: true,
-            max_tokens: isFastRequest ? 320 : 750,
+            // Reasoning tokens count against max_tokens on gpt-5-mini; give headroom + cap effort so
+            // the answer isn't truncated (finish_reason:'length') before any text streams.
+            max_tokens: isFastRequest ? 600 : 1400,
+            ...(/gpt-5|o1|o3|o4/i.test(model) ? { reasoning: { effort: 'low' } } : {}),
             ...temperatureField,
           }),
         });

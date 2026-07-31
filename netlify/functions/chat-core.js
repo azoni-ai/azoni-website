@@ -257,11 +257,17 @@ function detectIntent(query) {
   const activityTriggers = ['ai activity', 'ai cost', 'ai spend', 'ai usage', 'token usage', 'token cost',
     'activity feed', 'activity log', 'how much.*spent.*ai', 'how much.*cost',
     'what.*ai.*doing', 'what.*ai.*been', 'api cost', 'api spend',
-    'spell brigade.*ai', 'benchpress.*ai', 'ai.*spell brigade', 'ai.*benchpress'];
+    'spell brigade.*ai', 'benchpress.*ai', 'ai.*spell brigade', 'ai.*benchpress',
+    // "what has he been working on / up to lately" → recent activity feed (recency word required so it
+    // doesn't grab "what did he work on at Capital One", which should stay experience).
+    '(working on|been up to|up to|building|shipping|been doing|doing).*(lately|recently|now|these days|currently|right now)',
+    '(lately|recently|these days|currently|right now).*(working on|been up to|building|shipping|doing)',
+    'what.?s he been up to', 'been up to lately', 'been up to recently'];
   if (activityTriggers.some(t => new RegExp(t).test(q))) return { intent: 'activity', confidence: 'HIGH', reason: 'activity_keyword' };
 
   const nonFitnessQualifiers = ['career', 'job', 'work', 'professional', 'life', 'personal', 'future'];
-  const hasNonFitnessQualifier = nonFitnessQualifiers.some(t => q.includes(t));
+  // Word-boundary match so "work" doesn't swallow "workout"/"working" (fitness/activity, not career).
+  const hasNonFitnessQualifier = nonFitnessQualifiers.some(t => new RegExp(`\\b${t}\\b`).test(q));
 
   const companyTriggers = ['capital one', 'capitalone', 't-mobile', 'tmobile', 't mobile', 'slalom', 'nucamp', 'oli fitness', 'oli'];
   if (companyTriggers.some(t => q.includes(t))) return { intent: 'experience', confidence: 'HIGH', reason: 'company_name' };
@@ -310,17 +316,17 @@ function detectIntent(query) {
   if (!hasNonFitnessQualifier) {
     const strongFitnessTriggers = ['workout', 'workouts', 'gym', 'lifting', 'bench press', 'bench', 'squat', 'deadlift',
       'coach', 'coaching', 'trainer', 'athlete', 'athletes', 'benchpressonly', 'bench only', 'benchonly',
-      'pr ', 'prs', 'personal record', '1rm', 'one rep max', 'streak', 'consistency', 'reps', 'sets', 'volume',
-      'how much does he bench', 'how much can he lift', 'how strong', 'bmi', 'body stats'];
+      'pr ', 'prs', 'personal record', '1rm', 'one rep max', 'streak', 'consistency', 'consistent', 'reps', 'sets', 'volume', 'training', 'trains',
+      'how much does he bench', 'how much can he lift', 'how strong', 'bmi', 'body stats', 'physique'];
     if (strongFitnessTriggers.some(t => q.includes(t))) return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_keyword' };
 
     const weakFitnessTriggers = ['goal', 'goals', 'target', 'weight', 'weigh', 'height', 'tall', 'max', 'strong', 'strength'];
-    const fitnessContextWords = ['fitness', 'gym', 'lift', 'training', 'workout', 'exercise', 'bench', 'squat', 'deadlift', 'muscle', 'gains'];
+    const fitnessContextWords = ['fitness', 'gym', 'lift', 'training', 'workout', 'exercise', 'bench', 'squat', 'deadlift', 'muscle', 'gains', 'body', 'physique'];
     if (weakFitnessTriggers.some(t => q.includes(t)) && fitnessContextWords.some(t => q.includes(t))) {
       return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_context' };
     }
 
-    const bodyQueries = ['how much do you weigh', 'how tall', 'what is your weight', 'what is charlton\'s weight', 'how much does charlton weigh'];
+    const bodyQueries = ['how much do you weigh', 'how much does he weigh', 'how much does charlton weigh', 'how tall', 'what is your weight', 'what is charlton\'s weight', 'body measurement', 'body measurements', 'body fat', 'body composition', 'physique'];
     if (bodyQueries.some(t => q.includes(t))) return { intent: 'fitness', confidence: 'MEDIUM', reason: 'body_query' };
   }
 

@@ -569,7 +569,12 @@ function detectIntent(query) {
     'ai activity', 'ai cost', 'ai spend', 'ai usage', 'token usage', 'token cost',
     'activity feed', 'activity log', 'how much.*spent.*ai', 'how much.*cost',
     'what.*ai.*doing', 'what.*ai.*been', 'api cost', 'api spend',
-    'spell brigade.*ai', 'benchpress.*ai', 'ai.*spell brigade', 'ai.*benchpress'
+    'spell brigade.*ai', 'benchpress.*ai', 'ai.*spell brigade', 'ai.*benchpress',
+    // "what has he been working on / up to lately" → recent activity feed (needs a recency word so it
+    // doesn't grab "what did he work on at Capital One", which should stay experience).
+    '(working on|been up to|up to|building|shipping|been doing|doing).*(lately|recently|now|these days|currently|right now)',
+    '(lately|recently|these days|currently|right now).*(working on|been up to|building|shipping|doing)',
+    'what.?s he been up to', 'been up to lately', 'been up to recently'
   ];
   if (activityTriggers.some(t => new RegExp(t).test(q))) {
     return { intent: 'activity', confidence: 'HIGH', reason: 'activity_keyword' };
@@ -577,7 +582,8 @@ function detectIntent(query) {
   
   // PRIORITY 0.5: Explicit NON-fitness qualifiers (check first)
   const nonFitnessQualifiers = ['career', 'job', 'work', 'professional', 'life', 'personal', 'future'];
-  const hasNonFitnessQualifier = nonFitnessQualifiers.some(t => q.includes(t));
+  // Word-boundary match so "work" doesn't swallow "workout"/"working" (fitness/activity, not career).
+  const hasNonFitnessQualifier = nonFitnessQualifiers.some(t => new RegExp(`\\b${t}\\b`).test(q));
   
   // PRIORITY 1: Company name triggers → experience
   const companyTriggers = [
@@ -702,9 +708,9 @@ function detectIntent(query) {
       'coach', 'coaching', 'trainer', 'athlete', 'athletes',
       'benchpressonly', 'bench only', 'benchonly',
       'pr ', 'prs', 'personal record', '1rm', 'one rep max',
-      'streak', 'consistency', 'reps', 'sets', 'volume',
+      'streak', 'consistency', 'consistent', 'reps', 'sets', 'volume', 'training', 'trains',
       'how much does he bench', 'how much can he lift', 'how strong',
-      'bmi', 'body stats'
+      'bmi', 'body stats', 'physique'
     ];
     
     if (strongFitnessTriggers.some(t => q.includes(t))) {
@@ -713,7 +719,7 @@ function detectIntent(query) {
     
     // Weak fitness triggers - need additional fitness context
     const weakFitnessTriggers = ['goal', 'goals', 'target', 'weight', 'weigh', 'height', 'tall', 'max', 'strong', 'strength'];
-    const fitnessContextWords = ['fitness', 'gym', 'lift', 'training', 'workout', 'exercise', 'bench', 'squat', 'deadlift', 'muscle', 'gains'];
+    const fitnessContextWords = ['fitness', 'gym', 'lift', 'training', 'workout', 'exercise', 'bench', 'squat', 'deadlift', 'muscle', 'gains', 'body', 'physique'];
     
     const hasWeakTrigger = weakFitnessTriggers.some(t => q.includes(t));
     const hasFitnessContext = fitnessContextWords.some(t => q.includes(t));
@@ -724,7 +730,7 @@ function detectIntent(query) {
     }
     
     // Special case: body-related queries without career context are likely fitness
-    const bodyQueries = ['how much do you weigh', 'how tall', 'what is your weight', 'what is charlton\'s weight', 'how much does charlton weigh'];
+    const bodyQueries = ['how much do you weigh', 'how much does he weigh', 'how much does charlton weigh', 'how tall', 'what is your weight', 'what is charlton\'s weight', 'body measurement', 'body measurements', 'body fat', 'body composition', 'physique'];
     if (bodyQueries.some(t => q.includes(t))) {
       return { intent: 'fitness', confidence: 'MEDIUM', reason: 'body_query' };
     }
@@ -1632,7 +1638,11 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
             { role: 'system', content: finalSystemPrompt },
             ...modelMessages
           ],
-          max_tokens: isFastRequest ? 320 : 750,
+          // gpt-5-mini is a reasoning model: reasoning tokens count against max_tokens, so 750 was
+          // being exhausted before any answer (finish_reason:'length', truncated/blank). Give headroom
+          // and cap reasoning effort so the budget goes to the visible answer.
+          max_tokens: isFastRequest ? 600 : 1400,
+          ...(/gpt-5|o1|o3|o4/i.test(model) ? { reasoning: { effort: 'low' } } : {}),
           ...(supportsCustomTemperature(model)
             ? { temperature: mode === 'funny' ? 0.85 : 0.45 }
             : {})
@@ -1690,6 +1700,22 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
         headers,
         body: JSON.stringify(fallback)
       };
+    }
+
+    // Guard: a reasoning model can spend its whole budget on reasoning and return an empty
+    // completion (finish_reason:'length', content null/blank). Never surface a blank answer —
+    // fall back to the local answer built from retrieved chunks.
+    const generatedContent = data.choices?.[0]?.message?.content;
+    if (!generatedContent || !generatedContent.trim()) {
+      const fallback = buildFallbackChatResponse({
+        query: latestUserMessage,
+        intent,
+        retrievedChunks,
+        model,
+        pricing,
+        reason: `Empty completion (finish_reason: ${data.choices?.[0]?.finish_reason || 'unknown'})`
+      });
+      return { statusCode: 200, headers, body: JSON.stringify(fallback) };
     }
 
     const usage = data.usage || {};
