@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import McpPanel from './McpPanel';
 import '../../styles/live-preview.css';
 
 // A compact preview of the /live page for the home page: the top sites by
@@ -13,13 +14,6 @@ const AGENTS = [
   { label: 'Scribe', desc: 'Writes the daily blog', to: '/blog' },
   { label: 'Azoni AI', desc: 'Answers questions about my work', to: '/chat' },
   { label: 'Moltbook', desc: 'Posts to a social network on its own', to: '/moltbook' },
-];
-
-// Tools / APIs I've built. Metric is each one's defining stat (static, from the
-// project data); links go to the project write-up.
-const TOOLS = [
-  { key: 'azoni-mcp', label: 'Azoni MCP Server', icon: '/images/mcp-logo-nodes.svg', href: '/projects/azoni-mcp', metric: '37 tools' },
-  { key: 'embedroute', label: 'EmbedRoute', icon: '/images/embedroute-icon.svg', href: '/projects/embedroute', metric: '4 providers' },
 ];
 
 const fmt = (n) => {
@@ -162,7 +156,7 @@ const LivePreview = () => {
 
           <ResourcePanel title="Discord bots" linkTo="/live?view=traffic&tab=bots" linkLabel="Discord bots" items={bots} />
 
-          <ResourcePanel title="Tools" linkTo="/projects" linkLabel="Projects" items={TOOLS} internal wide />
+          <McpPanel />
         </div>
       </div>
     </section>
