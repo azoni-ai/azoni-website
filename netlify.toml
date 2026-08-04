@@ -11,6 +11,12 @@
 
 [functions."chat-stream"]
   timeout = 26
+  # esbuild's ESM bundling rewrites firebase-admin's internal require("fs")/etc.
+  # into a throwing shim ("Dynamic require of ... is not supported"), which
+  # silently kills ALL Firestore access in this function (no RAG, no logging).
+  # NFT traces and ships real files/node_modules instead of bundling, so the
+  # CJS require chain works natively. Do not switch this back to esbuild.
+  node_bundler = "nft"
 
 [functions."chat-eval"]
   timeout = 26
