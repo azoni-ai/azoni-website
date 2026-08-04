@@ -1,7 +1,6 @@
 import React from 'react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
-import ContactBand from '../components/home/ContactBand';
 import { profile, skills } from '../data/profile';
 import '../styles/about-warm.css';
 
@@ -129,8 +128,6 @@ const About = () => {
             </p>
           </section>
         </div>
-
-        <ContactBand profile={profile} />
       </div>
     </Layout>
   );
