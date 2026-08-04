@@ -316,6 +316,7 @@ export default function Board() {
         title="Board"
         description="A kanban board of my projects. Every project is an epic, built from GitHub activity."
         path="/board"
+        noIndex
       />
       <div className="board-page">
         <div className="board-page-inner">

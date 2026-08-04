@@ -10,8 +10,8 @@ const Resume = () => {
   return (
     <Layout>
       <Seo
-        title="Résumé"
-        description="Charlton Smith's résumé. Software engineer building AI products and full-stack systems."
+        title="Resume"
+        description="Charlton Smith's resume. Software engineer building AI products and full-stack systems."
         path="/resume"
       />
       <div className="resume-page">

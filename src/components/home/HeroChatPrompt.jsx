@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const SUGGESTIONS = [
   "What has Charlton built?",
   "What's his DevOps + infra experience?",
-  "Where would he fit on a team?",
+  "How does this chatbot work?",
 ];
 
 const SYSTEM_GREETING = null; // no pre-seeded history; keeps the one-shot clean

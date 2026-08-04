@@ -39,7 +39,7 @@ const HomeHero = ({ profile, aside, stats }) => {
 
           <div className="home-hero-ctas">
             <Link to="/resume" className="home-hero-cta home-hero-cta--primary">
-              Résumé
+              Resume
             </Link>
             <a
               href={github}

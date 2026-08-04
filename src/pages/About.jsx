@@ -85,7 +85,8 @@ const About = () => {
               </p>
               <p>
                 I like building whole products and keeping them running, so I can see how they hold up.
-                The agent stack lets me do that across more projects than I could by hand.
+                The agent stack lets me do that across more projects than I could by hand. In 2026 I
+                formed <strong>Azoni LLC</strong>, the company behind this site and the products on it.
               </p>
             </div>
           </section>

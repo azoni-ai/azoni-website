@@ -7,13 +7,13 @@ const Navbar = () => {
   const location = useLocation();
 
   // Hub retired into the live product cards on /projects. Board (the kanban)
-  // stays as a public read-only showcase alongside the /live feeds.
+  // is unlisted since the LLC switch: the /board URL still works for direct
+  // visits, it just isn't part of the client-facing nav.
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/about', label: 'About' },
     { path: '/projects', label: 'Projects' },
     { path: '/live', label: 'Live' },
-    { path: '/board', label: 'Board' },
     { path: '/blog', label: 'Writing' },
     { path: '/chat', label: 'Chat' },
     { path: '/resume', label: 'Resume' },

@@ -47,7 +47,7 @@ const Blog = () => {
     <Layout>
       <Seo
         title="Writing"
-        description="Notes on AI-assisted development and the systems that run my portfolio, posted daily by an agent that reads my commits."
+        description="Notes on AI-assisted development and the systems behind my work, posted daily by an agent that reads my commits."
         path="/blog"
       />
       <div className="blog-page-warm">

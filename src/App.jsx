@@ -21,6 +21,7 @@ const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
 const Board = lazy(() => import("./pages/Board"));
 const Live = lazy(() => import("./pages/Live"));
 const About = lazy(() => import("./pages/About"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 
 const App = () => {
   useEffect(() => {
@@ -44,6 +45,7 @@ const App = () => {
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/resume" element={<Resume />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />

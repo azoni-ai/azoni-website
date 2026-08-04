@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { profile as staticProfile } from '../../data/profile';
 import '../../styles/contact-band.css';
 
-// Closing conversion surface: a recruiter-facing "work with me" band. The whole
-// point of the site is to make contacting easy, so the ask is explicit and the
-// email is the primary action (not buried in the footer).
+// Closing contact surface for clients and recruiters alike. The whole point of
+// the site is to make contacting easy, so the ask is explicit and the email is
+// the primary action (not buried in the footer).
 
 const ContactBand = ({ profile }) => {
   const data = profile || staticProfile;
@@ -21,14 +21,14 @@ const ContactBand = ({ profile }) => {
           Get in touch
         </h2>
         <p className="contact-band-lede">
-          I build AI products and the infrastructure behind them. If you&rsquo;re hiring or want to
-          work together, email me.
+          I build AI products and the infrastructure behind them. Want to talk about a project or a
+          role? Email me.
         </p>
         <div className="contact-band-actions">
           <a href={`mailto:${email}`} className="contact-band-cta contact-band-cta--primary">
             {email}
           </a>
-          <Link to="/resume" className="contact-band-cta">Résumé</Link>
+          <Link to="/resume" className="contact-band-cta">Resume</Link>
           <a href={linkedin} target="_blank" rel="noopener noreferrer" className="contact-band-cta">
             LinkedIn
           </a>

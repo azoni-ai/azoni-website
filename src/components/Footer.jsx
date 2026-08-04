@@ -13,10 +13,11 @@ const Footer = () => {
           <a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
           <a href={profile.links.twitter} target="_blank" rel="noopener noreferrer">Twitter</a>
           <Link to="/resume">Resume</Link>
+          <Link to="/privacy">Privacy</Link>
           <a href={`mailto:${profile.email}`}>Contact</a>
         </div>
         <p>
-          © {currentYear} {profile.name} &middot; Seattle, WA &middot; Auto-deployed from{' '}
+          © {currentYear} Azoni LLC &middot; Seattle, WA &middot; Auto-deployed from{' '}
           <a
             href="https://github.com/azoni-ai/azoni-website"
             target="_blank"

@@ -543,7 +543,7 @@ const Chat = () => {
     <Layout hideFooter>
       <Seo
         title="Chat with my AI"
-        description="Ask my portfolio anything. A RAG assistant grounded in my résumé and project notes."
+        description="Ask about my work, experience, and live app data. A RAG assistant grounded in my resume and project notes."
         path="/chat"
       />
       <div className="chat-container chat-page-warm">
