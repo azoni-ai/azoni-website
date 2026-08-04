@@ -121,6 +121,14 @@ async function callMCPTool(endpoint, options = {}) {
 let db = null;
 let admin = null;
 let firebaseInitError = null;
+// The ESM/NFT chat-stream entry imports firebase-admin statically and injects it
+// here — bundlers repeatedly broke the lazy require() in that runtime (esbuild
+// rewrote the SDK's internal requires; NFT's trace missed the module entirely).
+// CJS consumers (chat-eval) still fall through to require('firebase-admin').
+let injectedAdmin = null;
+function provideFirebaseAdmin(mod) {
+  injectedAdmin = mod && (mod.default || mod);
+}
 
 function initFirebase() {
   if (db) return true;
@@ -137,7 +145,7 @@ function initFirebase() {
   }
 
   try {
-    admin = require('firebase-admin');
+    admin = injectedAdmin || require('firebase-admin');
     if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert({ projectId, clientEmail, privateKey: privateKey.replace(/\\n/g, '\n') })
@@ -885,6 +893,7 @@ module.exports = {
   DEFAULT_MODEL,
   supportsCustomTemperature,
   getFirebaseInitError,
+  provideFirebaseAdmin,
   logChatActivity,
   logKnowledgeGap,
   logChatTurn,

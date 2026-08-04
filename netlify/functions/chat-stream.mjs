@@ -19,7 +19,15 @@
 import { createRequire } from 'node:module';
 if (typeof globalThis.require === 'undefined') globalThis.require = createRequire(import.meta.url);
 
+// Static ESM import so NFT traces firebase-admin (plus its transitive deps) into
+// the deployed package — the lazy require inside chat-core was invisible to the
+// trace ("Cannot find module 'firebase-admin'" at runtime). The instance is
+// injected into chat-core below. COUPLED to node_bundler = "nft" in netlify.toml:
+// under esbuild this import would inline the SDK and crash at load.
+import adminSdk from 'firebase-admin';
 import core from './chat-core.js';
+
+core.provideFirebaseAdmin(adminSdk);
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
