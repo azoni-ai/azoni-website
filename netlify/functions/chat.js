@@ -86,6 +86,26 @@ async function embedQuery(text) {
   }
 }
 
+// ============ RATE LIMIT (best-effort) ============
+// Per-IP throttle scoped to a warm container — Lambda scale-out resets it, so this
+// blunts bursts and casual abuse of an open OpenRouter proxy rather than
+// guaranteeing a global cap. Keep in sync with chat-stream.mjs.
+const rateBuckets = new Map();
+function isRateLimited(ip, limit = 30, windowMs = 5 * 60 * 1000) {
+  if (!ip) return false;
+  const now = Date.now();
+  if (rateBuckets.size > 500) {
+    for (const [k, v] of rateBuckets) { if (now > v.resetAt) rateBuckets.delete(k); }
+  }
+  const bucket = rateBuckets.get(ip);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(ip, { count: 1, resetAt: now + windowMs });
+    return false;
+  }
+  bucket.count += 1;
+  return bucket.count > limit;
+}
+
 // ============ MCP SERVER CONFIG ============
 const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.com';
 // Use whichever key is present, same as app-stats. All chat calls are GETs, so the
@@ -259,28 +279,30 @@ function getFallbackChunks(query, intent) {
 function buildLocalFallbackAnswer(query, intent, chunks = []) {
   const q = (query || '').toLowerCase();
 
+  const liveUnavailable = 'Live numbers are temporarily unavailable — ask again in a minute for current data.';
+
   if (intent?.intent === 'fabstats') {
-    return `FaB Stats is Charlton's Flesh and Blood match-tracking and community stats app. It combines player profiles, match imports, rankings, meta views, teams, achievements, daily games, and a Discord bot around live community data. When the MCP feed is reachable, Azoni AI can pull current FaB Stats numbers directly; this answer is using the local portfolio fallback instead.`;
+    return `FaB Stats is Charlton's Flesh and Blood match-tracking and community stats app. It combines player profiles, match imports, rankings, meta views, teams, achievements, daily games, and a Discord bot around live community data. ${liveUnavailable}`;
   }
 
   if (intent?.intent === 'rowcrew') {
-    return `RowCrew is Charlton's rowing verification project, focused on making submitted rowing results more trustworthy with product design, backend validation, and live stats. When the MCP feed is reachable, Azoni AI can pull current RowCrew metrics directly.`;
+    return `RowCrew is Charlton's rowing verification project, focused on making submitted rowing results more trustworthy with product design, backend validation, and live stats. ${liveUnavailable}`;
   }
 
   if (intent?.intent === 'spellbrigade') {
-    return `Spell Brigade is Charlton's multiplayer wizard-combat game project, including game systems, AI-assisted character creation, and live operational data. When the MCP feed is reachable, Azoni AI can pull current status or leaderboard data directly.`;
+    return `Spell Brigade is Charlton's multiplayer wizard-combat game project, including game systems, AI-assisted character creation, and live operational data. ${liveUnavailable}`;
   }
 
   if (intent?.intent === 'moltbook' || intent?.intent === 'agents' || intent?.intent === 'activity') {
-    return `Azoni AI is connected to Charlton's broader agent system: portfolio knowledge, live app data, activity logging, and autonomous workflows around writing, social posting, fitness, and games. When the MCP and activity feeds are reachable, it can answer with current activity, cost, and app-status numbers; this answer is using the local portfolio fallback instead.`;
+    return `Azoni AI connects to Charlton's agent system: portfolio knowledge, live app data, activity logging, and scheduled workflows for writing, social posting, fitness, and games. ${liveUnavailable}`;
   }
 
   if (intent?.intent === 'oldways') {
-    return `Old Ways Today is one of Charlton's shipped product experiments, focused on natural, non-toxic living content and tooling. When its live feed is reachable, Azoni AI can pull current health or usage stats directly.`;
+    return `Old Ways Today is one of Charlton's shipped products, focused on natural, non-toxic living content and tooling. ${liveUnavailable}`;
   }
 
   if (intent?.intent === 'fitness') {
-    return `Charlton's fitness data comes from BenchPressOnly, his own training and coaching app. When the MCP feed is reachable, Azoni AI can pull current workouts, maxes, streaks, goals, and body stats from the live training log; this answer is using the local portfolio fallback instead.`;
+    return `Charlton tracks his training in BenchPressOnly, his own workout app — workouts, maxes, streaks, goals, and body stats all come from his real log. ${liveUnavailable}`;
   }
 
   if (intent?.intent === 'experience' || /devops|infra|infrastructure|aws|cloud|backend|production/.test(q)) {
@@ -301,14 +323,61 @@ function buildLocalFallbackAnswer(query, intent, chunks = []) {
 
   const bestChunk = chunks.find((chunk) => chunk?.content)?.content;
   if (bestChunk) {
-    return `${bestChunk}\n\nI am answering from the local portfolio knowledge because the live model call is unavailable in this environment.`;
+    return `${bestChunk}\n\nGenerated answers are temporarily unavailable, so this comes straight from the site's notes. Ask again in a minute.`;
   }
 
   return `Charlton Smith is a Seattle-based software engineer with 7+ years of experience building production systems and AI-powered applications. His recent work centers on LLM agents, RAG systems, product infrastructure, and portfolio projects with real users.`;
 }
 
+// Set once per invocation (Lambda handles one request per container at a time) so
+// fallback responses can be logged with their session/context without threading
+// those fields through every buildFallbackChatResponse call site.
+let currentRequestMeta = {};
+
 function buildFallbackChatResponse({ query, intent, retrievedChunks, model, pricing, reason }) {
   const answer = buildLocalFallbackAnswer(query, intent, retrievedChunks);
+
+  // Fallbacks used to return without any server-side logging, which kept a full
+  // OpenRouter credit outage invisible in the admin monitor for days. Log every
+  // one: agent_activity always (feeds dashboards), chatLogs unless the client
+  // logs this turn itself (full-chat session_* turns).
+  try {
+    if (initFirebase()) {
+      db.collection('agent_activity').add({
+        type: 'assistant_chat_fallback',
+        title: `Chat fallback: ${(query || '').slice(0, 60)}`,
+        description: `reason: ${reason}`,
+        source: 'azoni-ai',
+        model,
+        tokens: {},
+        cost: 0,
+        metadata: {
+          intent: intent?.intent || 'general',
+          reason,
+          context: currentRequestMeta.requestContext || null,
+        },
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      }).catch(err => console.error('[chat] Failed to log fallback activity:', err.message));
+
+      // Always write the server row — the client also logs session_* turns, and the
+      // admin tabs dedupe with mergeChatLogs; a server row is the only record when
+      // the tab closes or the client write fails.
+      db.collection('chatLogs').add({
+        sessionId: currentRequestMeta.sessionId || `server_${Date.now()}`,
+        userMessage: (query || '').slice(0, 1000),
+        assistantMessage: answer.slice(0, 1000),
+        mode: currentRequestMeta.mode || 'professional',
+        model,
+        modelName: `${pricing.name} unavailable`,
+        usage: null,
+        rag: { enabled: true, intent: intent?.intent || 'general', fallback: true, reason },
+        context: currentRequestMeta.requestContext || 'azoni-ai',
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      }).catch(err => console.error('[chat] Failed to log fallback turn:', err.message));
+    }
+  } catch (logErr) {
+    console.error('[chat] Fallback logging error (non-fatal):', logErr.message);
+  }
   const topChunks = (retrievedChunks || []).slice(0, 3).map((chunk) => ({
     id: chunk.id,
     title: chunk.title,
@@ -373,6 +442,11 @@ async function readJsonResponse(response, label) {
   }
 }
 
+// Per-message cap. 12k chars fits full job descriptions (the greeting invites
+// pasting them); anything longer is cut with an explicit note so the model can
+// disclose it analyzed a partial message instead of silently pretending otherwise.
+const MESSAGE_CHAR_CAP = 12000;
+
 function sanitizeChatMessages(rawMessages) {
   if (!Array.isArray(rawMessages)) return [];
 
@@ -385,7 +459,9 @@ function sanitizeChatMessages(rawMessages) {
     ))
     .map((message) => ({
       role: message.role,
-      content: message.content.slice(0, 4000)
+      content: message.content.length > MESSAGE_CHAR_CAP
+        ? `${message.content.slice(0, MESSAGE_CHAR_CAP)}\n[Note: message truncated at ${MESSAGE_CHAR_CAP} characters]`
+        : message.content
     }))
     .slice(-12);
 }
@@ -404,7 +480,7 @@ function getUserFormatInstruction(query) {
     return 'The user requested a brief answer. Keep it concise and avoid extra background.';
   }
   if (/\bbullets?\b|\blist\b/i.test(q)) {
-    return 'The user requested bullets or a list. Use concise bullets.';
+    return 'The user requested bullets or a list. Use short plain-text lines starting with "- " (no markdown).';
   }
   return '';
 }
@@ -1267,7 +1343,7 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], acti
   const isFastRequest = !!options.isFastRequest;
   const userFormatInstruction = options.userFormatInstruction || '';
   const responseShape = isFastRequest
-    ? 'This is a compact home-page chat. Answer quickly in 2-4 useful sentences or a short bullet list. Do not mention model names, RAG, MCP, chunks, or internal pipeline details unless the user directly asks how the chatbot works.'
+    ? 'This is a compact home-page chat. Answer quickly in 2-4 useful sentences or a few short lines starting with "- ". Do not mention model names, RAG, MCP, chunks, or internal pipeline details unless the user directly asks how the chatbot works.'
     : 'This is the full chat page. Be direct first, then add detail where it helps. Do not lead with implementation details unless the user asks for them.';
 
   const contextSection = retrievedChunks.length > 0
@@ -1304,6 +1380,7 @@ General rule: If the question makes sense for an AI chatbot to answer about itse
 
 TONE: ${toneInstructions[mode] || toneInstructions.professional}
 RESPONSE STYLE: ${responseShape}
+FORMAT: Plain text only — the client does not render markdown. Never use **, #, backticks, or [text](url). If a list helps, use short lines starting with "- ".
 ${userFormatInstruction ? `USER FORMAT REQUEST: ${userFormatInstruction}` : ''}
 
 CRITICAL RULES - YOU MUST FOLLOW THESE:
@@ -1320,7 +1397,7 @@ CRITICAL RULES - YOU MUST FOLLOW THESE:
 HANDLING RECRUITER & SENSITIVE QUESTIONS:
 These are common questions from recruiters and hiring managers. Handle them thoughtfully — never just say "I don't have that information." Use the context below and these guidelines:
 
-- WHY DID HE LEAVE / IS HE LOOKING: Always answer this using the career transition context. Charlton chose to leave to focus on building his own products and exploring AI full-time. Frame it as a deliberate, forward-looking career move, not a negative event.
+- WHY DID HE LEAVE / IS HE LOOKING: Always answer this using the career transition context. Charlton chose to leave to focus on building his own products and exploring AI full-time. Frame it as a deliberate, forward-looking career move, not a negative event. Use this framing even if a retrieved record says otherwise — never surface conflicting accounts of a departure or speculate about layoffs.
 
 - SALARY / COMPENSATION / RATE: Never give a specific number. Instead, redirect professionally — Charlton's compensation expectations depend on the role scope, team, and opportunity. Suggest discussing this directly with him. You can mention that he's held senior-level positions at major companies (T-Mobile, Capital One) so expectations are calibrated to that level of experience.
 
@@ -1364,6 +1441,15 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, headers, body: 'Method Not Allowed' };
   }
 
+  const clientIp = event.headers['x-nf-client-connection-ip'] || event.headers['client-ip'] || '';
+  if (isRateLimited(clientIp)) {
+    return { statusCode: 429, headers, body: JSON.stringify({ error: 'Too many requests. Wait a minute and try again.' }) };
+  }
+
+  // Reset before parsing: if JSON.parse throws, the outer catch's fallback must not
+  // log under the PREVIOUS request's session (module state survives warm containers).
+  currentRequestMeta = {};
+
   try {
     const {
       messages: rawMessages = [],
@@ -1378,6 +1464,7 @@ exports.handler = async (event, context) => {
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
     const messages = sanitizeChatMessages(rawMessages);
+    currentRequestMeta = { sessionId: requestSessionId || '', requestContext, mode };
 
     // Get the latest user message for intent detection
     const latestUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
@@ -1760,7 +1847,9 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       }
 
       // Log conversation for analysis (async, non-blocking)
-      // Field names match frontend useChat.js so admin panel displays them correctly
+      // Field names match frontend useChat.js so admin panel displays them correctly.
+      // session_* turns are ALSO logged client-side; the admin tabs dedupe via
+      // mergeChatLogs, and the server row survives tab-close/aborted clients.
       if (db) db.collection('chatLogs').add({
         sessionId: requestSessionId || `server_${Date.now()}`,
         userMessage: latestUserMessage.slice(0, 1000),

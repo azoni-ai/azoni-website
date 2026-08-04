@@ -959,7 +959,8 @@ h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
   .chat-input {
     padding: var(--space-sm);
-    font-size: 0.9rem;
+    /* Keep 16px (base 1rem): anything smaller makes iOS Safari zoom on focus and
+       crop the 100dvh chat layout until the user pinches out. */
   }
 
   .chat-disclaimer {

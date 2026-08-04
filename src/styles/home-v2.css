@@ -374,7 +374,7 @@
   border: 0;
   outline: none;
   font-family: var(--font-body);
-  font-size: 0.98rem;
+  font-size: 1rem; /* 16px floor: below this iOS Safari zooms on focus */
   color: var(--text-warm);
   padding: 8px 0;
 }

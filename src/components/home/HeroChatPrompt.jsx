@@ -65,7 +65,7 @@ const HeroChatPrompt = () => {
       });
     } catch (err) {
       console.error('hero chat error', err);
-      setError('Something went wrong. Try the full chat page instead.');
+      setError('Something went wrong. Use "Continue in full chat" below to retry.');
     } finally {
       setIsLoading(false);
     }
@@ -187,18 +187,20 @@ const HeroChatPrompt = () => {
           )}
           {error && <p className="hero-chat-error">{error}</p>}
           <div className="hero-chat-cta-row">
-            {(() => {
-              const lastUserMsg = [...conversation].reverse().find((m) => m.role === 'user');
-              const q = lastUserMsg ? encodeURIComponent(lastUserMsg.content) : '';
-              return (
-                <Link
-                  to={q ? `/chat?q=${q}` : '/chat'}
-                  className="hero-chat-continue"
-                >
-                  Open full chat →
-                </Link>
-              );
-            })()}
+            {/* Carry the whole hero thread (and session id, as a log join key) into
+                the full chat via router state, so the conversation continues instead
+                of re-asking the question from scratch. ?q= remains the fallback for
+                direct/shared URLs with no router state. */}
+            <Link
+              to="/chat"
+              state={{
+                heroThread: conversation.map(({ role, content }) => ({ role, content })),
+                heroSessionId: sessionIdRef.current,
+              }}
+              className="hero-chat-continue"
+            >
+              Continue in full chat →
+            </Link>
           </div>
         </div>
       )}

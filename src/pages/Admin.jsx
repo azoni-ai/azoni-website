@@ -2,24 +2,45 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { db } from '../config/firebase';
-import { 
-  collection, 
-  query, 
-  orderBy, 
+import {
+  collection,
+  query,
+  orderBy,
   limit,
-  onSnapshot, 
-  doc, 
-  updateDoc, 
-  deleteDoc,
-  addDoc,
-  arrayUnion,
-  Timestamp,
-  getDoc,
-  setDoc,
-  serverTimestamp
+  onSnapshot,
+  doc,
+  getDoc
 } from 'firebase/firestore';
 
-const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD;
+// Shared helper for the token-gated admin-data function (server-side reads/writes
+// that Firestore rules no longer allow from the client).
+export const adminData = async (action, params = {}) => {
+  const res = await fetch('/.netlify/functions/admin-data', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${sessionStorage.getItem('rag_admin_token') || ''}`,
+    },
+    body: JSON.stringify({ action, ...params }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `admin-data ${action} failed (${res.status})`);
+  return data;
+};
+
+// admin-data serializes Firestore Timestamps to ISO strings; the rendering code
+// throughout this file expects Timestamp-like objects (`ts?.toDate?.()`). Wrap the
+// strings back into that shape so nothing downstream changes.
+const reviveTimestamps = (row) => {
+  const out = { ...row };
+  ['timestamp', 'createdAt', 'scoredAt', 'receivedAt'].forEach((k) => {
+    if (typeof out[k] === 'string') {
+      const d = new Date(out[k]);
+      if (!Number.isNaN(d.getTime())) out[k] = { toDate: () => d };
+    }
+  });
+  return out;
+};
 
 const Admin = () => {
   const [authenticated, setAuthenticated] = useState(false);
@@ -33,16 +54,29 @@ const Admin = () => {
     if (session === 'true') setAuthenticated(true);
   }, []);
 
-  const handleLogin = (e) => {
+  // Password is verified server-side (admin-data 'auth' vs RAG_ADMIN_KEY) — the
+  // old client-side compare shipped the admin password inside the JS bundle.
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setAuthenticated(true);
-      sessionStorage.setItem('admin_authenticated', 'true');
-      // Also use the entered password as the bearer token for write-protected
-      // backend endpoints (rag-admin). Set RAG_ADMIN_KEY in Netlify to this value.
-      sessionStorage.setItem('rag_admin_token', password);
-    } else {
-      setLoginError('Invalid password');
+    setLoginError('');
+    try {
+      const res = await fetch('/.netlify/functions/admin-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auth', password }),
+      });
+      if (res.ok) {
+        setAuthenticated(true);
+        sessionStorage.setItem('admin_authenticated', 'true');
+        // The verified password doubles as the bearer token for the gated
+        // backend endpoints (admin-data, rag-admin, chat-eval).
+        sessionStorage.setItem('rag_admin_token', password);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setLoginError(data.error || 'Invalid password');
+      }
+    } catch {
+      setLoginError('Login service unavailable. Try again.');
     }
   };
 
@@ -186,17 +220,17 @@ const AgentsTab = () => {
   useEffect(() => {
     const unsubscribes = [];
 
-    // Agent chat logs
-    const q1 = query(
-      collection(db, 'agentChatLogs'),
-      orderBy('timestamp', 'desc'),
-      limit(200)
-    );
-    unsubscribes.push(onSnapshot(q1, (snap) => {
-      setAgentChats(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, (err) => console.error('agentChatLogs error:', err)));
+    // Agent chat logs + error logs live behind the admin-data function (their
+    // collections have no client read access), so they load as one-shot fetches.
+    adminData('list-agent-chat-logs', { limit: 200 })
+      .then(({ logs }) => setAgentChats((logs || []).map(reviveTimestamps)))
+      .catch((err) => console.error('agentChatLogs error:', err));
+    adminData('list-errors', { limit: 200 })
+      .then(({ errors }) => setErrorLogs((errors || []).map(reviveTimestamps)))
+      .catch((err) => console.error('error_logs error:', err))
+      .finally(() => setLoading(false));
 
-    // Agent activity
+    // Agent activity stays real-time — it is a public-read collection.
     const q2 = query(
       collection(db, 'agent_activity'),
       orderBy('timestamp', 'desc'),
@@ -205,17 +239,6 @@ const AgentsTab = () => {
     unsubscribes.push(onSnapshot(q2, (snap) => {
       setActivities(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (err) => console.error('agent_activity error:', err)));
-
-    // Error logs
-    const q3 = query(
-      collection(db, 'error_logs'),
-      orderBy('timestamp', 'desc'),
-      limit(200)
-    );
-    unsubscribes.push(onSnapshot(q3, (snap) => {
-      setErrorLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    }, (err) => { console.error('error_logs error:', err); setLoading(false); }));
 
     return () => unsubscribes.forEach(u => u());
   }, []);
@@ -681,21 +704,13 @@ const BlogTab = () => {
 
     setSaving(true);
     try {
-      const postData = {
-        ...formData,
-        updatedAt: Timestamp.now()
-      };
-
-      if (formData.published && !editingPost?.publishedAt) {
-        postData.publishedAt = Timestamp.now();
-      }
-
-      if (editingPost) {
-        await updateDoc(doc(db, 'blogPosts', editingPost.id), postData);
-      } else {
-        postData.createdAt = Timestamp.now();
-        await addDoc(collection(db, 'blogPosts'), postData);
-      }
+      // Writes go through admin-data (blogPosts is no longer client-writable);
+      // timestamps are stamped server-side.
+      await adminData('save-blog-post', {
+        id: editingPost?.id || null,
+        post: formData,
+        setPublishedAt: !!(formData.published && !editingPost?.publishedAt),
+      });
 
       setShowEditor(false);
       setEditingPost(null);
@@ -724,7 +739,7 @@ const BlogTab = () => {
 
   const deletePost = async (post) => {
     if (!window.confirm(`Delete "${post.title}"?`)) return;
-    await deleteDoc(doc(db, 'blogPosts', post.id));
+    await adminData('delete-blog-post', { id: post.id });
   };
 
   const formatDate = (timestamp) => {
@@ -982,7 +997,8 @@ const UsageTab = () => {
   const saveModel = async (model) => {
     setSavingModel(true);
     try {
-      await setDoc(doc(db, 'settings', 'chat'), { model }, { merge: true });
+      // settings writes go through admin-data (no longer client-writable).
+      await adminData('set-chat-model', { model });
       setSelectedModel(model);
     } catch (err) {
       console.error('Error saving model:', err);
@@ -991,26 +1007,20 @@ const UsageTab = () => {
     setSavingModel(false);
   };
 
+  // chatLogs is no longer publicly readable (visitor privacy) — load a bounded
+  // window through admin-data instead of an unbounded real-time listener. This
+  // also fixes the old quota hazard of onSnapshot over the whole collection.
   useEffect(() => {
-    const q = query(
-      collection(db, 'chatLogs'),
-      orderBy('timestamp', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const logs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setChatLogs(logs);
-      calculateStats(logs);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error loading chat logs:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    adminData('list-chat-logs', { limit: 500 })
+      .then(({ logs }) => {
+        // Dedupe the dual client+server rows per turn (same as MonitorTab) so the
+        // usage numbers count each turn once.
+        const revived = mergeChatLogs((logs || []).map(reviveTimestamps));
+        setChatLogs(revived);
+        calculateStats(revived);
+      })
+      .catch((error) => console.error('Error loading chat logs:', error))
+      .finally(() => setLoading(false));
   }, []);
 
   const calculateStats = (logs) => {
@@ -1248,31 +1258,25 @@ const MonitorTab = () => {
   const [runError, setRunError] = useState(null);
   const [scoring, setScoring] = useState({});
 
+  // All four feeds load through admin-data: chatLogs is privacy-locked, and the
+  // gaps/evals/errors collections never had client read rules (those views were
+  // silently empty before this). refreshTick re-pulls everything on demand.
+  const [refreshTick, setRefreshTick] = useState(0);
   useEffect(() => {
-    const q = query(collection(db, 'chatLogs'), orderBy('timestamp', 'desc'), limit(300));
-    return onSnapshot(q, (snap) => {
-      setLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    }, () => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, 'chat_evals'), orderBy('createdAt', 'desc'), limit(20));
-    return onSnapshot(q, (snap) => setEvalRuns(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), () => {});
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, 'knowledge_gaps'), orderBy('timestamp', 'desc'), limit(50));
-    return onSnapshot(q, (snap) => setGaps(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), () => {});
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, 'error_logs'), orderBy('timestamp', 'desc'), limit(80));
-    return onSnapshot(q, (snap) => {
-      const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setErrors(all.filter((e) => /chat/i.test(e.source || '')));
-    }, () => {});
-  }, []);
+    adminData('list-chat-logs', { limit: 300 })
+      .then(({ logs: rows }) => setLogs((rows || []).map(reviveTimestamps)))
+      .catch((err) => console.error('monitor chatLogs error:', err))
+      .finally(() => setLoading(false));
+    adminData('list-evals', { limit: 20 })
+      .then(({ evals }) => setEvalRuns((evals || []).map(reviveTimestamps)))
+      .catch(() => {});
+    adminData('list-gaps', { limit: 50 })
+      .then(({ gaps: rows }) => setGaps((rows || []).map(reviveTimestamps)))
+      .catch(() => {});
+    adminData('list-errors', { limit: 80 })
+      .then(({ errors: all }) => setErrors((all || []).map(reviveTimestamps).filter((e) => /chat/i.test(e.source || ''))))
+      .catch(() => {});
+  }, [refreshTick]);
 
   const merged = useMemo(() => mergeChatLogs(logs), [logs]);
   const latestRun = evalRuns[0];
@@ -1325,6 +1329,7 @@ const MonitorTab = () => {
       }
       await res.json();
       setView('eval');
+      setRefreshTick((t) => t + 1); // pull the new eval run into the feeds
     } catch (err) {
       setRunError(err.message);
     }
@@ -1349,7 +1354,10 @@ const MonitorTab = () => {
         throw new Error(e.details || e.error || `HTTP ${res.status}`);
       }
       const result = await res.json();
-      await updateDoc(doc(db, 'chatLogs', id), { eval: { ...result, scoredAt: Timestamp.now() } });
+      // chatLogs updates are rules-denied from the client (this call silently
+      // failed for months) — persist the score through admin-data instead.
+      await adminData('save-eval', { logId: id, evalData: { ...result, scoredAt: new Date().toISOString() } });
+      setRefreshTick((t) => t + 1);
     } catch (err) {
       alert(`Scoring failed: ${err.message}`);
     }
@@ -1600,24 +1608,24 @@ const CommentsTab = () => {
     return () => unsubscribe();
   }, []);
 
+  // Comment moderation goes through admin-data — client update/delete on
+  // comments is denied by the Firestore rules.
   const approveComment = async (id) => {
-    await updateDoc(doc(db, 'comments', id), { approved: true });
+    await adminData('moderate-comment', { id, op: 'approve' });
   };
 
   const rejectComment = async (id) => {
-    await updateDoc(doc(db, 'comments', id), { approved: false });
+    await adminData('moderate-comment', { id, op: 'reject' });
   };
 
   const deleteComment = async (id) => {
     if (!window.confirm('Delete this comment?')) return;
-    await deleteDoc(doc(db, 'comments', id));
+    await adminData('moderate-comment', { id, op: 'delete' });
   };
 
   const submitReply = async (id) => {
     if (!replyText.trim()) return;
-    await updateDoc(doc(db, 'comments', id), {
-      replies: arrayUnion({ text: replyText.trim(), createdAt: Timestamp.now() })
-    });
+    await adminData('moderate-comment', { id, op: 'reply', reply: replyText.trim() });
     setReplyText('');
     setReplyingTo(null);
   };
@@ -2608,10 +2616,9 @@ const ProfileEditor = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await setDoc(doc(db, 'profile', 'main'), {
-        ...profile,
-        lastUpdated: serverTimestamp()
-      }, { merge: true });
+      // profile writes go through admin-data (no longer client-writable);
+      // lastUpdated is stamped server-side.
+      await adminData('save-profile', { profile: { ...profile, lastUpdated: new Date().toISOString() } });
       alert('Profile saved!');
     } catch (err) {
       alert('Error saving: ' + err.message);
@@ -2733,7 +2740,8 @@ const ProfileEditor = () => {
 
 // ============ MOLTBOOK TAB ============
 const AGENT_API_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
-const MOLTBOOK_ADMIN_KEY = process.env.REACT_APP_MOLTBOOK_ADMIN_KEY || '';
+// Writes authenticate server-side via the admin-data moltbook proxy — the admin
+// key must never appear in a REACT_APP_ var (CRA inlines those into the bundle).
 
 // Helper to safely render any value (handles objects)
 const safeRender = (value, fallback = 'Unknown') => {
@@ -2779,16 +2787,22 @@ const MoltbookTab = () => {
   // Post topics queue
   const [newTopic, setNewTopic] = useState('');
 
-  // Auth headers for write operations
-  const agentAuthHeaders = () => {
-    const headers = { 'Content-Type': 'application/json' };
-    if (MOLTBOOK_ADMIN_KEY) headers['X-Admin-Key'] = MOLTBOOK_ADMIN_KEY;
-    return headers;
-  };
+  // Writes are proxied through admin-data so the Moltbook admin key stays
+  // server-side (it used to ship inside the JS bundle). Returns the fetch
+  // Response with the upstream status passed through.
+  const agentWrite = (path, body, method = 'POST') =>
+    fetch('/.netlify/functions/admin-data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionStorage.getItem('rag_admin_token') || ''}`,
+      },
+      body: JSON.stringify({ action: 'moltbook-proxy', path, method, body }),
+    });
 
   const handleAuthError = (res) => {
     if (res.status === 401) {
-      setError('401 Unauthorized — check REACT_APP_MOLTBOOK_ADMIN_KEY in your Netlify env vars');
+      setError('401 Unauthorized — sign in to the admin panel again (or set MOLTBOOK_ADMIN_KEY in the Netlify env)');
       return true;
     }
     return false;
@@ -2845,11 +2859,7 @@ const MoltbookTab = () => {
     setActionLoading(true);
     try {
       const newMode = !config?.autonomous_mode;
-      const res = await fetch(`${AGENT_API_URL}/config`, {
-        method: 'PATCH',
-        headers: agentAuthHeaders(),
-        body: JSON.stringify({ autonomous_mode: newMode })
-      });
+      const res = await agentWrite('/config', { autonomous_mode: newMode }, 'PATCH');
 
       if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
@@ -2866,11 +2876,7 @@ const MoltbookTab = () => {
   const saveIntervals = async () => {
     setSavingIntervals(true);
     try {
-      const res = await fetch(`${AGENT_API_URL}/config`, {
-        method: 'PATCH',
-        headers: agentAuthHeaders(),
-        body: JSON.stringify({ intervals })
-      });
+      const res = await agentWrite('/config', { intervals }, 'PATCH');
       if (handleAuthError(res)) { setSavingIntervals(false); return; }
       if (res.ok) showSuccess('Intervals saved & jobs rescheduled');
       else setError('Failed to save intervals');
@@ -2884,11 +2890,7 @@ const MoltbookTab = () => {
   const triggerManualRun = async () => {
     setActionLoading(true);
     try {
-      const res = await fetch(`${AGENT_API_URL}/run/sync`, {
-        method: 'POST',
-        headers: agentAuthHeaders(),
-        body: JSON.stringify({ context: runContext || null })
-      });
+      const res = await agentWrite('/run/sync', { context: runContext || null });
 
       if (handleAuthError(res)) { setActionLoading(false); return; }
       const data = await res.json();
@@ -2914,14 +2916,10 @@ const MoltbookTab = () => {
 
     setActionLoading(true);
     try {
-      const res = await fetch(`${AGENT_API_URL}/post`, {
-        method: 'POST',
-        headers: agentAuthHeaders(),
-        body: JSON.stringify({
-          title: postTitle,
-          content: postContent,
-          submolt: postSubmolt
-        })
+      const res = await agentWrite('/post', {
+        title: postTitle,
+        content: postContent,
+        submolt: postSubmolt
       });
 
       if (handleAuthError(res)) { setActionLoading(false); return; }
@@ -2949,13 +2947,9 @@ const MoltbookTab = () => {
 
     setActionLoading(true);
     try {
-      const res = await fetch(`${AGENT_API_URL}/comment`, {
-        method: 'POST',
-        headers: agentAuthHeaders(),
-        body: JSON.stringify({
-          post_id: commentPostId,
-          content: commentContent
-        })
+      const res = await agentWrite('/comment', {
+        post_id: commentPostId,
+        content: commentContent
       });
 
       if (handleAuthError(res)) { setActionLoading(false); return; }
@@ -2984,13 +2978,7 @@ const MoltbookTab = () => {
     setActionLoading(true);
     try {
       const currentTopics = config?.post_topics || [];
-      const res = await fetch(`${AGENT_API_URL}/config`, {
-        method: 'PATCH',
-        headers: agentAuthHeaders(),
-        body: JSON.stringify({
-          post_topics: [...currentTopics, newTopic.trim()]
-        })
-      });
+      const res = await agentWrite('/config', { post_topics: [...currentTopics, newTopic.trim()] }, 'PATCH');
 
       if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
@@ -3012,12 +3000,8 @@ const MoltbookTab = () => {
     try {
       const currentTopics = [...(config?.post_topics || [])];
       currentTopics.splice(index, 1);
-      
-      const res = await fetch(`${AGENT_API_URL}/config`, {
-        method: 'PATCH',
-        headers: agentAuthHeaders(),
-        body: JSON.stringify({ post_topics: currentTopics })
-      });
+
+      const res = await agentWrite('/config', { post_topics: currentTopics }, 'PATCH');
 
       if (handleAuthError(res)) { setActionLoading(false); return; }
       if (res.ok) {
@@ -3068,8 +3052,8 @@ const MoltbookTab = () => {
       <div className="moltbook-header">
         <h2>Moltbook agent</h2>
         <div className="moltbook-header-actions">
-          <span style={{ fontSize: '0.8rem', color: MOLTBOOK_ADMIN_KEY ? '#10b981' : '#f59e0b' }}>
-            {MOLTBOOK_ADMIN_KEY ? 'Auth key set' : 'No admin key'}
+          <span style={{ fontSize: '0.8rem', color: '#10b981' }}>
+            Server-side auth
           </span>
           <a 
             href="https://www.moltbook.com/u/Azoni-AI" 

@@ -132,6 +132,7 @@ function initFirebase() {
 
   if (!projectId || !clientEmail || !privateKey) {
     firebaseInitError = 'Firebase credentials not configured';
+    console.error('[chat-core] initFirebase:', firebaseInitError);
     return false;
   }
 
@@ -145,7 +146,10 @@ function initFirebase() {
     db = admin.firestore();
     return true;
   } catch (error) {
+    // Log loudly: a silent failure here once hid a broken bundle for weeks — every
+    // streamed answer silently fell back to canned chunks with no Firestore access.
     firebaseInitError = `Firebase init failed: ${error.message}`;
+    console.error('[chat-core] initFirebase:', firebaseInitError);
     return false;
   }
 }
@@ -220,11 +224,21 @@ function getFallbackChunks(query, intent) {
 }
 
 // ============ MESSAGE HELPERS ============
+// Per-message cap. 12k chars fits full job descriptions (the greeting invites
+// pasting them); longer input is cut with an explicit note so the model can
+// disclose it analyzed a partial message. Keep in sync with chat.js.
+const MESSAGE_CHAR_CAP = 12000;
+
 function sanitizeChatMessages(rawMessages) {
   if (!Array.isArray(rawMessages)) return [];
   return rawMessages
     .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }))
+    .map((m) => ({
+      role: m.role,
+      content: m.content.length > MESSAGE_CHAR_CAP
+        ? `${m.content.slice(0, MESSAGE_CHAR_CAP)}\n[Note: message truncated at ${MESSAGE_CHAR_CAP} characters]`
+        : m.content
+    }))
     .slice(-12);
 }
 
@@ -237,7 +251,7 @@ function getUserFormatInstruction(query) {
   const sentenceLimit = q.match(/(?:in|under|within)?\s*(\d+)\s+sentences?\s*(?:or less|max|maximum)?/i);
   if (sentenceLimit) return `The user requested ${sentenceLimit[1]} sentences or less. Do not exceed that sentence count.`;
   if (/\b(short|brief|concise|quick|tl;dr|tldr)\b/i.test(q)) return 'The user requested a brief answer. Keep it concise and avoid extra background.';
-  if (/\bbullets?\b|\blist\b/i.test(q)) return 'The user requested bullets or a list. Use concise bullets.';
+  if (/\bbullets?\b|\blist\b/i.test(q)) return 'The user requested bullets or a list. Use short plain-text lines starting with "- " (no markdown).';
   return '';
 }
 
@@ -707,7 +721,7 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], acti
   const isFastRequest = !!options.isFastRequest;
   const userFormatInstruction = options.userFormatInstruction || '';
   const responseShape = isFastRequest
-    ? 'This is a compact home-page chat. Answer quickly in 2-4 useful sentences or a short bullet list. Do not mention model names, RAG, MCP, chunks, or internal pipeline details unless the user directly asks how the chatbot works.'
+    ? 'This is a compact home-page chat. Answer quickly in 2-4 useful sentences or a few short lines starting with "- ". Do not mention model names, RAG, MCP, chunks, or internal pipeline details unless the user directly asks how the chatbot works.'
     : 'This is the full chat page. Be direct first, then add detail where it helps. Do not lead with implementation details unless the user asks for them.';
 
   const contextSection = retrievedChunks.length > 0
@@ -736,6 +750,7 @@ When someone says "you" — figure out if they mean YOU (Azoni AI) or Charlton. 
 
 TONE: ${toneInstructions[mode] || toneInstructions.professional}
 RESPONSE STYLE: ${responseShape}
+FORMAT: Plain text only — the client does not render markdown. Never use **, #, backticks, or [text](url). If a list helps, use short lines starting with "- ".
 ${userFormatInstruction ? `USER FORMAT REQUEST: ${userFormatInstruction}` : ''}
 
 CRITICAL RULES:
@@ -746,7 +761,7 @@ CRITICAL RULES:
 5. For fitness/app/activity questions, use the live data (from tools) to give specific, real numbers, and note it's live data.
 
 HANDLING RECRUITER & SENSITIVE QUESTIONS:
-- WHY DID HE LEAVE / IS HE LOOKING: Answer using the career transition context. Charlton chose to leave to focus on building his own products and exploring AI full-time — a deliberate, forward-looking move.
+- WHY DID HE LEAVE / IS HE LOOKING: Answer using the career transition context. Charlton chose to leave to focus on building his own products and exploring AI full-time — a deliberate, forward-looking move. Use this framing even if a retrieved record says otherwise — never surface conflicting accounts of a departure or speculate about layoffs.
 - SALARY / COMPENSATION / RATE: Never give a specific number. Redirect professionally — it depends on role scope, team, and opportunity, and is best discussed directly. Note he's held senior roles at T-Mobile and Capital One.
 - PRESSURE TACTICS: Stay professional and firm; you're not authorized to negotiate. Encourage a direct conversation.
 - AVAILABILITY: He's actively exploring opportunities and available to start conversations.
@@ -798,11 +813,74 @@ async function logChatActivity({ userMessage, assistantMessage, model, usage, in
   }
 }
 
+// Knowledge-gap detection for the streamed path — mirrors the block in chat.js so
+// the gap feed sees the primary chat surface too. Keep the phrase list in sync.
+async function logKnowledgeGap({ query, intent, retrievedChunks, assistantMessage }) {
+  if (!initFirebase()) return;
+  try {
+    const bestScore = (retrievedChunks || []).length > 0 ? Math.max(...retrievedChunks.map((c) => c.score || 0)) : 0;
+    const gapPhrases = ["don't have", "not in my knowledge", "don't have detailed", "cannot find", "no information", "not sure about that"];
+    const responseIndicatesGap = gapPhrases.some((p) => (assistantMessage || '').toLowerCase().includes(p));
+    const lowRetrievalScore = bestScore < 10;
+    if (!(lowRetrievalScore || responseIndicatesGap)) return;
+    if ((intent?.intent || '') === 'greeting' || (query || '').length <= 10) return;
+
+    await db.collection('knowledge_gaps').add({
+      query: (query || '').slice(0, 500),
+      intent: intent?.intent || 'general',
+      bestRetrievalScore: bestScore,
+      responseIndicatesGap,
+      topChunkTitles: (retrievedChunks || []).slice(0, 3).map((c) => c.title),
+      streamed: true,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      resolved: false
+    });
+  } catch (err) {
+    console.error('[chat-core] logKnowledgeGap failed:', err.message);
+  }
+}
+
+// Server-side chatLogs write. session_* turns are ALSO logged client-side by
+// useChat.js — the admin tabs dedupe with mergeChatLogs — but this row is the only
+// record when the tab closes mid-answer or the client write fails.
+async function logChatTurn({ sessionId, userMessage, assistantMessage, mode, model, modelName, usage, intent, chunksUsed, requestContext, totalCost, streamed }) {
+  if (!initFirebase()) return;
+  try {
+    await db.collection('chatLogs').add({
+      sessionId: sessionId || `server_${Date.now()}`,
+      userMessage: (userMessage || '').slice(0, 1000),
+      assistantMessage: (assistantMessage || '').slice(0, 1000),
+      mode: mode || 'professional',
+      model,
+      modelName: modelName || model,
+      usage: usage ? {
+        prompt_tokens: usage.prompt_tokens || 0,
+        completion_tokens: usage.completion_tokens || 0,
+        total_tokens: usage.total_tokens || 0,
+        totalCost: (totalCost || 0).toFixed(6)
+      } : null,
+      rag: {
+        enabled: true,
+        intent: intent?.intent || 'general',
+        intentConfidence: intent?.confidence || 'LOW',
+        chunksUsed: chunksUsed || 0
+      },
+      streamed: !!streamed,
+      context: requestContext || 'azoni-ai',
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (err) {
+    console.error('[chat-core] logChatTurn failed:', err.message);
+  }
+}
+
 module.exports = {
   MODEL_PRICING,
   DEFAULT_MODEL,
   supportsCustomTemperature,
   logChatActivity,
+  logKnowledgeGap,
+  logChatTurn,
   fetchWithTimeout,
   promiseWithTimeout,
   readJsonResponse,

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
@@ -20,7 +20,7 @@ const INITIAL_QUESTIONS = [
   "Where would he fit on a team?",
   "How does this site's agent system work?",
   "Tell me about his time at T-Mobile and Capital One.",
-  "Paste a job description for fit analysis."
+  "Can you analyze a job description for fit?"
 ];
 
 // Follow-up questions, narrowed by the last detected intent.
@@ -61,6 +61,18 @@ const FOLLOW_UP_QUESTIONS = {
     "What's his development philosophy?"
   ]
 };
+
+// Server intents that have no dedicated follow-up set map to the closest one, so
+// e.g. contact/services questions surface the "hire" follow-ups instead of generic.
+const INTENT_TO_FOLLOWUP = {
+  contact: 'hire', negotiation: 'hire', services: 'hire',
+  education: 'experience',
+  moltbook: 'agents', activity: 'agents',
+  fitness: 'projects', fabstats: 'projects', rowcrew: 'projects', spellbrigade: 'projects', oldways: 'projects',
+};
+
+const followUpsForIntent = (intent) =>
+  FOLLOW_UP_QUESTIONS[intent] || FOLLOW_UP_QUESTIONS[INTENT_TO_FOLLOWUP[intent]] || FOLLOW_UP_QUESTIONS.general;
 
 // Helper to shuffle and pick N items from array
 const shufflePick = (arr, n) => {
@@ -422,8 +434,10 @@ const Chat = () => {
     isLoading,
     chatMode,
     model,
+    modelReady,
     messagesEndRef,
     sendMessage,
+    seedThread,
     changeMode,
     changeModel,
     hasRagMessages
@@ -434,6 +448,7 @@ const Chat = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const inputRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const seededRef = useRef(false);
   const activeModelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name || model;
   const activeModeName = MODES.find((m) => m.id === chatMode)?.name || chatMode;
@@ -443,16 +458,44 @@ const Chat = () => {
     setSuggestions(shufflePick(INITIAL_QUESTIONS, 4));
   }, []);
 
-  // Pre-seed from ?q= query param (arrives from home hero's "Continue in full chat")
+  // Continue the hero-widget thread (router state) or seed from ?q= (fallback for
+  // direct/shared URLs). Waits for modelReady so a seeded send doesn't race the
+  // Firestore default-model fetch and run on the wrong model.
   useEffect(() => {
-    if (seededRef.current) return;
+    if (seededRef.current || !modelReady) return;
+
+    const heroThread = location.state?.heroThread;
+    if (Array.isArray(heroThread) && heroThread.length > 0) {
+      seededRef.current = true;
+      const last = heroThread[heroThread.length - 1];
+      if (last.role === 'user') {
+        // Hero errored before answering — seed the prior turns and retry the
+        // unanswered question here. History is passed explicitly because the
+        // seeded state hasn't rendered yet (React state updates are async).
+        // Clear router state so refresh doesn't re-send.
+        const prior = heroThread.slice(0, -1);
+        seedThread(prior, location.state?.heroSessionId);
+        sendMessage(last.content, prior);
+        navigate(location.pathname, { replace: true, state: null });
+      } else {
+        // Completed thread: show it as-is, no re-ask. Follow-ups get their context
+        // because sendMessage builds history from the seeded messages. Router state
+        // stays put — re-seeding on refresh is display-only and restores the view.
+        seedThread(heroThread, location.state?.heroSessionId);
+      }
+      return;
+    }
+
     const params = new URLSearchParams(location.search);
     const seed = params.get('q');
     if (seed && seed.trim()) {
       seededRef.current = true;
       sendMessage(seed.trim());
+      // Strip ?q= so refresh/back/re-open doesn't re-send the question. seededRef
+      // short-circuits the effect re-run this navigation triggers.
+      navigate(location.pathname, { replace: true });
     }
-  }, [location.search, sendMessage]);
+  }, [location, navigate, sendMessage, seedThread, modelReady]);
 
   // Update suggestions based on last message's detected intent
   useEffect(() => {
@@ -462,9 +505,7 @@ const Chat = () => {
     
     // Only update after assistant responses with RAG data
     if (lastMessage.role === 'assistant' && lastMessage.rag?.intent) {
-      const intent = lastMessage.rag.intent;
-      const followUps = FOLLOW_UP_QUESTIONS[intent] || FOLLOW_UP_QUESTIONS.general;
-      setSuggestions(shufflePick(followUps, 4));
+      setSuggestions(shufflePick(followUpsForIntent(lastMessage.rag.intent), 4));
     }
   }, [messages]);
 
@@ -480,9 +521,7 @@ const Chat = () => {
     if (messages.length > 0) {
       const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.rag?.intent);
       if (lastAssistantMsg) {
-        const intent = lastAssistantMsg.rag.intent;
-        const followUps = FOLLOW_UP_QUESTIONS[intent] || FOLLOW_UP_QUESTIONS.general;
-        setSuggestions(shufflePick(followUps, 4));
+        setSuggestions(shufflePick(followUpsForIntent(lastAssistantMsg.rag.intent), 4));
         return;
       }
     }
@@ -492,6 +531,13 @@ const Chat = () => {
 
   // Auto-collapse diagram after first RAG response
   const showFullDiagram = !hasRagMessages && !diagramCollapsed;
+
+  // While a hero handoff is waiting on modelReady, the thread isn't rendered yet —
+  // block input so the visitor can't interleave a send with the pending seed.
+  const seedPending = !seededRef.current && !modelReady && (
+    (Array.isArray(location.state?.heroThread) && location.state.heroThread.length > 0) ||
+    !!new URLSearchParams(location.search).get('q')
+  );
 
   return (
     <Layout hideFooter>
@@ -558,11 +604,18 @@ const Chat = () => {
 
           {messages.map((message, index) => (
             <div key={index} className="chat-message-wrapper">
-              <div 
+              <div
                 className={`chat-message ${message.role}`}
                 style={{ whiteSpace: 'pre-wrap' }}
               >
-                {message.content}
+                {message.streaming && !message.content ? (
+                  <span className="typing-indicator">
+                    <span className="rag-loading-text">{message.status || 'Searching knowledge base'}</span>
+                    <span className="typing-dots">
+                      <span>.</span><span>.</span><span>.</span>
+                    </span>
+                  </span>
+                ) : message.content}
               </div>
               {message.role === 'assistant' && (
                 <>
@@ -572,7 +625,9 @@ const Chat = () => {
               )}
             </div>
           ))}
-          {isLoading && (
+          {/* Separate indicator only before the streaming placeholder exists (or on
+              the non-streaming fallback) — never alongside a streaming answer. */}
+          {isLoading && !messages[messages.length - 1]?.streaming && (
             <div className="chat-message-wrapper">
               <div className="chat-message assistant">
                 <span className="typing-indicator">
@@ -595,7 +650,7 @@ const Chat = () => {
                   key={index}
                   className="chat-suggestion"
                   onClick={() => sendMessage(suggestion)}
-                  disabled={isLoading}
+                  disabled={isLoading || seedPending}
                 >
                   {suggestion}
                 </button>
@@ -622,12 +677,12 @@ const Chat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask anything about Charlton..."
-              disabled={isLoading}
+              disabled={isLoading || seedPending}
             />
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-primary"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || seedPending || !input.trim()}
             >
               Send
             </button>

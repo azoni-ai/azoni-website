@@ -2,7 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Comments - public read, validated create, admin update/delete
+    // Comments - public read, validated create; moderation goes through admin
+    // functions (Admin SDK bypasses rules), so client update/delete stays denied.
     match /comments/{commentId} {
       allow read: if true;
       allow create: if
@@ -15,7 +16,7 @@ service cloud.firestore {
         request.resource.data.comment.size() <= 1000 &&
         request.resource.data.projectId is string &&
         request.resource.data.projectId.size() <= 100;
-      allow update, delete: if true;
+      allow update, delete: if false;
     }
 
     // Stars - public read, controlled increments
@@ -25,58 +26,63 @@ service cloud.firestore {
       allow update: if request.resource.data.count == resource.data.count + 1;
     }
 
-    // Chat logs - public create for logging, public read for admin
+    // Chat logs - visitors' conversations. Create-only from the client (useChat
+    // logs each turn, size-capped); NEVER publicly readable — recruiters paste
+    // job descriptions in here. Admin panel reads go through admin-data.
     match /chatLogs/{logId} {
-      allow read: if true;
-      allow create: if true;
+      allow read: if false;
+      allow create: if
+        request.resource.data.userMessage is string &&
+        request.resource.data.userMessage.size() <= 15000 &&
+        request.resource.data.assistantMessage is string &&
+        request.resource.data.assistantMessage.size() <= 15000 &&
+        request.resource.data.sessionId is string &&
+        request.resource.data.sessionId.size() <= 100;
+      allow update, delete: if false;
     }
 
-    // Settings - stores default chat model, public read/write
+    // Settings - default chat model etc. Public read (useChat loads the model);
+    // writes go through admin-data.
     match /settings/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Blog posts - public read, admin write
+    // Blog posts - public read; written by agents (Admin SDK) and admin-data.
     match /blogPosts/{postId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Profile content
+    // Profile content - public read; written via admin-data.
     match /profile/{document=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Projects
+    // Projects - public read; written server-side only.
     match /projects/{document=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Sync state
+    // Sync state - server-side only.
     match /syncState/{document=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Content (profile data used on homepage)
+    // Content (profile data used on homepage) - public read, server-side writes.
     match /content/{document=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
-    // Agent activity feed
+    // Agent activity feed - public read (Activity page + board render it);
+    // all writers are server-side (functions, agents), so client writes denied.
     match /agent_activity/{document=**} {
       allow read: if true;
-      allow write: if true;
-    }
-
-    // RAG chunks for chatbot
-    match /rag_chunks/{document=**} {
-      allow read: if true;
-      allow write: if true;
+      allow write: if false;
     }
 
     // Board tasks - public read (the /board page renders these for visitors);
@@ -99,5 +105,8 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // knowledge_gaps / error_logs / chat_evals / rag_knowledge_base and anything
+    // not matched above: no client access. Server functions use the Admin SDK.
   }
 }
