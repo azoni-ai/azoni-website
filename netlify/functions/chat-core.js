@@ -874,10 +874,17 @@ async function logChatTurn({ sessionId, userMessage, assistantMessage, mode, mod
   }
 }
 
+// Diagnostic readout for the stream endpoint: the exact reason Firestore is
+// unavailable in this runtime (null when healthy). Surfaced in meta._rag.fbError.
+function getFirebaseInitError() {
+  return firebaseInitError;
+}
+
 module.exports = {
   MODEL_PRICING,
   DEFAULT_MODEL,
   supportsCustomTemperature,
+  getFirebaseInitError,
   logChatActivity,
   logKnowledgeGap,
   logChatTurn,

@@ -314,6 +314,9 @@ export default async (req) => {
               ? 'fallback'
               : retrievedChunks.some((c) => c.vectorSimilarity != null) ? 'vector' : 'keyword',
             kbLoaded,
+            // Deploy marker + exact Firestore failure reason (null when healthy).
+            build: 'nft-v3',
+            fbError: kbLoaded ? null : (core.getFirebaseInitError ? core.getFirebaseInitError() : 'getter missing'),
             intent: intent.intent,
             intentConfidence: intent.confidence,
             reason: intent.reason,
