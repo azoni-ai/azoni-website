@@ -84,8 +84,12 @@ export default async (req) => {
     model: requestedModel,
     context: requestContext,
     sessionId: requestSessionId,
+    journeyId: rawJourneyId,
+    turnId: rawTurnId,
     fast = false,
   } = payload;
+  const journeyId = typeof rawJourneyId === 'string' ? rawJourneyId.slice(0, 60) : null;
+  const turnId = typeof rawTurnId === 'string' ? rawTurnId.slice(0, 60) : null;
 
   const t0 = Date.now();
 
@@ -361,6 +365,8 @@ export default async (req) => {
           }),
           core.logChatTurn({
             sessionId: requestSessionId,
+            journeyId,
+            turnId,
             userMessage: latestUserMessage,
             assistantMessage: fullText,
             mode,

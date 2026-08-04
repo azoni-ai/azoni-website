@@ -1,11 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
-
-// Generate unique session ID
-const generateSessionId = () => {
-  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
+import { getJourneyId, getChatSessionId } from '../utils/chatSession';
 
 // Available models for frontend selection.
 // Keep in sync with MODEL_PRICING in netlify/functions/chat.js.
@@ -38,7 +34,9 @@ export const useChat = (initialMode = 'professional') => {
   const [modelReady, setModelReady] = useState(false);
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
-  const sessionIdRef = useRef(generateSessionId());
+  // Per-tab session (survives refresh/back) so one visitor's turns group into a
+  // single conversation in the logs instead of a new session per mount.
+  const sessionIdRef = useRef(getChatSessionId());
   // When the conversation continues a hero-widget thread, this carries the hero's
   // session id into every log row so the two halves of the journey can be joined.
   const linkedSessionRef = useRef(null);
@@ -100,6 +98,8 @@ export const useChat = (initialMode = 'professional') => {
     addDoc(collection(db, 'chatLogs'), {
       sessionId: sessionIdRef.current,
       linkedSessionId: linkedSessionRef.current,
+      journeyId: getJourneyId(),
+      turnId: extra.turnId ?? null,
       userMessage: messageText,
       assistantMessage: assistantContent,
       mode: chatMode,
@@ -116,7 +116,7 @@ export const useChat = (initialMode = 'professional') => {
   }, [chatMode, model]);
 
   // Non-streaming path (also the fallback when streaming is unavailable)
-  const sendNonStreaming = useCallback(async (messageText, history, signal) => {
+  const sendNonStreaming = useCallback(async (messageText, history, signal, turnId) => {
     const startedAt = Date.now();
     const response = await fetch('/.netlify/functions/chat', {
       method: 'POST',
@@ -125,7 +125,9 @@ export const useChat = (initialMode = 'professional') => {
         messages: [...history, { role: 'user', content: messageText }],
         mode: chatMode,
         model,
-        sessionId: sessionIdRef.current
+        sessionId: sessionIdRef.current,
+        journeyId: getJourneyId(),
+        turnId
       }),
       signal
     });
@@ -148,13 +150,14 @@ export const useChat = (initialMode = 'professional') => {
     }]);
     logTurn(messageText, assistantContent, ragData, fitnessData, data.usage, data.modelName || model, {
       latencyMs: Date.now() - startedAt,
-      streamed: false
+      streamed: false,
+      turnId
     });
   }, [chatMode, model, logTurn]);
 
   // Streaming path: SSE from /chat-stream, progressively rendering tokens.
   // Throws on any failure so the caller can fall back to /chat.
-  const sendStreaming = useCallback(async (messageText, history, signal) => {
+  const sendStreaming = useCallback(async (messageText, history, signal, turnId) => {
     const startedAt = Date.now();
     // Dedicated controller so an early exit (watchdog, error) tears the stream
     // connection down BEFORE the /chat fallback starts — otherwise the server keeps
@@ -172,7 +175,9 @@ export const useChat = (initialMode = 'professional') => {
         messages: [...history, { role: 'user', content: messageText }],
         mode: chatMode,
         model,
-        sessionId: sessionIdRef.current
+        sessionId: sessionIdRef.current,
+        journeyId: getJourneyId(),
+        turnId
       }),
       signal: streamCtrl.signal
     });
@@ -257,7 +262,8 @@ export const useChat = (initialMode = 'professional') => {
         logTurn(messageText, acc, ragData, null, meta?.usage, meta?.modelName || model, {
           latencyMs: Date.now() - startedAt,
           streamed: true,
-          partial: true
+          partial: true,
+          turnId
         });
         return;
       }
@@ -275,7 +281,8 @@ export const useChat = (initialMode = 'professional') => {
     setLastContent(acc, { rag: ragData, fitness: fitnessData, usage: meta?.usage, streaming: false, status: null });
     logTurn(messageText, acc, ragData, fitnessData, meta?.usage, meta?.modelName || model, {
       latencyMs: Date.now() - startedAt,
-      streamed: true
+      streamed: true,
+      turnId
     });
     finished = true;
     } finally {
@@ -303,8 +310,13 @@ export const useChat = (initialMode = 'professional') => {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
+    // One id per user turn, shared by the stream attempt and any /chat fallback,
+    // so the admin dedupe can collapse this turn's client+server rows exactly —
+    // without collapsing a genuinely repeated question into the wrong turn.
+    const turnId = `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
     try {
-      await sendStreaming(messageText, history, signal);
+      await sendStreaming(messageText, history, signal, turnId);
     } catch (streamErr) {
       if (streamErr.name === 'AbortError') {
         setIsLoading(false);
@@ -314,7 +326,7 @@ export const useChat = (initialMode = 'professional') => {
       // fall back to /chat.
       setMessages(prev => prev.some(m => m.streaming) ? prev.filter(m => !m.streaming) : prev);
       try {
-        await sendNonStreaming(messageText, history, signal);
+        await sendNonStreaming(messageText, history, signal, turnId);
       } catch (err) {
         if (err.name === 'AbortError') {
           setIsLoading(false);

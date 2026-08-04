@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getJourneyId, getHeroSessionId } from '../../utils/chatSession';
 
 const SUGGESTIONS = [
   "What has Charlton built?",
@@ -17,7 +18,9 @@ const HeroChatPrompt = () => {
   const [messages, setMessages] = useState([]); // [{ role, content, meta? }]
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const sessionIdRef = useRef(`home_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  // Per-tab ids so this widget's turns and a later full-chat visit group into
+  // one conversation in the admin logs.
+  const sessionIdRef = useRef(getHeroSessionId());
   const replyBoxRef = useRef(null);
 
   const send = useCallback(async (text) => {
@@ -39,6 +42,8 @@ const HeroChatPrompt = () => {
           mode: 'professional',
           model: MODEL,
           sessionId: sessionIdRef.current,
+          journeyId: getJourneyId(),
+          turnId: `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           context: 'home-hero',
           fast: true,
         }),

@@ -364,8 +364,10 @@ function buildFallbackChatResponse({ query, intent, retrievedChunks, model, pric
       // the tab closes or the client write fails.
       db.collection('chatLogs').add({
         sessionId: currentRequestMeta.sessionId || `server_${Date.now()}`,
-        userMessage: (query || '').slice(0, 1000),
-        assistantMessage: answer.slice(0, 1000),
+        journeyId: currentRequestMeta.journeyId || null,
+        turnId: currentRequestMeta.turnId || null,
+        userMessage: (query || '').slice(0, 8000),
+        assistantMessage: answer.slice(0, 8000),
         mode: currentRequestMeta.mode || 'professional',
         model,
         modelName: `${pricing.name} unavailable`,
@@ -1457,14 +1459,18 @@ exports.handler = async (event, context) => {
       model: requestedModel,
       context: requestContext,
       sessionId: requestSessionId,
+      journeyId: rawJourneyId,
+      turnId: rawTurnId,
       liveStats,
       fast = false
     } = JSON.parse(event.body);
+    const journeyId = typeof rawJourneyId === 'string' ? rawJourneyId.slice(0, 60) : null;
+    const turnId = typeof rawTurnId === 'string' ? rawTurnId.slice(0, 60) : null;
     
     const model = MODEL_PRICING[requestedModel] ? requestedModel : DEFAULT_MODEL;
     const pricing = MODEL_PRICING[model];
     const messages = sanitizeChatMessages(rawMessages);
-    currentRequestMeta = { sessionId: requestSessionId || '', requestContext, mode };
+    currentRequestMeta = { sessionId: requestSessionId || '', requestContext, mode, journeyId, turnId };
 
     // Get the latest user message for intent detection
     const latestUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
@@ -1852,8 +1858,10 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       // mergeChatLogs, and the server row survives tab-close/aborted clients.
       if (db) db.collection('chatLogs').add({
         sessionId: requestSessionId || `server_${Date.now()}`,
-        userMessage: latestUserMessage.slice(0, 1000),
-        assistantMessage: assistantResponse.slice(0, 1000),
+        journeyId,
+        turnId,
+        userMessage: latestUserMessage.slice(0, 8000),
+        assistantMessage: assistantResponse.slice(0, 8000),
         mode: mode || 'professional',
         model,
         modelName: pricing.name,

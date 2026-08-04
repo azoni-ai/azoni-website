@@ -28,6 +28,11 @@ export const adminData = async (action, params = {}) => {
   return data;
 };
 
+// Deploy/verification probes use these sessionId prefixes so real traffic views
+// can drop them — without this the logs fill with repeated test questions.
+const TEST_SESSION_RE = /^(probe_|deploy_|verify_|diag_|fix_|nft_probe|final_)/;
+const isTestLog = (log) => TEST_SESSION_RE.test(log.sessionId || '');
+
 // admin-data serializes Firestore Timestamps to ISO strings; the rendering code
 // throughout this file expects Timestamp-like objects (`ts?.toDate?.()`). Wrap the
 // strings back into that shape so nothing downstream changes.
@@ -1014,8 +1019,8 @@ const UsageTab = () => {
     adminData('list-chat-logs', { limit: 500 })
       .then(({ logs }) => {
         // Dedupe the dual client+server rows per turn (same as MonitorTab) so the
-        // usage numbers count each turn once.
-        const revived = mergeChatLogs((logs || []).map(reviveTimestamps));
+        // usage numbers count each turn once, and drop test-probe traffic.
+        const revived = mergeChatLogs((logs || []).map(reviveTimestamps)).filter((l) => !isTestLog(l));
         setChatLogs(revived);
         calculateStats(revived);
       })
@@ -1056,30 +1061,47 @@ const UsageTab = () => {
     });
   };
 
+  // One card per PERSON's visit, not per page-load: the journeyId (per-tab) joins
+  // hero-widget turns with a later full-chat session; linkedSessionId covers older
+  // handoff rows; plain sessionId is the fallback for everything else.
   const groupedSessions = chatLogs.reduce((acc, log) => {
-    const sessionId = log.sessionId || 'unknown';
-    if (!acc[sessionId]) {
-      acc[sessionId] = {
+    const groupKey = log.journeyId || log.linkedSessionId || log.sessionId || 'unknown';
+    if (!acc[groupKey]) {
+      acc[groupKey] = {
         logs: [],
         totalTokens: 0,
         totalCost: 0,
-        firstTimestamp: log.timestamp,
         mode: log.mode,
         model: log.model,
         context: log.context || 'azoni-ai'
       };
     }
-    acc[sessionId].logs.push(log);
-    acc[sessionId].totalTokens += log.usage?.total_tokens || 0;
-    acc[sessionId].totalCost += parseFloat(log.usage?.totalCost || 0);
+    acc[groupKey].logs.push(log);
+    acc[groupKey].totalTokens += log.usage?.total_tokens || 0;
+    acc[groupKey].totalCost += parseFloat(log.usage?.totalCost || 0);
     return acc;
   }, {});
 
   const sessions = Object.entries(groupedSessions)
-    .map(([id, data]) => ({ id, ...data }))
+    .map(([id, data]) => {
+      // Conversation order inside the card; newest-activity order across cards.
+      const logs = [...data.logs].sort((a, b) => {
+        const aT = a.timestamp?.toDate?.() || new Date(0);
+        const bT = b.timestamp?.toDate?.() || new Date(0);
+        return aT - bT;
+      });
+      return {
+        id,
+        ...data,
+        logs,
+        firstTimestamp: logs[0]?.timestamp,
+        lastTimestamp: logs[logs.length - 1]?.timestamp,
+        preview: logs[0]?.userMessage || ''
+      };
+    })
     .sort((a, b) => {
-      const aTime = a.firstTimestamp?.toDate?.() || new Date(0);
-      const bTime = b.firstTimestamp?.toDate?.() || new Date(0);
+      const aTime = a.lastTimestamp?.toDate?.() || new Date(0);
+      const bTime = b.lastTimestamp?.toDate?.() || new Date(0);
       return bTime - aTime;
     });
 
@@ -1156,8 +1178,21 @@ const UsageTab = () => {
                     {session.context === 'autoenhance-interview' ? 'Autoenhance' : 'Portfolio'}
                   </span>
                   <span className="session-model">{session.model || 'gpt-4'}</span>
-                  <span className="session-mode">{session.mode || 'professional'}</span>
                   <span className="session-messages">{session.logs.length} msg</span>
+                  <span
+                    className="session-preview"
+                    style={{
+                      color: 'var(--text-warm-soft, #9ca3af)',
+                      fontSize: '0.85rem',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minWidth: 0,
+                      flex: 1
+                    }}
+                  >
+                    {session.preview.slice(0, 110)}
+                  </span>
                 </div>
                 <div className="session-stats">
                   <span>{session.totalTokens.toLocaleString()} tok</span>
@@ -1173,16 +1208,17 @@ const UsageTab = () => {
                       <div className="chat-log-user">
                         <strong>User:</strong> {log.userMessage}
                       </div>
-                      <div className="chat-log-assistant">
-                        <strong>Assistant:</strong> {log.assistantMessage?.substring(0, 500)}
-                        {log.assistantMessage?.length > 500 && '...'}
+                      <div className="chat-log-assistant" style={{ whiteSpace: 'pre-wrap' }}>
+                        <strong>Assistant:</strong> {log.assistantMessage}
                       </div>
                       {log.usage && (
                         <div className="chat-log-meta">
+                          <span>{formatDate(log.timestamp)}</span>
                           <span>{log.model || 'gpt-4'}</span>
                           <span>In: {log.usage.prompt_tokens}</span>
                           <span>Out: {log.usage.completion_tokens}</span>
                           <span>${log.usage.totalCost}</span>
+                          {log.streamed != null && <span>{log.streamed ? 'streamed' : 'non-stream'}</span>}
                         </div>
                       )}
                     </div>
@@ -1206,12 +1242,15 @@ const monitorTokenHeaders = () => {
 const scoreColor = (n) => (n == null ? '#64748b' : n >= 0.7 ? '#10b981' : n >= 0.4 ? '#f59e0b' : '#ef4444');
 const verdictColor = (v) => (v === 'pass' ? '#10b981' : v === 'warn' ? '#f59e0b' : '#ef4444');
 
-// Both the chat function and useChat log a turn, so collapse duplicates by
-// (session + question), keeping the richest fields from each copy.
+// Both the chat function and useChat log a turn, so collapse duplicates. New rows
+// carry a per-turn turnId (exact dedupe — a genuinely repeated question stays two
+// turns); legacy rows fall back to (session + question).
 const mergeChatLogs = (logs) => {
   const groups = new Map();
   for (const log of logs) {
-    const key = `${log.sessionId || '?'}::${(log.userMessage || '').slice(0, 200)}`;
+    const key = log.turnId
+      ? `t::${log.turnId}`
+      : `${log.sessionId || '?'}::${(log.userMessage || '').slice(0, 200)}`;
     if (!groups.has(key)) {
       groups.set(key, { ...log, _scoreId: log.id });
       continue;
@@ -1223,6 +1262,10 @@ const mergeChatLogs = (logs) => {
     if (!cur.usage?.totalCost && log.usage?.totalCost) cur.usage = log.usage;
     if (cur.latencyMs == null && log.latencyMs != null) cur.latencyMs = log.latencyMs;
     if (cur.streamed == null && log.streamed != null) cur.streamed = log.streamed;
+    // Backfill the grouping keys from whichever duplicate carries them, so the
+    // UsageTab conversation key doesn't depend on which copy was seen first.
+    if (!cur.journeyId && log.journeyId) cur.journeyId = log.journeyId;
+    if (!cur.linkedSessionId && log.linkedSessionId) cur.linkedSessionId = log.linkedSessionId;
     if (!cur.context && log.context) cur.context = log.context;
     if (!cur.eval && log.eval) cur.eval = log.eval;
     if (!cur.modelName && log.modelName) cur.modelName = log.modelName;
@@ -1264,7 +1307,7 @@ const MonitorTab = () => {
   const [refreshTick, setRefreshTick] = useState(0);
   useEffect(() => {
     adminData('list-chat-logs', { limit: 300 })
-      .then(({ logs: rows }) => setLogs((rows || []).map(reviveTimestamps)))
+      .then(({ logs: rows }) => setLogs((rows || []).map(reviveTimestamps).filter((l) => !isTestLog(l))))
       .catch((err) => console.error('monitor chatLogs error:', err))
       .finally(() => setLoading(false));
     adminData('list-evals', { limit: 20 })

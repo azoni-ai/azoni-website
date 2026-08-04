@@ -851,13 +851,15 @@ async function logKnowledgeGap({ query, intent, retrievedChunks, assistantMessag
 // Server-side chatLogs write. session_* turns are ALSO logged client-side by
 // useChat.js — the admin tabs dedupe with mergeChatLogs — but this row is the only
 // record when the tab closes mid-answer or the client write fails.
-async function logChatTurn({ sessionId, userMessage, assistantMessage, mode, model, modelName, usage, intent, chunksUsed, requestContext, totalCost, streamed }) {
+async function logChatTurn({ sessionId, journeyId, turnId, userMessage, assistantMessage, mode, model, modelName, usage, intent, chunksUsed, requestContext, totalCost, streamed }) {
   if (!initFirebase()) return;
   try {
     await db.collection('chatLogs').add({
       sessionId: sessionId || `server_${Date.now()}`,
-      userMessage: (userMessage || '').slice(0, 1000),
-      assistantMessage: (assistantMessage || '').slice(0, 1000),
+      journeyId: journeyId || null,
+      turnId: turnId || null,
+      userMessage: (userMessage || '').slice(0, 8000),
+      assistantMessage: (assistantMessage || '').slice(0, 8000),
       mode: mode || 'professional',
       model,
       modelName: modelName || model,
