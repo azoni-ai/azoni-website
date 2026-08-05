@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { db } from '../config/firebase';
@@ -11,6 +11,10 @@ import {
   doc,
   getDoc
 } from 'firebase/firestore';
+
+// Billing is its own lazy chunk so the (large) admin bundle doesn't grow for
+// the tabs this file implements inline.
+const BillingTab = lazy(() => import('../components/billing/BillingTab'));
 
 // Shared helper for the token-gated admin-data function (server-side reads/writes
 // that Firestore rules no longer allow from the client).
@@ -171,6 +175,12 @@ const Admin = () => {
               Moltbook
             </button>
             <button
+              className={`admin-main-tab ${activeTab === 'billing' ? 'active' : ''}`}
+              onClick={() => setActiveTab('billing')}
+            >
+              Billing
+            </button>
+            <button
               className={`admin-main-tab ${activeTab === 'customize' ? 'active' : ''}`}
               onClick={() => setActiveTab('customize')}
             >
@@ -185,6 +195,17 @@ const Admin = () => {
           {activeTab === 'blog' && <BlogTab />}
           {activeTab === 'rag' && <RAGTab />}
           {activeTab === 'moltbook' && <MoltbookTab />}
+          {activeTab === 'billing' && (
+            <Suspense
+              fallback={
+                <div style={{ padding: '40px 0', color: 'var(--text-warm-muted)' }}>
+                  Loading billing...
+                </div>
+              }
+            >
+              <BillingTab />
+            </Suspense>
+          )}
           {activeTab === 'customize' && <CustomizeTab />}
         </div>
       </section>

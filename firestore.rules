@@ -106,6 +106,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Billing (private financial data: hours, invoices, client details).
+    // NO client access, ever — reads and writes both go through the token-gated
+    // billing-admin Netlify function via the Admin SDK. NOTE: this block is
+    // documentation only — Firestore OR-combines overlapping matches, so an
+    // `if false` here CANNOT veto a broader allow. The real protection is that
+    // no other match covers /billing. Never add a root-level catch-all
+    // (match /{document=**} with any allow) to this file.
+    match /billing/{docId} {
+      allow read, write: if false;
+    }
+
     // knowledge_gaps / error_logs / chat_evals / rag_knowledge_base and anything
     // not matched above: no client access. Server functions use the Admin SDK.
   }

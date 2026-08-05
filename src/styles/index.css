@@ -58,7 +58,9 @@
   --container-max: 1440px;
   --container-narrow: 900px;
 
-  /* Warm palette — used by Home page redesign (scoped to .home-page-v2) */
+  /* Warm palette — the site-wide theme, consumed by all the *-warm page
+     stylesheets (home-v2, about, board, hub, blog, chat, admin billing, ...).
+     Must stay on :root — many consumers use var() without fallbacks. */
   --bg-warm: #13110f;
   --bg-warm-card: #1c1a17;
   --bg-warm-hover: #252320;
