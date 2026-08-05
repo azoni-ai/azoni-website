@@ -19,6 +19,14 @@ export const moneyWhole = (n) => wholeFmt.format(Math.round(n || 0));
 export const hoursFmt = (n) =>
   (Math.round((n || 0) * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
+// Invoice-document variant: fixed two decimals so a column of 8.00 / 6.50 /
+// 7.25 reads uniformly on the client-facing PDF.
+export const hoursFmt2 = (n) =>
+  (Math.round((n || 0) * 100) / 100).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
 export const todayISO = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

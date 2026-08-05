@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { fmtDate, hoursFmt, money } from './billing-lib';
+import { fmtDate, hoursFmt2, money } from './billing-lib';
 
 // The printable invoice document. Rendered as white paper regardless of the
 // site theme; the print stylesheet in billing-warm.css hides everything else.
@@ -62,7 +62,7 @@ const InvoiceDoc = ({ inv }) => {
                   <td className="nowrap">{fmtDate(line.date)}</td>
                   <td>{line.project}</td>
                   <td>{line.description}</td>
-                  <td className="num">{hoursFmt(line.hours)}</td>
+                  <td className="num">{hoursFmt2(line.hours)}</td>
                 </tr>
               ))}
             </tbody>
@@ -89,7 +89,7 @@ const InvoiceDoc = ({ inv }) => {
           <table>
             <tbody>
               <tr>
-                <td>Labor ({hoursFmt(inv.hoursTotal)} hr × {money(inv.rate)}/hr)</td>
+                <td>Labor ({hoursFmt2(inv.hoursTotal)} hr × {money(inv.rate)}/hr)</td>
                 <td className="num">{money(inv.laborSubtotal)}</td>
               </tr>
               {inv.expensesTotal > 0 && (
