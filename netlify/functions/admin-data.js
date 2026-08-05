@@ -1,12 +1,17 @@
 // netlify/functions/admin-data.js
 // Token-gated data plane for the admin panel. Exists so the Firestore rules can
 // stop granting public read on chatLogs (visitor conversations) and public write
-// on site content (settings/profile/blogPosts) — the panel calls this instead of
-// the client SDK, and the Admin SDK here bypasses rules.
+// on settings — the panel calls this instead of the client SDK, and the Admin
+// SDK here bypasses rules.
 //
-// Auth matches rag-admin.js: Authorization: Bearer <RAG_ADMIN_KEY>, constant-time
-// compare. POST { action, ...params }. The 'auth' action is the login check —
-// the panel sends the entered password and stores it as the bearer token on success.
+// Auth: Authorization: Bearer <RAG_ADMIN_KEY>, constant-time compare. POST
+// { action, ...params }. The 'auth' action is the login check — the panel sends
+// the entered password and stores it as the bearer token on success.
+//
+// 2026-08 admin cleanup: the panel is now Chat usage + Comments + Billing, so
+// this function keeps only their actions. The removed actions (blog/eval/gaps/
+// errors/agent-logs/profile writes and the Moltbook proxy) are in git history
+// if a tab ever comes back.
 
 const crypto = require('crypto');
 
@@ -14,8 +19,6 @@ let admin = null;
 let db = null;
 
 const ADMIN_KEY = process.env.RAG_ADMIN_KEY;
-const MOLTBOOK_ADMIN_KEY = process.env.MOLTBOOK_ADMIN_KEY || '';
-const MOLTBOOK_AGENT_URL = process.env.MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 
 function initFirebase() {
   if (db) return true;
@@ -66,11 +69,6 @@ function tokenValid(event) {
 
 const tsToIso = (t) => (t?.toDate?.() ? t.toDate().toISOString() : null);
 
-async function listCollection(name, orderField, count, mapper) {
-  const snap = await db.collection(name).orderBy(orderField, 'desc').limit(count).get();
-  return snap.docs.map((d) => mapper({ id: d.id, ...d.data() }));
-}
-
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -102,80 +100,26 @@ exports.handler = async (event) => {
 
   try {
     switch (action) {
-      // ---- Reads (replace the panel's client-SDK queries) ----
+      // Chat usage tab: bounded read of visitor conversations.
       case 'list-chat-logs': {
         const count = Math.min(payload.limit || 300, 500);
-        const logs = await listCollection('chatLogs', 'timestamp', count, (d) => ({
-          ...d, timestamp: tsToIso(d.timestamp),
-        }));
-        return { statusCode: 200, headers, body: JSON.stringify({ logs }) };
-      }
-      case 'list-evals': {
-        const evals = await listCollection('chat_evals', 'createdAt', Math.min(payload.limit || 20, 50), (d) => ({
-          ...d, createdAt: tsToIso(d.createdAt),
-        }));
-        return { statusCode: 200, headers, body: JSON.stringify({ evals }) };
-      }
-      case 'list-gaps': {
-        const gaps = await listCollection('knowledge_gaps', 'timestamp', Math.min(payload.limit || 50, 200), (d) => ({
-          ...d, timestamp: tsToIso(d.timestamp),
-        }));
-        return { statusCode: 200, headers, body: JSON.stringify({ gaps }) };
-      }
-      case 'list-errors': {
-        const errors = await listCollection('error_logs', 'timestamp', Math.min(payload.limit || 80, 200), (d) => ({
-          ...d, timestamp: tsToIso(d.timestamp),
-        }));
-        return { statusCode: 200, headers, body: JSON.stringify({ errors }) };
-      }
-      case 'list-agent-chat-logs': {
-        const logs = await listCollection('agentChatLogs', 'timestamp', Math.min(payload.limit || 200, 300), (d) => ({
-          ...d, timestamp: tsToIso(d.timestamp),
-        }));
+        const snap = await db.collection('chatLogs').orderBy('timestamp', 'desc').limit(count).get();
+        const logs = snap.docs.map((d) => {
+          const row = { id: d.id, ...d.data() };
+          return { ...row, timestamp: tsToIso(row.timestamp) };
+        });
         return { statusCode: 200, headers, body: JSON.stringify({ logs }) };
       }
 
-      // ---- Writes (replace the panel's client-SDK writes) ----
-      case 'save-eval': {
-        const { logId, evalData } = payload;
-        if (!logId || !evalData) return { statusCode: 400, headers, body: JSON.stringify({ error: 'logId and evalData required' }) };
-        await db.collection('chatLogs').doc(String(logId)).update({ eval: evalData });
-        return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
-      }
+      // Chat usage tab: which model the public chatbot uses.
       case 'set-chat-model': {
         const model = String(payload.model || '').slice(0, 100);
         if (!model) return { statusCode: 400, headers, body: JSON.stringify({ error: 'model required' }) };
         await db.collection('settings').doc('chat').set({ model }, { merge: true });
         return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
       }
-      case 'save-profile': {
-        if (!payload.profile || typeof payload.profile !== 'object') {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'profile object required' }) };
-        }
-        await db.collection('profile').doc('main').set(payload.profile, { merge: true });
-        return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
-      }
-      case 'save-blog-post': {
-        // Create (no id) or update (id given). Timestamps are set server-side —
-        // client Timestamp objects don't survive JSON.
-        if (!payload.post || typeof payload.post !== 'object' || !payload.post.title) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'post object with title required' }) };
-        }
-        const post = { ...payload.post, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-        if (payload.setPublishedAt) post.publishedAt = admin.firestore.FieldValue.serverTimestamp();
-        if (payload.id) {
-          await db.collection('blogPosts').doc(String(payload.id)).update(post);
-          return { statusCode: 200, headers, body: JSON.stringify({ ok: true, id: payload.id }) };
-        }
-        post.createdAt = admin.firestore.FieldValue.serverTimestamp();
-        const ref = await db.collection('blogPosts').add(post);
-        return { statusCode: 200, headers, body: JSON.stringify({ ok: true, id: ref.id }) };
-      }
-      case 'delete-blog-post': {
-        if (!payload.id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'id required' }) };
-        await db.collection('blogPosts').doc(String(payload.id)).delete();
-        return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
-      }
+
+      // Comments tab: the only approval path (client update/delete is rules-denied).
       case 'moderate-comment': {
         const { id, op, reply } = payload;
         if (!id || !op) return { statusCode: 400, headers, body: JSON.stringify({ error: 'id and op required' }) };
@@ -191,25 +135,6 @@ exports.handler = async (event) => {
           });
         } else return { statusCode: 400, headers, body: JSON.stringify({ error: `unknown op: ${op}` }) };
         return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
-      }
-
-      // ---- Moltbook agent proxy (keeps MOLTBOOK_ADMIN_KEY out of the bundle) ----
-      case 'moltbook-proxy': {
-        const path = String(payload.path || '');
-        if (!/^\/[a-zA-Z0-9/_-]*$/.test(path)) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'invalid path' }) };
-        }
-        const method = ['POST', 'PATCH'].includes(payload.method) ? payload.method : 'GET';
-        const res = await fetch(`${MOLTBOOK_AGENT_URL}${path}`, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(MOLTBOOK_ADMIN_KEY ? { 'X-Admin-Key': MOLTBOOK_ADMIN_KEY } : {}),
-          },
-          ...(method !== 'GET' && payload.body ? { body: JSON.stringify(payload.body) } : {}),
-        });
-        const text = await res.text();
-        return { statusCode: res.status, headers, body: text };
       }
 
       default:

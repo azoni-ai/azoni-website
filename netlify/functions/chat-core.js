@@ -124,7 +124,9 @@ let firebaseInitError = null;
 // The ESM/NFT chat-stream entry imports firebase-admin statically and injects it
 // here — bundlers repeatedly broke the lazy require() in that runtime (esbuild
 // rewrote the SDK's internal requires; NFT's trace missed the module entirely).
-// CJS consumers (chat-eval) still fall through to require('firebase-admin').
+// Consumers that don't inject fall through to require('firebase-admin'). No such
+// consumer exists in-repo (chat.js is self-contained and never imports chat-core);
+// the fallback covers running chat-core outside the bundled chat-stream entry.
 let injectedAdmin = null;
 function provideFirebaseAdmin(mod) {
   injectedAdmin = mod && (mod.default || mod);

@@ -73,7 +73,7 @@ The site is a genuinely impressive *system* — live commit stats, an agent-acti
 - Preserve quota-safe fetch patterns (no real-time listeners / per-visitor Firestore reads on Home/Board).
 - Don't regress the `/live` consolidation or the `/activity /commits /leaderboard` redirects.
 - SpellBrigade lazy-load must keep `/game` working (Suspense boundary).
-- `project-stories.js` still imported by Admin.jsx — trim before deleting.
+- `project-stories.js` is imported only by dead components ProjectShowcase.jsx and HeroStats.jsx (both on the delete list) — remove them together; Admin.jsx no longer imports it.
 - Mobile: hand-check at 320–390px (no headless verification available).
 - Don't over-invest in empty vanity widgets (stars/comments).
 - Accuracy is a trust lever — verify any new metric against the live source.

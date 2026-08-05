@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '../config/firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 
 // Fallback to static data if Firestore fails or is empty
 import { projects as staticProjects, categories as staticCategories } from '../data/projects';
@@ -114,120 +114,6 @@ export const useProjects = (initialCategory = 'all') => {
     getProject,
     getFeatured,
     refresh: fetchProjects
-  };
-};
-
-/**
- * Hook to fetch profile data from Firestore
- */
-export const useProfile = () => {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const profileRef = doc(db, 'profile', 'main');
-      const snapshot = await getDoc(profileRef);
-
-      if (snapshot.exists()) {
-        setProfile(snapshot.data());
-      } else {
-        // Default profile data if not in Firestore
-        setProfile({
-          aboutMe: 'Software engineer with 7+ years experience building production applications.',
-          currentWork: 'Building AI-powered applications.',
-          tagline: 'Software Engineer | AI Builder | Full-Stack Developer',
-          skills: ['React', 'TypeScript', 'Python', 'AI/ML']
-        });
-      }
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-      setError(err.message);
-      // Default on error
-      setProfile({
-        aboutMe: 'Software engineer with 7+ years experience building production applications.',
-        currentWork: 'Building AI-powered applications.',
-        tagline: 'Software Engineer | AI Builder | Full-Stack Developer',
-        skills: ['React', 'TypeScript', 'Python', 'AI/ML']
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    profile,
-    loading,
-    error,
-    refresh: fetchProfile
-  };
-};
-
-/**
- * Hook for sync status and triggering sync
- */
-export const usePortfolioSync = () => {
-  const [status, setStatus] = useState({
-    loading: true,
-    hasUpdates: false,
-    lastSyncedAt: null,
-    reposOutdated: [],
-    lastSummary: null
-  });
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
-
-  useEffect(() => {
-    checkStatus();
-  }, []);
-
-  const checkStatus = async () => {
-    try {
-      const response = await fetch('/.netlify/functions/portfolio-sync');
-      if (response.ok) {
-        const data = await response.json();
-        setStatus({ loading: false, ...data });
-      } else {
-        setStatus(prev => ({ ...prev, loading: false }));
-      }
-    } catch (err) {
-      console.error('Error checking sync status:', err);
-      setStatus(prev => ({ ...prev, loading: false }));
-    }
-  };
-
-  const triggerSync = async () => {
-    setSyncing(true);
-    setSyncResult(null);
-
-    try {
-      const response = await fetch('/.netlify/functions/portfolio-sync', {
-        method: 'POST'
-      });
-      const data = await response.json();
-      setSyncResult(data);
-      await checkStatus();
-    } catch (err) {
-      console.error('Error triggering sync:', err);
-      setSyncResult({ error: err.message });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  return {
-    status,
-    syncing,
-    syncResult,
-    checkStatus,
-    triggerSync
   };
 };
 

@@ -18,9 +18,6 @@
   # CJS require chain works natively. Do not switch this back to esbuild.
   node_bundler = "nft"
 
-[functions."chat-eval"]
-  timeout = 26
-
 [functions."leaderboard"]
   timeout = 26
 
