@@ -706,7 +706,7 @@ async function fillKnowledgeGap(gapQuery, gapIntent) {
         model: 'openai/gpt-4o',
         messages: [
           { role: 'system', content: `You are generating knowledge base content for Charlton Smith's portfolio chatbot. 
-Charlton is a software engineer in Seattle with 7+ years experience. He built:
+Charlton is a software engineer in Seattle with 10 years experience. He built:
 - BenchPressOnly (fitness app), Spell Brigade (multiplayer game), RowCrew (rowing verification)
 - An AI agent system: orchestrator, blog writer, social agent, fitness agent, gaming agent
 - MCP data server, EmbedRoute (unified embeddings API), RAG chatbot

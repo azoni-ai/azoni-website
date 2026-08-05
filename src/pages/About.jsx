@@ -53,7 +53,7 @@ const About = () => {
             </p>
             <h1 className="about-title">I build and run AI products.</h1>
             <p className="about-lede">
-              I&rsquo;m a full-stack engineer with seven years of experience, currently working on my
+              I&rsquo;m a full-stack engineer with ten years of experience, currently working on my
               own. I run a set of live products and the shared agent stack behind them, and I spend
               most of my time on correctness, testing, and instrumentation.
             </p>

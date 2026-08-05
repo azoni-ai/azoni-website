@@ -31,7 +31,7 @@ const HomeHero = ({ profile, aside, stats }) => {
 
           <div className="home-hero-bio">
             <p>
-              Seven years of experience across startups, T-Mobile, and Capital One. For the past two
+              Ten years of experience across startups, T-Mobile, and Capital One. For the past two
               years I&rsquo;ve worked independently, building products that people use and the agents
               that keep them running.
             </p>

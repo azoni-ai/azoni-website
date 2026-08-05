@@ -5,7 +5,7 @@ export const profile = {
   location: "Seattle, WA",
   email: "charltonuw@gmail.com",
   tagline: "Software Engineer · AI applications",
-  bio: `Full-stack engineer with 7+ years of experience building production systems and AI
+  bio: `Full-stack engineer with 10 years of experience building production systems and AI
 applications. I currently run a set of live products on a shared agent stack, including FaB Stats
 (2,900+ users) and several fitness and search apps. Earlier: startup co-founder (published ACM
 CHI research), senior engineer at Capital One, and several hackathon wins.`,

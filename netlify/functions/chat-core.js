@@ -189,7 +189,7 @@ const FALLBACK_CHUNK = {
   id: 'fallback-intro',
   category: 'general',
   title: 'About Charlton Smith',
-  content: 'Charlton Smith is a software engineer with 7+ years of experience based in Seattle. Contact: charltonuw@gmail.com',
+  content: 'Charlton Smith is a software engineer with 10 years of experience based in Seattle. Contact: charltonuw@gmail.com',
   keywords: ['charlton', 'about', 'contact', 'seattle']
 };
 
@@ -782,7 +782,7 @@ BASIC INFO (always available):
 - Name: Charlton Smith
 - Location: Seattle, WA
 - Email: charltonuw@gmail.com
-- Experience: 7+ years software engineering
+- Experience: 10 years software engineering
 
 If asked about something not in the context, acknowledge the limitation and offer to help with what you do know.${hasRealtimeChunk ? `
 

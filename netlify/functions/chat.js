@@ -229,7 +229,7 @@ const FALLBACK_CHUNK = {
   id: 'fallback-intro',
   category: 'general',
   title: 'About Charlton Smith',
-  content: 'Charlton Smith is a software engineer with 7+ years of experience based in Seattle. Contact: charltonuw@gmail.com',
+  content: 'Charlton Smith is a software engineer with 10 years of experience based in Seattle. Contact: charltonuw@gmail.com',
   keywords: ['charlton', 'about', 'contact', 'seattle']
 };
 
@@ -326,7 +326,7 @@ function buildLocalFallbackAnswer(query, intent, chunks = []) {
     return `${bestChunk}\n\nGenerated answers are temporarily unavailable, so this comes straight from the site's notes. Ask again in a minute.`;
   }
 
-  return `Charlton Smith is a Seattle-based software engineer with 7+ years of experience building production systems and AI-powered applications. His recent work centers on LLM agents, RAG systems, product infrastructure, and portfolio projects with real users.`;
+  return `Charlton Smith is a Seattle-based software engineer with 10 years of experience building production systems and AI-powered applications. His recent work centers on LLM agents, RAG systems, product infrastructure, and portfolio projects with real users.`;
 }
 
 // Set once per invocation (Lambda handles one request per container at a time) so
@@ -511,7 +511,7 @@ async function generateKnowledgeOnTheFly(query, intent) {
         model: 'openai/gpt-5-nano',
         messages: [
           { role: 'system', content: `You generate knowledge base entries for Charlton Smith's portfolio chatbot.
-Charlton is a software engineer in Seattle with 7+ years of experience. Key facts:
+Charlton is a software engineer in Seattle with 10 years of experience. Key facts:
 - B.S. Computer Science from UW Tacoma (2017, honors), M.S. Software Engineering from Colorado Technical University (2021)
 - 4 years at T-Mobile building an internal automation platform (consolidated 4-5 tools, 80% reduction in manual work)
 - Senior Software Engineer at Capital One designing JSON schema automated testing systems
@@ -1419,7 +1419,7 @@ BASIC INFO (always available):
 - Name: Charlton Smith
 - Location: Seattle, WA
 - Email: charltonuw@gmail.com
-- Experience: 7+ years software engineering
+- Experience: 10 years software engineering
 
 If asked about something not in the context, acknowledge the limitation and offer to help with what you do know.${hasRealtimeChunk ? `
 
