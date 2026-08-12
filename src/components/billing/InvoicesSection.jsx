@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
-  buildInvoice, defaultDraft, draftTotals, fmtDate, hoursFmt, invoiceById,
-  invoiceNumber, isOverdue, money, addDaysISO, todayISO,
+  buildInvoice, cycleIndexOf, defaultDraft, draftTotals, fmtDate, hoursFmt,
+  invoiceById, invoiceDateFor, invoiceNumber, isOverdue, money, periodAt,
+  periodCoverage, addDaysISO, todayISO,
 } from './billing-lib';
 import InvoiceDoc from './InvoiceDoc';
 
@@ -266,7 +267,67 @@ const InvoicesSection = ({ data, mutate }) => {
     (a, b) => b.dateIssued.localeCompare(a.dateIssued) || b.number.localeCompare(a.number)
   );
 
+  // Billing schedule derived from the cycle anchor: a few cycles around today,
+  // each marked invoiced / current / ready / upcoming.
+  const today = todayISO();
+  const anchor = data.settings.cycleAnchor;
+  let scheduleRows = [];
+  if (anchor && today >= anchor) {
+    const cur = cycleIndexOf(anchor, today);
+    for (let i = Math.max(0, cur - 2); i <= cur + 3; i++) {
+      const p = periodAt(anchor, i);
+      // Coverage by date-range overlap, not exact period dates — merged or
+      // partial invoices must not leave a false "ready" (or a false check).
+      const cov = periodCoverage(data, p);
+      const status = cov.covered
+        ? 'invoiced'
+        : p.end < today ? 'ready' : p.start <= today ? 'current' : 'upcoming';
+      scheduleRows.push({ ...p, inv: cov.invoice, through: cov.through, status });
+    }
+  }
+
+  const invoicePeriod = (row) => {
+    const start = row.through && row.through >= row.start ? addDaysISO(row.through, 1) : row.start;
+    setDraft({ periodStart: start, periodEnd: row.end, invoiceDate: today, expenses: [] });
+    setView({ mode: 'new', id: null });
+  };
+
   return (
+    <>
+    {scheduleRows.length > 0 && (
+      <div className="billing-card">
+        <h3>Billing schedule (two-week cycles from {fmtDate(anchor)})</h3>
+        <div className="billing-tablewrap">
+          <table className="billing-table">
+            <thead>
+              <tr><th>Work covered</th><th>Invoice date</th><th>Net {data.settings.netDays} due</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {scheduleRows.map((row) => (
+                <tr key={row.start} className={row.status === 'current' ? 'billing-schedule-current' : ''}>
+                  <td className="nowrap">{fmtDate(row.start)} to {fmtDate(row.end)}</td>
+                  <td className="nowrap">{fmtDate(invoiceDateFor(row.end))}</td>
+                  <td className="nowrap">{fmtDate(addDaysISO(invoiceDateFor(row.end), data.settings.netDays || 0))}</td>
+                  <td>
+                    {row.status === 'invoiced' && <span className="billing-pill paid">{'✓'} {row.inv.number}</span>}
+                    {row.status === 'current' && <span className="billing-pill sent">Current</span>}
+                    {row.status === 'ready' && <span className="billing-pill overdue">Ready to invoice</span>}
+                    {row.status === 'upcoming' && <span className="billing-hint nowrap" style={{ margin: 0 }}>upcoming</span>}
+                  </td>
+                  <td className="num">
+                    {row.status === 'ready' && (
+                      <button className="billing-btn small" onClick={() => invoicePeriod(row)}>
+                        Invoice this period
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
     <div className="billing-card">
       <div className="billing-card-head">
         <h3>Invoices</h3>
@@ -303,6 +364,7 @@ const InvoicesSection = ({ data, mutate }) => {
         <div className="billing-empty">No invoices yet. Log time, then create your first invoice.</div>
       )}
     </div>
+    </>
   );
 };
 

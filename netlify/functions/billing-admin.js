@@ -68,7 +68,13 @@ const validShape = (d) =>
   d && typeof d === 'object' && !Array.isArray(d) &&
   d.settings && typeof d.settings === 'object' && !Array.isArray(d.settings) &&
   Array.isArray(d.entries) && d.entries.length <= 20000 &&
-  Array.isArray(d.invoices) && d.invoices.length <= 2000;
+  Array.isArray(d.invoices) && d.invoices.length <= 2000 &&
+  // Newer fields; optional so pre-journal backups still import.
+  (d.dayNotes === undefined ||
+    (d.dayNotes && typeof d.dayNotes === 'object' && !Array.isArray(d.dayNotes) &&
+     Object.keys(d.dayNotes).length <= 5000)) &&
+  (d.companyNotes === undefined ||
+    (typeof d.companyNotes === 'string' && d.companyNotes.length <= 200000));
 
 exports.handler = async (event) => {
   const headers = {
@@ -126,7 +132,13 @@ exports.handler = async (event) => {
           exists: true,
           rev: d.rev || 0,
           updatedAt: d.updatedAt || null,
-          data: { settings: d.settings || {}, entries: d.entries || [], invoices: d.invoices || [] },
+          data: {
+            settings: d.settings || {},
+            entries: d.entries || [],
+            invoices: d.invoices || [],
+            dayNotes: d.dayNotes || {},
+            companyNotes: d.companyNotes || '',
+          },
         }),
       };
     }
@@ -155,6 +167,8 @@ exports.handler = async (event) => {
             settings: data.settings,
             entries: data.entries,
             invoices: data.invoices,
+            dayNotes: data.dayNotes || {},
+            companyNotes: data.companyNotes || '',
             rev: nextRev,
             updatedAt: new Date().toISOString(),
           });

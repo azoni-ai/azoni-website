@@ -12,6 +12,7 @@ const flatten = (s) => ({
   toAddress: s.billTo?.address || '',
   rate: s.rate ?? 0,
   netDays: s.netDays ?? 15,
+  cycleAnchor: s.cycleAnchor || '',
   prefix: s.invoicePrefix || '',
   nextNumber: s.nextNumber ?? 1,
   taxLabel: s.taxLabel || '',
@@ -55,6 +56,7 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
         },
         rate: Number(form.rate) || 0,
         netDays: Math.max(0, Math.round(Number(form.netDays) || 0)),
+        cycleAnchor: form.cycleAnchor || '',
         invoicePrefix: form.prefix,
         nextNumber: Math.max(1, Math.round(Number(form.nextNumber) || 1)),
         taxLabel: form.taxLabel.trim() || 'Sales tax',
@@ -71,6 +73,8 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
       settings: { ...data.settings, lastBackup: today },
       entries: data.entries,
       invoices: data.invoices,
+      dayNotes: data.dayNotes,
+      companyNotes: data.companyNotes,
     };
     mutate((d) => ({ ...d, settings: { ...d.settings, lastBackup: today } }));
     downloadFile(`azoni-billing-backup-${today}.json`, JSON.stringify(snapshot, null, 2));
@@ -85,7 +89,9 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
         if (!window.confirm(
           'Replace ALL billing data on the server with this backup? Export a backup of the current data first if unsure.'
         )) return;
-        replaceAll({ settings: parsed.settings, entries: parsed.entries, invoices: parsed.invoices });
+        // Pass the whole backup through — replaceAll normalizes, and cherry-
+        // picking keys here once silently dropped dayNotes/companyNotes.
+        replaceAll(parsed);
         setFormDirty(false);
       } catch {
         window.alert('That file does not look like a billing backup.');
@@ -160,10 +166,15 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
               <span>Next number</span>
               <input type="number" step="1" min="1" value={form.nextNumber} onChange={set('nextNumber')} />
             </label>
+            <label className="billing-fld">
+              <span>Cycle start (commencement)</span>
+              <input type="date" value={form.cycleAnchor} onChange={set('cycleAnchor')} />
+            </label>
           </div>
           <p className="billing-hint">
             Next invoice will be {invoiceNumber(data.settings)}. Update the prefix at the start of
-            each year.
+            each year. Two-week billing periods count from the cycle start: Aug 11 starts the
+            period Aug 11 to Aug 24, invoiced Aug 25, due Sep 9.
           </p>
         </div>
 

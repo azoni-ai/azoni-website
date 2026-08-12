@@ -48,6 +48,101 @@
   font-weight: 600;
 }
 
+/* ---------- current-cycle context line ---------- */
+
+.billing-cycleline {
+  font-size: 0.8rem;
+  color: var(--text-warm-muted);
+  margin: -6px 0 14px;
+}
+
+/* ---------- Today view ---------- */
+
+.billing-daynav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.billing-daynav input[type='date'] {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text-warm);
+  background: var(--bg-warm-hover);
+  border: 1px solid var(--border-warm-strong);
+  border-radius: var(--radius-sm, 7px);
+  padding: 5px 8px;
+  color-scheme: dark;
+}
+.billing-dayname {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  margin-left: 4px;
+}
+.billing-periodline {
+  font-size: 0.78rem;
+  color: var(--text-warm-muted);
+  white-space: nowrap;
+}
+
+.billing-daynote,
+.billing-companynote {
+  width: 100%;
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-warm);
+  background: var(--bg-warm-hover);
+  border: 1px solid var(--border-warm-strong);
+  border-radius: var(--radius-sm, 7px);
+  padding: 10px 12px;
+  resize: vertical;
+}
+.billing-daynote:focus,
+.billing-companynote:focus {
+  outline: 2px solid var(--accent-coral);
+  outline-offset: 0;
+}
+
+.billing-recent {
+  display: flex;
+  flex-direction: column;
+}
+.billing-recent-row {
+  display: grid;
+  grid-template-columns: 110px 60px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  text-align: left;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-warm-soft);
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--border-warm);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.billing-recent-row:last-child { border-bottom: none; }
+.billing-recent-row:hover { background: var(--bg-warm-hover); }
+.billing-recent-row.active { border-left-color: var(--accent-coral); }
+.billing-recent-row .br-date { color: var(--text-warm); white-space: nowrap; }
+.billing-recent-row .br-hours {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--accent-amber);
+}
+.billing-recent-row .br-preview {
+  color: var(--text-warm-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.billing-schedule-current td { background: rgba(217, 160, 91, 0.06); }
+
 /* ---------- sub-tabs and save state ---------- */
 
 .billing-bar {

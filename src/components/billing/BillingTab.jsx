@@ -1,8 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getBilling, saveBilling } from '../../utils/billingApi';
-import { computeStats, defaultData, hoursFmt, moneyWhole } from './billing-lib';
+import {
+  addDaysISO, computeStats, fmtDate, hoursFmt, invoiceDateFor, moneyWhole,
+  normalizeData, periodForDate, todayISO,
+} from './billing-lib';
+import TodaySection from './TodaySection';
 import TimeLogSection from './TimeLogSection';
 import InvoicesSection from './InvoicesSection';
+import CompanySection from './CompanySection';
 import BillingSettingsSection from './BillingSettingsSection';
 import '../../styles/billing-warm.css';
 
@@ -23,7 +28,7 @@ const BillingTab = () => {
   const [loadError, setLoadError] = useState('');
   const [data, setData] = useState(null);
   const [saveState, setSaveState] = useState('idle');
-  const [section, setSection] = useState('time');
+  const [section, setSection] = useState('today');
 
   const revRef = useRef(0);
   const dataRef = useRef(null);
@@ -31,6 +36,10 @@ const BillingTab = () => {
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
+  // An unresolved 409: only "Load latest" or "Overwrite" clears it. Tracked in
+  // a ref so a keystroke's mutate() can't downgrade the banner to 'dirty' and
+  // resume autosaves that are guaranteed to 409 against the stale rev.
+  const conflictRef = useRef(false);
 
   const load = useCallback(async () => {
     // Reloading discards local changes, so drop any pending debounced save —
@@ -41,10 +50,11 @@ const BillingTab = () => {
     setLoadError('');
     try {
       const res = await getBilling();
-      const d = res.data || defaultData();
+      const d = normalizeData(res.data || {});
       revRef.current = res.rev || 0;
       dataRef.current = d;
       dirtyRef.current = false;
+      conflictRef.current = false;
       setData(d);
       setSaveState('idle');
       setStatus('ready');
@@ -76,6 +86,7 @@ const BillingTab = () => {
     try {
       const res = await saveBilling(snapshot, revRef.current, force);
       revRef.current = res.rev;
+      conflictRef.current = false;
       savingRef.current = false;
       if (pendingRef.current || dataRef.current !== snapshot) {
         pendingRef.current = false;
@@ -88,8 +99,10 @@ const BillingTab = () => {
     } catch (e) {
       savingRef.current = false;
       pendingRef.current = false;
-      if (e.status === 409) setSaveState('conflict');
-      else if (e.status === 401) setSaveState('auth');
+      if (e.status === 409) {
+        conflictRef.current = true;
+        setSaveState('conflict');
+      } else if (e.status === 401) setSaveState('auth');
       else setSaveState('error');
     }
   }, []);
@@ -107,19 +120,27 @@ const BillingTab = () => {
       dataRef.current = next;
       dirtyRef.current = true;
       setData(next);
-      setSaveState('dirty');
-      scheduleSave();
+      if (conflictRef.current) {
+        // Keep editing locally, but the banner stays and no save is scheduled
+        // until the conflict is resolved one way or the other.
+        setSaveState('conflict');
+      } else {
+        setSaveState('dirty');
+        scheduleSave();
+      }
     },
     [scheduleSave]
   );
 
-  // Backup import: replace everything and save right away.
+  // Backup import: replace everything and save right away. Normalized so
+  // pre-journal backups (and desktop-app exports) gain the newer fields.
   const replaceAll = useCallback(
     (next) => {
       clearTimeout(timerRef.current);
-      dataRef.current = next;
+      const normalized = normalizeData(next);
+      dataRef.current = normalized;
       dirtyRef.current = true;
-      setData(next);
+      setData(normalized);
       persist();
     },
     [persist]
@@ -143,6 +164,7 @@ const BillingTab = () => {
     () => () => {
       clearTimeout(timerRef.current);
       if (!dirtyRef.current || !dataRef.current) return;
+      if (conflictRef.current) return; // a flush would just 409 against the stale rev
       if (savingRef.current) {
         pendingRef.current = true;
       } else {
@@ -165,6 +187,16 @@ const BillingTab = () => {
   }
 
   const stats = computeStats(data);
+
+  // Current-cycle context line: period, invoice date, due date.
+  const anchor = data.settings.cycleAnchor;
+  const today = todayISO();
+  let cycleLine = null;
+  if (anchor && today >= anchor) {
+    const p = periodForDate(anchor, today);
+    const invDate = invoiceDateFor(p.end);
+    cycleLine = `Current period ${fmtDate(p.start)} to ${fmtDate(p.end)} · invoice ${fmtDate(invDate)} · due ${fmtDate(addDaysISO(invDate, data.settings.netDays || 0))}`;
+  }
 
   return (
     <div className="billing-root">
@@ -212,8 +244,16 @@ const BillingTab = () => {
         </div>
       </div>
 
+      {cycleLine && <div className="billing-cycleline">{cycleLine}</div>}
+
       <div className="billing-bar">
         <div className="billing-subtabs">
+          <button
+            className={`billing-subtab ${section === 'today' ? 'active' : ''}`}
+            onClick={() => setSection('today')}
+          >
+            Today
+          </button>
           <button
             className={`billing-subtab ${section === 'time' ? 'active' : ''}`}
             onClick={() => setSection('time')}
@@ -225,6 +265,12 @@ const BillingTab = () => {
             onClick={() => setSection('invoices')}
           >
             Invoices
+          </button>
+          <button
+            className={`billing-subtab ${section === 'company' ? 'active' : ''}`}
+            onClick={() => setSection('company')}
+          >
+            Company
           </button>
           <button
             className={`billing-subtab ${section === 'settings' ? 'active' : ''}`}
@@ -241,8 +287,10 @@ const BillingTab = () => {
         </div>
       </div>
 
+      {section === 'today' && <TodaySection data={data} mutate={mutate} />}
       {section === 'time' && <TimeLogSection data={data} mutate={mutate} />}
       {section === 'invoices' && <InvoicesSection data={data} mutate={mutate} />}
+      {section === 'company' && <CompanySection data={data} mutate={mutate} />}
       {section === 'settings' && (
         <BillingSettingsSection data={data} mutate={mutate} replaceAll={replaceAll} />
       )}

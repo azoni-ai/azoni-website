@@ -65,10 +65,70 @@ export const defaultData = () => ({
     nextNumber: 1,
     paymentNote: 'Payment by ACH using banking information on file.',
     lastBackup: null,
+    // Two-week billing periods count from this date (the commencement date).
+    cycleAnchor: '2026-08-11',
   },
   entries: [],
   invoices: [],
+  // Per-day journal, keyed by ISO date: what the day was, meetings, random notes.
+  dayNotes: {},
+  // Free-form reference notes outside the daily log: people, processes, links.
+  companyNotes: '',
 });
+
+// Older saves and desktop-app backups predate dayNotes/companyNotes/cycleAnchor;
+// fill the gaps so every consumer can assume the full shape.
+export const normalizeData = (d) => {
+  const base = defaultData();
+  return {
+    settings: { ...base.settings, ...(d.settings || {}) },
+    entries: Array.isArray(d.entries) ? d.entries : [],
+    invoices: Array.isArray(d.invoices) ? d.invoices : [],
+    dayNotes: d.dayNotes && typeof d.dayNotes === 'object' && !Array.isArray(d.dayNotes) ? d.dayNotes : {},
+    companyNotes: typeof d.companyNotes === 'string' ? d.companyNotes : '',
+  };
+};
+
+/* ---------- billing cycles (two-week periods from the anchor date) ---------- */
+
+const DAY_MS = 86400000;
+
+export const cycleIndexOf = (anchor, dateISO) => {
+  // Round the day difference first so a DST hour can't skew the division.
+  const days = Math.round((parseISO(dateISO) - parseISO(anchor)) / DAY_MS);
+  return Math.floor(days / 14);
+};
+
+export const periodAt = (anchor, index) => ({
+  index,
+  start: addDaysISO(anchor, index * 14),
+  end: addDaysISO(anchor, index * 14 + 13),
+});
+
+export const periodForDate = (anchor, dateISO) => periodAt(anchor, cycleIndexOf(anchor, dateISO));
+
+// Schedule rule: invoice the day after the period ends; due netDays later.
+export const invoiceDateFor = (periodEnd) => addDaysISO(periodEnd, 1);
+
+// How much of a grid period existing invoices cover. Invoice period dates are
+// freely editable (merged or partial periods happen), so match by date-range
+// overlap, never by exact periodStart equality: `covered` means some invoice
+// reaches the period's end; `through` is the latest invoiced date touching it.
+export const periodCoverage = (data, p) => {
+  const overlapping = data.invoices.filter(
+    (i) => i.periodStart <= p.end && i.periodEnd >= p.start
+  );
+  if (!overlapping.length) return { covered: false, through: null, invoice: null };
+  const through = overlapping.reduce(
+    (m, i) => (i.periodEnd > m ? i.periodEnd : m),
+    overlapping[0].periodEnd
+  );
+  return {
+    covered: through >= p.end,
+    through,
+    invoice: overlapping.find((i) => i.periodEnd === through) || null,
+  };
+};
 
 export const validBackup = (d) =>
   !!(d && typeof d === 'object' && !Array.isArray(d) &&
@@ -107,10 +167,49 @@ export const computeStats = (data) => {
 };
 
 export const defaultDraft = (data) => {
+  const today = todayISO();
+  const anchor = data.settings.cycleAnchor;
+
+  if (anchor && today >= anchor) {
+    const cur = cycleIndexOf(anchor, today);
+    const unbilledDates = unbilledEntries(data).map((e) => e.date);
+
+    // The uninvoiced remainder of a period, or null when invoices already
+    // reach its end. A partial invoice (created mid-cycle) must not mark the
+    // whole period handled — later hours would be stranded forever.
+    const remainderDraft = (p) => {
+      const cov = periodCoverage(data, p);
+      if (cov.covered) return null;
+      const start = cov.through && cov.through >= p.start ? addDaysISO(cov.through, 1) : p.start;
+      return { periodStart: start, periodEnd: p.end, invoiceDate: today, expenses: [] };
+    };
+
+    // Earliest completed cycle whose uncovered remainder still has unbilled time.
+    for (let i = 0; i < cur; i++) {
+      const draft = remainderDraft(periodAt(anchor, i));
+      if (draft && unbilledDates.some((d) => d >= draft.periodStart && d <= draft.periodEnd)) {
+        return draft;
+      }
+    }
+    // Otherwise the most recent completed cycle, if not fully invoiced
+    // (covers an expenses-only invoice).
+    if (cur > 0) {
+      const draft = remainderDraft(periodAt(anchor, cur - 1));
+      if (draft) return draft;
+    }
+    // Mid-cycle with nothing owed from earlier: current period to date,
+    // starting after whatever has already been invoiced.
+    const p = periodAt(anchor, cur);
+    const cov = periodCoverage(data, p);
+    const start = cov.through && cov.through >= p.start ? addDaysISO(cov.through, 1) : p.start;
+    return { periodStart: start, periodEnd: p.end < today ? p.end : today, invoiceDate: today, expenses: [] };
+  }
+
+  // No anchor configured: fall back to the old heuristic.
   const last = [...data.invoices].sort((a, b) => b.periodEnd.localeCompare(a.periodEnd))[0];
   const un = unbilledEntries(data).map((e) => e.date).sort();
-  const start = last ? addDaysISO(last.periodEnd, 1) : un[0] || addDaysISO(todayISO(), -13);
-  return { periodStart: start, periodEnd: todayISO(), invoiceDate: todayISO(), expenses: [] };
+  const start = last ? addDaysISO(last.periodEnd, 1) : un[0] || addDaysISO(today, -13);
+  return { periodStart: start, periodEnd: today, invoiceDate: today, expenses: [] };
 };
 
 export const draftEntries = (data, draft) =>
