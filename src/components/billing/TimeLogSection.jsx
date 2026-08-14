@@ -1,8 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import {
   downloadFile, entriesCsv, fmtDate, hoursFmt, invoiceById,
-  round2, sortedEntries, todayISO, uid,
+  parseISO, round2, sortedEntries, todayISO, uid,
 } from './billing-lib';
+
+const dayLabel = (date) =>
+  parseISO(date).toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  });
 
 const emptyForm = () => ({ date: todayISO(), project: '', description: '', hours: '' });
 
@@ -22,6 +27,21 @@ const TimeLogSection = ({ data, mutate }) => {
     if (filter === 'billed') r = r.filter((e) => e.invoiceId);
     return r;
   }, [data, filter]);
+
+  // Days newest-first (rows are already date-desc, so insertion order holds);
+  // entries within a day read top-to-bottom in the order they were logged.
+  const dayGroups = useMemo(() => {
+    const map = new Map();
+    rows.forEach((entry) => {
+      if (!map.has(entry.date)) map.set(entry.date, []);
+      map.get(entry.date).push(entry);
+    });
+    return [...map.entries()].map(([date, list]) => ({
+      date,
+      entries: [...list].sort((a, b) => (a.created || 0) - (b.created || 0)),
+      hours: round2(list.reduce((s, e) => s + (e.hours || 0), 0)),
+    }));
+  }, [rows]);
 
   const shownHours = round2(rows.reduce((s, e) => s + (e.hours || 0), 0));
 
@@ -149,35 +169,43 @@ const TimeLogSection = ({ data, mutate }) => {
               <table className="billing-table">
                 <thead>
                   <tr>
-                    <th>Date</th><th>Project</th><th>Description</th>
+                    <th>Project</th><th>Description</th>
                     <th className="num">Hours</th><th>Invoice</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((entry) => {
-                    const inv = entry.invoiceId ? invoiceById(data, entry.invoiceId) : null;
-                    return (
-                      <tr key={entry.id}>
-                        <td className="nowrap">{fmtDate(entry.date)}</td>
-                        <td>{entry.project}</td>
-                        <td>{entry.description}</td>
-                        <td className="num">{hoursFmt(entry.hours)}</td>
-                        <td>{inv ? <span className="billing-pill">{inv.number}</span> : ''}</td>
-                        <td className="num">
-                          {!entry.invoiceId && (
-                            <>
-                              <button className="billing-linkish" onClick={() => startEdit(entry)}>
-                                Edit
-                              </button>{' '}
-                              <button className="billing-linkish danger" onClick={() => remove(entry)}>
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </td>
+                  {dayGroups.map((group) => (
+                    <React.Fragment key={group.date}>
+                      <tr className="billing-dayhead">
+                        <td colSpan={2}>{dayLabel(group.date)}</td>
+                        <td className="num">{hoursFmt(group.hours)}</td>
+                        <td colSpan={2}></td>
                       </tr>
-                    );
-                  })}
+                      {group.entries.map((entry) => {
+                        const inv = entry.invoiceId ? invoiceById(data, entry.invoiceId) : null;
+                        return (
+                          <tr key={entry.id}>
+                            <td>{entry.project}</td>
+                            <td>{entry.description}</td>
+                            <td className="num">{hoursFmt(entry.hours)}</td>
+                            <td>{inv ? <span className="billing-pill">{inv.number}</span> : ''}</td>
+                            <td className="num">
+                              {!entry.invoiceId && (
+                                <>
+                                  <button className="billing-linkish" onClick={() => startEdit(entry)}>
+                                    Edit
+                                  </button>{' '}
+                                  <button className="billing-linkish danger" onClick={() => remove(entry)}>
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>

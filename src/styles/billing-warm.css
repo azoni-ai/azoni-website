@@ -362,6 +362,22 @@
 .inv-table td.nowrap { white-space: nowrap; }
 .billing-table.totals { max-width: 440px; }
 .billing-table.totals tr.strong td { font-weight: 700; }
+/* Day separator rows in the grouped time log */
+.billing-table tr.billing-dayhead td {
+  background: var(--bg-warm-hover);
+  color: var(--text-warm);
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border-warm-strong);
+}
+.billing-table tr.billing-dayhead td:first-child {
+  border-radius: var(--radius-sm, 7px) 0 0 0;
+}
+.billing-table tr.billing-dayhead td:last-child {
+  border-radius: 0 var(--radius-sm, 7px) 0 0;
+}
+
 .billing-rowlink { cursor: pointer; }
 .billing-rowlink:hover td { background: var(--bg-warm-hover); }
 .billing-tfoot {
