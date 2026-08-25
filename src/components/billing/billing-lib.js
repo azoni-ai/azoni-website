@@ -172,7 +172,10 @@ export const defaultDraft = (data) => {
 
   if (anchor && today >= anchor) {
     const cur = cycleIndexOf(anchor, today);
-    const unbilledDates = unbilledEntries(data).map((e) => e.date);
+    // Zero-hour (day-off) entries must not make a period look billable.
+    const unbilledDates = unbilledEntries(data)
+      .filter((e) => e.hours > 0)
+      .map((e) => e.date);
 
     // The uninvoiced remainder of a period, or null when invoices already
     // reach its end. A partial invoice (created mid-cycle) must not mark the
@@ -212,9 +215,10 @@ export const defaultDraft = (data) => {
   return { periodStart: start, periodEnd: today, invoiceDate: today, expenses: [] };
 };
 
+// Zero-hour entries are personal day-off records — they never go on an invoice.
 export const draftEntries = (data, draft) =>
   unbilledEntries(data)
-    .filter((e) => e.date >= draft.periodStart && e.date <= draft.periodEnd)
+    .filter((e) => e.hours > 0 && e.date >= draft.periodStart && e.date <= draft.periodEnd)
     .sort((a, b) => a.date.localeCompare(b.date));
 
 export const draftTotals = (data, draft) => {

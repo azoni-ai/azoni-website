@@ -51,7 +51,8 @@ const TimeLogSection = ({ data, mutate }) => {
   const submit = (e) => {
     e.preventDefault();
     const hours = round2(Number(form.hours));
-    if (!form.date || !(hours > 0)) return;
+    // 0 records a no-work day; invoices exclude 0-hour rows.
+    if (!form.date || form.hours === '' || !Number.isFinite(hours) || hours < 0) return;
     const fields = {
       date: form.date,
       project: form.project.trim(),
@@ -132,7 +133,7 @@ const TimeLogSection = ({ data, mutate }) => {
           <label className="billing-fld hours">
             <span>Hours</span>
             <input
-              type="number" step="0.25" min="0.25" max="24" required
+              type="number" step="0.25" min="0" max="24" required
               value={form.hours} onChange={set('hours')}
             />
           </label>

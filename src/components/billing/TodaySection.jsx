@@ -51,7 +51,8 @@ const TodaySection = ({ data, mutate }) => {
   const addEntry = (e) => {
     e.preventDefault();
     const hours = round2(Number(form.hours));
-    if (!(hours > 0)) return;
+    // 0 is allowed: it records a day with no work. Invoices exclude 0-hour rows.
+    if (form.hours === '' || !Number.isFinite(hours) || hours < 0) return;
     mutate((d) => ({
       ...d,
       entries: [
@@ -84,11 +85,12 @@ const TodaySection = ({ data, mutate }) => {
       .sort((a, b) => b.localeCompare(a))
       .slice(0, 14)
       .map((date) => {
-        const hours = round2(
-          data.entries.filter((e) => e.date === date).reduce((s, e) => s + (e.hours || 0), 0)
-        );
-        const firstLine = (data.dayNotes[date] || '').split('\n').find((l) => l.trim()) || '';
-        return { date, hours, preview: firstLine.slice(0, 90) };
+        const dateEntries = data.entries.filter((e) => e.date === date);
+        const hours = round2(dateEntries.reduce((s, e) => s + (e.hours || 0), 0));
+        const firstLine =
+          (data.dayNotes[date] || '').split('\n').find((l) => l.trim()) ||
+          dateEntries.map((e) => e.description).find(Boolean) || '';
+        return { date, hours, hasEntries: dateEntries.length > 0, preview: firstLine.slice(0, 90) };
       });
   }, [data.dayNotes, data.entries]);
 
@@ -165,13 +167,16 @@ const TodaySection = ({ data, mutate }) => {
           <label className="billing-fld hours">
             <span>Hours</span>
             <input
-              type="number" step="0.25" min="0.25" max="24" required
+              type="number" step="0.25" min="0" max="24" required
               value={form.hours}
               onChange={(e) => setForm((f) => ({ ...f, hours: e.target.value }))}
             />
           </label>
           <button className="billing-btn primary" type="submit">Add</button>
         </form>
+        <p className="billing-hint">
+          Log 0 hours to record a day with no work. Zero-hour entries stay off invoices.
+        </p>
 
         {dayEntries.length > 0 && (
           <div className="billing-tablewrap" style={{ marginTop: '12px' }}>
@@ -210,7 +215,7 @@ const TodaySection = ({ data, mutate }) => {
                 onClick={() => setViewDate(d.date)}
               >
                 <span className="br-date">{fmtDate(d.date)}</span>
-                <span className="br-hours">{d.hours ? `${hoursFmt(d.hours)} h` : ''}</span>
+                <span className="br-hours">{d.hasEntries || d.hours ? `${hoursFmt(d.hours)} h` : ''}</span>
                 <span className="br-preview">{d.preview}</span>
               </button>
             ))}
