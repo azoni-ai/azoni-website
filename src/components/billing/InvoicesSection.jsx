@@ -116,6 +116,18 @@ const InvoicesSection = ({ data, mutate }) => {
             Included time ({t.entries.length} entr{t.entries.length === 1 ? 'y' : 'ies'},{' '}
             {hoursFmt(t.hoursTotal)} hours)
           </h3>
+          {(() => {
+            const incomplete = t.entries.filter((e) => !e.project || !e.description);
+            if (!incomplete.length) return null;
+            const dates = [...new Set(incomplete.map((e) => fmtDate(e.date)))].join(', ');
+            return (
+              <p className="billing-warnline">
+                {'⚠'} {incomplete.length} entr{incomplete.length === 1 ? 'y is' : 'ies are'} missing
+                a project or description ({dates}). Fill them in from the Time log (filter: Missing
+                info) before creating this invoice — blank lines go on the client-facing PDF as-is.
+              </p>
+            );
+          })()}
           {t.entries.length ? (
             <div className="billing-tablewrap">
               <table className="billing-table">
@@ -126,8 +138,8 @@ const InvoicesSection = ({ data, mutate }) => {
                   {t.entries.map((e) => (
                     <tr key={e.id}>
                       <td className="nowrap">{fmtDate(e.date)}</td>
-                      <td>{e.project}</td>
-                      <td>{e.description}</td>
+                      <td>{e.project || <span className="billing-blank">—</span>}</td>
+                      <td>{e.description || <span className="billing-blank">—</span>}</td>
                       <td className="num">{hoursFmt(e.hours)}</td>
                     </tr>
                   ))}

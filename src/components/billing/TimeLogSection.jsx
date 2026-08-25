@@ -25,6 +25,7 @@ const TimeLogSection = ({ data, mutate }) => {
     let r = sortedEntries(data);
     if (filter === 'unbilled') r = r.filter((e) => !e.invoiceId);
     if (filter === 'billed') r = r.filter((e) => e.invoiceId);
+    if (filter === 'incomplete') r = r.filter((e) => !e.project || !e.description);
     return r;
   }, [data, filter]);
 
@@ -154,6 +155,7 @@ const TimeLogSection = ({ data, mutate }) => {
               <option value="all">All</option>
               <option value="unbilled">Unbilled</option>
               <option value="billed">Billed</option>
+              <option value="incomplete">Missing info</option>
             </select>
             <button
               className="billing-btn small"
@@ -185,8 +187,8 @@ const TimeLogSection = ({ data, mutate }) => {
                         const inv = entry.invoiceId ? invoiceById(data, entry.invoiceId) : null;
                         return (
                           <tr key={entry.id}>
-                            <td>{entry.project}</td>
-                            <td>{entry.description}</td>
+                            <td>{entry.project || <span className="billing-blank">—</span>}</td>
+                            <td>{entry.description || <span className="billing-blank">—</span>}</td>
                             <td className="num">{hoursFmt(entry.hours)}</td>
                             <td>{inv ? <span className="billing-pill">{inv.number}</span> : ''}</td>
                             <td className="num">

@@ -286,6 +286,12 @@
   color: var(--text-warm-muted);
   margin: 8px 0 0;
 }
+.billing-warnline {
+  font-size: 0.85rem;
+  color: var(--accent-amber);
+  margin: 0 0 10px;
+}
+.billing-blank { color: var(--text-warm-muted); }
 .billing-hint a { color: var(--accent-coral); }
 .billing-hint.nowrap { margin: 0; white-space: nowrap; }
 
