@@ -55,7 +55,7 @@ export const uid = () =>
 
 export const defaultData = () => ({
   settings: {
-    from: { name: 'Azoni LLC', address: '', email: '', phone: '' },
+    from: { name: 'Azoni LLC', address: '', email: '', phone: '', website: '', ubi: '' },
     billTo: { name: '', address: '', email: '', poNumber: '' },
     rate: 0,
     netDays: 15,

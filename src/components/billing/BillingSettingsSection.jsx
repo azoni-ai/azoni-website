@@ -6,6 +6,8 @@ const flatten = (s) => ({
   fromEmail: s.from?.email || '',
   fromPhone: s.from?.phone || '',
   fromAddress: s.from?.address || '',
+  fromWebsite: s.from?.website || '',
+  fromUbi: s.from?.ubi || '',
   toName: s.billTo?.name || '',
   toEmail: s.billTo?.email || '',
   toPo: s.billTo?.poNumber || '',
@@ -47,6 +49,8 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
           email: form.fromEmail.trim(),
           phone: form.fromPhone.trim(),
           address: form.fromAddress.trim(),
+          website: form.fromWebsite.trim(),
+          ubi: form.fromUbi.trim(),
         },
         billTo: {
           name: form.toName.trim(),
@@ -117,6 +121,16 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
             <label className="billing-fld">
               <span>Phone</span>
               <input type="text" value={form.fromPhone} onChange={set('fromPhone')} />
+            </label>
+          </div>
+          <div className="billing-frow" style={{ marginTop: '10px' }}>
+            <label className="billing-fld grow">
+              <span>Website</span>
+              <input type="text" placeholder="azoni.ai" value={form.fromWebsite} onChange={set('fromWebsite')} />
+            </label>
+            <label className="billing-fld grow">
+              <span>WA UBI number</span>
+              <input type="text" value={form.fromUbi} onChange={set('fromUbi')} />
             </label>
           </div>
           <label className="billing-fld full">

@@ -12,18 +12,17 @@ const InvoiceDoc = ({ inv }) => {
     return () => document.body.classList.remove('billing-has-doc');
   }, []);
 
-  const contact = [inv.from.email, inv.from.phone].filter(Boolean).join(' · ');
+  const contact = [inv.from.website, inv.from.email, inv.from.phone].filter(Boolean).join(' · ');
+  const fromLines = [inv.from.address, contact, inv.from.ubi ? `UBI ${inv.from.ubi}` : '']
+    .filter(Boolean)
+    .join('\n');
   return (
     <div className="billing-print-area">
       <div className="billing-invoice-doc">
         <div className="inv-head">
           <div>
             <div className="inv-biz">{inv.from.name}</div>
-            <div className="inv-addr">
-              {inv.from.address}
-              {inv.from.address ? '\n' : ''}
-              {contact}
-            </div>
+            <div className="inv-addr">{fromLines}</div>
           </div>
           <div className="inv-meta">
             <div className="inv-title">INVOICE</div>
