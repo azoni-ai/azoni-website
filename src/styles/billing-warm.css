@@ -104,6 +104,71 @@
   outline-offset: 0;
 }
 
+/* ---------- month calendar ---------- */
+
+.billing-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+}
+.billing-cal-dow {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-warm-muted);
+  text-align: center;
+  padding: 2px 0 6px;
+}
+.billing-cal-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 64px;
+  padding: 6px 8px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-warm-soft);
+  background: none;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-sm, 7px);
+  cursor: pointer;
+}
+.billing-cal-cell:hover { background: var(--bg-warm-hover); }
+.billing-cal-cell.out { opacity: 0.35; }
+.billing-cal-cell.today .bc-day {
+  color: var(--accent-amber);
+  font-weight: 700;
+}
+.billing-cal-cell.selected {
+  border-color: var(--accent-coral);
+  background: var(--bg-warm-hover);
+}
+.billing-cal-cell.pstart { border-top: 2px solid var(--accent-coral); }
+.bc-day { font-size: 0.78rem; }
+.bc-hours {
+  margin-top: auto;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-amber);
+}
+.bc-hours.billed { color: var(--accent-sage); }
+.bc-hours.zero { color: var(--text-warm-muted); }
+.bc-note {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--accent-coral);
+}
+@media (max-width: 640px) {
+  .billing-cal-cell { min-height: 48px; padding: 4px 6px; }
+}
+
 .billing-recent {
   display: flex;
   flex-direction: column;

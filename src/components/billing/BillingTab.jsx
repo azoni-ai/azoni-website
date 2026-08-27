@@ -4,7 +4,7 @@ import {
   addDaysISO, computeStats, fmtDate, hoursFmt, invoiceDateFor, moneyWhole,
   normalizeData, periodForDate, todayISO,
 } from './billing-lib';
-import TodaySection from './TodaySection';
+import CalendarSection from './CalendarSection';
 import TimeLogSection from './TimeLogSection';
 import InvoicesSection from './InvoicesSection';
 import CompanySection from './CompanySection';
@@ -28,7 +28,7 @@ const BillingTab = () => {
   const [loadError, setLoadError] = useState('');
   const [data, setData] = useState(null);
   const [saveState, setSaveState] = useState('idle');
-  const [section, setSection] = useState('today');
+  const [section, setSection] = useState('calendar');
 
   const revRef = useRef(0);
   const dataRef = useRef(null);
@@ -249,10 +249,10 @@ const BillingTab = () => {
       <div className="billing-bar">
         <div className="billing-subtabs">
           <button
-            className={`billing-subtab ${section === 'today' ? 'active' : ''}`}
-            onClick={() => setSection('today')}
+            className={`billing-subtab ${section === 'calendar' ? 'active' : ''}`}
+            onClick={() => setSection('calendar')}
           >
-            Today
+            Calendar
           </button>
           <button
             className={`billing-subtab ${section === 'time' ? 'active' : ''}`}
@@ -287,7 +287,7 @@ const BillingTab = () => {
         </div>
       </div>
 
-      {section === 'today' && <TodaySection data={data} mutate={mutate} />}
+      {section === 'calendar' && <CalendarSection data={data} mutate={mutate} />}
       {section === 'time' && <TimeLogSection data={data} mutate={mutate} />}
       {section === 'invoices' && <InvoicesSection data={data} mutate={mutate} />}
       {section === 'company' && <CompanySection data={data} mutate={mutate} />}

@@ -1,26 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import {
-  addDaysISO, fmtDate, hoursFmt, invoiceDateFor, parseISO, periodForDate,
-  round2, todayISO, uid,
+  fmtDate, hoursFmt, invoiceDateFor, parseISO, periodForDate, round2, todayISO, uid,
 } from './billing-lib';
 
 const emptyForm = () => ({ project: '', description: '', hours: '' });
 
-// The daily driver: pick a day (defaults to today), write what the day was,
-// and log billable time right there. Recent days below for quick review.
-const TodaySection = ({ data, mutate }) => {
-  const [viewDate, setViewDate] = useState(todayISO());
+// Edits one day: its journal note and its time entries. The calendar above
+// picks the date.
+const DayEditor = ({ date, data, mutate }) => {
   const [form, setForm] = useState(emptyForm);
 
   const anchor = data.settings.cycleAnchor;
-  const note = data.dayNotes[viewDate] || '';
+  const note = data.dayNotes[date] || '';
 
   const dayEntries = useMemo(
     () =>
       data.entries
-        .filter((e) => e.date === viewDate)
+        .filter((e) => e.date === date)
         .sort((a, b) => (a.created || 0) - (b.created || 0)),
-    [data.entries, viewDate]
+    [data.entries, date]
   );
   const dayHours = round2(dayEntries.reduce((s, e) => s + (e.hours || 0), 0));
 
@@ -29,11 +27,10 @@ const TodaySection = ({ data, mutate }) => {
     [data.entries]
   );
 
-  // Period context line for the viewed day.
   let periodLine = null;
-  if (anchor && viewDate >= anchor) {
-    const p = periodForDate(anchor, viewDate);
-    const dayN = Math.round((parseISO(viewDate) - parseISO(p.start)) / 86400000) + 1;
+  if (anchor && date >= anchor) {
+    const p = periodForDate(anchor, date);
+    const dayN = Math.round((parseISO(date) - parseISO(p.start)) / 86400000) + 1;
     periodLine = `Day ${dayN} of 14 · period ${fmtDate(p.start)} to ${fmtDate(p.end)} · invoice ${fmtDate(invoiceDateFor(p.end))}`;
   } else if (anchor) {
     periodLine = `Before the ${fmtDate(anchor)} commencement date`;
@@ -42,8 +39,8 @@ const TodaySection = ({ data, mutate }) => {
   const setNote = (text) => {
     mutate((d) => {
       const dayNotes = { ...d.dayNotes };
-      if (text) dayNotes[viewDate] = text;
-      else delete dayNotes[viewDate];
+      if (text) dayNotes[date] = text;
+      else delete dayNotes[date];
       return { ...d, dayNotes };
     });
   };
@@ -61,14 +58,13 @@ const TodaySection = ({ data, mutate }) => {
           id: uid(),
           created: Date.now(),
           invoiceId: null,
-          date: viewDate,
+          date,
           project: form.project.trim(),
           description: form.description.trim(),
           hours,
         },
       ],
     }));
-    // Keep the project (usually the same all day); clear the rest.
     setForm((f) => ({ ...f, description: '', hours: '' }));
   };
 
@@ -77,48 +73,16 @@ const TodaySection = ({ data, mutate }) => {
     mutate((d) => ({ ...d, entries: d.entries.filter((x) => x.id !== entry.id) }));
   };
 
-  // Recent days: any day with a note or logged time, newest first.
-  const recentDays = useMemo(() => {
-    const dates = new Set(Object.keys(data.dayNotes).filter((k) => data.dayNotes[k]));
-    data.entries.forEach((e) => dates.add(e.date));
-    return [...dates]
-      .sort((a, b) => b.localeCompare(a))
-      .slice(0, 14)
-      .map((date) => {
-        const dateEntries = data.entries.filter((e) => e.date === date);
-        const hours = round2(dateEntries.reduce((s, e) => s + (e.hours || 0), 0));
-        const firstLine =
-          (data.dayNotes[date] || '').split('\n').find((l) => l.trim()) ||
-          dateEntries.map((e) => e.description).find(Boolean) || '';
-        return { date, hours, hasEntries: dateEntries.length > 0, preview: firstLine.slice(0, 90) };
-      });
-  }, [data.dayNotes, data.entries]);
-
   return (
     <>
       <div className="billing-card">
         <div className="billing-card-head">
-          <div className="billing-daynav">
-            <button className="billing-btn small" onClick={() => setViewDate(addDaysISO(viewDate, -1))}>
-              {'←'}
-            </button>
-            <input
-              type="date"
-              value={viewDate}
-              onChange={(e) => e.target.value && setViewDate(e.target.value)}
-            />
-            <button className="billing-btn small" onClick={() => setViewDate(addDaysISO(viewDate, 1))}>
-              {'→'}
-            </button>
-            {viewDate !== todayISO() && (
-              <button className="billing-btn small" onClick={() => setViewDate(todayISO())}>
-                Today
-              </button>
-            )}
-            <span className="billing-dayname">
-              {parseISO(viewDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </span>
-          </div>
+          <h3>
+            {parseISO(date).toLocaleDateString('en-US', {
+              weekday: 'long', month: 'long', day: 'numeric',
+            })}
+            {date === todayISO() ? ' (today)' : ''}
+          </h3>
           {periodLine && <span className="billing-periodline">{periodLine}</span>}
         </div>
 
@@ -126,7 +90,7 @@ const TodaySection = ({ data, mutate }) => {
           <span>Notes for the day</span>
           <textarea
             className="billing-daynote"
-            rows={7}
+            rows={6}
             placeholder="What happened today: meetings, decisions, blockers, random things worth remembering."
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -144,12 +108,12 @@ const TodaySection = ({ data, mutate }) => {
             <span>Project or task</span>
             <input
               type="text"
-              list="billing-projects-today"
+              list="billing-projects-day"
               placeholder="Project"
               value={form.project}
               onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
             />
-            <datalist id="billing-projects-today">
+            <datalist id="billing-projects-day">
               {projects.map((p) => (
                 <option key={p} value={p} />
               ))}
@@ -184,8 +148,8 @@ const TodaySection = ({ data, mutate }) => {
               <tbody>
                 {dayEntries.map((entry) => (
                   <tr key={entry.id}>
-                    <td>{entry.project}</td>
-                    <td>{entry.description}</td>
+                    <td>{entry.project || <span className="billing-blank">—</span>}</td>
+                    <td>{entry.description || <span className="billing-blank">—</span>}</td>
                     <td className="num">{hoursFmt(entry.hours)}</td>
                     <td className="num">
                       {entry.invoiceId ? (
@@ -203,27 +167,8 @@ const TodaySection = ({ data, mutate }) => {
           </div>
         )}
       </div>
-
-      {recentDays.length > 0 && (
-        <div className="billing-card">
-          <h3>Recent days</h3>
-          <div className="billing-recent">
-            {recentDays.map((d) => (
-              <button
-                key={d.date}
-                className={`billing-recent-row ${d.date === viewDate ? 'active' : ''}`}
-                onClick={() => setViewDate(d.date)}
-              >
-                <span className="br-date">{fmtDate(d.date)}</span>
-                <span className="br-hours">{d.hasEntries || d.hours ? `${hoursFmt(d.hours)} h` : ''}</span>
-                <span className="br-preview">{d.preview}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 };
 
-export default TodaySection;
+export default DayEditor;

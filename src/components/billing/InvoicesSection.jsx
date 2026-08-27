@@ -230,6 +230,16 @@ const InvoicesSection = ({ data, mutate }) => {
             </button>
           </div>
         </div>
+
+        <div className="billing-card">
+          <div className="billing-card-head">
+            <h3>Preview</h3>
+            <span className="billing-hint nowrap" style={{ margin: 0 }}>
+              Nothing is saved and no number is used until you create it.
+            </span>
+          </div>
+        </div>
+        <InvoiceDoc inv={buildInvoice(data, draft).invoice} />
       </>
     );
   }

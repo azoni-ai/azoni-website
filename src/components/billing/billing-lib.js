@@ -27,10 +27,10 @@ export const hoursFmt2 = (n) =>
     maximumFractionDigits: 2,
   });
 
-export const todayISO = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+export const dateToISO = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+export const todayISO = () => dateToISO(new Date());
 
 export const parseISO = (s) => {
   const [y, m, d] = s.split('-').map(Number);
