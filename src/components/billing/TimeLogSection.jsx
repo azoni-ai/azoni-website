@@ -16,16 +16,10 @@ const TimeLogSection = ({ data, mutate }) => {
   const [editingId, setEditingId] = useState(null);
   const [filter, setFilter] = useState('all');
 
-  const projects = useMemo(
-    () => [...new Set(data.entries.map((e) => e.project).filter(Boolean))],
-    [data.entries]
-  );
-
   const rows = useMemo(() => {
     let r = sortedEntries(data);
     if (filter === 'unbilled') r = r.filter((e) => !e.invoiceId);
     if (filter === 'billed') r = r.filter((e) => e.invoiceId);
-    if (filter === 'incomplete') r = r.filter((e) => !e.project || !e.description);
     return r;
   }, [data, filter]);
 
@@ -106,30 +100,6 @@ const TimeLogSection = ({ data, mutate }) => {
             <span>Date</span>
             <input type="date" required value={form.date} onChange={set('date')} />
           </label>
-          <label className="billing-fld grow">
-            <span>Project or task</span>
-            <input
-              type="text"
-              list="billing-projects"
-              placeholder="Project"
-              value={form.project}
-              onChange={set('project')}
-            />
-            <datalist id="billing-projects">
-              {projects.map((p) => (
-                <option key={p} value={p} />
-              ))}
-            </datalist>
-          </label>
-          <label className="billing-fld grow2">
-            <span>Description</span>
-            <input
-              type="text"
-              placeholder="What you worked on"
-              value={form.description}
-              onChange={set('description')}
-            />
-          </label>
           <label className="billing-fld hours">
             <span>Hours</span>
             <input
@@ -156,7 +126,6 @@ const TimeLogSection = ({ data, mutate }) => {
               <option value="all">All</option>
               <option value="unbilled">Unbilled</option>
               <option value="billed">Billed</option>
-              <option value="incomplete">Missing info</option>
             </select>
             <button
               className="billing-btn small"
@@ -172,7 +141,7 @@ const TimeLogSection = ({ data, mutate }) => {
               <table className="billing-table">
                 <thead>
                   <tr>
-                    <th>Project</th><th>Description</th>
+                    <th></th>
                     <th className="num">Hours</th><th>Invoice</th><th></th>
                   </tr>
                 </thead>
@@ -180,7 +149,7 @@ const TimeLogSection = ({ data, mutate }) => {
                   {dayGroups.map((group) => (
                     <React.Fragment key={group.date}>
                       <tr className="billing-dayhead">
-                        <td colSpan={2}>{dayLabel(group.date)}</td>
+                        <td>{dayLabel(group.date)}</td>
                         <td className="num">{hoursFmt(group.hours)}</td>
                         <td colSpan={2}></td>
                       </tr>
@@ -188,8 +157,7 @@ const TimeLogSection = ({ data, mutate }) => {
                         const inv = entry.invoiceId ? invoiceById(data, entry.invoiceId) : null;
                         return (
                           <tr key={entry.id}>
-                            <td>{entry.project || <span className="billing-blank">—</span>}</td>
-                            <td>{entry.description || <span className="billing-blank">—</span>}</td>
+                            <td>{[entry.project, entry.description].filter(Boolean).join(' · ')}</td>
                             <td className="num">{hoursFmt(entry.hours)}</td>
                             <td>{inv ? <span className="billing-pill">{inv.number}</span> : ''}</td>
                             <td className="num">

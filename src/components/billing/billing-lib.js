@@ -184,7 +184,7 @@ export const defaultDraft = (data) => {
       const cov = periodCoverage(data, p);
       if (cov.covered) return null;
       const start = cov.through && cov.through >= p.start ? addDaysISO(cov.through, 1) : p.start;
-      return { periodStart: start, periodEnd: p.end, invoiceDate: today, expenses: [] };
+      return { periodStart: start, periodEnd: p.end, invoiceDate: today, expenses: [], workSummary: '' };
     };
 
     // Earliest completed cycle whose uncovered remainder still has unbilled time.
@@ -205,14 +205,14 @@ export const defaultDraft = (data) => {
     const p = periodAt(anchor, cur);
     const cov = periodCoverage(data, p);
     const start = cov.through && cov.through >= p.start ? addDaysISO(cov.through, 1) : p.start;
-    return { periodStart: start, periodEnd: p.end < today ? p.end : today, invoiceDate: today, expenses: [] };
+    return { periodStart: start, periodEnd: p.end < today ? p.end : today, invoiceDate: today, expenses: [], workSummary: '' };
   }
 
   // No anchor configured: fall back to the old heuristic.
   const last = [...data.invoices].sort((a, b) => b.periodEnd.localeCompare(a.periodEnd))[0];
   const un = unbilledEntries(data).map((e) => e.date).sort();
   const start = last ? addDaysISO(last.periodEnd, 1) : un[0] || addDaysISO(today, -13);
-  return { periodStart: start, periodEnd: today, invoiceDate: today, expenses: [] };
+  return { periodStart: start, periodEnd: today, invoiceDate: today, expenses: [], workSummary: '' };
 };
 
 // Zero-hour entries are personal day-off records — they never go on an invoice.
@@ -265,9 +265,18 @@ export const buildInvoice = (data, draft) => {
       email: (s.billTo && s.billTo.email) || '',
     },
     paymentNote: s.paymentNote || '',
-    lines: t.entries.map((e) => ({
-      date: e.date, project: e.project, description: e.description, hours: e.hours,
-    })),
+    // One summary paragraph for the whole cycle; the itemization is just
+    // date + hours (entries aggregated per day).
+    workSummary: (draft.workSummary || '').trim(),
+    lines: (() => {
+      const byDate = new Map();
+      t.entries.forEach((e) => {
+        byDate.set(e.date, round2((byDate.get(e.date) || 0) + (e.hours || 0)));
+      });
+      return [...byDate.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, hours]) => ({ date, hours }));
+    })(),
     expenses: t.expenses.map((x) => ({
       description: x.description, amount: round2(Number(x.amount) || 0), taxable: !!x.taxable,
     })),

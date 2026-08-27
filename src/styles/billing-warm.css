@@ -530,6 +530,16 @@
   color: #777;
 }
 .inv-who { white-space: pre-line; }
+.inv-work { margin-bottom: 22px; font-size: 13.5px; }
+.inv-work h4 {
+  font-family: inherit;
+  margin: 0 0 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #777;
+}
 .inv-table {
   width: 100%;
   border-collapse: collapse;

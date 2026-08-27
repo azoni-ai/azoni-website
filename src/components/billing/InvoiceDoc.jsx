@@ -49,25 +49,38 @@ const InvoiceDoc = ({ inv }) => {
           </div>
         </div>
 
-        {inv.lines.length > 0 && (
-          <table className="inv-table">
-            <thead>
-              <tr>
-                <th>Date</th><th>Project</th><th>Description</th><th className="num">Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inv.lines.map((line, i) => (
-                <tr key={i}>
-                  <td className="nowrap">{fmtDate(line.date)}</td>
-                  <td>{line.project}</td>
-                  <td>{line.description}</td>
-                  <td className="num">{hoursFmt2(line.hours)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {inv.workSummary && (
+          <div className="inv-work">
+            <h4>Work performed</h4>
+            <div className="inv-who">{inv.workSummary}</div>
+          </div>
         )}
+
+        {inv.lines.length > 0 && (() => {
+          // Older invoices itemized project/description per entry; newer ones
+          // are one row per date. Render whichever shape the snapshot holds.
+          const hasDetail = inv.lines.some((l) => l.project || l.description);
+          return (
+            <table className="inv-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  {hasDetail && <><th>Project</th><th>Description</th></>}
+                  <th className="num">Hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inv.lines.map((line, i) => (
+                  <tr key={i}>
+                    <td className="nowrap">{fmtDate(line.date)}</td>
+                    {hasDetail && <><td>{line.project}</td><td>{line.description}</td></>}
+                    <td className="num">{hoursFmt2(line.hours)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        })()}
 
         {inv.expenses.length > 0 && (
           <table className="inv-table inv-expenses">

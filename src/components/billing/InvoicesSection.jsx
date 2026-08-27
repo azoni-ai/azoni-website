@@ -111,44 +111,77 @@ const InvoicesSection = ({ data, mutate }) => {
           <p className="billing-hint">Unbilled entries inside the period are included automatically.</p>
         </div>
 
-        <div className="billing-card">
-          <h3>
-            Included time ({t.entries.length} entr{t.entries.length === 1 ? 'y' : 'ies'},{' '}
-            {hoursFmt(t.hoursTotal)} hours)
-          </h3>
-          {(() => {
-            const incomplete = t.entries.filter((e) => !e.project || !e.description);
-            if (!incomplete.length) return null;
-            const dates = [...new Set(incomplete.map((e) => fmtDate(e.date)))].join(', ');
-            return (
-              <p className="billing-warnline">
-                {'⚠'} {incomplete.length} entr{incomplete.length === 1 ? 'y is' : 'ies are'} missing
-                a project or description ({dates}). Fill them in from the Time log (filter: Missing
-                info) before creating this invoice — blank lines go on the client-facing PDF as-is.
-              </p>
-            );
-          })()}
-          {t.entries.length ? (
-            <div className="billing-tablewrap">
-              <table className="billing-table">
-                <thead>
-                  <tr><th>Date</th><th>Project</th><th>Description</th><th className="num">Hours</th></tr>
-                </thead>
-                <tbody>
-                  {t.entries.map((e) => (
-                    <tr key={e.id}>
-                      <td className="nowrap">{fmtDate(e.date)}</td>
-                      <td>{e.project || <span className="billing-blank">—</span>}</td>
-                      <td>{e.description || <span className="billing-blank">—</span>}</td>
-                      <td className="num">{hoursFmt(e.hours)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {(() => {
+          const byDate = new Map();
+          t.entries.forEach((e) => {
+            byDate.set(e.date, (byDate.get(e.date) || 0) + (e.hours || 0));
+          });
+          const dayRows = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+          return (
+            <div className="billing-card">
+              <h3>
+                Included time ({dayRows.length} day{dayRows.length === 1 ? '' : 's'},{' '}
+                {hoursFmt(t.hoursTotal)} hours)
+              </h3>
+              {dayRows.length ? (
+                <div className="billing-tablewrap">
+                  <table className="billing-table totals">
+                    <thead>
+                      <tr><th>Date</th><th className="num">Hours</th></tr>
+                    </thead>
+                    <tbody>
+                      {dayRows.map(([date, hours]) => (
+                        <tr key={date}>
+                          <td className="nowrap">{fmtDate(date)}</td>
+                          <td className="num">{hoursFmt(hours)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="billing-empty">No unbilled entries in this period.</div>
+              )}
             </div>
-          ) : (
-            <div className="billing-empty">No unbilled entries in this period.</div>
-          )}
+          );
+        })()}
+
+        <div className="billing-card">
+          <div className="billing-card-head">
+            <h3>Work performed (printed on the invoice)</h3>
+            <button
+              className="billing-btn small"
+              onClick={() => {
+                const parts = Object.keys(data.dayNotes)
+                  .sort()
+                  .filter((k) => k >= draft.periodStart && k <= draft.periodEnd && data.dayNotes[k])
+                  .map((k) => `${fmtDate(k)}: ${data.dayNotes[k].trim()}`);
+                if (!parts.length) {
+                  window.alert('No day notes in this period.');
+                  return;
+                }
+                setDraft((d) => ({
+                  ...d,
+                  workSummary: (d.workSummary ? `${d.workSummary}\n\n` : '') + parts.join('\n'),
+                }));
+              }}
+            >
+              Insert day notes
+            </button>
+          </div>
+          <label className="billing-fld full">
+            <textarea
+              className="billing-daynote"
+              rows={6}
+              placeholder="One summary of the work performed this billing cycle."
+              value={draft.workSummary || ''}
+              onChange={(e) => setDraft((d) => ({ ...d, workSummary: e.target.value }))}
+            />
+          </label>
+          <p className="billing-hint">
+            Day notes are your private journal. Inserting copies them here to edit down; only this
+            text prints on the invoice.
+          </p>
         </div>
 
         <div className="billing-card">
@@ -310,7 +343,7 @@ const InvoicesSection = ({ data, mutate }) => {
 
   const invoicePeriod = (row) => {
     const start = row.through && row.through >= row.start ? addDaysISO(row.through, 1) : row.start;
-    setDraft({ periodStart: start, periodEnd: row.end, invoiceDate: today, expenses: [] });
+    setDraft({ periodStart: start, periodEnd: row.end, invoiceDate: today, expenses: [], workSummary: '' });
     setView({ mode: 'new', id: null });
   };
 

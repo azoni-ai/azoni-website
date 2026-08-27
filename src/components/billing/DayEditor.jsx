@@ -3,7 +3,7 @@ import {
   fmtDate, hoursFmt, invoiceDateFor, parseISO, periodForDate, round2, todayISO, uid,
 } from './billing-lib';
 
-const emptyForm = () => ({ project: '', description: '', hours: '' });
+const emptyForm = () => ({ hours: '' });
 
 // Edits one day: its journal note and its time entries. The calendar above
 // picks the date.
@@ -21,11 +21,6 @@ const DayEditor = ({ date, data, mutate }) => {
     [data.entries, date]
   );
   const dayHours = round2(dayEntries.reduce((s, e) => s + (e.hours || 0), 0));
-
-  const projects = useMemo(
-    () => [...new Set(data.entries.map((e) => e.project).filter(Boolean))],
-    [data.entries]
-  );
 
   let periodLine = null;
   if (anchor && date >= anchor) {
@@ -54,18 +49,12 @@ const DayEditor = ({ date, data, mutate }) => {
       ...d,
       entries: [
         ...d.entries,
-        {
-          id: uid(),
-          created: Date.now(),
-          invoiceId: null,
-          date,
-          project: form.project.trim(),
-          description: form.description.trim(),
-          hours,
-        },
+        // Entries are just date + hours now; the narrative lives in the day
+        // notes and the invoice's per-cycle work summary.
+        { id: uid(), created: Date.now(), invoiceId: null, date, project: '', description: '', hours },
       ],
     }));
-    setForm((f) => ({ ...f, description: '', hours: '' }));
+    setForm({ hours: '' });
   };
 
   const removeEntry = (entry) => {
@@ -104,30 +93,6 @@ const DayEditor = ({ date, data, mutate }) => {
           <span className="billing-hint nowrap">{hoursFmt(dayHours)} hours logged</span>
         </div>
         <form onSubmit={addEntry} className="billing-frow">
-          <label className="billing-fld grow">
-            <span>Project or task</span>
-            <input
-              type="text"
-              list="billing-projects-day"
-              placeholder="Project"
-              value={form.project}
-              onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
-            />
-            <datalist id="billing-projects-day">
-              {projects.map((p) => (
-                <option key={p} value={p} />
-              ))}
-            </datalist>
-          </label>
-          <label className="billing-fld grow2">
-            <span>Description</span>
-            <input
-              type="text"
-              placeholder="What you worked on"
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            />
-          </label>
           <label className="billing-fld hours">
             <span>Hours</span>
             <input
@@ -148,8 +113,7 @@ const DayEditor = ({ date, data, mutate }) => {
               <tbody>
                 {dayEntries.map((entry) => (
                   <tr key={entry.id}>
-                    <td>{entry.project || <span className="billing-blank">—</span>}</td>
-                    <td>{entry.description || <span className="billing-blank">—</span>}</td>
+                    <td>{[entry.project, entry.description].filter(Boolean).join(' · ')}</td>
                     <td className="num">{hoursFmt(entry.hours)}</td>
                     <td className="num">
                       {entry.invoiceId ? (
