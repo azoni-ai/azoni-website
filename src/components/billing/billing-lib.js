@@ -63,7 +63,7 @@ export const defaultData = () => ({
     taxRate: 10.55,
     invoicePrefix: 'AZONI-2026-',
     nextNumber: 1,
-    paymentNote: 'Payment by ACH using banking information on file.',
+    paymentNote: 'Payment by check payable to Azoni LLC (address above) or ACH using banking information on file.',
     lastBackup: null,
     // Two-week billing periods count from this date (the commencement date).
     cycleAnchor: '2026-08-11',
