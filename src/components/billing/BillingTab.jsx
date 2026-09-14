@@ -7,6 +7,8 @@ import {
 import CalendarSection from './CalendarSection';
 import TimeLogSection from './TimeLogSection';
 import InvoicesSection from './InvoicesSection';
+import ExpensesSection from './ExpensesSection';
+import TaxesSection from './TaxesSection';
 import CompanySection from './CompanySection';
 import BillingSettingsSection from './BillingSettingsSection';
 import '../../styles/billing-warm.css';
@@ -242,6 +244,14 @@ const BillingTab = () => {
           <div className="bt-value">{moneyWhole(stats.tAmt)}</div>
           <div className="bt-sub">from paid invoices, owed to DOR</div>
         </div>
+        <div className="billing-tile">
+          <div className="bt-label">Expenses in {stats.year}</div>
+          <div className="bt-value">{moneyWhole(stats.xDeductible)}</div>
+          <div className="bt-sub">
+            deductible from {stats.xCount} expense{stats.xCount === 1 ? '' : 's'}
+            {stats.xTotal !== stats.xDeductible && `, ${moneyWhole(stats.xTotal)} spent`}
+          </div>
+        </div>
       </div>
 
       {cycleLine && <div className="billing-cycleline">{cycleLine}</div>}
@@ -267,6 +277,18 @@ const BillingTab = () => {
             Invoices
           </button>
           <button
+            className={`billing-subtab ${section === 'expenses' ? 'active' : ''}`}
+            onClick={() => setSection('expenses')}
+          >
+            Expenses
+          </button>
+          <button
+            className={`billing-subtab ${section === 'taxes' ? 'active' : ''}`}
+            onClick={() => setSection('taxes')}
+          >
+            Taxes
+          </button>
+          <button
             className={`billing-subtab ${section === 'company' ? 'active' : ''}`}
             onClick={() => setSection('company')}
           >
@@ -290,6 +312,8 @@ const BillingTab = () => {
       {section === 'calendar' && <CalendarSection data={data} mutate={mutate} />}
       {section === 'time' && <TimeLogSection data={data} mutate={mutate} />}
       {section === 'invoices' && <InvoicesSection data={data} mutate={mutate} />}
+      {section === 'expenses' && <ExpensesSection data={data} mutate={mutate} />}
+      {section === 'taxes' && <TaxesSection data={data} mutate={mutate} />}
       {section === 'company' && <CompanySection data={data} mutate={mutate} />}
       {section === 'settings' && (
         <BillingSettingsSection data={data} mutate={mutate} replaceAll={replaceAll} />

@@ -79,6 +79,10 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
       invoices: data.invoices,
       dayNotes: data.dayNotes,
       companyNotes: data.companyNotes,
+      expenses: data.expenses,
+      taxSettings: data.taxSettings,
+      taxPayments: data.taxPayments,
+      taxChecklist: data.taxChecklist,
     };
     mutate((d) => ({ ...d, settings: { ...d.settings, lastBackup: today } }));
     downloadFile(`azoni-billing-backup-${today}.json`, JSON.stringify(snapshot, null, 2));

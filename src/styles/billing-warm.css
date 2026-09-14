@@ -15,11 +15,14 @@
 
 .billing-tiles {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin-bottom: 18px;
 }
-@media (max-width: 760px) {
+@media (max-width: 960px) {
+  .billing-tiles { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
   .billing-tiles { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -156,6 +159,42 @@
 }
 .bc-hours.billed { color: var(--accent-sage); }
 .bc-hours.zero { color: var(--text-warm-muted); }
+/* Inline hours field on in-month days: reads like the old label until it is
+   hovered or focused, then shows as a field. */
+.bc-hours-input {
+  margin-top: auto;
+  width: 100%;
+  max-width: 3.8em;
+  min-width: 2.4em;
+  font: inherit;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-amber);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-left: -4px;
+}
+.bc-hours-input::placeholder { color: var(--text-warm-muted); opacity: 0.6; }
+.bc-hours-input.zero { color: var(--text-warm-muted); }
+.bc-hours-input:hover {
+  border-color: var(--border-warm-strong);
+}
+.bc-hours-input:focus {
+  outline: none;
+  border-color: var(--accent-amber);
+  background: var(--bg-warm-card);
+}
+.bc-billed {
+  font-size: 0.7rem;
+  color: var(--accent-sage);
+  white-space: nowrap;
+}
+.billing-cal-cell:focus-visible {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 1px;
+}
 .bc-note {
   position: absolute;
   top: 7px;
@@ -308,6 +347,8 @@
 .billing-fld.grow { flex: 1; min-width: 160px; }
 .billing-fld.grow2 { flex: 2; min-width: 220px; }
 .billing-fld.hours { width: 90px; }
+.billing-fld.amt { width: 120px; }
+.billing-fld.pct { width: 90px; }
 .billing-fld.full { display: flex; margin-top: 10px; }
 .billing-fld span {
   font-size: 0.78rem;

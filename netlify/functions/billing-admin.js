@@ -6,8 +6,9 @@
 // same per-IP failure throttle owner-auth-util uses.
 //
 // The whole dataset lives in one doc (billing/main) as { settings, entries,
-// invoices, rev, updatedAt } — the same JSON shape the standalone desktop app
-// exports, so backups round-trip. `rev` is optimistic concurrency: saves carry
+// invoices, dayNotes, companyNotes, expenses, rev, updatedAt } — a superset of
+// the JSON shape the standalone desktop app exports, so backups round-trip
+// (the desktop app stores unknown keys untouched). `rev` is optimistic concurrency: saves carry
 // the rev they loaded, and a mismatch returns 409 so a second tab can't
 // silently clobber the first.
 
@@ -74,7 +75,14 @@ const validShape = (d) =>
     (d.dayNotes && typeof d.dayNotes === 'object' && !Array.isArray(d.dayNotes) &&
      Object.keys(d.dayNotes).length <= 5000)) &&
   (d.companyNotes === undefined ||
-    (typeof d.companyNotes === 'string' && d.companyNotes.length <= 200000));
+    (typeof d.companyNotes === 'string' && d.companyNotes.length <= 200000)) &&
+  (d.expenses === undefined || (Array.isArray(d.expenses) && d.expenses.length <= 20000)) &&
+  (d.taxSettings === undefined ||
+    (d.taxSettings && typeof d.taxSettings === 'object' && !Array.isArray(d.taxSettings))) &&
+  (d.taxPayments === undefined || (Array.isArray(d.taxPayments) && d.taxPayments.length <= 5000)) &&
+  (d.taxChecklist === undefined ||
+    (d.taxChecklist && typeof d.taxChecklist === 'object' && !Array.isArray(d.taxChecklist) &&
+     Object.keys(d.taxChecklist).length <= 100));
 
 exports.handler = async (event) => {
   const headers = {
@@ -138,6 +146,10 @@ exports.handler = async (event) => {
             invoices: d.invoices || [],
             dayNotes: d.dayNotes || {},
             companyNotes: d.companyNotes || '',
+            expenses: d.expenses || [],
+            taxSettings: d.taxSettings || {},
+            taxPayments: d.taxPayments || [],
+            taxChecklist: d.taxChecklist || {},
           },
         }),
       };
@@ -169,6 +181,10 @@ exports.handler = async (event) => {
             invoices: data.invoices,
             dayNotes: data.dayNotes || {},
             companyNotes: data.companyNotes || '',
+            expenses: data.expenses || [],
+            taxSettings: data.taxSettings || {},
+            taxPayments: data.taxPayments || [],
+            taxChecklist: data.taxChecklist || {},
             rev: nextRev,
             updatedAt: new Date().toISOString(),
           });

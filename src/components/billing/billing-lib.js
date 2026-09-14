@@ -74,10 +74,20 @@ export const defaultData = () => ({
   dayNotes: {},
   // Free-form reference notes outside the daily log: people, processes, links.
   companyNotes: '',
+  // Business expenses for tax time (deductions). Distinct from an invoice's
+  // `expenses`, which are client-reimbursable lines billed back to the client.
+  expenses: [],
+  // Taxes tab: planning settings, payments made to the IRS / DOR / cities,
+  // and the per-year filing checklist ({ [year]: { [itemKey]: true } }).
+  taxSettings: { setAsidePct: 30, priorYearTax: 0, highIncome: false, waFrequency: '', boRate: 0.471 },
+  taxPayments: [],
+  taxChecklist: {},
 });
 
-// Older saves and desktop-app backups predate dayNotes/companyNotes/cycleAnchor;
-// fill the gaps so every consumer can assume the full shape.
+const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
+
+// Older saves and desktop-app backups predate dayNotes/companyNotes/cycleAnchor
+// and expenses; fill the gaps so every consumer can assume the full shape.
 export const normalizeData = (d) => {
   const base = defaultData();
   return {
@@ -86,7 +96,89 @@ export const normalizeData = (d) => {
     invoices: Array.isArray(d.invoices) ? d.invoices : [],
     dayNotes: d.dayNotes && typeof d.dayNotes === 'object' && !Array.isArray(d.dayNotes) ? d.dayNotes : {},
     companyNotes: typeof d.companyNotes === 'string' ? d.companyNotes : '',
+    expenses: Array.isArray(d.expenses) ? d.expenses : [],
+    taxSettings: { ...base.taxSettings, ...(plainObject(d.taxSettings) ? d.taxSettings : {}) },
+    taxPayments: Array.isArray(d.taxPayments) ? d.taxPayments : [],
+    taxChecklist: plainObject(d.taxChecklist) ? d.taxChecklist : {},
   };
+};
+
+/* ---------- business expenses (Schedule C) ---------- */
+
+// Categories map to Schedule C lines so the year summary can be handed to a
+// tax preparer as-is. `pct` is the default deductible share: meals are 50% by
+// rule; everything else starts at 100% and is lowered per expense for mixed
+// business/personal items (phone, internet).
+export const EXPENSE_CATEGORIES = [
+  { key: 'advertising', label: 'Advertising', line: '8', pct: 100 },
+  { key: 'car', label: 'Car and truck', line: '9', pct: 100 },
+  { key: 'contract', label: 'Contract labor', line: '11', pct: 100 },
+  { key: 'equipment', label: 'Equipment and hardware', line: '13', pct: 100,
+    hint: 'Computers, monitors, phones. Under $2,500 per item is usually expensed in full.' },
+  { key: 'insurance', label: 'Insurance', line: '15', pct: 100 },
+  { key: 'legal', label: 'Legal and professional services', line: '17', pct: 100,
+    hint: 'Accountant, lawyer, registered agent.' },
+  { key: 'office', label: 'Office expense', line: '18', pct: 100 },
+  { key: 'rent', label: 'Rent or lease', line: '20', pct: 100 },
+  { key: 'repairs', label: 'Repairs and maintenance', line: '21', pct: 100,
+    hint: 'Replacement parts and repairs for equipment you already own.' },
+  { key: 'supplies', label: 'Supplies', line: '22', pct: 100 },
+  { key: 'taxes', label: 'Taxes and licenses', line: '23', pct: 100,
+    hint: 'City and state business licenses, UBI renewal, B&O tax.' },
+  { key: 'travel', label: 'Travel', line: '24a', pct: 100 },
+  { key: 'meals', label: 'Meals', line: '24b', pct: 50 },
+  { key: 'utilities', label: 'Utilities', line: '25', pct: 100,
+    hint: 'Internet and phone. Set the business-use share below 100% if shared.' },
+  { key: 'software', label: 'Software, hosting, subscriptions', line: '27a', pct: 100 },
+  { key: 'education', label: 'Education and training', line: '27a', pct: 100 },
+  { key: 'fees', label: 'Bank and payment fees', line: '27a', pct: 100 },
+  { key: 'other', label: 'Other', line: '27a', pct: 100 },
+  { key: 'homeoffice', label: 'Home office', line: '30', pct: 100,
+    hint: 'Form 8829. Usually computed once at year end, not per receipt.' },
+];
+
+export const expenseCategory = (key) =>
+  EXPENSE_CATEGORIES.find((c) => c.key === key) || EXPENSE_CATEGORIES.find((c) => c.key === 'other');
+
+export const expenseDeductible = (x) =>
+  round2((Number(x.amount) || 0) * (Number.isFinite(Number(x.pct)) ? Number(x.pct) : 100) / 100);
+
+export const sortedExpenses = (data) =>
+  [...data.expenses].sort(
+    (a, b) => b.date.localeCompare(a.date) || (b.created || 0) - (a.created || 0)
+  );
+
+// Years with at least one expense plus the current year, newest first.
+export const expenseYears = (data) => {
+  const years = new Set(data.expenses.map((x) => (x.date || '').slice(0, 4)).filter(Boolean));
+  years.add(String(new Date().getFullYear()));
+  return [...years].sort().reverse();
+};
+
+export const expensesInYear = (data, year) =>
+  data.expenses.filter((x) => (x.date || '').startsWith(year));
+
+// Per-category rollup for one year, in Schedule C line order.
+export const expenseSummary = (data, year) => {
+  const rows = expensesInYear(data, year);
+  const byCat = new Map();
+  rows.forEach((x) => {
+    const key = expenseCategory(x.category).key;
+    const cur = byCat.get(key) || { count: 0, total: 0, deductible: 0 };
+    cur.count += 1;
+    cur.total = round2(cur.total + (Number(x.amount) || 0));
+    cur.deductible = round2(cur.deductible + expenseDeductible(x));
+    byCat.set(key, cur);
+  });
+  const lines = EXPENSE_CATEGORIES.filter((c) => byCat.has(c.key)).map((c) => ({
+    ...c, ...byCat.get(c.key),
+  }));
+  const total = round2(rows.reduce((s, x) => s + (Number(x.amount) || 0), 0));
+  const deductible = round2(rows.reduce((s, x) => s + expenseDeductible(x), 0));
+  const personal = round2(
+    rows.filter((x) => x.paidFrom === 'personal').reduce((s, x) => s + (Number(x.amount) || 0), 0)
+  );
+  return { lines, count: rows.length, total, deductible, personal };
 };
 
 /* ---------- billing cycles (two-week periods from the anchor date) ---------- */
@@ -159,10 +251,12 @@ export const computeStats = (data) => {
   );
   const pAmt = round2(paid.reduce((s, i) => s + (i.total || 0), 0));
   const tAmt = round2(paid.reduce((s, i) => s + (i.tax || 0), 0));
+  const x = expenseSummary(data, year);
   return {
     uHours, uAmt,
     oCount: outstanding.length, oAmt, overdue,
     pCount: paid.length, pAmt, tAmt, year,
+    xCount: x.count, xTotal: x.total, xDeductible: x.deductible,
   };
 };
 
@@ -301,7 +395,7 @@ export const downloadFile = (filename, text, type = 'application/json') => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 };
 
-const csvCell = (v) => {
+export const csvCell = (v) => {
   const s = String(v ?? '');
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
@@ -312,5 +406,22 @@ export const entriesCsv = (data) => {
     const inv = e.invoiceId ? invoiceById(data, e.invoiceId) : null;
     return [e.date, csvCell(e.project), csvCell(e.description), e.hours, inv ? inv.number : ''].join(',');
   });
+  return `${head}\n${lines.join('\n')}`;
+};
+
+// One year of expenses, oldest first, with the Schedule C line per row so
+// the file can go straight to a preparer.
+export const expensesCsv = (data, year) => {
+  const head = 'date,vendor,description,category,schedule_c_line,amount,deductible_pct,deductible_amount,paid_from,receipt';
+  const lines = expensesInYear(data, year)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.created || 0) - (b.created || 0))
+    .map((x) => {
+      const c = expenseCategory(x.category);
+      return [
+        x.date, csvCell(x.vendor), csvCell(x.description), csvCell(c.label), c.line,
+        round2(Number(x.amount) || 0).toFixed(2), x.pct ?? 100, expenseDeductible(x).toFixed(2),
+        x.paidFrom || 'business', csvCell(x.receipt),
+      ].join(',');
+    });
   return `${head}\n${lines.join('\n')}`;
 };
