@@ -77,6 +77,8 @@ const validShape = (d) =>
   (d.companyNotes === undefined ||
     (typeof d.companyNotes === 'string' && d.companyNotes.length <= 200000)) &&
   (d.expenses === undefined || (Array.isArray(d.expenses) && d.expenses.length <= 20000)) &&
+  (d.recurringExpenses === undefined ||
+    (Array.isArray(d.recurringExpenses) && d.recurringExpenses.length <= 2000)) &&
   (d.taxSettings === undefined ||
     (d.taxSettings && typeof d.taxSettings === 'object' && !Array.isArray(d.taxSettings))) &&
   (d.taxPayments === undefined || (Array.isArray(d.taxPayments) && d.taxPayments.length <= 5000)) &&
@@ -147,6 +149,7 @@ exports.handler = async (event) => {
             dayNotes: d.dayNotes || {},
             companyNotes: d.companyNotes || '',
             expenses: d.expenses || [],
+            recurringExpenses: d.recurringExpenses || [],
             taxSettings: d.taxSettings || {},
             taxPayments: d.taxPayments || [],
             taxChecklist: d.taxChecklist || {},
@@ -182,6 +185,7 @@ exports.handler = async (event) => {
             dayNotes: data.dayNotes || {},
             companyNotes: data.companyNotes || '',
             expenses: data.expenses || [],
+            recurringExpenses: data.recurringExpenses || [],
             taxSettings: data.taxSettings || {},
             taxPayments: data.taxPayments || [],
             taxChecklist: data.taxChecklist || {},

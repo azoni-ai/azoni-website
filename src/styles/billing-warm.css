@@ -349,6 +349,20 @@
 .billing-fld.hours { width: 90px; }
 .billing-fld.amt { width: 120px; }
 .billing-fld.pct { width: 90px; }
+/* Amount field inside a table row (the Due list on Expenses). */
+.billing-inline-amt {
+  width: 96px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-warm);
+  background: var(--bg-warm-hover);
+  border: 1px solid var(--border-warm-strong);
+  border-radius: var(--radius-sm, 7px);
+  padding: 4px 6px;
+}
+.billing-inline-amt:focus { outline: none; border-color: var(--accent-amber); }
 .billing-fld.full { display: flex; margin-top: 10px; }
 .billing-fld span {
   font-size: 0.78rem;

@@ -80,6 +80,7 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
       dayNotes: data.dayNotes,
       companyNotes: data.companyNotes,
       expenses: data.expenses,
+      recurringExpenses: data.recurringExpenses,
       taxSettings: data.taxSettings,
       taxPayments: data.taxPayments,
       taxChecklist: data.taxChecklist,

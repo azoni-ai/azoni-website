@@ -77,6 +77,10 @@ export const defaultData = () => ({
   // Business expenses for tax time (deductions). Distinct from an invoice's
   // `expenses`, which are client-reimbursable lines billed back to the client.
   expenses: [],
+  // Recurring expense templates (internet, hosting, domains). Occurrences are
+  // never logged silently: they surface as "due" rows on the Expenses tab and
+  // become real expenses (tagged recurringId + periodKey) when confirmed.
+  recurringExpenses: [],
   // Taxes tab: planning settings, payments made to the IRS / DOR / cities,
   // and the per-year filing checklist ({ [year]: { [itemKey]: true } }).
   taxSettings: { setAsidePct: 30, priorYearTax: 0, highIncome: false, waFrequency: '', boRate: 0.471 },
@@ -97,6 +101,7 @@ export const normalizeData = (d) => {
     dayNotes: d.dayNotes && typeof d.dayNotes === 'object' && !Array.isArray(d.dayNotes) ? d.dayNotes : {},
     companyNotes: typeof d.companyNotes === 'string' ? d.companyNotes : '',
     expenses: Array.isArray(d.expenses) ? d.expenses : [],
+    recurringExpenses: Array.isArray(d.recurringExpenses) ? d.recurringExpenses : [],
     taxSettings: { ...base.taxSettings, ...(plainObject(d.taxSettings) ? d.taxSettings : {}) },
     taxPayments: Array.isArray(d.taxPayments) ? d.taxPayments : [],
     taxChecklist: plainObject(d.taxChecklist) ? d.taxChecklist : {},
@@ -179,6 +184,92 @@ export const expenseSummary = (data, year) => {
     rows.filter((x) => x.paidFrom === 'personal').reduce((s, x) => s + (Number(x.amount) || 0), 0)
   );
   return { lines, count: rows.length, total, deductible, personal };
+};
+
+/* ---------- recurring expenses ---------- */
+
+export const RECURRENCE = [
+  { key: 'once', label: 'Once' },
+  { key: 'monthly', label: 'Every month' },
+  { key: 'yearly', label: 'Every year' },
+];
+
+const isoOf = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+// Day-of-month clamped to the month's length (a bill on the 31st lands on
+// Feb 28).
+const clampDay = (y, m, day) => Math.min(day, new Date(y, m, 0).getDate());
+
+// Every occurrence of a template from its start date through `until`,
+// honouring endDate. The period key is what marks an occurrence as logged or
+// skipped: YYYY-MM for monthly, YYYY for yearly.
+export const recurringOccurrences = (t, until) => {
+  if (!t.startDate || !/^\d{4}-\d{2}-\d{2}$/.test(t.startDate)) return [];
+  const [sy, sm, sd] = t.startDate.split('-').map(Number);
+  const yearly = t.frequency === 'yearly';
+  const out = [];
+  for (let i = 0; i < 600; i++) {
+    const y = yearly ? sy + i : sy + Math.floor((sm - 1 + i) / 12);
+    const m = yearly ? sm : ((sm - 1 + i) % 12) + 1;
+    const date = isoOf(y, m, clampDay(y, m, sd));
+    if (date > until) break;
+    if (t.endDate && date > t.endDate) break;
+    out.push({ key: yearly ? String(y) : `${y}-${String(m).padStart(2, '0')}`, date });
+  }
+  return out;
+};
+
+export const nextRecurringDate = (t, today) => {
+  if (t.active === false) return null;
+  const horizon = addDaysISO(today, t.frequency === 'yearly' ? 400 : 45);
+  const hit = recurringOccurrences(t, horizon).find((o) => o.date > today);
+  return hit ? hit.date : null;
+};
+
+// Occurrences that have come due and are neither logged nor skipped.
+export const pendingRecurring = (data, today) => {
+  const logged = new Set(
+    data.expenses.filter((x) => x.recurringId).map((x) => `${x.recurringId}|${x.periodKey}`)
+  );
+  const out = [];
+  data.recurringExpenses.forEach((t) => {
+    if (t.active === false) return;
+    const skipped = new Set(t.skipped || []);
+    recurringOccurrences(t, today).forEach((o) => {
+      if (skipped.has(o.key) || logged.has(`${t.id}|${o.key}`)) return;
+      out.push({ template: t, key: o.key, date: o.date });
+    });
+  });
+  return out.sort((a, b) => a.date.localeCompare(b.date) || a.template.vendor.localeCompare(b.template.vendor));
+};
+
+export const expenseFromRecurring = (t, occurrence, amount) => ({
+  id: uid(),
+  created: Date.now(),
+  date: occurrence.date,
+  vendor: t.vendor || '',
+  description: t.description || '',
+  category: expenseCategory(t.category).key,
+  amount: round2(Number(amount) || 0),
+  pct: Number.isFinite(Number(t.pct)) ? Number(t.pct) : 100,
+  paidFrom: t.paidFrom === 'personal' ? 'personal' : 'business',
+  receipt: '',
+  recurringId: t.id,
+  periodKey: occurrence.key,
+});
+
+const ordinal = (n) => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
+export const recurringLabel = (t) => {
+  if (!t.startDate) return '';
+  const d = parseISO(t.startDate);
+  if (t.frequency === 'yearly') {
+    return `Every year on ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  }
+  return `Every month on the ${ordinal(d.getDate())}`;
 };
 
 /* ---------- billing cycles (two-week periods from the anchor date) ---------- */
