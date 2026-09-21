@@ -208,11 +208,14 @@ exports.handler = async (event) => {
     // Serve instantly from CDN and refresh in the background.
     'Cache-Control': 'public, max-age=120, stale-while-revalidate=600',
   };
-  // Errors must not sit in the CDN for two minutes.
+  // Anything that is not a successful payload stays out of the CDN. A 404 for
+  // a slug is the response that flips to 200 the moment that tool is
+  // published, so caching it for two minutes (plus ten of
+  // stale-while-revalidate) would look exactly like publishing had not worked.
   const noStore = { ...headers, 'Cache-Control': 'no-store' };
   const json = (statusCode, payload) => ({
     statusCode,
-    headers: statusCode < 500 ? headers : noStore,
+    headers: statusCode === 200 ? headers : noStore,
     body: JSON.stringify(payload),
   });
 
@@ -225,6 +228,14 @@ exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const slug = typeof params.slug === 'string' ? params.slug.trim().toLowerCase() : '';
 
+  // The feed is asked for in two ways. A direct call uses ?format=rss. The
+  // pretty URL /ai-tools/feed.xml is a rewrite, and Netlify does not hand the
+  // destination's query string to the function, so that path is matched on the
+  // request path instead. event.path carries the function sub-path the rewrite
+  // targets; rawUrl is checked too in case the original URL comes through.
+  const pathish = `${event.path || ''} ${event.rawUrl || ''} ${event.headers['x-nf-original-path'] || ''}`;
+  const wantsRss = params.format === 'rss' || /\/feed(\.xml)?(\?|\s|$)/.test(pathish);
+
   if (slug) {
     if (!SLUG_RE.test(slug)) return json(404, { error: 'not found' });
     const snap = await fast(db.collection(COLLECTION).doc(slug).get());
@@ -235,13 +246,23 @@ exports.handler = async (event) => {
   }
 
   const result = await getList();
-  if (params.format === 'rss') {
+  // An empty list is a real answer, but it is also what a brand new series
+  // returns right up until the first publish. Caching "nothing here" would
+  // keep showing it after that publish, so only a non-empty list is cached.
+  const empty = !result.payload || !Array.isArray(result.payload.tools) || result.payload.tools.length === 0;
+  const listHeaders = result.status === 200 && !empty ? headers : noStore;
+
+  if (wantsRss) {
     if (result.status !== 200) return json(result.status, result.payload);
     return {
       statusCode: 200,
-      headers: { ...headers, 'Content-Type': 'application/rss+xml; charset=utf-8' },
+      headers: { ...listHeaders, 'Content-Type': 'application/rss+xml; charset=utf-8' },
       body: rssXml(result.payload),
     };
   }
-  return json(result.status, result.payload);
+  return {
+    statusCode: result.status,
+    headers: listHeaders,
+    body: JSON.stringify(result.payload),
+  };
 };
