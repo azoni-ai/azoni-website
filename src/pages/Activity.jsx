@@ -162,6 +162,7 @@ const ACTIVITY_ICONS = {
 
 const ACTIVITY_COLORS = {
   blog_generated: '#f59e0b',
+  ai_tool_researched: '#c9a86a',
   moltbook_post: '#ff6b35',
   moltbook_comment: '#10b981',
   moltbook_upvote: '#8b5cf6',
@@ -196,6 +197,7 @@ const ACTIVITY_COLORS = {
 
 const ACTIVITY_LABELS = {
   blog_generated: 'Blog Generated',
+  ai_tool_researched: 'Tool Researched',
   moltbook_post: 'Moltbook Post',
   moltbook_comment: 'Moltbook Comment',
   moltbook_upvote: 'Moltbook Upvote',

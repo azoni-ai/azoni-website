@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { profile } from '../data/profile';
+import { AI_TOOLS } from '../data/aiToolsMeta';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -15,11 +16,13 @@ const Navbar = () => {
     { path: '/projects', label: 'Projects' },
     { path: '/live', label: 'Live' },
     { path: '/blog', label: 'Writing' },
+    ...(AI_TOOLS.unlisted ? [] : [{ path: AI_TOOLS.path, label: AI_TOOLS.label }]),
     { path: '/chat', label: 'Chat' },
     { path: '/resume', label: 'Resume' },
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) =>
+    location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
 
   return (
     <nav className="navbar">

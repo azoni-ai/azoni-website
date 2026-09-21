@@ -21,7 +21,7 @@ const ERROR_TYPES = ['error_logged', 'error_reviewed', 'health_alert'];
 const COST_SOURCES = [
   'orchestrator', 'daily-blog', 'azoni-ai', 'azoni', 'moltbook-agent',
   'benchpressonly', 'rowcrew', 'spell-brigade', 'oldwaystoday', 'old-ways-today',
-  'embedroute', 'launchpad', 'medic',
+  'embedroute', 'launchpad', 'medic', 'ai-tools',
 ];
 
 function initFirebase() {

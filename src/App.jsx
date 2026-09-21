@@ -17,6 +17,8 @@ const Resume = lazy(() => import("./pages/Resume"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+const AiTools = lazy(() => import("./pages/AiTools"));
+const AiToolDetail = lazy(() => import("./pages/AiToolDetail"));
 const MoltbookAgent = lazy(() => import("./pages/MoltbookAgent"));
 const Board = lazy(() => import("./pages/Board"));
 const Live = lazy(() => import("./pages/Live"));
@@ -49,6 +51,8 @@ const App = () => {
               <Route path="/admin" element={<Admin />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/ai-tools" element={<AiTools />} />
+              <Route path="/ai-tools/:slug" element={<AiToolDetail />} />
               <Route path="/moltbook" element={<MoltbookAgent />} />
               <Route path="/game" element={<SpellBrigade />} />
               <Route path="/live" element={<Live />} />

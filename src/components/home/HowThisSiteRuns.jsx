@@ -49,6 +49,7 @@ const SOURCE_DISPLAY = {
   'old-ways-today': { label: 'Old Ways Today', color: '#d97706' },
   embedroute: { label: 'EmbedRoute', color: '#8fb0a8' },
   launchpad: { label: 'Launchpad', color: '#e08a5c' },
+  'ai-tools': { label: 'AI Tools', color: '#c9a86a' },
 };
 
 // Reads the shared cached summary instead of streaming the whole

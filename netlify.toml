@@ -21,6 +21,12 @@
 [functions."leaderboard"]
   timeout = 26
 
+[functions."ai-tools-admin"]
+  timeout = 26
+
+[functions."ai-tools"]
+  timeout = 26
+
 [functions."daily-blog"]
   schedule = "0 17 * * *"
 

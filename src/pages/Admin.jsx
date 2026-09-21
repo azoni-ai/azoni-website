@@ -14,6 +14,7 @@ import {
 
 // Billing is its own lazy chunk so the admin bundle doesn't carry it.
 const BillingTab = lazy(() => import('../components/billing/BillingTab'));
+const AiToolsTab = lazy(() => import('../components/aitools/AiToolsTab'));
 
 // Shared helper for the token-gated admin-data function (server-side reads/writes
 // that Firestore rules no longer allow from the client).
@@ -154,6 +155,12 @@ const Admin = () => {
             >
               Billing
             </button>
+            <button
+              className={`admin-main-tab ${activeTab === 'tools' ? 'active' : ''}`}
+              onClick={() => setActiveTab('tools')}
+            >
+              AI Tools
+            </button>
           </div>
 
           {activeTab === 'usage' && <UsageTab onAuthFailure={handleLogout} />}
@@ -167,6 +174,17 @@ const Admin = () => {
               }
             >
               <BillingTab />
+            </Suspense>
+          )}
+          {activeTab === 'tools' && (
+            <Suspense
+              fallback={
+                <div style={{ padding: '40px 0', color: 'var(--text-warm-muted)' }}>
+                  Loading AI tools...
+                </div>
+              }
+            >
+              <AiToolsTab />
             </Suspense>
           )}
         </div>
