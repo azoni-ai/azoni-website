@@ -318,7 +318,11 @@ export const validBackup = (d) =>
      d.settings && typeof d.settings === 'object' && !Array.isArray(d.settings) &&
      Array.isArray(d.entries) && Array.isArray(d.invoices));
 
-export const unbilledEntries = (data) => data.entries.filter((e) => !e.invoiceId);
+// Entries available to an invoice. For a new invoice that is everything
+// unbilled; when editing an existing one its own entries count as available
+// too, or re-saving it would find its own hours already taken.
+export const unbilledEntries = (data, forInvoiceId = null) =>
+  data.entries.filter((e) => !e.invoiceId || (forInvoiceId && e.invoiceId === forInvoiceId));
 
 export const isOverdue = (inv) => inv.status === 'sent' && todayISO() > inv.dueDate;
 
@@ -400,15 +404,15 @@ export const defaultDraft = (data) => {
   return { periodStart: start, periodEnd: today, invoiceDate: today, expenses: [], workSummary: '' };
 };
 
-// Zero-hour entries are personal day-off records — they never go on an invoice.
-export const draftEntries = (data, draft) =>
-  unbilledEntries(data)
+// Zero-hour entries are personal day-off records; they never go on an invoice.
+export const draftEntries = (data, draft, forInvoiceId = null) =>
+  unbilledEntries(data, forInvoiceId)
     .filter((e) => e.hours > 0 && e.date >= draft.periodStart && e.date <= draft.periodEnd)
     .sort((a, b) => a.date.localeCompare(b.date));
 
-export const draftTotals = (data, draft) => {
+export const draftTotals = (data, draft, forInvoiceId = null) => {
   const s = data.settings;
-  const entries = draftEntries(data, draft);
+  const entries = draftEntries(data, draft, forInvoiceId);
   const hoursTotal = round2(entries.reduce((t, e) => t + (e.hours || 0), 0));
   const laborSubtotal = round2(hoursTotal * (s.rate || 0));
   const expenses = draft.expenses.filter((x) => x.description || x.amount);
@@ -427,13 +431,18 @@ export const invoiceNumber = (settings) =>
 
 // Builds the frozen invoice snapshot from the current data + draft. Settings
 // changes after creation never alter this invoice.
-export const buildInvoice = (data, draft) => {
+//
+// Pass `existing` to rebuild a draft that is already saved: it keeps that
+// invoice's identity (id, number, status, paid date) and re-reads everything
+// else from the current data and settings. Only a draft should be rebuilt;
+// a sent invoice is a document the client already has.
+export const buildInvoice = (data, draft, existing = null) => {
   const s = data.settings;
-  const t = draftTotals(data, draft);
-  const id = uid();
+  const t = draftTotals(data, draft, existing ? existing.id : null);
+  const id = existing ? existing.id : uid();
   const invoice = {
     id,
-    number: invoiceNumber(s),
+    number: existing ? existing.number : invoiceNumber(s),
     dateIssued: draft.invoiceDate,
     dueDate: addDaysISO(draft.invoiceDate, s.netDays || 0),
     periodStart: draft.periodStart,
@@ -471,8 +480,8 @@ export const buildInvoice = (data, draft) => {
     taxableExpenses: t.taxableExpenses,
     tax: t.tax,
     total: t.total,
-    status: 'draft',
-    paidDate: null,
+    status: existing ? existing.status : 'draft',
+    paidDate: existing ? existing.paidDate || null : null,
   };
   return { invoice, includedIds: new Set(t.entries.map((e) => e.id)) };
 };

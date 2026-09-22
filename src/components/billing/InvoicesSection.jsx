@@ -22,7 +22,27 @@ const InvoicesSection = ({ data, mutate }) => {
     setView({ mode: 'new', id: null });
   };
 
+  // An empty date input reads as '', and '' compares less than every ISO date,
+  // so an unchecked blank period would sweep in every unbilled entry ever.
+  const validPeriod = (dr) => {
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (!iso.test(dr.periodStart || '') || !iso.test(dr.periodEnd || '')) {
+      window.alert('Give the period a start and an end date.');
+      return false;
+    }
+    if (!iso.test(dr.invoiceDate || '')) {
+      window.alert('Give the invoice a date.');
+      return false;
+    }
+    if (dr.periodStart > dr.periodEnd) {
+      window.alert('The period starts after it ends.');
+      return false;
+    }
+    return true;
+  };
+
   const create = () => {
+    if (!validPeriod(draft)) return;
     const t = draftTotals(data, draft);
     if (!t.entries.length && !t.expensesTotal) {
       window.alert('Nothing to invoice: no unbilled time in this period and no expenses.');
@@ -45,12 +65,84 @@ const InvoicesSection = ({ data, mutate }) => {
     setView({ mode: 'detail', id: created.id });
   };
 
+  // Open a saved draft in the same form the new-invoice flow uses. Amounts go
+  // back to strings because that is what the inputs hold.
+  const startEdit = (inv) => {
+    setDraft({
+      periodStart: inv.periodStart,
+      periodEnd: inv.periodEnd,
+      invoiceDate: inv.dateIssued,
+      workSummary: inv.workSummary || '',
+      expenses: (inv.expenses || []).map((x) => ({
+        description: x.description || '',
+        amount: x.amount === 0 || x.amount ? String(x.amount) : '',
+        taxable: !!x.taxable,
+      })),
+    });
+    setView({ mode: 'edit', id: inv.id });
+  };
+
+  // Rebuild a saved draft in place: same number, same id, everything else
+  // re-read from current time, settings and the edited fields. Entries that no
+  // longer fall in the period go back to unbilled.
+  const saveEdit = () => {
+    const inv = invoiceById(data, view.id);
+    if (!inv) return;
+    // The invoice can have moved on since the form opened (another tab, or a
+    // conflict reload). Never rewrite a document the client already has.
+    if (inv.status !== 'draft') {
+      window.alert(`${inv.number} is no longer a draft, so it was not changed.`);
+      setDraft(null);
+      setView({ mode: 'detail', id: inv.id });
+      return;
+    }
+    if (!validPeriod(draft)) return;
+    const t = draftTotals(data, draft, inv.id);
+    if (!t.entries.length && !t.expensesTotal) {
+      window.alert('Nothing to invoice: no time in this period and no expenses.');
+      return;
+    }
+    // Hours this invoice holds that the new period no longer covers go back to
+    // unbilled. The schedule will not offer them again on its own, so say so.
+    const keep = new Set(t.entries.map((e) => e.id));
+    const released = data.entries.filter(
+      (e) => e.invoiceId === inv.id && !keep.has(e.id) && (e.hours || 0) > 0
+    );
+    if (released.length) {
+      const hours = hoursFmt(released.reduce((sum, e) => sum + (e.hours || 0), 0));
+      const days = new Set(released.map((e) => e.date)).size;
+      if (!window.confirm(
+        `This period no longer covers ${hours} hours across ${days} day${days === 1 ? '' : 's'}. ` +
+        'Those hours return to unbilled and show in the Unbilled tile, but the billing schedule ' +
+        'will not offer them again. Continue?'
+      )) return;
+    }
+    mutate((d) => {
+      const { invoice, includedIds } = buildInvoice(d, draft, inv);
+      return {
+        ...d,
+        entries: d.entries.map((e) => {
+          if (includedIds.has(e.id)) return { ...e, invoiceId: invoice.id };
+          if (e.invoiceId === invoice.id) return { ...e, invoiceId: null };
+          return e;
+        }),
+        invoices: d.invoices.map((i) => (i.id === invoice.id ? invoice : i)),
+      };
+    });
+    setDraft(null);
+    setView({ mode: 'detail', id: inv.id });
+  };
+
+  // Moving off 'paid' keeps the paid date. Clearing it would lose the real
+  // payment date for good, and re-marking the invoice paid would stamp today,
+  // moving the income and its sales tax into the wrong tax period. Only a
+  // 'paid' invoice with no date on record gets today's.
   const setStatus = (inv, status) =>
     mutate((d) => ({
       ...d,
       invoices: d.invoices.map((i) =>
         i.id === inv.id
-          ? { ...i, status, paidDate: status === 'paid' ? i.paidDate || todayISO() : null }
+          ? { ...i, status, paidDate: status === 'paid' ? i.paidDate || todayISO() : i.paidDate || null }
           : i
       ),
     }));
@@ -74,10 +166,15 @@ const InvoicesSection = ({ data, mutate }) => {
     window.print();
   };
 
-  /* ---------- new invoice ---------- */
-  if (view.mode === 'new' && draft) {
+  /* ---------- new invoice, and editing a saved draft ---------- */
+  if ((view.mode === 'new' || view.mode === 'edit') && draft) {
+    const editing = view.mode === 'edit' ? invoiceById(data, view.id) : null;
+    if (view.mode === 'edit' && !editing) {
+      setView({ mode: 'list', id: null });
+      return null;
+    }
     const s = data.settings;
-    const t = draftTotals(data, draft);
+    const t = draftTotals(data, draft, editing ? editing.id : null);
     const due = addDaysISO(draft.invoiceDate, s.netDays || 0);
     const setD = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
     const setExpense = (i, k, v) =>
@@ -89,7 +186,7 @@ const InvoicesSection = ({ data, mutate }) => {
     return (
       <>
         <div className="billing-card">
-          <h3>New invoice {invoiceNumber(s)}</h3>
+          <h3>{editing ? `Edit invoice ${editing.number}` : `New invoice ${invoiceNumber(s)}`}</h3>
           <div className="billing-frow">
             <label className="billing-fld">
               <span>Period start</span>
@@ -108,7 +205,17 @@ const InvoicesSection = ({ data, mutate }) => {
               <input type="text" disabled value={fmtDate(due)} />
             </label>
           </div>
-          <p className="billing-hint">Unbilled entries inside the period are included automatically.</p>
+          <p className="billing-hint">
+            {editing
+              ? 'Unbilled entries inside the period are included, along with the hours already on this invoice. Narrowing the period returns the hours it drops to unbilled.'
+              : 'Unbilled entries inside the period are included automatically.'}
+          </p>
+          {editing && (editing.lines || []).some((l) => l.project || l.description) && (
+            <p className="billing-hint">
+              This invoice was written when lines carried a project and a description. Saving
+              rewrites the itemization as date and hours, which is what invoices use now.
+            </p>
+          )}
         </div>
 
         {(() => {
@@ -254,10 +361,15 @@ const InvoicesSection = ({ data, mutate }) => {
             </tbody>
           </table>
           <div className="billing-actions" style={{ marginTop: '14px' }}>
-            <button className="billing-btn primary" onClick={create}>Create invoice</button>
+            <button className="billing-btn primary" onClick={editing ? saveEdit : create}>
+              {editing ? 'Save changes' : 'Create invoice'}
+            </button>
             <button
               className="billing-btn"
-              onClick={() => { setDraft(null); setView({ mode: 'list', id: null }); }}
+              onClick={() => {
+                setDraft(null);
+                setView(editing ? { mode: 'detail', id: editing.id } : { mode: 'list', id: null });
+              }}
             >
               Cancel
             </button>
@@ -268,11 +380,13 @@ const InvoicesSection = ({ data, mutate }) => {
           <div className="billing-card-head">
             <h3>Preview</h3>
             <span className="billing-hint nowrap" style={{ margin: 0 }}>
-              Nothing is saved and no number is used until you create it.
+              {editing
+                ? 'Nothing is saved until you save changes. The number stays the same.'
+                : 'Nothing is saved and no number is used until you create it.'}
             </span>
           </div>
         </div>
-        <InvoiceDoc inv={buildInvoice(data, draft).invoice} />
+        <InvoiceDoc inv={buildInvoice(data, draft, editing).invoice} />
       </>
     );
   }
@@ -303,6 +417,9 @@ const InvoicesSection = ({ data, mutate }) => {
                 <option value="sent">Sent</option>
                 <option value="paid">Paid</option>
               </select>
+              {inv.status === 'draft' && (
+                <button className="billing-btn" onClick={() => startEdit(inv)}>Edit</button>
+              )}
               <button className="billing-btn primary" onClick={() => printInvoice(inv)}>
                 Print / save PDF
               </button>
@@ -311,6 +428,13 @@ const InvoicesSection = ({ data, mutate }) => {
               </button>
             </div>
           </div>
+          {inv.status !== 'draft' && (
+            <p className="billing-hint">
+              {inv.status === 'paid' ? 'A paid invoice' : 'A sent invoice'} is the document the
+              client already has under this number, so it is not editable. If it is wrong, send a
+              corrected invoice under a new number rather than changing this one.
+            </p>
+          )}
         </div>
         <InvoiceDoc inv={inv} />
       </>
