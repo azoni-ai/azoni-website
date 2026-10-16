@@ -11,6 +11,7 @@ import LivePulseStrip from '../components/home/LivePulseStrip';
 import CareerSection from '../components/CareerSection';
 import EducationSection from '../components/EducationSection';
 import { services } from '../data/consulting';
+import { GITHUB_STATS_URL, isContributionPayload } from '../utils/githubTelemetry';
 import '../styles/home-v2.css';
 
 export default function Home() {
@@ -20,11 +21,11 @@ export default function Home() {
     let active = true;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
-    fetch('/.netlify/functions/github-stats', { signal: controller.signal })
+    fetch(GITHUB_STATS_URL, { signal: controller.signal })
       .then(async response => {
         if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) throw new Error('Unavailable');
         const data = await response.json();
-        if (data.error) throw new Error('Unavailable');
+        if (data.error || !isContributionPayload(data)) throw new Error('Unavailable');
         if (active) { setGithubStats(data); setGithubUnavailable(false); }
       })
       .catch(() => { if (active) setGithubUnavailable(true); })

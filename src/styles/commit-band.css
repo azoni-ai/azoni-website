@@ -224,3 +224,22 @@
 }
 
 .commit-scope { color: var(--text-warm-muted); font-size: .78rem; margin: -4px 0 20px; }
+
+.commit-scope a,
+.hero-stats-scope a { color: var(--accent-coral); }
+
+.commit-band-split {
+  border-top: 1px solid var(--border-warm);
+  padding-top: 20px;
+}
+
+.commit-attribution-note,
+.hero-stats-scope {
+  color: var(--text-warm-muted);
+  font-size: .76rem;
+  line-height: 1.6;
+  margin: 12px 0 0;
+}
+
+.hero-split-seg--both { background: #b798d8; }
+.hero-stats-value.hero-stats-value--status { font-size: 1rem; }

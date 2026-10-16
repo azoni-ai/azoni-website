@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { GITHUB_STATS_URL, PUBLIC_FEED_SCOPE, isContributionPayload } from '../utils/githubTelemetry';
 
 /**
  * One-shot fetch of the github-stats Netlify function (recentCommits, repos,
- * bounded public commit counts). Mirrors the fetch in Commits.jsx, silent-fail.
+ * account contribution totals and sampled public commits). Silent-fail.
  */
 export default function useGithubStats() {
   const [githubStats, setGithubStats] = useState(null);
@@ -10,11 +11,11 @@ export default function useGithubStats() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/.netlify/functions/github-stats?scope=public-independent-v1')
+    fetch(GITHUB_STATS_URL)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled) return;
-        setGithubStats(data?.statsScope === 'public-independent-sample' ? data : null);
+        setGithubStats(isContributionPayload(data) && data?.feedScope === PUBLIC_FEED_SCOPE ? data : null);
         setLoading(false);
       })
       .catch(() => {

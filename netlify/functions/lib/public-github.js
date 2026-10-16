@@ -7,8 +7,10 @@ const HISTORY_PER_REPO = 30;
 const STATS_SCOPE = 'public-independent-sample';
 
 function agentTags(commit) {
-  const text = [commit.message, commit.author?.name, commit.author?.email, commit.author?.user?.login,
+  const identities = [commit.author?.name, commit.author?.email, commit.author?.user?.login,
     commit.committer?.name, commit.committer?.email, commit.committer?.user?.login].filter(Boolean).join('\n');
+  const trailers = String(commit.message || '').split('\n').filter(line => /^co-authored-by:/i.test(line.trim())).join('\n');
+  const text = identities + '\n' + trailers;
   return {
     claudeCode: /co-authored-by:.*claude|noreply@anthropic\.com|\bclaude code\b/i.test(text),
     codexCode: /co-authored-by:.*codex|co-authored-by:.*openai|noreply@openai\.com|\bcodex(?:\s*cli|\s*code)?\b/i.test(text),
@@ -71,9 +73,9 @@ function buildPublicStats({ repositories = [], events = [], now = new Date() } =
   const offsetDay = (days) => new Date(Date.parse(`${today}T00:00:00Z`) - days * 86400000).toISOString().slice(0, 10);
   const days = recentCommits.map((commit) => dayKey(commit.timestamp));
   const countSince = (start) => days.filter((day) => day >= start && day <= today).length;
-  const commitSplit = { sampleSize: recentCommits.length, claudeCode: 0, codexCode: 0, solo: 0 };
+  const commitSplit = { sampleSize: recentCommits.length, claudeCode: 0, codexCode: 0, both: 0, untagged: 0 };
   for (const commit of recentCommits) {
-    commitSplit[commit.claudeCode ? 'claudeCode' : commit.codexCode ? 'codexCode' : 'solo'] += 1;
+    commitSplit[commit.claudeCode && commit.codexCode ? 'both' : commit.claudeCode ? 'claudeCode' : commit.codexCode ? 'codexCode' : 'untagged'] += 1;
   }
   const activeNames = new Set(recentCommits.map((commit) => `${commit.owner}/${commit.repo}`));
   const repos = [...verifiedRepos.entries()].filter(([name]) => activeNames.has(name)).map(([fullName, repo]) => {

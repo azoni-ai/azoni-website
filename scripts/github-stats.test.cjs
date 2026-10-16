@@ -89,7 +89,7 @@ test('future commits, invalid dates, and invalid hashes never affect counts', ()
   assert.equal(buildPublicStats({ repositories: [repo], now }).recentCommits.length, 1);
 });
 
-test('all aggregate counts and agent splits are bounded by the returned 300-commit sample', () => {
+test('public feed sample counts and agent splits are bounded by the returned 300 commits', () => {
   const nodes = Array.from({ length: 350 }, (_, i) => commit(i + 1, now.toISOString(), i % 2 ? 'Public update\nCo-authored-by: Codex <noreply@openai.com>' : 'Public update'));
   const repo = repository({ defaultBranchRef: { target: { history: { nodes } } } });
   const stats = buildPublicStats({ repositories: [repo], now });
@@ -97,18 +97,17 @@ test('all aggregate counts and agent splits are bounded by the returned 300-comm
   assert.equal(stats.today, 300);
   assert.equal(stats.thisYear, 300);
   assert.equal(stats.commitSplit.sampleSize, 300);
-  assert.equal(stats.commitSplit.solo + stats.commitSplit.codexCode + stats.commitSplit.claudeCode, 300);
+  assert.equal(stats.commitSplit.untagged + stats.commitSplit.codexCode + stats.commitSplit.claudeCode + stats.commitSplit.both, 300);
 });
 
-test('empty fallback preserves the public response contract without account totals', async () => {
+test('missing credentials return unavailable instead of fabricated zero totals', async () => {
   const original = process.env.GITHUB_TOKEN;
   delete process.env.GITHUB_TOKEN;
   try {
-    const result = JSON.parse((await handler({ httpMethod: 'GET' })).body);
-    assert.equal(result.statsScope, STATS_SCOPE);
-    assert.equal(result.today, 0);
-    assert.deepEqual(result.recentCommits, []);
-    assert.deepEqual(result.repos, []);
+    const response = await handler({ httpMethod: 'GET' });
+    assert.equal(response.statusCode, 503);
+    assert.equal(response.headers['Cache-Control'], 'no-store');
+    assert.equal(JSON.parse(response.body).today, undefined);
   } finally { if (original === undefined) delete process.env.GITHUB_TOKEN; else process.env.GITHUB_TOKEN = original; }
 });
 
@@ -118,6 +117,10 @@ test('endpoint queries only reviewed exact repositories and ignores injected unr
   t.mock.method(global, 'fetch', async (url, options) => {
     if (url.endsWith('/graphql')) {
       const query = JSON.parse(options.body).query;
+      if (query.includes('contributionsCollection')) {
+        assert.doesNotMatch(query, /repository\(|repositoriesContributedTo|ownerAffiliations|nameWithOwner/);
+        return { ok: true, json: async () => ({ data: { user: null } }) };
+      }
       assert.match(query, /repository\(owner: "azoni", name: "rowing-tracker"\)/);
       assert.doesNotMatch(query, /repositoriesContributedTo|contributionsCollection|ownerAffiliations/);
       const currentPublicRepo = repository({ defaultBranchRef: { target: { history: { nodes: [commit(1, new Date(Date.now() - 60000).toISOString())] } } } });
@@ -132,6 +135,8 @@ test('endpoint queries only reviewed exact repositories and ignores injected unr
     assert.equal(result.statusCode, 200);
     assert.equal(data.recentCommits.length, 1);
     assert.equal(data.recentCommits[0].isPrivate, false);
+    assert.equal(data.totalsAvailable, false);
+    assert.equal(data.thisYear, null);
   } finally { if (original === undefined) delete process.env.GITHUB_TOKEN; else process.env.GITHUB_TOKEN = original; }
 });
 

@@ -55,9 +55,34 @@
 }
 
 .commits-page-warm .commits-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border: 1px solid var(--border-warm);
   background: color-mix(in srgb, var(--bg-warm-card) 60%, transparent);
   border-radius: 12px;
+}
+
+.commits-page-warm .commits-stat {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.commits-page-warm .commits-stat-value { margin: 0; }
+.commits-page-warm .commits-stat-status { font-size: .9rem; }
+.commits-page-warm .commits-contributions { margin-bottom: 32px; }
+.commits-page-warm .commits-scope-note a,
+.commits-page-warm .commits-empty a { color: var(--accent-coral); }
+
+.commits-page-warm .commits-section-heading {
+  margin: 0 0 14px;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-warm);
+}
+
+@media (max-width: 600px) {
+  .commits-page-warm .commits-stats-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .commits-page-warm .commits-stat-value {
@@ -143,6 +168,8 @@
 }
 
 .commits-page-warm .commits-day-label {
+  min-width: 0;
+  white-space: normal;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   letter-spacing: 0.12em;
@@ -151,6 +178,8 @@
 }
 
 .commits-page-warm .commits-day-count {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--text-warm-muted);

@@ -219,7 +219,7 @@ async function getTodayCommitCount() {
     const response = await readPublicActivity({ httpMethod: 'GET' });
     if (response.statusCode !== 200) return null;
     const stats = JSON.parse(response.body);
-    if (stats.statsScope !== 'public-independent-sample') return null;
+    if (stats.feedScope !== 'public-independent-sample' || !stats.feedAvailable) return null;
     const pacificDay = (timestamp) => new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
     }).format(new Date(timestamp));
@@ -232,8 +232,8 @@ async function getTodayCommitCount() {
     }
     const activeRepos = [...counts].map(([name, commits]) => ({ name, commits }));
     return {
-      totalCommits: stats.today, activeRepos, date: today,
-      scope: stats.statsScope, countsAreSample: true,
+      totalCommits: activeRepos.reduce((total, repo) => total + repo.commits, 0), activeRepos, date: today,
+      scope: stats.feedScope, countsAreSample: true,
       description: 'Recent sampled commits from approved public independent repositories only',
     };
   } catch {

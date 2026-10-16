@@ -1,92 +1,45 @@
 import React from 'react';
 import { PROJECT_STORIES } from '../../data/project-stories';
 import useHomeSummary from '../../hooks/useHomeSummary';
+import { getCommitAttribution, getContributionTiles } from '../../utils/githubTelemetry';
+import '../../styles/commit-band.css';
 
-const HeroStats = ({ githubStats }) => {
+const HeroStats = ({ githubStats, loading = githubStats == null }) => {
   const summary = useHomeSummary();
   const agentCount24h = Number.isFinite(summary?.agentCount24h) ? summary.agentCount24h : null;
-
-  const yearLabel = new Date().getFullYear();
+  const tiles = getContributionTiles(githubStats).filter(({ key }) => key === 'thisYear' || key === 'thisMonth').reverse();
   const stats = [
-    {
-      value: String(PROJECT_STORIES.length),
-      label: 'projects shipped',
-    },
-    githubStats?.thisYear != null && {
-      value: githubStats.thisYear.toLocaleString(),
-      label: `commits · ${yearLabel}`,
-    },
-    githubStats?.thisMonth != null && {
-      value: githubStats.thisMonth.toLocaleString(),
-      label: 'commits · this month',
-    },
-    agentCount24h != null && agentCount24h > 0 && {
-      value: String(agentCount24h),
-      label: 'agent actions · 24h',
-    },
+    { value: String(PROJECT_STORIES.length), label: 'projects shipped' },
+    ...tiles.map(({ value, label }) => ({
+      value: loading ? 'Loading' : value == null ? 'Unavailable' : value.toLocaleString(),
+      label: `contributions ${label}`,
+    })),
+    agentCount24h != null && agentCount24h > 0 && { value: String(agentCount24h), label: 'agent actions / 24h' },
   ].filter(Boolean);
-
-  if (stats.length === 0) return null;
-
-  const split = githubStats?.commitSplit;
-  const showSplit =
-    split?.sampleSize > 0 &&
-    (split.claudeCode > 0 || split.codexCode > 0 || split.solo > 0);
-  const total = showSplit
-    ? Math.max(1, split.claudeCode + split.codexCode + split.solo)
-    : 0;
+  const attribution = getCommitAttribution(githubStats);
 
   return (
     <>
-      <dl className="hero-stats" aria-label="Live stats">
-        {stats.map((s, i) => (
-          <div key={i} className="hero-stats-item">
-            <dt className="hero-stats-label">{s.label}</dt>
-            <dd className="hero-stats-value">{s.value}</dd>
+      <dl className="hero-stats" aria-label="Live stats" aria-busy={loading}>
+        {stats.map((stat) => (
+          <div key={stat.label} className="hero-stats-item">
+            <dt className="hero-stats-label">{stat.label}</dt>
+            <dd className={`hero-stats-value${stat.value === 'Unavailable' || stat.value === 'Loading' ? ' hero-stats-value--status' : ''}`}>{stat.value}</dd>
           </div>
         ))}
       </dl>
+      <p className="hero-stats-scope">Account-wide <a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">GitHub contributions</a>. Reporting periods use Pacific time.</p>
 
-      {showSplit && (
-        <div className="hero-split" aria-label="Commit author split (recent sample)">
-          <span className="hero-split-label">
-            Of last {split.sampleSize.toLocaleString()} commits
-          </span>
-          <div
-            className="hero-split-bar"
-            role="img"
-            aria-label={`${split.solo} solo, ${split.claudeCode} Claude Code, ${split.codexCode} Codex`}
-          >
-            <span
-              className="hero-split-seg hero-split-seg--solo"
-              style={{ width: `${(split.solo / total) * 100}%` }}
-              title={`${split.solo} solo`}
-            />
-            <span
-              className="hero-split-seg hero-split-seg--claude"
-              style={{ width: `${(split.claudeCode / total) * 100}%` }}
-              title={`${split.claudeCode} Claude Code`}
-            />
-            <span
-              className="hero-split-seg hero-split-seg--codex"
-              style={{ width: `${(split.codexCode / total) * 100}%` }}
-              title={`${split.codexCode} Codex`}
-            />
+      {attribution && (
+        <div className="hero-split" aria-label="AI tags in a recent public commit sample">
+          <span className="hero-split-label">AI tags in {attribution.sampleSize.toLocaleString()} recent public commits</span>
+          <div className="hero-split-bar" role="img" aria-label={attribution.segments.map(({ value, label }) => `${value} ${label}`).join(', ')}>
+            {attribution.segments.map(({ key, value, label }) => <span key={key} className={`hero-split-seg hero-split-seg--${key}`} style={{ width: `${(value / attribution.sampleSize) * 100}%` }} title={`${value} ${label}`} />)}
           </div>
           <ul className="hero-split-legend">
-            <li>
-              <span className="hero-split-dot hero-split-seg--solo" /> Mine{' '}
-              <strong>{split.solo}</strong>
-            </li>
-            <li>
-              <span className="hero-split-dot hero-split-seg--claude" /> Claude Code{' '}
-              <strong>{split.claudeCode}</strong>
-            </li>
-            <li>
-              <span className="hero-split-dot hero-split-seg--codex" /> Codex{' '}
-              <strong>{split.codexCode}</strong>
-            </li>
+            {attribution.segments.map(({ key, value, label }) => <li key={key}><span className={`hero-split-dot hero-split-seg--${key}`} /> {label} <strong>{value.toLocaleString()}</strong></li>)}
           </ul>
+          <p className="hero-stats-scope">A separate public-project sample. Untagged commits may still involve AI.</p>
         </div>
       )}
     </>

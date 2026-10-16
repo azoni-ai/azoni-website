@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
 import publicWritingPolicy from '../data/publicWritingPolicy.json';
+import { GITHUB_STATS_URL, PUBLIC_FEED_SCOPE, getContributionDate, getContributionTiles, isContributionPayload } from '../utils/githubTelemetry';
 import '../styles/commits.css';
 import '../styles/commits-warm.css';
 
@@ -40,26 +41,32 @@ const Commits = ({ embedded = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
     const fetchGithubStats = async () => {
       try {
-        const res = await fetch('/.netlify/functions/github-stats?scope=public-independent-v1');
+        const res = await fetch(GITHUB_STATS_URL, { signal: controller.signal });
         if (!res.ok) return;
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) return;
         const data = await res.json();
-        if (!data.error && data.statsScope === 'public-independent-sample') {
+        if (active && !data.error && isContributionPayload(data)) {
+          const hasPublicFeed = data.feedScope === PUBLIC_FEED_SCOPE && data.feedAvailable === true;
           setGithubStats({ ...data,
-            recentCommits: (data.recentCommits || []).filter(isPublicCommit),
-            repos: (data.repos || []).filter((repo) => repo.isPrivate === false && PUBLIC_REPOSITORIES.has(`${repo.owner}/${repo.name}`)),
+            recentCommits: hasPublicFeed && Array.isArray(data.recentCommits) ? data.recentCommits.filter(isPublicCommit) : [],
+            repos: hasPublicFeed && Array.isArray(data.repos) ? data.repos.filter((repo) => repo.isPrivate === false && PUBLIC_REPOSITORIES.has(`${repo.owner}/${repo.name}`)) : [],
           });
         }
       } catch (_err) {
-        // Silent fail in local/dev when function env vars are unavailable.
+        // The unavailable state below stays distinct from an empty public feed.
       } finally {
-        setLoading(false);
+        clearTimeout(timeout);
+        if (active) setLoading(false);
       }
     };
     fetchGithubStats();
+    return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, []);
 
   // Get repo list from API (includes all repos, even those without recent commits)
@@ -111,6 +118,10 @@ const Commits = ({ embedded = false }) => {
   };
 
   const getRepoColor = (repo) => REPO_COLORS[repo] || '#888';
+  const tiles = getContributionTiles(githubStats);
+  const throughDate = getContributionDate(githubStats);
+  const totalsUnavailable = !loading && tiles.some(({ value }) => value == null);
+  const feedAvailable = githubStats?.feedScope === PUBLIC_FEED_SCOPE && githubStats.feedAvailable === true;
 
   const body = (
       <div className={`commits-page commits-page-warm${embedded ? ' is-embedded' : ''}`}>
@@ -132,37 +143,24 @@ const Commits = ({ embedded = false }) => {
                 </svg>
                 Commits
               </h1>
-              <p>Recent code changes from selected public independent projects.</p>
+              <p>My GitHub contributions and recent changes to public projects.</p>
             </div>
             )}
 
-            {/* Stats bar */}
-            {githubStats && (
-              <div className="commits-stats-bar">
-                <div className="commits-stat">
-                  <span className="commits-stat-value">{githubStats.today || 0}</span>
-                  <span className="commits-stat-label">today</span>
-                </div>
-                <div className="commits-stat">
-                  <span className="commits-stat-value">{githubStats.last7Days || 0}</span>
-                  <span className="commits-stat-label">past 7 days</span>
-                </div>
-                <div className="commits-stat">
-                  <span className="commits-stat-value">{(githubStats.thisMonth ?? 0).toLocaleString()}</span>
-                  <span className="commits-stat-label">month sample</span>
-                </div>
-                <div className="commits-stat">
-                  <span className="commits-stat-value">{(githubStats.thisYear ?? 0).toLocaleString()}</span>
-                  <span className="commits-stat-label">year sample</span>
-                </div>
-                <div className="commits-stat">
-                  <span className="commits-stat-value">{repos.length}</span>
-                  <span className="commits-stat-label">repos</span>
-                </div>
-              </div>
-            )}
+            <section className="commits-contributions" aria-labelledby="commits-contributions-heading" aria-busy={loading}>
+              <h2 id="commits-contributions-heading" className="commits-section-heading">Account-wide contributions</h2>
+              <dl className="commits-stats-bar">
+                {tiles.map((tile) => <div className="commits-stat" key={tile.key}>
+                  <dd className="commits-stat-value">{loading ? <span className="commits-stat-status">Loading</span> : tile.value == null ? <span aria-label="Unavailable">&mdash;</span> : tile.value.toLocaleString()}</dd>
+                  <dt className="commits-stat-label">{tile.label}</dt>
+                </div>)}
+              </dl>
+              <p className="commits-scope-note"><a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">GitHub contribution calendar</a> totals across my account. Reporting periods use Pacific time{throughDate ? `, through ${throughDate}` : ''}.</p>
+              {totalsUnavailable && <p className="commits-scope-note" role="status">Contribution totals are temporarily unavailable.</p>}
+            </section>
 
-            {githubStats && <p className="commits-scope-note">Counts cover the recent public commit sample. Older activity may be outside this view.</p>}
+            <h2 className="commits-section-heading">Recent public commits</h2>
+            <p className="commits-scope-note">A separate sample from selected public projects. Repository filters apply to this feed; they do not change the account-wide contribution totals.</p>
 
             {/* Filters */}
             <div className="commits-controls">
@@ -207,6 +205,8 @@ const Commits = ({ embedded = false }) => {
               <div className="commits-loading-pulse"></div>
               <span>Loading commits...</span>
             </div>
+          ) : !feedAvailable ? (
+            <div className="commits-empty" role="status"><p>The public commit feed is temporarily unavailable.</p><a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">View GitHub &nearr;</a></div>
           ) : filteredCommits.length === 0 ? (
             <div className="commits-empty">
               <p>No recent commits{repoFilter !== 'all' ? ` for ${repoFilter}` : ''}{searchQuery ? ` matching "${searchQuery}"` : ''}</p>

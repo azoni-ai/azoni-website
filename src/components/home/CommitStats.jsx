@@ -1,124 +1,60 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { getCommitAttribution, getContributionDate, getContributionTiles } from '../../utils/githubTelemetry';
 import '../../styles/commit-band.css';
 
-// The "full commits metric" on the home front: cadence counts
-// (today / week / month / year) plus the solo-vs-Claude-Code-vs-Codex author
-// split, which shows both that I ship constantly and that AI-assisted dev is
-// how I work. Data from the cached github-stats endpoint (passed from Home).
-
-const CommitStats = ({ githubStats }) => {
-  // While the cached github-stats endpoint is in flight, render a skeleton with
-  // the exact same structure so the band reserves its space (no layout shift)
-  // and has something alive to look at.
-  if (!githubStats) {
-    const labels = ['today', 'past 7 days', 'this month', `in ${new Date().getFullYear()}`];
-    return (
-      <section className="commit-band" aria-labelledby="commit-band-heading" aria-busy="true">
-        <div className="commit-band-inner">
-          <div className="commit-band-head">
-            <div>
-              <p className="commit-band-eyebrow">
-                <span className="commit-band-pulse" aria-hidden="true" />
-                GitHub
-              </p>
-              <h2 id="commit-band-heading" className="commit-band-heading">Commit activity</h2>
-            </div>
-            <Link to="/live?view=commits" className="commit-band-link">Full commit feed &rarr;</Link>
-          </div>
-
-          <dl className="commit-band-tiles">
-            {labels.map((label, i) => (
-              <div key={label} className="commit-tile" style={{ '--cs-delay': `${i * 0.12}s` }}>
-                <dd className="commit-tile-value"><span className="cs-skel cs-skel-num" /></dd>
-                <dt className="commit-tile-label">commits {label}</dt>
-              </div>
-            ))}
-          </dl>
-
-          <div className="commit-band-split">
-            <p className="commit-split-caption"><span className="cs-skel cs-skel-caption" /></p>
-            <div
-              className="hero-split-bar commit-split-bar cs-skel-bar"
-              role="img"
-              aria-label="Loading commit activity"
-            />
-            <ul className="hero-split-legend commit-split-legend">
-              {[0, 1, 2].map((i) => (
-                <li key={i}>
-                  <span className="hero-split-dot cs-skel-dot" />
-                  <span className="cs-skel cs-skel-legend" />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const tiles = [
-    { value: githubStats.today, label: 'today' },
-    { value: githubStats.last7Days, label: 'past 7 days' },
-    { value: githubStats.thisMonth, label: 'this month' },
-    { value: githubStats.thisYear, label: `in ${new Date().getFullYear()}` },
-  ].filter((t) => Number.isFinite(t.value));
-
-  if (tiles.length === 0) return null;
-
-  const split = githubStats.commitSplit;
-  const showSplit =
-    split?.sampleSize > 0 && (split.claudeCode > 0 || split.codexCode > 0 || split.solo > 0);
-  const total = showSplit ? Math.max(1, split.claudeCode + split.codexCode + split.solo) : 0;
-  const pct = (n) => `${(n / total) * 100}%`;
+const CommitStats = ({ githubStats, loading = githubStats == null }) => {
+  const tiles = getContributionTiles(githubStats);
+  const unavailable = !loading && tiles.some(({ value }) => value == null);
+  const throughDate = getContributionDate(githubStats);
+  const attribution = getCommitAttribution(githubStats);
 
   return (
-    <section className="commit-band" aria-labelledby="commit-band-heading">
+    <section className="commit-band" aria-labelledby="commit-band-heading" aria-busy={loading}>
       <div className="commit-band-inner">
         <div className="commit-band-head">
           <div>
             <p className="commit-band-eyebrow">
               <span className="commit-band-pulse" aria-hidden="true" />
-              GitHub
+              GitHub &middot; azoni
             </p>
-            <h2 id="commit-band-heading" className="commit-band-heading">
-              Commit activity
-            </h2>
+            <h2 id="commit-band-heading" className="commit-band-heading">Contribution activity</h2>
           </div>
-          <Link to="/live?view=commits" className="commit-band-link">
-            Full commit feed &rarr;
-          </Link>
+          <Link to="/live?view=commits" className="commit-band-link">Public commit feed &rarr;</Link>
         </div>
 
-        <dl className="commit-band-tiles">
-          {tiles.map((t) => (
-            <div key={t.label} className="commit-tile">
-              <dd className="commit-tile-value">{t.value.toLocaleString()}</dd>
-              <dt className="commit-tile-label">commits {t.label}</dt>
+        <dl className="commit-band-tiles" aria-label="Account-wide GitHub contributions">
+          {tiles.map((tile, i) => (
+            <div key={tile.key} className="commit-tile" style={{ '--cs-delay': `${i * 0.12}s` }}>
+              <dd className="commit-tile-value">
+                {loading ? <span className="cs-skel cs-skel-num" aria-label="Loading" />
+                  : tile.value == null ? <span aria-label="Unavailable">&mdash;</span>
+                    : tile.value.toLocaleString()}
+              </dd>
+              <dt className="commit-tile-label">contributions {tile.label}</dt>
             </div>
           ))}
         </dl>
 
-        {githubStats.countsAreSample && <p className="commit-scope">Recent activity from my public projects. Counts reflect the available commit sample.</p>}
-        {showSplit && (
+        <p className="commit-scope">
+          Account-wide <a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">GitHub contribution calendar</a> totals. Reporting periods use Pacific time{throughDate ? `, through ${throughDate}` : ''}.
+        </p>
+        {unavailable && <p className="commit-scope" role="status">Contribution totals are temporarily unavailable. <a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">View GitHub &nearr;</a></p>}
+
+        {attribution && (
           <div className="commit-band-split">
-            <p className="commit-split-caption">
-              How the last {split.sampleSize.toLocaleString()} commits got written
-            </p>
+            <p className="commit-split-caption">AI tags in {attribution.sampleSize.toLocaleString()} recent public commits</p>
             <div
               className="hero-split-bar commit-split-bar"
               role="img"
-              aria-label={`${split.solo} solo, ${split.claudeCode} Claude Code, ${split.codexCode} Codex`}
+              aria-label={attribution.segments.map(({ value, label }) => `${value} ${label}`).join(', ')}
             >
-              <span className="hero-split-seg hero-split-seg--claude" style={{ width: pct(split.claudeCode) }} title={`${split.claudeCode} Claude Code`} />
-              <span className="hero-split-seg hero-split-seg--codex" style={{ width: pct(split.codexCode) }} title={`${split.codexCode} Codex`} />
-              <span className="hero-split-seg hero-split-seg--solo" style={{ width: pct(split.solo) }} title={`${split.solo} solo`} />
+              {attribution.segments.map(({ key, value, label }) => <span key={key} className={`hero-split-seg hero-split-seg--${key}`} style={{ width: `${(value / attribution.sampleSize) * 100}%` }} title={`${value} ${label}`} />)}
             </div>
             <ul className="hero-split-legend commit-split-legend">
-              <li><span className="hero-split-dot hero-split-seg--claude" /> Claude Code <strong>{split.claudeCode}</strong></li>
-              <li><span className="hero-split-dot hero-split-seg--codex" /> Codex <strong>{split.codexCode}</strong></li>
-              <li><span className="hero-split-dot hero-split-seg--solo" /> Solo <strong>{split.solo}</strong></li>
+              {attribution.segments.map(({ key, value, label }) => <li key={key}><span className={`hero-split-dot hero-split-seg--${key}`} /> {label} <strong>{value.toLocaleString()}</strong></li>)}
             </ul>
+            <p className="commit-attribution-note">A separate sample from selected public projects, based on commit metadata. Untagged commits may still involve AI.</p>
           </div>
         )}
       </div>
