@@ -1,136 +1,66 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
-import { profile, skills } from '../data/profile';
+import { profile } from '../data/profile';
 import '../styles/about-warm.css';
 
-const SKILL_GROUPS = [
-  { label: 'Languages', items: skills.languages },
-  { label: 'Frontend', items: skills.frontend.concat(['Next.js', 'React Native']) },
-  { label: 'Backend', items: skills.backend },
-  { label: 'AI & agents', items: ['Claude API', 'OpenAI APIs', 'RAG', 'LLM agents', 'MCP', 'Embeddings'] },
-  { label: 'Cloud & infra', items: ['AWS Lambda', 'Firebase', 'Netlify', 'Render', 'Docker', 'CI/CD'] },
-  { label: 'Data', items: skills.databases },
+const PRINCIPLES = [
+  { title: 'Start with the problem', body: 'Understand the users, the existing system, and what a useful result looks like before choosing a model or writing code.' },
+  { title: 'Stay close to the implementation', body: 'Architecture and delivery belong together. I work through the data model, APIs, interfaces, and operational details, then build and test the system.' },
+  { title: 'Make AI observable', body: 'Treat model output as something to verify. Add the validation, usage tracking, and error reporting that make an AI feature practical to operate.' },
 ];
 
-const METHOD = [
-  {
-    title: 'I review every change before it merges',
-    body:
-      'I define the problem, the data model, and what "done" means, then hand a scoped task to an agent to draft. I read the result before it merges.',
-  },
-  {
-    title: 'I hand off routine work and keep the decisions',
-    body:
-      'Agents handle boilerplate, migrations, first drafts, and research. Architecture, data models, security, and anything hard to undo stay with me.',
-  },
-  {
-    title: 'Guardrails are enforced in code',
-    body:
-      'Destructive actions need a human step, and operations are idempotent and reversible where possible. Every agent run logs its cost, tools, and errors, so I can see what happened when something goes wrong.',
-  },
-  {
-    title: 'When an agent keeps failing, I fix the setup',
-    body:
-      'A repeated mistake usually means the spec, the tool, or the context is wrong rather than the model. I fix that instead of rewriting the prompt.',
-  },
-];
-
-const About = () => {
-  return (
-    <Layout>
-      <Seo
-        title="About"
-        description="Charlton Smith is a software engineer in Seattle. Background, how I work with AI, and the tools I use."
-        path="/about"
-      />
-      <div className="about-page">
-        <div className="about-inner">
-          <header className="about-hero">
-            <p className="about-eyebrow">
-              <span className="about-mark" aria-hidden="true" />
-              About &middot; {profile.location}
-            </p>
-            <h1 className="about-title">I build and run AI products.</h1>
-            <p className="about-lede">
-              I&rsquo;m a full-stack engineer with ten years of experience, currently working on my
-              own. I run a set of live products and the shared agent stack behind them, and I spend
-              most of my time on correctness, testing, and instrumentation.
-            </p>
-          </header>
-
-          <section className="about-section">
-            <h2 className="about-h2">How I got here</h2>
-            <div className="about-prose">
-              <p>
-                I co-founded <strong>OLI Fitness</strong>, where we built computer-vision fitness
-                tracking on the Kinect and published an extended abstract at <strong>ACM CHI 2017</strong>.
-                It was the first product I took from a prototype to something other people used.
-              </p>
-              <p>
-                At <strong>T-Mobile</strong> I built internal automation that cut a team&rsquo;s manual
-                work by about 80%, moved a frontend from Django templates to Angular, and won the
-                company&rsquo;s Big Data Hackathon. Outside of work I ran <strong>Dustbunny</strong>, an
-                NFT bidding system spread across 50 machines that held about 2,500 requests a minute
-                for six months.
-              </p>
-              <p>
-                As a <strong>Senior Software Engineer at Capital One</strong>, I built Python
-                microservices and automated-testing infrastructure on AWS, and mentored an intern who
-                shipped a tool the team kept using. Since late 2023 I&rsquo;ve worked independently,
-                building and running more than 15 live products on a shared agent and RAG stack. The
-                largest is <strong>FaB Stats</strong>, a stats platform for the Flesh and Blood card
-                game with 2,900+ players and 1.2M+ matches tracked.
-              </p>
-              <p>
-                I like building whole products and keeping them running, so I can see how they hold up.
-                The agent stack lets me do that across more projects than I could by hand. In 2026 I
-                formed <strong>Azoni LLC</strong>, the company behind this site and the products on it.
-              </p>
-            </div>
-          </section>
-
-          <section className="about-section about-method-section">
-            <p className="about-eyebrow about-eyebrow--section">Method</p>
-            <h2 className="about-h2">How I work with AI</h2>
-            <p className="about-section-lede">
-              AI tools are how I ship this much, and I put guardrails around them. The commit split and
-              agent-activity feed on this site come from the same instrumentation I&rsquo;d add to any
-              production system, here pointed at my own workflow.
-            </p>
-            <div className="about-method-grid">
-              {METHOD.map((m) => (
-                <div key={m.title} className="about-method-card">
-                  <h3 className="about-method-title">{m.title}</h3>
-                  <p className="about-method-body">{m.body}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="about-section">
-            <h2 className="about-h2">Tools I use</h2>
-            <div className="about-skills">
-              {SKILL_GROUPS.map((group) => (
-                <div key={group.label} className="about-skill-group">
-                  <p className="about-skill-label">{group.label}</p>
-                  <ul className="about-skill-list">
-                    {group.items.map((item) => (
-                      <li key={item} className="about-skill-chip">{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-            <p className="about-now">
-              <span className="about-now-dot" aria-hidden="true" />
-              Currently: {profile.currentlyBuilding}
-            </p>
-          </section>
-        </div>
+const About = () => (
+  <Layout>
+    <Seo title="About" description="Principal software engineer and consultant focused on AI applications, production systems, and hands-on delivery. Based in Seattle." path="/about" />
+    <div className="about-page">
+      <div className="about-inner">
+        <header className="about-hero">
+          <p className="about-eyebrow">About / {profile.location}</p>
+          <h1 className="about-title">A technical partner.<br />An engineer who builds.</h1>
+          <p className="about-lede">I&rsquo;m Charlton Smith, a principal software engineer and consultant with a focus on AI. I help turn complex product ideas into software that people can use and teams can maintain.</p>
+        </header>
+        <section className="about-current" aria-labelledby="about-current-heading">
+          <p className="about-eyebrow">Current work</p>
+          <h2 id="about-current-heading">Principal Software Engineer &amp; Consultant</h2>
+          <p>I&rsquo;m currently working with a client in a principal engineering role with a strong focus on AI. Alongside client work, I build and operate my own products through Azoni LLC.</p>
+        </section>
+        <section className="about-section about-background">
+          <h2 className="about-h2">Experience across the whole product.</h2>
+          <div className="about-prose">
+            <p>My background spans startup product development, enterprise engineering, and independent software. At <strong>Capital One</strong>, I built Python microservices and automated testing infrastructure on AWS. At <strong>T-Mobile</strong>, I developed internal automation and modernized web applications.</p>
+            <p>I also co-founded <strong>OLI Fitness</strong>, building real-time computer vision for exercise feedback and publishing an extended abstract at <strong>ACM CHI 2017</strong>. Today, my own work includes a multi-provider embedding gateway, shared AI tooling, and community products with real users.</p>
+            <p>That range shapes how I work: connect the technical decisions to the product, keep the system understandable, and follow through after the first release.</p>
+            <Link to="/resume" className="about-text-link">View experience and credentials <span aria-hidden="true">&rarr;</span></Link>
+          </div>
+        </section>
+        <section className="about-section" aria-labelledby="about-method-heading">
+          <h2 id="about-method-heading" className="about-h2">How I work</h2>
+          <div className="about-method-grid">
+            {PRINCIPLES.map((item, index) => (
+              <article key={item.title} className="about-method-card">
+                <span className="about-method-number" aria-hidden="true">0{index + 1}</span>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="about-section about-capabilities">
+          <h2 className="about-h2">Where I can help</h2>
+          <p>AI applications and retrieval systems. Product architecture and full-stack development. Integrations, automation, and the infrastructure behind them.</p>
+          <p className="about-tools">Recent tools include Python, TypeScript, React, Next.js, FastAPI, PostgreSQL, Firebase, and AWS. The choice follows the problem.</p>
+          <Link to="/services" className="about-text-link">Explore consulting services <span aria-hidden="true">&rarr;</span></Link>
+        </section>
+        <section className="about-contact">
+          <h2>Have a project in mind?</h2>
+          <p>Tell me what you&rsquo;re building and where you need help.</p>
+          <a href={'mailto:' + profile.email + '?subject=Project%20inquiry'} className="about-contact-button">Email about a project <span aria-hidden="true">&rarr;</span></a>
+        </section>
       </div>
-    </Layout>
-  );
-};
+    </div>
+  </Layout>
+);
 
 export default About;

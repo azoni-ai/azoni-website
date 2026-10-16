@@ -1,0 +1,141 @@
+/* Supporting pages share the consulting site's scale without changing its theme. */
+.secondary-page.blog-page-warm,
+.secondary-page.ai-tools-page,
+.secondary-page.live-page,
+.secondary-page.board-page,
+.secondary-page.moltbook-page,
+.secondary-page.privacy-page {
+  min-height: 65vh;
+  padding-top: 120px;
+  padding-bottom: 72px;
+  background: var(--bg-warm);
+  color: var(--text-warm);
+}
+
+.secondary-page h1 {
+  font-family: var(--font-body);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+}
+
+.secondary-page .secondary-eyebrow {
+  margin: 0 0 12px;
+  color: var(--text-warm-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.secondary-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 26px;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-warm);
+  font-size: 0.88rem;
+}
+
+.secondary-links--compact {
+  margin-top: 20px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.secondary-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--text-warm);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-color: var(--border-warm-strong);
+}
+
+.secondary-links a:hover { color: var(--accent-coral); }
+.secondary-links a:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 5px; }
+.secondary-notice { color: var(--text-warm-muted); font-size: 0.85rem; line-height: 1.65; }
+
+.secondary-page .blog-page-inner { max-width: 1000px; }
+.secondary-page .blog-page-grid { display: flex; flex-direction: column; gap: 0; }
+.secondary-page .blog-page-card {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 28px 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--border-warm);
+  border-radius: 0;
+}
+.secondary-page .blog-page-card:hover { transform: none; background: transparent; }
+.secondary-page .blog-page-card:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 5px; }
+.secondary-page .blog-page-card-image { width: 144px; flex: 0 0 144px; aspect-ratio: 4 / 3; border: 0; border-radius: 6px; }
+.secondary-page .blog-page-card-body { padding: 0; min-width: 0; gap: 10px; }
+.secondary-page .blog-page-card-title { font-family: var(--font-body); font-weight: 600; line-height: 1.4; }
+.secondary-page .blog-page-card-date { font-size: 0.7rem; }
+.secondary-page .blog-page-card-cta { padding-top: 0; }
+.secondary-page .blog-page-card-tags { display: none; }
+.blog-ai-label { color: var(--text-warm-muted); font-size: 0.73rem; }
+.writing-pagination { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: var(--text-warm-muted); }
+.writing-pagination button { min-height: 44px; padding: 10px 16px; background: transparent; border: 1px solid var(--border-warm-strong); border-radius: 6px; color: var(--text-warm); cursor: pointer; }
+.writing-pagination button:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 3px; }
+.secondary-page.blog-post-page-warm .blog-post-title { font-family: var(--font-body); font-weight: 600; line-height: 1.18; }
+.secondary-page.blog-post-page-warm .blog-post-excerpt { font-family: var(--font-body); font-style: normal; font-size: 1.1rem; }
+.secondary-page.blog-post-page-warm .blog-post-cover { max-height: 360px; }
+.secondary-page.blog-post-page-warm .blog-post-cover img { max-height: 360px; object-fit: cover; }
+.secondary-page .blog-post-content { overflow-wrap: anywhere; }
+
+.secondary-page .live-tab { min-height: 44px; }
+.secondary-page .live-tabs { margin-top: 16px; }
+.secondary-page .live-tabs { border-radius: 12px; }
+.secondary-page .live-tab { border-radius: 8px; }
+.secondary-page .live-tab:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 2px; }
+.secondary-page .live-lede { line-height: 1.7; }
+.secondary-page .ai-tools-search input { min-height: 44px; }
+.secondary-page .ai-tools-chip { min-height: 44px; }
+.secondary-page .ai-tools-card-name { font-family: var(--font-body); font-weight: 600; }
+.secondary-page .ai-tools-header-meta { letter-spacing: 0.02em; }
+.secondary-page .board-heading { font-family: var(--font-body); }
+.secondary-page .board-legend-item { min-height: 44px; }
+.secondary-page.moltbook-page-warm .moltbook-header h1 { font-family: var(--font-body); font-weight: 600; }
+.secondary-page.moltbook-page-warm .moltbook-description { padding: 0 0 24px; background: transparent; border: 0; border-bottom: 1px solid var(--border-warm); border-radius: 0; }
+.secondary-page.moltbook-page-warm .moltbook-avatar { width: 56px; height: 56px; flex-shrink: 0; }
+.secondary-page.moltbook-page-warm .moltbook-avatar svg { width: 36px; height: 36px; }
+.secondary-page.moltbook-page-warm .moltbook-subtitle { letter-spacing: 0.02em; text-transform: none; font-family: var(--font-body); font-size: 0.95rem; color: var(--text-warm-soft); }
+.secondary-page.moltbook-page-warm .moltbook-how-it-works { border-top: 1px solid var(--border-warm); padding-top: 24px; }
+.secondary-page.moltbook-page-warm .moltbook-how-it-works summary { cursor: pointer; padding: 0 0 20px; font-size: 1.1rem; font-weight: 600; }
+.secondary-page.moltbook-page-warm .moltbook-tech { margin-top: 28px; }
+
+.privacy-inner { max-width: 800px; margin: 0 auto; padding: 0 var(--space-xl); }
+.privacy-header { padding-bottom: 32px; border-bottom: 1px solid var(--border-warm); }
+.privacy-header h1 { margin: 0 0 18px; }
+.privacy-header > p:last-child { max-width: 60ch; font-size: 1.08rem; line-height: 1.75; color: var(--text-warm-soft); }
+.privacy-section { margin-top: 32px; }
+.privacy-section h2 { font-size: 1.15rem; font-weight: 600; margin: 0 0 12px; }
+.privacy-section p { color: var(--text-warm-soft); font-size: 1rem; line-height: 1.8; margin: 0; }
+.privacy-section a { color: var(--text-warm); text-underline-offset: 4px; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .secondary-page.blog-page-warm,
+  .secondary-page.ai-tools-page,
+  .secondary-page.live-page,
+  .secondary-page.board-page,
+  .secondary-page.moltbook-page,
+  .secondary-page.privacy-page { padding-top: 104px; padding-bottom: 48px; }
+  .secondary-page .blog-page-card { gap: 16px; padding: 24px 0; }
+  .secondary-page .blog-page-card-image { width: 80px; flex-basis: 80px; aspect-ratio: 1; }
+  .secondary-page .blog-page-card-title { font-size: 1.05rem; }
+  .secondary-page .blog-page-card-excerpt { font-size: 0.88rem; -webkit-line-clamp: 2; line-clamp: 2; }
+  .secondary-page .blog-page-card-date { text-transform: none; letter-spacing: 0; }
+  .secondary-page .blog-page-card-meta { gap: 4px 12px; }
+  .secondary-links { gap: 6px 20px; }
+  .privacy-inner { padding: 0 var(--space-md); }
+}

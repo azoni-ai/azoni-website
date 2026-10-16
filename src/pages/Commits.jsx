@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
+import publicWritingPolicy from '../data/publicWritingPolicy.json';
 import '../styles/commits.css';
 import '../styles/commits-warm.css';
+
+const PUBLIC_REPOSITORIES = new Set(publicWritingPolicy.publicRepositoryFullNames);
+const isPublicCommit = (commit) => commit?.isPrivate === false && PUBLIC_REPOSITORIES.has(`${commit.owner}/${commit.repo}`);
 
 // Map repo names to live sites
 const REPO_TO_SITE = {
@@ -38,12 +42,17 @@ const Commits = ({ embedded = false }) => {
   useEffect(() => {
     const fetchGithubStats = async () => {
       try {
-        const res = await fetch('/.netlify/functions/github-stats');
+        const res = await fetch('/.netlify/functions/github-stats?scope=public-independent-v1');
         if (!res.ok) return;
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) return;
         const data = await res.json();
-        if (!data.error) setGithubStats(data);
+        if (!data.error && data.statsScope === 'public-independent-sample') {
+          setGithubStats({ ...data,
+            recentCommits: (data.recentCommits || []).filter(isPublicCommit),
+            repos: (data.repos || []).filter((repo) => repo.isPrivate === false && PUBLIC_REPOSITORIES.has(`${repo.owner}/${repo.name}`)),
+          });
+        }
       } catch (_err) {
         // Silent fail in local/dev when function env vars are unavailable.
       } finally {
@@ -123,7 +132,7 @@ const Commits = ({ embedded = false }) => {
                 </svg>
                 Commits
               </h1>
-              <p>Live feed across every repo I push to.</p>
+              <p>Recent code changes from selected public independent projects.</p>
             </div>
             )}
 
@@ -136,15 +145,15 @@ const Commits = ({ embedded = false }) => {
                 </div>
                 <div className="commits-stat">
                   <span className="commits-stat-value">{githubStats.last7Days || 0}</span>
-                  <span className="commits-stat-label">this week</span>
+                  <span className="commits-stat-label">past 7 days</span>
                 </div>
                 <div className="commits-stat">
                   <span className="commits-stat-value">{(githubStats.thisMonth ?? 0).toLocaleString()}</span>
-                  <span className="commits-stat-label">this month</span>
+                  <span className="commits-stat-label">month sample</span>
                 </div>
                 <div className="commits-stat">
                   <span className="commits-stat-value">{(githubStats.thisYear ?? 0).toLocaleString()}</span>
-                  <span className="commits-stat-label">{new Date().getFullYear()}</span>
+                  <span className="commits-stat-label">year sample</span>
                 </div>
                 <div className="commits-stat">
                   <span className="commits-stat-value">{repos.length}</span>
@@ -152,6 +161,8 @@ const Commits = ({ embedded = false }) => {
                 </div>
               </div>
             )}
+
+            {githubStats && <p className="commits-scope-note">Counts cover the recent public commit sample. Older activity may be outside this view.</p>}
 
             {/* Filters */}
             <div className="commits-controls">
@@ -181,6 +192,7 @@ const Commits = ({ embedded = false }) => {
                 </svg>
                 <input
                   type="text"
+                  aria-label="Search public commits"
                   placeholder="Search commits..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}

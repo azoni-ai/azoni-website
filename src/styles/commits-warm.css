@@ -77,6 +77,13 @@
   text-transform: uppercase;
 }
 
+.commits-page-warm .commits-scope-note {
+  color: var(--text-warm-muted);
+  font-size: .8rem;
+  line-height: 1.6;
+  margin: 14px 0 20px;
+}
+
 .commits-page-warm .repo-filter-btn {
   background: transparent;
   border: 1px solid var(--border-warm);

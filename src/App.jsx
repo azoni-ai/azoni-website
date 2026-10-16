@@ -4,11 +4,14 @@ import { AppProvider } from "./context/AppContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Loading from "./components/Loading";
 import ScrollToTop from "./components/ScrollToTop";
+import Layout from "./components/Layout";
+import Seo from "./components/Seo";
+import { Link } from "react-router-dom";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
 // SpellBrigade is a ~15k-line game engine; keep it out of the main bundle so the
-// recruiter-facing pages don't pay to parse it. Only /game pulls the chunk.
+// consulting pages don't pay to parse it. Only /game pulls the chunk.
 const SpellBrigade = lazy(() => import("./components/SpellBrigade"));
 const Projects = lazy(() => import("./pages/Projects"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
@@ -24,6 +27,8 @@ const Board = lazy(() => import("./pages/Board"));
 const Live = lazy(() => import("./pages/Live"));
 const About = lazy(() => import("./pages/About"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const Services = lazy(() => import("./pages/Services"));
+const Contact = lazy(() => import("./pages/Contact"));
 
 const App = () => {
   useEffect(() => {
@@ -41,6 +46,8 @@ const App = () => {
           <Suspense fallback={<Loading fullScreen message="Loading..." />}>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/about" element={<About />} />
               <Route path="/aboutme" element={<Navigate to="/about" replace />} />
               <Route path="/projects" element={<Projects />} />
@@ -73,66 +80,13 @@ const App = () => {
   );
 };
 
-// Simple 404 component
 const NotFound = () => (
-  <div style={{
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '2rem',
-    textAlign: 'center',
-    background: 'var(--bg-warm, var(--bg-primary))',
-    color: 'var(--text-warm, var(--text-primary))',
-  }}>
-    <p style={{
-      fontFamily: 'var(--font-mono)',
-      fontSize: '0.72rem',
-      letterSpacing: '0.18em',
-      textTransform: 'uppercase',
-      color: 'var(--accent-coral)',
-      margin: '0 0 1rem',
-    }}>
-      404
-    </p>
-    <h1 style={{
-      fontFamily: 'var(--font-serif)',
-      fontWeight: 500,
-      fontSize: 'clamp(2.5rem, 6vw, 4rem)',
-      letterSpacing: '-0.02em',
-      lineHeight: 1.05,
-      margin: '0 0 1rem',
-    }}>
-      Page not found.
-    </h1>
-    <p style={{
-      fontSize: '1.05rem',
-      color: 'var(--text-warm-soft, var(--text-secondary))',
-      marginBottom: '2rem',
-      maxWidth: '40ch',
-    }}>
-      The link you followed has moved or never existed.
-    </p>
-    <a
-      href="/"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '10px 18px',
-        background: 'var(--accent-coral)',
-        border: '1px solid var(--accent-coral)',
-        borderRadius: '999px',
-        color: '#18110e',
-        fontFamily: 'var(--font-body)',
-        fontWeight: 500,
-        textDecoration: 'none',
-      }}
-    >
-      Back to home
-    </a>
-  </div>
+  <Layout><Seo title="Page not found" noIndex />
+    <div className="consult-page consult-container" style={{ minHeight: '70vh', paddingBottom: 80 }}>
+      <p className="consult-eyebrow">404</p><h1>Page not found.</h1>
+      <p style={{ margin: '24px 0', color: 'var(--text-warm-soft)' }}>This page may have moved. Explore my services or return home.</p>
+      <div className="consult-actions"><Link className="consult-button" to="/">Back to home</Link><Link className="consult-text-link" to="/services">Explore services</Link></div>
+    </div>
+  </Layout>
 );
-
 export default App;

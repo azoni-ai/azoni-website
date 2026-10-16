@@ -67,7 +67,7 @@
 }
 
 .live-tab.is-active {
-  color: #18110e;
+  color: #ffffff;
   background: var(--accent-coral);
 }
 
@@ -106,12 +106,48 @@
   margin-top: 0;
 }
 
+/* The embedded leaderboard already has a padded inner container. Its own
+   page gutters otherwise narrow a 320px screen twice and push the tabs out. */
+.live-body .lb-page.is-embedded {
+  padding-inline: 0;
+}
+
+.live-body .lb-tab.active,
+.live-body .lb-window-btn.active {
+  color: #ffffff;
+}
+
 @media (max-width: 640px) {
   .live-page {
     padding-top: 96px;
   }
   .live-header-wrap {
     padding: 0 var(--space-md);
+  }
+  .live-tabs {
+    max-width: 100%;
+  }
+  .live-body .lb-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    border-radius: 12px;
+  }
+  .live-body .lb-tab {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .live-body .lb-window-btn {
+    min-height: 44px;
+  }
+  .live-body .lb-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .live-body .lb-kpi {
+    min-width: 0;
   }
   .live-body .lb-container,
   .live-body .activity-container,

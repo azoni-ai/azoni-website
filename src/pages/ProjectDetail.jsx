@@ -1,285 +1,96 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
-import Comments from '../components/Comments';
 import { useProjects } from '../hooks/useProjects';
 import useVisitTracker from '../hooks/useVisitTracker';
-import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, onSnapshot, increment } from 'firebase/firestore';
+import { profile } from '../data/profile';
+import { selectedWorkIds, workStories } from '../data/workStories';
 import '../styles/project-detail-warm.css';
 
-// A case-study body can be a single string (with \n\n breaks) or an array of
-// paragraphs. Normalize to <p> elements either way.
 const toParagraphs = (body) => {
   const parts = Array.isArray(body) ? body : String(body || '').split(/\n\n+/);
-  return parts
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p, i) => <p key={i}>{p}</p>);
+  return parts.map((paragraph) => paragraph.trim()).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>);
 };
 
-const StarButton = ({ projectId }) => {
-  const [stars, setStars] = useState(0);
-  const [userStarred, setUserStarred] = useState(false);
-  const [hovered, setHovered] = useState(false);
-
-  useEffect(() => {
-    const starDocRef = doc(db, 'stars', projectId);
-    const unsubscribe = onSnapshot(starDocRef, (doc) => {
-      if (doc.exists()) setStars(doc.data().count || 0);
-    });
-    const starred = localStorage.getItem(`starred_${projectId}`);
-    if (starred) setUserStarred(true);
-    return () => unsubscribe();
-  }, [projectId]);
-
-  const handleStar = async () => {
-    if (userStarred) return;
-    try {
-      const starDocRef = doc(db, 'stars', projectId);
-      const starDoc = await getDoc(starDocRef);
-      if (starDoc.exists()) {
-        await setDoc(starDocRef, { count: increment(1) }, { merge: true });
-      } else {
-        await setDoc(starDocRef, { count: 1, projectId });
-      }
-      localStorage.setItem(`starred_${projectId}`, 'true');
-      setUserStarred(true);
-    } catch (error) {
-      console.error('Error starring:', error);
-    }
-  };
-
-  return (
-    <button
-      className={`star-button ${userStarred ? 'starred' : ''}`}
-      onClick={handleStar}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      disabled={userStarred}
-    >
-      <span className="star-icon">{userStarred || hovered ? '★' : '☆'}</span>
-      <span className="star-count">{stars}</span>
-    </button>
-  );
-};
+const DetailSection = ({ section }) => (
+  <section className="project-detail-block">
+    <h2 className="project-detail-block-heading">{section.heading}</h2>
+    <div className="project-detail-prose">
+      {toParagraphs(section.body)}
+      {section.decisions?.length > 0 && <ul className="cs-decisions">{section.decisions.map((decision) => <li key={decision}>{decision}</li>)}</ul>}
+    </div>
+  </section>
+);
 
 const ProjectDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   useVisitTracker(id);
-  const { getProject, allProjects, loading } = useProjects();
+  const { getProject, allProjects } = useProjects();
   const project = getProject(id);
+  const orderedProjects = [...selectedWorkIds.map((workId) => allProjects.find((item) => item.id === workId)).filter(Boolean), ...allProjects.filter((item) => !selectedWorkIds.includes(item.id))];
+  const currentIndex = orderedProjects.findIndex((item) => item.id === id);
+  const prevProject = currentIndex > 0 ? orderedProjects[currentIndex - 1] : null;
+  const nextProject = currentIndex >= 0 ? orderedProjects[currentIndex + 1] : null;
 
-  // Prev/next navigation
-  const currentIndex = allProjects.findIndex(p => p.id === id);
-  const prevProject = currentIndex > 0 ? allProjects[currentIndex - 1] : null;
-  const nextProject = currentIndex < allProjects.length - 1 ? allProjects[currentIndex + 1] : null;
-
-  // Scroll to top on project change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [id]);
-
-  // Keyboard navigation (left/right arrows)
-  const prevRef = useRef(prevProject);
-  const nextRef = useRef(nextProject);
-  prevRef.current = prevProject;
-  nextRef.current = nextProject;
-
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key === 'ArrowLeft' && prevRef.current) {
-        navigate(`/projects/${prevRef.current.id}`);
-      } else if (e.key === 'ArrowRight' && nextRef.current) {
-        navigate(`/projects/${nextRef.current.id}`);
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [navigate]);
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="project-detail-page">
-          <div className="project-detail-inner">
-            <p className="project-detail-status">Loading project&hellip;</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  useEffect(() => { window.scrollTo(0, 0); }, [id]);
 
   if (!project) {
-    return (
-      <Layout>
-        <div className="project-detail-page">
-          <div className="project-detail-inner project-detail-inner--centered">
-            <h1 className="project-detail-title">Project not found.</h1>
-            <p className="project-detail-status">
-              The project you&rsquo;re looking for doesn&rsquo;t exist.
-            </p>
-            <Link to="/projects" className="project-detail-cta">
-              <span aria-hidden="true">←</span> Back to projects
-            </Link>
-          </div>
-        </div>
-      </Layout>
-    );
+    return <Layout><Seo title="Work not found" description="Explore selected engineering work by Charlton Smith." path={'/projects/' + id} /><div className="project-detail-page"><div className="project-detail-inner"><h1 className="project-detail-title">Project not found.</h1><p className="project-detail-status">This project may have moved. Explore the current collection below.</p><Link to="/projects" className="project-detail-cta">Back to selected work <span aria-hidden="true">&rarr;</span></Link></div></div></Layout>;
   }
 
+  const story = workStories[id];
   const cs = project.caseStudy;
+  const title = story?.headline || project.tagline;
+  const businessSections = story ? [
+    { heading: 'The problem', body: story.problem },
+    { heading: 'What I built', body: story.approach },
+    { heading: 'The result', body: story.outcome },
+  ] : null;
 
   return (
     <Layout>
-      <Seo
-        title={project.title}
-        description={project.description || project.tagline}
-        path={`/projects/${id}`}
-      />
+      <Seo title={project.title} description={story ? story.headline + ' ' + story.outcome : project.description || project.tagline} path={'/projects/' + id} />
       <div className="project-detail-page">
         <div className="project-detail-inner">
-          <div className="project-detail-nav">
-            <Link to="/projects" className="project-detail-back">
-              <span aria-hidden="true">←</span> All projects
-            </Link>
-            {allProjects.length > 0 && (
-              <span className="project-detail-counter">
-                {String(currentIndex + 1).padStart(2, '0')} / {String(allProjects.length).padStart(2, '0')}
-              </span>
-            )}
-          </div>
-
+          <nav className="project-detail-nav" aria-label="Work breadcrumb"><Link to="/projects" className="project-detail-back"><span aria-hidden="true">&larr;</span> Selected work</Link><span>{project.archived ? 'Earlier work' : 'Independent product'}</span></nav>
           <header className="project-detail-header">
-            <p className="project-detail-eyebrow">{project.tagline}</p>
-            <div className="project-detail-titlerow">
-              <h1 className="project-detail-title">{project.title}</h1>
-              <StarButton projectId={id} />
-            </div>
-
-            <ul className="project-detail-tech" aria-label="Tech stack">
-              {project.tech.map((tech) => (
-                <li key={tech}>{tech}</li>
-              ))}
-            </ul>
-
+            <p className="project-detail-eyebrow">{story?.label || 'Product & engineering'}</p>
+            <h1 className="project-detail-title">{project.title}</h1>
+            <p className="project-detail-lede">{title}</p>
             <div className="project-detail-actions">
-              {project.links.live && (
-                <a
-                  href={project.links.live}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="project-detail-cta project-detail-cta--primary"
-                >
-                  View live <span aria-hidden="true">↗</span>
-                </a>
-              )}
-              {project.links.github && (
-                <a
-                  href={project.links.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="project-detail-cta"
-                >
-                  View code <span aria-hidden="true">↗</span>
-                </a>
-              )}
-              {project.links.paper && (
-                <a
-                  href={project.links.paper}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="project-detail-cta"
-                >
-                  Read paper <span aria-hidden="true">↗</span>
-                </a>
-              )}
+              {project.links?.live && <a href={project.links.live} target="_blank" rel="noopener noreferrer" className="project-detail-cta">Explore the product <span aria-hidden="true">&nearr;</span></a>}
+              {project.links?.github && <a href={project.links.github} target="_blank" rel="noopener noreferrer" className="project-detail-cta">View code <span aria-hidden="true">&nearr;</span></a>}
+              {project.links?.paper && <a href={project.links.paper} target="_blank" rel="noopener noreferrer" className="project-detail-cta">Read the paper <span aria-hidden="true">&nearr;</span></a>}
             </div>
           </header>
 
-          {cs && (
-            <dl className="cs-facts" aria-label="Project facts">
-              <div className="cs-fact">
-                <dt className="cs-fact-label">Role</dt>
-                <dd className="cs-fact-value">{cs.role}</dd>
-              </div>
-              <div className="cs-fact">
-                <dt className="cs-fact-label">Timeline</dt>
-                <dd className="cs-fact-value">{cs.timeline}</dd>
-              </div>
-              <div className="cs-fact">
-                <dt className="cs-fact-label">Stack</dt>
-                <dd className="cs-fact-value">{cs.stack || project.tech.slice(0, 4).join(' · ')}</dd>
-              </div>
-            </dl>
-          )}
+          {(story || cs) && <dl className="cs-facts">
+            <div><dt>My role</dt><dd>{story?.role || cs?.role}</dd></div>
+            <div><dt>{story ? 'Relevant capabilities' : 'Technology'}</dt><dd>{story?.relevance || project.tech.slice(0, 4).join(' / ')}</dd></div>
+          </dl>}
 
-          {cs?.metrics?.length > 0 && (
-            <div className="cs-metrics">
-              {cs.metrics.map((m) => (
-                <div className="cs-metric" key={m.label}>
-                  <span className="cs-metric-value">{m.value}</span>
-                  <span className="cs-metric-label">{m.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          {businessSections ? businessSections.map((section) => <DetailSection key={section.heading} section={section} />) : cs?.sections ? cs.sections.map((section) => <DetailSection key={section.heading} section={section} />) : <DetailSection section={{ heading: 'Overview', body: project.longDescription || project.description }} />}
 
-          {cs?.sections ? (
-            cs.sections.map((s, i) => (
-              <section className="project-detail-block" key={i}>
-                <h2 className="project-detail-block-heading">{s.heading}</h2>
-                <div className="project-detail-prose">
-                  {toParagraphs(s.body)}
-                  {s.decisions?.length > 0 && (
-                    <ul className="cs-decisions">
-                      {s.decisions.map((d, j) => (
-                        <li key={j}>{d}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </section>
-            ))
-          ) : (
-            <section className="project-detail-block">
-              <h2 className="project-detail-block-heading">Overview</h2>
-              <div className="project-detail-prose">
-                {toParagraphs(project.longDescription)}
+          {story ? (
+            <details className="project-implementation">
+              <summary>Inside the implementation <span aria-hidden="true">+</span></summary>
+              <div className="project-implementation-content">
+                {cs?.sections ? cs.sections.map((section) => <DetailSection key={section.heading} section={section} />) : <DetailSection section={{ heading: 'Engineering approach', body: project.longDescription }} />}
+                {project.highlights?.length > 0 && <section className="project-detail-block"><h2 className="project-detail-block-heading">Implementation details</h2><ul className="project-detail-highlights">{project.highlights.map((item) => <li key={item}>{item}</li>)}</ul></section>}
               </div>
-            </section>
-          )}
+            </details>
+          ) : project.highlights?.length > 0 && <section className="project-detail-block"><h2 className="project-detail-block-heading">Implementation details</h2><ul className="project-detail-highlights">{project.highlights.map((item) => <li key={item}>{item}</li>)}</ul></section>}
 
-          {project.highlights?.length > 0 && (
-            <section className="project-detail-block">
-              <h2 className="project-detail-block-heading">Key features</h2>
-              <ul className="project-detail-highlights">
-                {project.highlights.map((highlight, index) => (
-                  <li key={index}>{highlight}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <section className="project-detail-block project-detail-comments">
-            <Comments projectId={id} />
+          <section className="project-detail-stack"><h2>Technology</h2><ul className="project-detail-tech">{project.tech.map((tech) => <li key={tech}>{tech}</li>)}</ul></section>
+          <section className="project-detail-contact">
+            <h2>Have a related challenge?</h2>
+            <p>Tell me about your product, team, and what you need to move forward.</p>
+            <a href={'mailto:' + profile.email + '?subject=' + encodeURIComponent('Project inquiry: ' + project.title)} className="project-detail-cta project-detail-cta--primary">Email about a project <span aria-hidden="true">&rarr;</span></a>
           </section>
-
-          <nav className="project-detail-footer-nav" aria-label="Project navigation">
-            {prevProject ? (
-              <Link to={`/projects/${prevProject.id}`} className="project-detail-foot-link project-detail-foot-link--prev">
-                <span className="project-detail-foot-dir">← Previous</span>
-                <span className="project-detail-foot-name">{prevProject.title}</span>
-              </Link>
-            ) : <div />}
-            {nextProject ? (
-              <Link to={`/projects/${nextProject.id}`} className="project-detail-foot-link project-detail-foot-link--next">
-                <span className="project-detail-foot-dir">Next →</span>
-                <span className="project-detail-foot-name">{nextProject.title}</span>
-              </Link>
-            ) : <div />}
+          <nav className="project-detail-footer-nav" aria-label="More work">
+            {prevProject ? <Link to={'/projects/' + prevProject.id} className="project-detail-foot-link"><span>Previous project</span><strong><span aria-hidden="true">&larr; </span>{prevProject.title}</strong></Link> : <div />}
+            {nextProject ? <Link to={'/projects/' + nextProject.id} className="project-detail-foot-link project-detail-foot-link--next"><span>Next project</span><strong>{nextProject.title}<span aria-hidden="true"> &rarr;</span></strong></Link> : <div />}
           </nav>
         </div>
       </div>

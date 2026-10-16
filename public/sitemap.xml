@@ -32,4 +32,10 @@
     <loc>https://azoni.ai/privacy</loc>
     <priority>0.3</priority>
   </url>
+  <url><loc>https://azoni.ai/services</loc><priority>0.8</priority></url>
+  <url><loc>https://azoni.ai/contact</loc><priority>0.8</priority></url>
+  <url><loc>https://azoni.ai/projects/embedroute</loc><priority>0.8</priority></url>
+  <url><loc>https://azoni.ai/projects/fab-stats</loc><priority>0.8</priority></url>
+  <url><loc>https://azoni.ai/projects/old-ways-today</loc><priority>0.8</priority></url>
+  <url><loc>https://azoni.ai/projects/azoni-mcp</loc><priority>0.8</priority></url>
 </urlset>

@@ -1,22 +1,19 @@
 export const profile = {
   name: "Charlton Smith",
-  title: "Software Engineer",
+  title: "Principal Software Engineer & AI Consultant",
   degree: "M.S. Software Engineering",
   location: "Seattle, WA",
   email: "charltonuw@gmail.com",
-  tagline: "Software Engineer · AI applications",
-  bio: `Full-stack engineer with 10 years of experience building production systems and AI
-applications. I currently run a set of live products on a shared agent stack, including FaB Stats
-(2,900+ users) and several fitness and search apps. Earlier: startup co-founder (published ACM
-CHI research), senior engineer at Capital One, and several hackathon wins.`,
+  tagline: "Principal engineering · Applied AI",
+  bio: `Independent consultant and principal software engineer with a focus on AI. I help teams design, build, and improve production software. My background spans enterprise engineering at Capital One and T-Mobile, co-founding OLI Fitness, and building independent AI and full-stack products.`,
   // Surfaced as the "Now ·" pill in the home hero. Falls back to the latest
   // Scribe blog post if not set. Keep it short, one sentence max.
-  currentlyBuilding: "Working on the agent stack and this site.",
+  currentlyBuilding: "Principal software engineering and AI consulting for a client.",
   links: {
     github: "https://github.com/azoni",
     linkedin: "https://linkedin.com/in/charltonsmith",
     twitter: "https://x.com/azonitcg",
-    resume: "/CharltonResume.pdf"
+    resume: "/CharltonSmith-Consulting.pdf"
   }
 };
 
@@ -31,6 +28,16 @@ export const skills = {
 };
 
 export const experience = [
+  {
+    title: "Principal Software Engineer",
+    company: "Independent consulting",
+    period: "Current engagement",
+    type: "AI & software engineering",
+    highlights: [
+      "Working with a client as a principal software engineer with a strong focus on AI",
+      "Client and engagement details remain private"
+    ]
+  },
   {
     title: "Independent Software Engineer",
     company: "Self-Employed",

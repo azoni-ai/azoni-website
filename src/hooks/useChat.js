@@ -27,10 +27,10 @@ export const useChat = (initialMode = 'professional') => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [model, setModel] = useState('openai/gpt-5-mini');
-  const [, setDefaultModel] = useState('openai/gpt-5-mini');
-  // True once the Firestore default-model setting has resolved (or failed) — seeded
-  // sends wait for this so a hero handoff doesn't race the model fetch and lock the
-  // conversation to the hardcoded default.
+  // A pending settings read must never change a visitor's selection or an
+  // established conversation. The local default remains usable when offline.
+  const modelLockedRef = useRef(false);
+  // Seeded sends wait for settings, up to the bounded startup deadline below.
   const [modelReady, setModelReady] = useState(false);
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -45,28 +45,41 @@ export const useChat = (initialMode = 'professional') => {
   useEffect(() => {
     setMessages([{
       role: 'assistant',
-      content: `Hi. I'm Charlton's chatbot. Ask about his experience, projects, or paste a job description for fit analysis. I can also pull live data from his apps (try "how much does he bench?").`,
+      content: `I'm Charlton's AI assistant. I can explain his consulting focus, point you to relevant work, or help you outline a project inquiry. What are you working on?`,
       rag: null // No RAG for initial message
     }]);
   }, []);
 
-  // Fetch default model setting from Firestore
+  // Firestore reads can remain pending offline. Settle exactly once so a late
+  // response cannot replace the model after a seeded question has started.
   useEffect(() => {
+    let settled = false;
+    let deadline;
+    const finish = (savedModel) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      if (!modelLockedRef.current && AVAILABLE_MODELS.some(item => item.id === savedModel)) {
+        setModel(savedModel);
+      }
+      setModelReady(true);
+    };
+    deadline = setTimeout(() => finish(), 3000);
     const fetchModel = async () => {
       try {
         const settingsDoc = await getDoc(doc(db, 'settings', 'chat'));
-        if (settingsDoc.exists() && settingsDoc.data().model) {
-          const savedModel = settingsDoc.data().model;
-          setDefaultModel(savedModel);
-          setModel(savedModel);
-        }
+        if (settled) return;
+        finish(settingsDoc.exists() ? settingsDoc.data().model : undefined);
       } catch (err) {
-        console.error('Error fetching model setting:', err);
-      } finally {
-        setModelReady(true);
+        if (!settled) console.error('Error fetching model setting:', err);
+        finish();
       }
     };
     fetchModel();
+    return () => {
+      settled = true;
+      clearTimeout(deadline);
+    };
   }, []);
 
   // Seed a prior conversation (the hero-widget thread) into this one. Seeded turns
@@ -74,14 +87,18 @@ export const useChat = (initialMode = 'professional') => {
   // `messages`. Also adopts the hero session id as a join key for the logs.
   const seedThread = useCallback((thread, heroSessionId) => {
     if (Array.isArray(thread) && thread.length > 0) {
+      modelLockedRef.current = true;
       setMessages(prev => [...prev, ...thread.map(({ role, content }) => ({ role, content, rag: null }))]);
     }
     if (heroSessionId) linkedSessionRef.current = heroSessionId;
   }, []);
 
-  // Auto-scroll to bottom when messages change
+  // Scroll only the conversation, never the page. The initial greeting should
+  // leave the visitor at the page heading rather than pulling the viewport down.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!messages.some(message => message.role === 'user')) return;
+    const conversation = messagesEndRef.current?.closest('[role="log"]');
+    if (conversation) conversation.scrollTop = conversation.scrollHeight;
   }, [messages]);
 
   // Cleanup abort controller on unmount
@@ -299,6 +316,7 @@ export const useChat = (initialMode = 'professional') => {
   const sendMessage = useCallback(async (messageText, historyOverride) => {
     if (!messageText.trim() || isLoading) return;
 
+    modelLockedRef.current = true;
     setError(null);
     const history = historyOverride
       ? historyOverride.map(m => ({ role: m.role, content: m.content }))
@@ -359,7 +377,10 @@ export const useChat = (initialMode = 'professional') => {
 
   // Change model
   const changeModel = useCallback((newModel) => {
+    if (!AVAILABLE_MODELS.some(item => item.id === newModel)) return;
+    modelLockedRef.current = true;
     setModel(newModel);
+    setModelReady(true);
   }, []);
 
   // Check if any message has RAG data (for showing/hiding intro)

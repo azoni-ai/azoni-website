@@ -1,12 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
+import SecondaryPageLinks from '../components/SecondaryPageLinks';
 import Leaderboard from './Leaderboard';
 import Activity from './Activity';
 import Commits from './Commits';
 import HowThisSiteRuns from '../components/home/HowThisSiteRuns';
-import '../styles/home-v2.css'; // .how-runs-* styles used by HowThisSiteRuns
 import '../styles/live-warm.css';
 
 // One "Live" page that consolidates the ecosystem-proof views that used to be
@@ -16,22 +16,24 @@ import '../styles/live-warm.css';
 // don't run in the background.
 
 const VIEWS = [
-  { key: 'traffic', label: 'Traffic', blurb: 'Every site, app, extension, and bot I run, ranked by visitor traffic.' },
-  { key: 'activity', label: 'Agent activity', blurb: 'Every action my agents take across the apps, logged in real time.' },
-  { key: 'commits', label: 'Commits', blurb: 'A live feed of every commit I push, across every repo.' },
-  { key: 'stack', label: 'How it runs', blurb: 'The agents and infrastructure behind this site, and what each one costs.' },
+  { key: 'traffic', label: 'Usage', blurb: 'Reported traffic across public sites, applications, extensions, and bots.' },
+  { key: 'activity', label: 'Agent operations', blurb: 'Aggregate usage and operational totals from the agent services.' },
+  { key: 'commits', label: 'Code changes', blurb: 'Recent commits from connected public repositories.' },
+  { key: 'stack', label: 'How it runs', blurb: 'The agents and infrastructure behind this site.' },
 ];
 
 export default function Live() {
   const [params, setParams] = useSearchParams();
   const requested = params.get('view');
-  const initial = VIEWS.some((v) => v.key === requested) ? requested : 'traffic';
-  const [view, setView] = useState(initial);
+  const view = VIEWS.some((v) => v.key === requested) ? requested : 'traffic';
 
   const select = useCallback(
     (key) => {
-      setView(key);
-      setParams({ view: key }, { replace: true });
+      setParams((previous) => {
+        const next = new URLSearchParams(previous);
+        next.set('view', key);
+        return next;
+      }, { replace: true });
     },
     [setParams]
   );
@@ -39,29 +41,46 @@ export default function Live() {
   const active = VIEWS.find((v) => v.key === view) || VIEWS[0];
   const tabParam = params.get('tab');
   const initialTab = ['sites', 'extensions', 'bots'].includes(tabParam) ? tabParam : 'sites';
+  const onTabKeyDown = (event, index) => {
+    let nextIndex;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % VIEWS.length;
+    else if (event.key === 'ArrowLeft') nextIndex = (index + VIEWS.length - 1) % VIEWS.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = VIEWS.length - 1;
+    else return;
+    event.preventDefault();
+    select(VIEWS[nextIndex].key);
+    document.getElementById(`live-tab-${VIEWS[nextIndex].key}`)?.focus();
+  };
 
   return (
     <Layout>
       <Seo
-        title="Live"
-        description="Traffic, agent activity, commit history, and the stack behind every product I run."
+        title="Public systems"
+        description="A live view of usage, agent activity, and code changes across Charlton Smith's public software projects."
         path="/live"
       />
-      <div className="live-page">
+      <div className="live-page secondary-page">
         <div className="live-header-wrap">
           <header className="live-header">
-            <p className="live-eyebrow">Live</p>
-            <h1 className="live-heading">What&rsquo;s running</h1>
+            <p className="secondary-eyebrow">Studio / Operations</p>
+            <h1 className="live-heading">Public systems</h1>
             <p className="live-lede">
-              Traffic across everything I run, my agents&rsquo; actions as they happen, and every
-              commit I push.
+              A view into the software I build and run independently: usage, agent activity,
+              and ongoing development across my independent projects.
             </p>
+            <SecondaryPageLinks compact />
             <nav className="live-tabs" role="tablist" aria-label="Live views">
-              {VIEWS.map((v) => (
+              {VIEWS.map((v, index) => (
                 <button
                   key={v.key}
+                  id={`live-tab-${v.key}`}
+                  type="button"
                   role="tab"
                   aria-selected={view === v.key}
+                  aria-controls="live-view-panel"
+                  tabIndex={view === v.key ? 0 : -1}
+                  onKeyDown={(event) => onTabKeyDown(event, index)}
                   className={`live-tab${view === v.key ? ' is-active' : ''}`}
                   onClick={() => select(v.key)}
                 >
@@ -73,7 +92,7 @@ export default function Live() {
           </header>
         </div>
 
-        <div className="live-body">
+        <div className="live-body" id="live-view-panel" role="tabpanel" aria-labelledby={`live-tab-${view}`} tabIndex={0}>
           {view === 'traffic' && <Leaderboard embedded initialTab={initialTab} />}
           {view === 'activity' && <Activity embedded />}
           {view === 'commits' && <Commits embedded />}

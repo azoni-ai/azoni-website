@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
+import SecondaryPageLinks from '../components/SecondaryPageLinks';
 import { AI_TOOLS } from '../data/aiToolsMeta';
 import '../styles/ai-tools-warm.css';
 
@@ -135,7 +136,7 @@ const toParagraphs = (text) =>
 
 const BackLink = () => (
   <Link to={AI_TOOLS.path} className="ai-tools-back">
-    <span aria-hidden="true">←</span> All tools
+    <span aria-hidden="true">←</span> All tool notes
   </Link>
 );
 
@@ -222,7 +223,7 @@ const AiToolDetail = () => {
     return (
       <Layout>
         <Seo title={AI_TOOLS.title} description={AI_TOOLS.description} path={path} noIndex={status !== 'loading'} />
-        <div className="ai-tools-page">
+        <div className="ai-tools-page secondary-page">
           <div className="ai-tools-inner ai-tools-inner--narrow ai-tools-centered">
             <p className="ai-tools-status">{message}</p>
             {status !== 'loading' && <BackLink />}
@@ -262,7 +263,7 @@ const AiToolDetail = () => {
         path={path}
         noIndex={AI_TOOLS.unlisted}
       />
-      <div className="ai-tools-page">
+      <div className="ai-tools-page secondary-page">
         <div className="ai-tools-inner ai-tools-inner--narrow">
           <BackLink />
 
@@ -311,6 +312,7 @@ const AiToolDetail = () => {
               ))}
             </dl>
           )}
+          <p className="secondary-notice">These notes reflect the dates shown. Check the provider&rsquo;s current documentation and pricing before making a decision.</p>
 
           {summaryParas.length > 0 && (
             <section className="ai-tools-block">
@@ -346,7 +348,7 @@ const AiToolDetail = () => {
 
           {pros.length > 0 && (
             <section className="ai-tools-block">
-              <h2 className="ai-tools-block-heading">Pros</h2>
+              <h2 className="ai-tools-block-heading">Where it works well</h2>
               <ul className="ai-tools-list ai-tools-list--pros">
                 {pros.map((p, i) => (
                   <li key={i}>{p}</li>
@@ -357,7 +359,7 @@ const AiToolDetail = () => {
 
           {cons.length > 0 && (
             <section className="ai-tools-block">
-              <h2 className="ai-tools-block-heading">Cons</h2>
+              <h2 className="ai-tools-block-heading">Tradeoffs</h2>
               <ul className="ai-tools-list ai-tools-list--cons">
                 {cons.map((c, i) => (
                   <li key={i}>{c}</li>
@@ -368,7 +370,7 @@ const AiToolDetail = () => {
 
           {voices.length > 0 && (
             <section className="ai-tools-block">
-              <h2 className="ai-tools-block-heading">What people are saying</h2>
+              <h2 className="ai-tools-block-heading">Other perspectives</h2>
               <ul className="ai-tools-list">
                 {voices.map((v, i) => {
                   const label = v.source || (isHttp(v.url) ? hostOf(v.url) : '');
@@ -415,6 +417,7 @@ const AiToolDetail = () => {
               </ol>
             </section>
           )}
+          <SecondaryPageLinks />
         </div>
       </div>
     </Layout>

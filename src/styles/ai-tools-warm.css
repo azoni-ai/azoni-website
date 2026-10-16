@@ -398,13 +398,13 @@
 .ai-tools-cta--primary {
   background: var(--accent-coral);
   border-color: var(--accent-coral);
-  color: #18110e;
+  color: #ffffff;
 }
 
 .ai-tools-cta--primary:hover {
   background: color-mix(in srgb, var(--accent-coral) 85%, #ffffff);
   border-color: color-mix(in srgb, var(--accent-coral) 85%, #ffffff);
-  color: #18110e;
+  color: #ffffff;
 }
 
 .ai-tools-facts {

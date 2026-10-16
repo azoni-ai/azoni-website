@@ -2,39 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
+import SecondaryPageLinks from '../components/SecondaryPageLinks';
 import '../styles/blog-post-warm.css';
 import { db } from '../config/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { getReviewedWritingEntry, isReviewedPublicPost } from '../utils/publicWriting';
 
 const BlogPost = () => {
   const { slug } = useParams();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setPost(null);
+    setNotFound(false);
+    setLoadError(false);
     const fetchPost = async () => {
       try {
-        const q = query(
-          collection(db, 'blogPosts'),
-          where('slug', '==', slug),
-          where('published', '==', true)
-        );
-        const snapshot = await getDocs(q);
-        
-        if (snapshot.empty) {
+        const approved = getReviewedWritingEntry(slug);
+        if (!approved) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        const snapshot = await getDoc(doc(db, 'blogPosts', approved.id));
+        if (cancelled) return;
+        const candidate = snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } : null;
+        const reviewed = await isReviewedPublicPost(candidate);
+        if (cancelled) return;
+        if (!reviewed) {
           setNotFound(true);
         } else {
-          setPost({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+          setPost(candidate);
         }
       } catch (error) {
+        if (cancelled) return;
         console.error('Error fetching post:', error);
-        setNotFound(true);
+        setLoadError(true);
       }
       setLoading(false);
     };
 
     fetchPost();
+    return () => { cancelled = true; };
   }, [slug]);
 
   const formatDate = (timestamp) => {
@@ -62,7 +76,7 @@ const BlogPost = () => {
         return <h2 key={index}>{block.slice(3)}</h2>;
       }
       if (block.startsWith('# ')) {
-        return <h1 key={index}>{block.slice(2)}</h1>;
+        return <h2 key={index}>{block.slice(2)}</h2>;
       }
       
       // Code blocks
@@ -149,12 +163,14 @@ const BlogPost = () => {
         parts.push(<em key={key++}>{earliest.match[1]}</em>);
       } else if (earliest.type === 'code') {
         parts.push(<code key={key++}>{earliest.match[1]}</code>);
-      } else if (earliest.type === 'link') {
+      } else if (earliest.type === 'link' && /^(https?:\/\/|\/(?![/\\]))/i.test(earliest.match[2])) {
         parts.push(
           <a key={key++} href={earliest.match[2]} target="_blank" rel="noopener noreferrer">
             {earliest.match[1]}
           </a>
         );
+      } else if (earliest.type === 'link') {
+        parts.push(earliest.match[1]);
       }
 
       remaining = remaining.slice(earliest.index + earliest.match[0].length);
@@ -166,7 +182,8 @@ const BlogPost = () => {
   if (loading) {
     return (
       <Layout>
-        <section className="section blog-post-page blog-post-page-warm">
+        <Seo title="Writing" path="/blog" />
+        <section className="section blog-post-page blog-post-page-warm secondary-page">
           <div className="container">
             <div className="blog-loading">Loading...</div>
           </div>
@@ -175,15 +192,16 @@ const BlogPost = () => {
     );
   }
 
-  if (notFound) {
+  if (notFound || loadError) {
     return (
       <Layout>
-        <section className="section blog-post-page blog-post-page-warm">
+        <Seo title="Writing unavailable" path="/blog" noIndex />
+        <section className="section blog-post-page blog-post-page-warm secondary-page">
           <div className="container">
             <div className="blog-not-found">
-              <h1>Post not found</h1>
-              <p>The post you're looking for doesn't exist or has been removed.</p>
-              <Link to="/blog" className="btn btn-primary">Back to Blog</Link>
+              <h1>{loadError ? 'This note could not load' : 'This note is not in the public archive'}</h1>
+              <p>{loadError ? 'Please try again later, or browse the writing archive.' : 'Browse the selected notes from independent public projects.'}</p>
+              <Link to="/blog" className="btn btn-primary">Back to writing</Link>
             </div>
           </div>
         </section>
@@ -198,13 +216,14 @@ const BlogPost = () => {
         description={post.excerpt || undefined}
         path={`/blog/${slug}`}
       />
-      <article className="section blog-post-page blog-post-page-warm">
+      <article className="section blog-post-page blog-post-page-warm secondary-page">
         <div className="container">
-          <Link to="/blog" className="blog-back-link">← Back to Blog</Link>
+          <Link to="/blog" className="blog-back-link">← Back to writing</Link>
           
           <header className="blog-post-header">
             <div className="blog-post-meta">
               <span className="blog-post-date">{formatDate(post.publishedAt)}</span>
+              <span className="blog-ai-label">AI-generated build note</span>
               {post.tags?.length > 0 && (
                 <div className="blog-post-tags">
                   {post.tags.map(tag => (
@@ -217,6 +236,7 @@ const BlogPost = () => {
             {post.excerpt && (
               <p className="blog-post-excerpt">{post.excerpt}</p>
             )}
+            <p className="secondary-notice">Generated by Scribe from public repository activity. This is an automated summary, not a client case study or an article written by Charlton.</p>
           </header>
 
           {post.coverImage && (
@@ -237,6 +257,7 @@ const BlogPost = () => {
               </Link>
             </div>
           )}
+          <SecondaryPageLinks />
         </div>
       </article>
     </Layout>

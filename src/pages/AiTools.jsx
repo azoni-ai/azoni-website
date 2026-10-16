@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useNavigationType, useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
+import SecondaryPageLinks from '../components/SecondaryPageLinks';
 import { AI_TOOLS } from '../data/aiToolsMeta';
 import '../styles/ai-tools-warm.css';
 
@@ -147,13 +148,13 @@ const AiTools = () => {
       return <p className="ai-tools-status">Loading tools&hellip;</p>;
     }
     if (status === 'error') {
-      return <p className="ai-tools-status">Could not load tools.</p>;
+      return <p className="ai-tools-status" role="status">The tool notes could not load. Please try again later.</p>;
     }
     if (count === 0) {
-      return <p className="ai-tools-status">No tools yet.</p>;
+      return <p className="ai-tools-status">Tool notes will appear here when published.</p>;
     }
     if (filtered.length === 0) {
-      return <p className="ai-tools-status">No tools match.</p>;
+      return <p className="ai-tools-status" role="status">No notes match this search. Try another term or category.</p>;
     }
     return (
       <div className="ai-tools-grid">
@@ -196,19 +197,21 @@ const AiTools = () => {
         path={AI_TOOLS.path}
         noIndex={AI_TOOLS.unlisted}
       />
-      <div className="ai-tools-page">
+      <div className="ai-tools-page secondary-page">
         <div className="ai-tools-inner">
           <header className="ai-tools-header">
+            <p className="secondary-eyebrow">Studio / Tool notes</p>
             <h1 className="ai-tools-heading">{AI_TOOLS.title}</h1>
-            <p className="ai-tools-tagline">{AI_TOOLS.tagline}</p>
+            <p className="ai-tools-tagline">Practical notes on AI tools: where they fit, the tradeoffs, and what to check before choosing one for a project.</p>
             <div className="ai-tools-header-meta">
               {status === 'ready' && (
                 <span className="ai-tools-count">
                   {count} {count === 1 ? 'tool' : 'tools'}
                 </span>
               )}
-              <a href={AI_TOOLS.feedPath} className="ai-tools-feed-link">RSS</a>
+              <a href={AI_TOOLS.feedPath} className="ai-tools-feed-link">Subscribe via RSS</a>
             </div>
+            <SecondaryPageLinks compact />
           </header>
 
           {status === 'ready' && count > 0 && (

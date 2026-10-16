@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "verifiedAt": "2026-10-16",
+  "publicRepositoryFullNames": [
+    "azoni-ai/azoni-website",
+    "azoni/azoni-mcp",
+    "azoni/azoni-moltbook-agent",
+    "azoni/benchonly",
+    "azoni/fab-stats",
+    "azoni/rowing-tracker",
+    "azoni/spell-brigade"
+  ],
+  "reviewedPosts": [
+    {
+      "id": "ZQwQx3mocObrXYwEDc8K",
+      "slug": "2026-09-28-leveling-up-with-usurp-the-shadow-throne-in-fab-stats",
+      "sourceRepos": [
+        "azoni/fab-stats"
+      ],
+      "contentSha256": "ed2acd48b2cf73268a6a1a7c7ee36b089b731e631a27e56990737fa310aa687e"
+    },
+    {
+      "id": "cZZQPxzyoUXRKbolvU8u",
+      "slug": "2026-03-07-ux-overhaul-weekend-charts-seasons-and-mobile-fixes",
+      "sourceRepos": [
+        "azoni/fab-stats",
+        "azoni/rowing-tracker"
+      ],
+      "contentSha256": "d74f415de81503f03cb5fa968c4c004a9db4113126773990492c8a1a7f33e30d"
+    }
+  ],
+  "writingRepositoryFullNames": [
+    "azoni/azoni-mcp",
+    "azoni/azoni-moltbook-agent",
+    "azoni/benchonly",
+    "azoni/fab-stats",
+    "azoni/rowing-tracker",
+    "azoni/spell-brigade"
+  ]
+}

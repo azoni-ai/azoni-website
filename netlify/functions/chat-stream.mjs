@@ -163,7 +163,7 @@ export default async (req) => {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${openRouterKey}`,
     'HTTP-Referer': 'https://azoni.ai',
-    'X-Title': 'Azoni Portfolio Chat (stream)',
+    'X-Title': 'Charlton Smith Consulting Assistant (stream)',
   };
 
   const encoder = new TextEncoder();

@@ -6,11 +6,29 @@ import { useLocation } from 'react-router-dom';
  * Place this inside <Router> but outside <Routes>
  */
 const ScrollToTop = () => {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    if (!hash) {
+      window.scrollTo(0, 0);
+      return undefined;
+    }
+    let id;
+    try { id = decodeURIComponent(hash.slice(1)); } catch { return undefined; }
+    const scrollToSection = () => {
+      const section = document.getElementById(id);
+      if (!section) return false;
+      section.scrollIntoView({ block: 'start', behavior: 'instant' });
+      return true;
+    };
+    if (scrollToSection()) return undefined;
+    // Lazy route content may mount after this effect.
+    const observer = new MutationObserver(() => {
+      if (scrollToSection()) observer.disconnect();
+    });
+    observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [pathname, hash]);
 
   return null;
 };

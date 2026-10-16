@@ -5,16 +5,24 @@ import { collection, getDocs } from 'firebase/firestore';
 // Fallback to static data if Firestore fails or is empty
 import { projects as staticProjects, categories as staticCategories } from '../data/projects';
 
+const sortProjects = (items) => [...items].sort((a, b) => {
+  const orderA = a.displayOrder ?? 999;
+  const orderB = b.displayOrder ?? 999;
+  if (orderA !== orderB) return orderA - orderB;
+  if (a.featured !== b.featured) return b.featured ? 1 : -1;
+  return a.title.localeCompare(b.title);
+});
+
 /**
  * Hook to fetch projects from Firestore with fallback to static data
  * Maintains same interface as original for Projects.jsx compatibility
  */
 export const useProjects = (initialCategory = 'all') => {
-  const [allProjects, setAllProjects] = useState([]);
+  const [allProjects, setAllProjects] = useState(() => sortProjects(staticProjects));
   const [activeCategory, setActiveCategory] = useState(initialCategory);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [source, setSource] = useState(null); // 'firestore' | 'static'
+  const [source, setSource] = useState('static'); // Editorial content is always local.
 
   // Categories - use static as default
   const categories = staticCategories || {
@@ -36,8 +44,6 @@ export const useProjects = (initialCategory = 'all') => {
     // view counts, star counts) that don't belong in the codebase. Static
     // copy/tagline/description/etc. always wins.
     try {
-      setLoading(true);
-
       let firestoreEnrichment = {};
       try {
         const snapshot = await getDocs(collection(db, 'projects'));
@@ -58,21 +64,13 @@ export const useProjects = (initialCategory = 'all') => {
         ...(firestoreEnrichment[p.id] || {}),
       }));
 
-      merged.sort((a, b) => {
-        const orderA = a.displayOrder ?? 999;
-        const orderB = b.displayOrder ?? 999;
-        if (orderA !== orderB) return orderA - orderB;
-        if (a.featured !== b.featured) return b.featured ? 1 : -1;
-        return a.title.localeCompare(b.title);
-      });
-
-      setAllProjects(merged);
+      setAllProjects(sortProjects(merged));
       setSource('static');
       setError(null);
     } catch (err) {
       console.error('Error preparing projects:', err);
       setError(err.message);
-      setAllProjects(staticProjects);
+      setAllProjects(sortProjects(staticProjects));
       setSource('static');
     } finally {
       setLoading(false);

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 /**
  * One-shot fetch of the github-stats Netlify function (recentCommits, repos,
- * contribution tallies). Mirrors the inline fetch in Commits.jsx, silent-fail.
+ * bounded public commit counts). Mirrors the fetch in Commits.jsx, silent-fail.
  */
 export default function useGithubStats() {
   const [githubStats, setGithubStats] = useState(null);
@@ -10,11 +10,11 @@ export default function useGithubStats() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/.netlify/functions/github-stats')
+    fetch('/.netlify/functions/github-stats?scope=public-independent-v1')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled) return;
-        setGithubStats(data);
+        setGithubStats(data?.statsScope === 'public-independent-sample' ? data : null);
         setLoading(false);
       })
       .catch(() => {

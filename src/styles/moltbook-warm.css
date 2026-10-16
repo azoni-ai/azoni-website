@@ -1,3 +1,307 @@
+/* Base styles scoped to this experiment. */
+
+        .moltbook-page {
+          padding: 120px 0 4rem;
+          min-height: 100vh;
+        }
+
+        .moltbook-page .moltbook-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+          gap: 1.5rem;
+        }
+
+        .moltbook-page .moltbook-title-row {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+        }
+
+        .moltbook-page .moltbook-avatar {
+          color: var(--accent-primary, #ff6b4a);
+          background: rgba(255, 107, 74, 0.1);
+          width: 72px;
+          height: 72px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .moltbook-page .moltbook-header h1 {
+          font-size: 2.25rem;
+          margin: 0;
+        }
+
+        .moltbook-page .moltbook-subtitle {
+          color: var(--text-secondary);
+          margin: 0.25rem 0 0;
+        }
+
+        .moltbook-page .moltbook-cta {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .moltbook-page .moltbook-description {
+          background: var(--bg-secondary);
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          line-height: 1.7;
+        }
+
+        .moltbook-page .moltbook-description a {
+          color: var(--accent-primary);
+        }
+
+        .moltbook-page .moltbook-status-card {
+          background: var(--bg-secondary);
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .moltbook-page .moltbook-status-card h2,
+        .moltbook-page .moltbook-how-it-works h2,
+        .moltbook-page .moltbook-activity h2,
+        .moltbook-page .moltbook-tech h2 {
+          margin-top: 0;
+          margin-bottom: 1.25rem;
+          font-size: 1.25rem;
+        }
+
+        .moltbook-page .moltbook-status-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .moltbook-page .status-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .moltbook-page .status-label {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+        }
+
+        .moltbook-page .status-value {
+          font-size: 1.1rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .moltbook-page .status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: var(--text-secondary);
+        }
+
+        .moltbook-page .status-dot.online {
+          background: #10b981;
+        }
+
+        .moltbook-page .status-value.online {
+          color: var(--accent-coral);
+        }
+
+        .moltbook-page .moltbook-how-it-works {
+          margin-bottom: 2rem;
+        }
+
+        .moltbook-page .workflow-steps {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          overflow-x: auto;
+          padding-bottom: 1rem;
+        }
+
+        .moltbook-page .workflow-step {
+          background: var(--bg-secondary);
+          border-radius: 12px;
+          padding: 1.25rem;
+          min-width: 160px;
+          flex: 1;
+        }
+
+        .moltbook-page .step-icon {
+          color: var(--accent-primary, #ff6b4a);
+          margin-bottom: 0.75rem;
+        }
+
+        .moltbook-page .step-content h3 {
+          font-size: 1rem;
+          margin: 0 0 0.5rem;
+        }
+
+        .moltbook-page .step-content p {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+          margin: 0;
+          line-height: 1.4;
+        }
+
+        .moltbook-page .workflow-arrow {
+          color: var(--text-secondary);
+          align-self: center;
+          flex-shrink: 0;
+          opacity: 0.5;
+        }
+
+        .moltbook-page .moltbook-activity {
+          margin-bottom: 2rem;
+        }
+
+        .moltbook-page .activity-feed {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .moltbook-page .activity-item {
+          display: flex;
+          gap: 1rem;
+          background: var(--bg-secondary);
+          border-radius: 12px;
+          padding: 1rem;
+        }
+
+        .moltbook-page .activity-icon {
+          width: 40px;
+          height: 40px;
+          background: var(--bg-primary);
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .moltbook-page .activity-content {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .moltbook-page .activity-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.25rem;
+        }
+
+        .moltbook-page .activity-action {
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+
+        .moltbook-page .activity-time {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+        }
+
+        .moltbook-page .activity-title {
+          font-weight: 500;
+          margin-bottom: 0.25rem;
+        }
+
+        .moltbook-page .activity-preview {
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          line-height: 1.4;
+        }
+
+        .moltbook-page .activity-error {
+          color: #b42318;
+          font-size: 0.85rem;
+        }
+
+        .moltbook-page .activity-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          margin-top: 0.5rem;
+          font-size: 0.85rem;
+          color: var(--accent-primary, #ff6b4a);
+          text-decoration: none;
+        }
+
+        .moltbook-page .activity-link:hover {
+          text-decoration: underline;
+        }
+
+        .moltbook-page .activity-link svg {
+          width: 14px;
+          height: 14px;
+        }
+
+        .moltbook-page .moltbook-tech {
+          margin-bottom: 2rem;
+        }
+
+        .moltbook-page .tech-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .moltbook-page .tech-tag {
+          background: var(--bg-secondary);
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          font-size: 0.9rem;
+        }
+
+        .moltbook-page .moltbook-loading,
+        .moltbook-page .moltbook-empty,
+        .moltbook-page .moltbook-error {
+          padding: 2rem;
+          text-align: center;
+          color: var(--text-secondary);
+        }
+
+        .moltbook-page .moltbook-error {
+          color: #b42318;
+        }
+
+        @media (max-width: 768px) {
+          .moltbook-page {
+            padding-top: 100px;
+          }
+
+          .moltbook-page .moltbook-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .moltbook-page .moltbook-header h1 {
+            font-size: 1.75rem;
+          }
+
+          .moltbook-page .workflow-steps {
+            flex-direction: column;
+          }
+
+          .moltbook-page .workflow-arrow {
+            transform: rotate(90deg);
+            align-self: center;
+          }
+
+          .moltbook-page .workflow-step {
+            min-width: 100%;
+          }
+        }
+
 /* ===== Moltbook Agent page — warm editorial overrides ===== */
 
 .moltbook-page-warm {
@@ -31,7 +335,7 @@
 .moltbook-page-warm .moltbook-cta {
   background: var(--accent-coral) !important;
   border: 1px solid var(--accent-coral) !important;
-  color: #18110e !important;
+  color: #ffffff !important;
   border-radius: 999px !important;
   font-family: var(--font-body);
   font-weight: 500;

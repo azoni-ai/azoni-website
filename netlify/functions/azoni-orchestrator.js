@@ -56,7 +56,6 @@ async function logError(source, error, severity = 'medium', context = {}) {
   }
 }
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_USERNAME = 'azoni';
 const MCP_BASE_URL = process.env.MCP_SERVER_URL || 'https://azoni-mcp.onrender.com';
 const MOLTBOOK_AGENT_URL = process.env.REACT_APP_MOLTBOOK_AGENT_URL || 'https://azoni-moltbook-agent.onrender.com';
 const SITE_URL = process.env.URL || 'https://azoni.ai';
@@ -213,68 +212,32 @@ async function getRecentBlogPosts(hoursBack = 48) {
 
 async function getTodayCommitCount() {
   if (!GITHUB_TOKEN) return null;
-
-  const today = new Date().toISOString().split('T')[0];
-  const from = `${today}T00:00:00Z`;
-  const to = `${today}T23:59:59Z`;
-
-  const query = `
-    query($username: String!, $from: DateTime!, $to: DateTime!) {
-      user(login: $username) {
-        contributionsCollection(from: $from, to: $to) {
-          contributionCalendar {
-            totalContributions
-          }
-        }
-        repositories(first: 10, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: [OWNER]) {
-          nodes {
-            name
-            pushedAt
-            defaultBranchRef {
-              target {
-                ... on Commit {
-                  history(since: $from, until: $to) {
-                    totalCount
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
   try {
-    const res = await fetch('https://api.github.com/graphql', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables: { username: GITHUB_USERNAME, from, to }
-      })
-    });
-
-    const data = await res.json();
-    const repos = data?.data?.user?.repositories?.nodes || [];
-
-    let totalCommits = 0;
-    const activeRepos = [];
-
-    for (const repo of repos) {
-      const count = repo.defaultBranchRef?.target?.history?.totalCount || 0;
-      if (count > 0) {
-        totalCommits += count;
-        activeRepos.push({ name: repo.name, commits: count });
-      }
+    // Reuse the public endpoint's exact repository allowlist and current
+    // GitHub visibility checks. These are recent-sample counts, not account totals.
+    const { handler: readPublicActivity } = require('./github-stats');
+    const response = await readPublicActivity({ httpMethod: 'GET' });
+    if (response.statusCode !== 200) return null;
+    const stats = JSON.parse(response.body);
+    if (stats.statsScope !== 'public-independent-sample') return null;
+    const pacificDay = (timestamp) => new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date(timestamp));
+    const today = pacificDay(new Date());
+    const counts = new Map();
+    for (const commit of stats.recentCommits || []) {
+      if (pacificDay(commit.timestamp) !== today) continue;
+      const fullName = commit.owner + '/' + commit.repo;
+      counts.set(fullName, (counts.get(fullName) || 0) + 1);
     }
-
-    return { totalCommits, activeRepos, date: today };
-  } catch (err) {
-    console.error('[orchestrator] GitHub fetch failed:', err.message);
+    const activeRepos = [...counts].map(([name, commits]) => ({ name, commits }));
+    return {
+      totalCommits: stats.today, activeRepos, date: today,
+      scope: stats.statsScope, countsAreSample: true,
+      description: 'Recent sampled commits from approved public independent repositories only',
+    };
+  } catch {
+    console.warn('[orchestrator] Public GitHub activity unavailable');
     return null;
   }
 }

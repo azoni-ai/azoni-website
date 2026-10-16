@@ -1,3 +1,4 @@
+const { publicSummary } = require('./lib/public-summary');
 // netlify/functions/home-summary.js
 // One cached endpoint that feeds every live stat on the home page, so visitors
 // no longer open real-time listeners that stream the whole `agent_activity`
@@ -113,44 +114,21 @@ async function costBySource() {
 }
 
 // Recent activity for the pulse strip — bounded 30-doc read, no live listener.
-async function recentFeed() {
-  try {
-    const snap = await activity().orderBy('timestamp', 'desc').limit(30).get();
-    return snap.docs.map((d) => {
-      const a = d.data() || {};
-      const ms = a.timestamp?.toMillis ? a.timestamp.toMillis() : null;
-      return {
-        id: d.id,
-        type: a.type || null,
-        title: a.title || a.description || a.type || null,
-        source: a.source || null,
-        slug: a.metadata?.slug || null,
-        ms,
-      };
-    });
-  } catch (err) {
-    console.error('[home-summary] recentFeed failed:', err.message);
-    return [];
-  }
-}
-
 async function build() {
-  const [agentCount24h, cc30, errCount, bySource, feed] = await Promise.all([
+  const [agentCount24h, cc30, errCount, bySource] = await Promise.all([
     countSince(1),
     costAndCount30d(),
     errors7d(),
     costBySource(),
-    recentFeed(),
   ]);
-  const lb = feed.find((f) => f.type === 'blog_published');
   return {
     agentCount24h,
     cost30d: cc30.cost,
     actionCount30d: cc30.count,
     errors7d: errCount,
     bySource,
-    recentFeed: feed,
-    latestBlog: lb ? { title: lb.title, slug: lb.slug } : null,
+    recentFeed: [],
+    latestBlog: null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -186,7 +164,7 @@ exports.handler = async (event) => {
     const data = cached.data();
     const age = Date.now() - new Date(data.updatedAt || 0).getTime();
     if (age >= 0 && age < CACHE_TTL_MS) {
-      return { statusCode: 200, headers, body: JSON.stringify({ ...data, cached: true }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ ...publicSummary(data), cached: true }) };
     }
   }
 
@@ -195,11 +173,11 @@ exports.handler = async (event) => {
   if (!summary) {
     // Couldn't rebuild in time — serve stale cache if we have it.
     if (cached && cached.exists) {
-      return { statusCode: 200, headers, body: JSON.stringify({ ...cached.data(), cached: true, stale: true }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ ...publicSummary(cached.data()), cached: true, stale: true }) };
     }
     return { statusCode: 200, headers, body: JSON.stringify({ error: 'timeout' }) };
   }
 
   await fast(ref.set(summary)); // time-capped write
-  return { statusCode: 200, headers, body: JSON.stringify({ ...summary, cached: false }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ ...publicSummary(summary), cached: false }) };
 };

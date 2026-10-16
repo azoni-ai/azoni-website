@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
+import SecondaryPageLinks from '../components/SecondaryPageLinks';
 import EpicSwimlane from '../components/board/EpicSwimlane';
 import TaskEditorModal from '../components/board/TaskEditorModal';
 import useBoardData from '../hooks/useBoardData';
@@ -24,7 +25,7 @@ const COLLAPSE_KEY = 'board_collapsed_epics';
 
 const resolveEpic = (id) => {
   if (id === '_meta') {
-    return { id: '_meta', title: 'Portfolio', tagline: 'Cross-project & site work', hasPage: false };
+    return { id: '_meta', title: 'Studio', tagline: 'Cross-project & site work', hasPage: false };
   }
   const p = projects.find((proj) => proj.id === id);
   return p
@@ -313,18 +314,18 @@ export default function Board() {
   return (
     <Layout>
       <Seo
-        title="Board"
-        description="A kanban board of my projects. Every project is an epic, built from GitHub activity."
+        title="Project board"
+        description="The working board for Charlton Smith's public software projects and experiments."
         path="/board"
         noIndex
       />
-      <div className="board-page">
+      <div className="board-page secondary-page">
         <div className="board-page-inner">
           <header className="board-page-header">
             <div className="board-header-top">
               <div>
-                <p className="board-eyebrow">Workflow</p>
-                <h1 className="board-heading">Board</h1>
+                <p className="secondary-eyebrow">Studio / Workflow</p>
+                <h1 className="board-heading">Project board</h1>
               </div>
               {isOwner && (
                 <div className="board-owner-controls">
@@ -353,9 +354,10 @@ export default function Board() {
               )}
             </div>
             <p className="board-tagline">
-              The kanban board behind everything on this site. Every project is an epic and every
-              agent an assignee, and each project&rsquo;s phase comes from commits and agent activity.
+              A working view of my public projects. Project phases reflect repository and agent
+              activity; individual tasks track the work in progress.
             </p>
+            <SecondaryPageLinks compact />
             <p className="board-summary">
               {visibleEpics.length} project{visibleEpics.length === 1 ? '' : 's'}
               <span className="board-dot-sep">·</span>
