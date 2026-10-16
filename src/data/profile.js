@@ -1,14 +1,15 @@
 export const profile = {
   name: "Charlton Smith",
+  businessName: "Azoni",
   title: "Principal Software Engineer & AI Consultant",
   degree: "M.S. Software Engineering",
   location: "Seattle, WA",
   email: "charlton@azoni.ai",
   tagline: "Principal engineering · Applied AI",
-  bio: `Independent consultant and principal software engineer with a focus on AI. I help teams design, build, and improve production software. My background spans enterprise engineering at Capital One and T-Mobile, co-founding OLI Fitness, and building independent AI and full-stack products.`,
+  bio: `I'm Charlton, the engineer behind Azoni. I build software and help businesses of any size put AI and automation to work. I spent my college weekends at hackathons, co-founded OLI Fitness, and worked at T-Mobile and Capital One. Over the last few years I've gone deep into AI, building and running my own products alongside my current work as a principal software engineer for a client.`,
   // Surfaced as the "Now ·" pill in the home hero. Falls back to the latest
   // Scribe blog post if not set. Keep it short, one sentence max.
-  currentlyBuilding: "Principal software engineering and AI consulting for a client.",
+  currentlyBuilding: "AI software for a client, plus the products and agents I run through Azoni.",
   links: {
     github: "https://github.com/azoni",
     linkedin: "https://linkedin.com/in/charltonsmith",
@@ -18,8 +19,8 @@ export const profile = {
 };
 
 export const skills = {
-  languages: ["Python", "JavaScript", "Java", "SQL", "C#"],
-  frontend: ["React", "HTML", "CSS"],
+  languages: ["Python", "TypeScript", "JavaScript", "Java", "SQL", "C#"],
+  frontend: ["React", "Next.js", "HTML", "CSS"],
   backend: ["Node.js", "Django", "FastAPI", "REST APIs", "Microservices"],
   ai: ["OpenAI APIs", "Claude API", "LLM Agents", "Computer Vision"],
   cloud: ["AWS Lambda", "EC2", "S3", "Docker", "CI/CD"],
@@ -30,17 +31,16 @@ export const skills = {
 export const experience = [
   {
     title: "Principal Software Engineer",
-    company: "Independent consulting",
+    company: "Azoni / Independent consulting",
     period: "Current engagement",
     type: "AI & software engineering",
     highlights: [
-      "Working with a client as a principal software engineer with a strong focus on AI",
-      "Client and engagement details remain private"
+      "Working with a client as a principal software engineer with a strong focus on AI"
     ]
   },
   {
     title: "Independent Software Engineer",
-    company: "Self-Employed",
+    company: "Independent products",
     period: "Nov 2023 – Present",
     type: "AI & full-stack",
     highlights: [
@@ -96,7 +96,7 @@ export const education = [
     degree: "M.S. Software Engineering",
     school: "Colorado Technical University",
     year: "2021",
-    note: "Completed while working full-time"
+    note: "Completed while working full-time at T-Mobile"
   },
   {
     degree: "B.S. Computer Science",

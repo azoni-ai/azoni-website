@@ -112,7 +112,7 @@
         }
 
         .moltbook-page .status-value.online {
-          color: var(--accent-coral);
+          color: #10b981;
         }
 
         .moltbook-page .moltbook-how-it-works {
@@ -222,7 +222,7 @@
         }
 
         .moltbook-page .activity-error {
-          color: #b42318;
+          color: #ef4444;
           font-size: 0.85rem;
         }
 
@@ -271,7 +271,7 @@
         }
 
         .moltbook-page .moltbook-error {
-          color: #b42318;
+          color: #ef4444;
         }
 
         @media (max-width: 768px) {
@@ -335,7 +335,7 @@
 .moltbook-page-warm .moltbook-cta {
   background: var(--accent-coral) !important;
   border: 1px solid var(--accent-coral) !important;
-  color: #ffffff !important;
+  color: #18110e !important;
   border-radius: 999px !important;
   font-family: var(--font-body);
   font-weight: 500;

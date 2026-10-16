@@ -4,7 +4,7 @@ import { getJourneyId, getHeroSessionId } from '../../utils/chatSession';
 
 const SUGGESTIONS = [
   "What has Charlton built?",
-  "What's his DevOps + infra experience?",
+  "How could AI help my business?",
   "How does this chatbot work?",
 ];
 

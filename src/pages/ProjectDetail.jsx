@@ -4,7 +4,6 @@ import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { useProjects } from '../hooks/useProjects';
 import useVisitTracker from '../hooks/useVisitTracker';
-import { profile } from '../data/profile';
 import { selectedWorkIds, workStories } from '../data/workStories';
 import '../styles/project-detail-warm.css';
 
@@ -36,7 +35,7 @@ const ProjectDetail = () => {
   useEffect(() => { window.scrollTo(0, 0); }, [id]);
 
   if (!project) {
-    return <Layout><Seo title="Work not found" description="Explore selected engineering work by Charlton Smith." path={'/projects/' + id} /><div className="project-detail-page"><div className="project-detail-inner"><h1 className="project-detail-title">Project not found.</h1><p className="project-detail-status">This project may have moved. Explore the current collection below.</p><Link to="/projects" className="project-detail-cta">Back to selected work <span aria-hidden="true">&rarr;</span></Link></div></div></Layout>;
+    return <Layout><Seo title="Work not found" description="Explore selected engineering work by Charlton Smith." path={'/projects/' + id} /><div className="project-detail-page"><div className="project-detail-inner"><h1 className="project-detail-title">Project not found.</h1><p className="project-detail-status">This project may have moved. Explore the current collection below.</p><Link to="/projects" className="project-detail-cta">Back to projects <span aria-hidden="true">&rarr;</span></Link></div></div></Layout>;
   }
 
   const story = workStories[id];
@@ -53,7 +52,7 @@ const ProjectDetail = () => {
       <Seo title={project.title} description={story ? story.headline + ' ' + story.outcome : project.description || project.tagline} path={'/projects/' + id} />
       <div className="project-detail-page">
         <div className="project-detail-inner">
-          <nav className="project-detail-nav" aria-label="Work breadcrumb"><Link to="/projects" className="project-detail-back"><span aria-hidden="true">&larr;</span> Selected work</Link><span>{project.archived ? 'Earlier work' : 'Independent product'}</span></nav>
+          <nav className="project-detail-nav" aria-label="Work breadcrumb"><Link to="/projects" className="project-detail-back"><span aria-hidden="true">&larr;</span> All projects</Link><span>{project.archived ? 'Earlier work' : 'Independent product'}</span></nav>
           <header className="project-detail-header">
             <p className="project-detail-eyebrow">{story?.label || 'Product & engineering'}</p>
             <h1 className="project-detail-title">{project.title}</h1>
@@ -73,7 +72,7 @@ const ProjectDetail = () => {
           {businessSections ? businessSections.map((section) => <DetailSection key={section.heading} section={section} />) : cs?.sections ? cs.sections.map((section) => <DetailSection key={section.heading} section={section} />) : <DetailSection section={{ heading: 'Overview', body: project.longDescription || project.description }} />}
 
           {story ? (
-            <details className="project-implementation">
+            <details className="project-implementation" open>
               <summary>Inside the implementation <span aria-hidden="true">+</span></summary>
               <div className="project-implementation-content">
                 {cs?.sections ? cs.sections.map((section) => <DetailSection key={section.heading} section={section} />) : <DetailSection section={{ heading: 'Engineering approach', body: project.longDescription }} />}
@@ -86,7 +85,7 @@ const ProjectDetail = () => {
           <section className="project-detail-contact">
             <h2>Have a related challenge?</h2>
             <p>Tell me about your product, team, and what you need to move forward.</p>
-            <a href={'mailto:' + profile.email + '?subject=' + encodeURIComponent('Project inquiry: ' + project.title)} className="project-detail-cta project-detail-cta--primary">Email about a project <span aria-hidden="true">&rarr;</span></a>
+            <Link to="/contact" className="project-detail-cta project-detail-cta--primary">Email me <span aria-hidden="true">&rarr;</span></Link>
           </section>
           <nav className="project-detail-footer-nav" aria-label="More work">
             {prevProject ? <Link to={'/projects/' + prevProject.id} className="project-detail-foot-link"><span>Previous project</span><strong><span aria-hidden="true">&larr; </span>{prevProject.title}</strong></Link> : <div />}

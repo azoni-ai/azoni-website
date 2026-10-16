@@ -4,18 +4,18 @@
 .project-detail-back { display: inline-flex; align-items: center; gap: 12px; color: var(--text-warm-soft); text-decoration: none; min-height: 44px; }
 .project-detail-back:hover { color: var(--accent-coral); }
 .project-detail-header { margin-bottom: 40px; }
-.project-detail-eyebrow { font-size: .73rem; font-weight: 650; letter-spacing: .13em; text-transform: uppercase; color: var(--accent-coral); margin: 0 0 18px; }
-.project-detail-title { font-family: var(--font-body); font-size: clamp(2.35rem, 5vw, 4rem); line-height: 1.08; letter-spacing: -.045em; font-weight: 650; margin: 0 0 20px; overflow-wrap: anywhere; }
+.project-detail-eyebrow { font-size: .73rem; font-weight: 500; letter-spacing: .13em; text-transform: uppercase; color: var(--accent-coral); margin: 0 0 18px; }
+.project-detail-title { font-family: var(--font-serif); font-size: clamp(2.35rem, 5vw, 4rem); line-height: 1.08; letter-spacing: -.045em; font-weight: 500; margin: 0 0 20px; overflow-wrap: anywhere; }
 .project-detail-lede { font-size: clamp(1.15rem, 2.5vw, 1.5rem); line-height: 1.6; color: var(--text-warm-soft); max-width: 55ch; margin: 0 0 28px; }
 .project-detail-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .project-detail-cta { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 46px; padding: 12px 18px; border: 1px solid var(--border-warm-strong); border-radius: 6px; color: var(--text-warm); text-decoration: none; font-size: .9rem; font-weight: 600; }
 .project-detail-cta:hover { border-color: var(--accent-coral); }
-.project-detail-cta--primary { background: var(--accent-coral); border-color: var(--accent-coral); color: #fff; }
+.project-detail-cta--primary { background: var(--accent-coral); border-color: var(--accent-coral); color: #18110e; }
 .cs-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin: 0 0 48px; padding: 24px 0; border-top: 1px solid var(--border-warm); border-bottom: 1px solid var(--border-warm); }
 .cs-facts dt { font-size: .75rem; color: var(--text-warm-muted); margin-bottom: 8px; }
 .cs-facts dd { font-size: .95rem; color: var(--text-warm-soft); line-height: 1.65; margin: 0; }
 .project-detail-block { display: grid; grid-template-columns: 180px 1fr; gap: 24px; margin-bottom: 36px; }
-.project-detail-block-heading { font-family: var(--font-body); font-size: 1.1rem; line-height: 1.5; font-weight: 600; margin: 0; letter-spacing: -.02em; }
+.project-detail-block-heading { font-family: var(--font-serif); font-size: 1.1rem; line-height: 1.5; font-weight: 600; margin: 0; letter-spacing: -.02em; }
 .project-detail-prose { color: var(--text-warm-soft); font-size: 1rem; line-height: 1.8; }
 .project-detail-prose p { margin: 0 0 18px; }
 .project-detail-prose p:last-child { margin-bottom: 0; }

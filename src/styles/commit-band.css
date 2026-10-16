@@ -222,3 +222,5 @@
     align-items: flex-start;
   }
 }
+
+.commit-scope { color: var(--text-warm-muted); font-size: .78rem; margin: -4px 0 20px; }

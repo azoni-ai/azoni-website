@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
-import { projectEmailHref } from '../data/consulting';
-const links = [{ path: '/services', label: 'Services' }, { path: '/projects', label: 'Work' }, { path: '/about', label: 'About' }];
+const links = [{ path: '/services', label: 'Services' }, { path: '/projects', label: 'Projects' }, { path: '/live', label: 'Live' }, { path: '/about', label: 'About me' }, { path: '/resume', label: 'Experience' }, { path: '/chat', label: 'Chat' }];
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -17,14 +16,13 @@ export default function Navbar() {
   return (
     <header className="site-header">
       <nav className="site-nav" aria-label="Main navigation">
-        <Link className="site-wordmark" to="/" onClick={() => setOpen(false)}>
-          <span className="site-monogram" aria-hidden="true">cs<span>.</span></span>
-          <span>Charlton Smith<span className="site-wordmark-caption">Software & AI consulting</span></span>
+        <Link className="site-wordmark navbar-logo" to="/" onClick={() => setOpen(false)} aria-label="Azoni home">
+          <span>azoni<span className="navbar-logo-dot">.</span></span>
         </Link>
         <button ref={toggle} className="site-menu-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="site-navigation" onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button>
         <div id="site-navigation" className={`site-navigation${open ? ' is-open' : ''}`}>
           {links.map(({ path, label }) => <Link key={path} to={path} aria-current={pathname === path || pathname.startsWith(`${path}/`) ? 'page' : undefined}>{label}</Link>)}
-          <a className="site-nav-contact" href={projectEmailHref} onClick={() => setOpen(false)}>Email about a project <ArrowUpRight size={16} /></a>
+          <Link className="site-nav-contact" to="/contact" onClick={() => setOpen(false)}>Email me <ArrowUpRight size={16} /></Link>
         </div>
       </nav>
     </header>

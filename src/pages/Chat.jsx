@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, SlidersHorizontal, Send } from 'lucide-react';
+import { ArrowUpRight, SlidersHorizontal, Send, Sparkles, MessageSquare, Database, Workflow, RotateCw, ChevronDown } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { useChat, AVAILABLE_MODELS } from '../hooks/useChat';
@@ -9,20 +9,60 @@ import { projectEmailHref } from '../data/consulting';
 import '../styles/chat-warm.css';
 
 const MODES = ['professional', 'friendly', 'casual', 'funny'];
+const TOPICS = [
+  { id: 'business', label: 'For your business', questions: [
+    'What could AI improve in my business?', 'Can you help automate a repetitive workflow?',
+    'What consulting services does Charlton offer?', 'Can Azoni help a small business?',
+    'How would you approach improving our existing software?', 'Where should we start with an AI idea?',
+  ] },
+  { id: 'work', label: 'Charlton & his work', questions: [
+    'What has Charlton built?', 'How did Charlton get into software and AI?',
+    'Tell me about his college hackathons.', 'What did he work on at T-Mobile?',
+    'How does EmbedRoute work?', 'What is RowCrew?',
+  ] },
+  { id: 'technical', label: 'Under the hood', questions: [
+    'How does this assistant work?', 'How do retrieval and live tools work together?',
+    'How does Charlton build AI workflows?', 'What keeps an AI assistant grounded?',
+    'What does the MCP server do?', 'How are model costs tracked?',
+  ] },
+];
 const INITIAL_QUESTIONS = [
-  { label: 'How can you help?', question: 'What consulting services does Charlton offer?' },
-  { label: 'Explore the work', question: 'Which projects show Charlton’s AI and product engineering work?' },
-  { label: 'Discuss project fit', question: 'What should I share to find out if Charlton is a fit for my project?' },
-  { label: 'Start a conversation', question: 'How do I contact Charlton about a project?' },
+  'What could AI improve in my business?', 'What has Charlton built?',
+  'How did Charlton get into software and AI?', 'How does this assistant work?',
 ];
 const FOLLOW_UPS = {
-  services: ['What is a useful first project brief?', 'Which work is relevant to applied AI?'],
-  projects: ['How does this connect to consulting work?', 'What should I include in a project inquiry?'],
-  experience: ['Which work shows his technical approach?', 'How can I discuss project fit with Charlton?'],
+  services: ['How could we start small?', 'Which work is relevant to applied AI?'],
+  projects: ['How was this built?', 'What could this approach look like for my business?'],
+  experience: ['Which work shows his technical approach?', 'How did his path lead to AI?'],
   skills: ['What has he built with that stack?', 'Can he help review our architecture?'],
-  contact: ['What should I include in the first email?', 'What consulting services does he offer?'],
+  contact: ['What could AI improve in my business?', 'What has Charlton built?'],
   negotiation: ['What information helps scope an engagement?', 'How do I contact Charlton directly?'],
 };
+
+const PIPELINE_STEPS = [
+  { name: 'Your question', icon: MessageSquare, detail: 'Start with a business problem, an idea, or something you’re curious about. Follow-up questions keep the conversation in context.' },
+  { name: 'Knowledge + tools', icon: Database, detail: 'Curated background and project notes ground the answer. Relevant questions can also use live tools for public app data.' },
+  { name: 'A useful answer', icon: Workflow, detail: 'The selected model brings that context together. Open Sources and details below an answer to inspect its sources, model, and usage.' },
+];
+
+function ChatArchitecture() {
+  const [expanded, setExpanded] = useState(false);
+  const [step, setStep] = useState(1);
+  return (
+    <section className="chat-architecture" aria-label="How Azoni AI works">
+      <button type="button" className="chat-architecture-toggle" aria-expanded={expanded} aria-controls="chat-pipeline-details" onClick={() => setExpanded(!expanded)}>
+        <span><Sparkles size={16} aria-hidden="true" /> See how Azoni AI works</span>
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      {expanded && <div id="chat-pipeline-details">
+        <div className="chat-pipeline" role="group" aria-label="Explore the answer pipeline">
+          {PIPELINE_STEPS.map(({ name, icon: Icon }, index) => <button type="button" key={name} aria-pressed={step === index} onClick={() => setStep(index)}><Icon size={20} aria-hidden="true" /><span>{name}</span></button>)}
+        </div>
+        <p className="chat-pipeline-explanation">{PIPELINE_STEPS[step].detail}</p>
+      </div>}
+    </section>
+  );
+}
 
 function AnswerSources({ message }) {
   if (!message.rag || message.streaming) return null;
@@ -56,6 +96,8 @@ const Chat = () => {
     messagesEndRef, sendMessage, seedThread, changeMode, changeModel,
   } = useChat();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [topic, setTopic] = useState(null);
+  const [suggestionOffset, setSuggestionOffset] = useState(0);
   const inputRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -102,9 +144,11 @@ const Chat = () => {
 
   const hasConversation = messages.some(message => message.role === 'user');
   const lastIntent = [...messages].reverse().find(message => message.role === 'assistant' && message.rag?.intent)?.rag.intent;
-  const suggestions = hasConversation
-    ? (FOLLOW_UPS[lastIntent] || FOLLOW_UPS.services).map(question => ({ label: question, question }))
-    : INITIAL_QUESTIONS;
+  const questionPool = topic
+    ? TOPICS.find(item => item.id === topic).questions
+    : hasConversation ? (FOLLOW_UPS[lastIntent] || FOLLOW_UPS.services) : INITIAL_QUESTIONS;
+  const suggestions = Array.from({ length: Math.min(4, questionPool.length) }, (_, index) => questionPool[(index + suggestionOffset) % questionPool.length]);
+  const activeModelName = AVAILABLE_MODELS.find(item => item.id === model)?.name || model;
   const seedPending = !seededRef.current && !modelReady && (
     (Array.isArray(location.state?.heroThread) && location.state.heroThread.length > 0) ||
     !!new URLSearchParams(location.search).get('q')
@@ -119,21 +163,21 @@ const Chat = () => {
 
   return (
     <Layout hideFooter>
-      <Seo title="Ask about working together" description="Explore Charlton Smith’s consulting services, AI experience, and selected work with his AI assistant." path="/chat" />
+      <Seo title="Ask Azoni AI" description="Explore Charlton Smith’s work, talk through software and AI ideas for your business, or look under the hood of Azoni AI." path="/chat" />
       <div className="chat-container chat-page-warm consulting-chat">
         <header className="chat-header">
           <div>
-            <p className="chat-eyebrow">Charlton Smith · AI assistant</p>
-            <h1 className="chat-title">Ask about working together.</h1>
-            <p className="chat-intro">Services, relevant work, and where your project might fit.</p>
+            <p className="chat-eyebrow">Meet the AI side of Azoni</p>
+            <h1 className="chat-title"><Sparkles size={26} aria-hidden="true" /> Azoni AI</h1>
+            <p className="chat-intro">Explore the work. Kick around an idea. See what’s possible.</p>
           </div>
           <button type="button" className="chat-settings-toggle" onClick={() => setSettingsOpen(!settingsOpen)} aria-expanded={settingsOpen} aria-controls="chat-settings-panel">
-            <SlidersHorizontal size={16} aria-hidden="true" /> Options
+            <SlidersHorizontal size={16} aria-hidden="true" /><span><strong>Model &amp; tone</strong><small>{activeModelName} · {chatMode}</small></span>
           </button>
         </header>
         <div className="chat-direct-links">
-          <a href={projectEmailHref}>Email about a project <ArrowUpRight size={15} aria-hidden="true" /></a>
-          <Link to="/projects">Selected work <ArrowUpRight size={15} aria-hidden="true" /></Link>
+          <a href={projectEmailHref}>Email Charlton <ArrowUpRight size={15} aria-hidden="true" /></a>
+          <Link to="/projects">Explore the work <ArrowUpRight size={15} aria-hidden="true" /></Link>
         </div>
         {settingsOpen && (
           <div className="chat-settings-panel" id="chat-settings-panel">
@@ -152,9 +196,10 @@ const Chat = () => {
           </div>
         )}
         <div className="chat-messages" role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions text" aria-busy={isLoading}>
+          <ChatArchitecture />
           {messages.map((message, index) => (
             <div key={index} className={`chat-message-wrapper ${message.role}`}>
-              <span className="chat-speaker">{message.role === 'user' ? 'You' : 'AI assistant'}</span>
+              <span className="chat-speaker">{message.role === 'user' ? 'You' : 'Azoni AI'}</span>
               <div className={`chat-message ${message.role}`}>
                 {message.streaming && !message.content ? <span className="chat-thinking">{message.status || 'Looking into that…'}</span> : message.content}
               </div>
@@ -165,9 +210,18 @@ const Chat = () => {
           <div ref={messagesEndRef} />
         </div>
         <div className="chat-input-area">
+          <div className="chat-discovery">
+            <div className="chat-topics" role="group" aria-label="Choose something to explore">
+              {TOPICS.map(item => <button type="button" key={item.id} aria-pressed={topic === item.id} onClick={() => { setTopic(topic === item.id ? null : item.id); setSuggestionOffset(0); }}>{item.label}</button>)}
+            </div>
+            <button type="button" className="chat-more-questions" aria-label="More question ideas" title="More question ideas" onClick={() => {
+              if (!topic) { setTopic('business'); setSuggestionOffset(4); }
+              else setSuggestionOffset(offset => offset + 2);
+            }}><RotateCw size={15} aria-hidden="true" /></button>
+          </div>
           <div className="chat-suggestions" aria-label={hasConversation ? 'Follow-up questions' : 'Suggested questions'}>
-            {suggestions.map(({ label, question }) => (
-              <button type="button" key={question} className="chat-suggestion" onClick={() => sendMessage(question)} disabled={busy}>{label}</button>
+            {suggestions.map(question => (
+              <button type="button" key={question} className="chat-suggestion" onClick={() => sendMessage(question)} disabled={busy}>{question}</button>
             ))}
           </div>
           <form className="chat-form" onSubmit={handleSubmit}>
@@ -175,10 +229,10 @@ const Chat = () => {
               onKeyDown={event => {
                 if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) handleSubmit(event);
               }}
-              aria-label="Your question or project brief" placeholder="Ask a question or describe your project…" rows={2} maxLength={12000} disabled={busy} />
+              aria-label="Your question or idea" placeholder="Ask anything about the work, or tell me what you’d like to improve…" rows={2} maxLength={12000} disabled={busy} />
             <button type="submit" className="btn btn-primary" aria-label="Send message" disabled={busy || !input.trim()}><Send size={18} aria-hidden="true" /><span>Send</span></button>
           </form>
-          <p className="chat-disclaimer">AI answers can be imperfect. This chat does not send an inquiry; <a href={projectEmailHref}>email Charlton directly</a>.</p>
+          <p className="chat-disclaimer">AI answers can be imperfect. Want to talk with the human? <a href={projectEmailHref}>Email Charlton</a>. Chat messages aren’t sent as email.</p>
         </div>
       </div>
     </Layout>

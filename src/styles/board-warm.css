@@ -1,8 +1,10 @@
 /* ─── Board (Jira-style kanban) — warm palette ─── */
 
 .board-page {
-  /* Keep small labels aligned with the current site palette. */
-  --board-muted: var(--text-warm-muted);
+  /* Local muted tone: the site-wide --text-warm-muted (#6f675c) sits at
+     ~3.4:1 on this background — below AA for the board's tiny mono labels.
+     #8d8478 measures ≥5:1 on both card and page backgrounds. */
+  --board-muted: #8d8478;
   min-height: 100vh;
   background: var(--bg-warm);
   color: var(--text-warm);
@@ -548,11 +550,11 @@ a.board-task-source:hover {
 
 .board-btn.primary {
   background: var(--accent-coral);
-  color: #ffffff;
+  color: #18110e;
 }
 
 .board-btn.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent-coral) 90%, #000);
+  background: #ff8f75;
 }
 
 .board-btn.ghost {
@@ -569,7 +571,7 @@ a.board-task-source:hover {
 .board-btn.danger {
   background: transparent;
   border-color: rgba(248, 113, 113, 0.4);
-  color: #b42318;
+  color: #f87171;
 }
 
 .board-btn.danger:hover:not(:disabled) {
@@ -627,7 +629,7 @@ a.board-task-source:hover {
 
 /* ─── Modal ─── */
 .board-modal-overlay {
-  --board-muted: var(--text-warm-muted);
+  --board-muted: #8d8478;
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -749,7 +751,7 @@ a.board-task-source:hover {
 }
 
 .board-modal-error {
-  color: #b42318;
+  color: #f87171;
   font-size: 0.82rem;
   margin: 0;
 }

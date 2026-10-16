@@ -12,7 +12,7 @@ const CommitStats = ({ githubStats }) => {
   // the exact same structure so the band reserves its space (no layout shift)
   // and has something alive to look at.
   if (!githubStats) {
-    const labels = ['today', 'this week', 'this month', `in ${new Date().getFullYear()}`];
+    const labels = ['today', 'past 7 days', 'this month', `in ${new Date().getFullYear()}`];
     return (
       <section className="commit-band" aria-labelledby="commit-band-heading" aria-busy="true">
         <div className="commit-band-inner">
@@ -59,7 +59,7 @@ const CommitStats = ({ githubStats }) => {
 
   const tiles = [
     { value: githubStats.today, label: 'today' },
-    { value: githubStats.last7Days, label: 'this week' },
+    { value: githubStats.last7Days, label: 'past 7 days' },
     { value: githubStats.thisMonth, label: 'this month' },
     { value: githubStats.thisYear, label: `in ${new Date().getFullYear()}` },
   ].filter((t) => Number.isFinite(t.value));
@@ -99,6 +99,7 @@ const CommitStats = ({ githubStats }) => {
           ))}
         </dl>
 
+        {githubStats.countsAreSample && <p className="commit-scope">Recent activity from my public projects. Counts reflect the available commit sample.</p>}
         {showSplit && (
           <div className="commit-band-split">
             <p className="commit-split-caption">

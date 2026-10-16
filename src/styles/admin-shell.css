@@ -1,0 +1,47 @@
+/* Keep the operational admin UI on its original palette. Public route styles
+   stay loaded during SPA navigation, so body styling alone is not sufficient. */
+.private-site {
+  --bg-primary: #111113;
+  --bg-secondary: #191a1c;
+  --bg-card: #1c1d20;
+  --bg-card-hover: #232427;
+  --bg-elevated: #27282b;
+  --bg-hover: #232427;
+  --text-primary: #ededec;
+  --text-secondary: #9a9a98;
+  --text-muted: #8a8278;
+  --accent-primary: #ff7a5c;
+  --accent-hover: #e8613f;
+  --accent-subtle: rgba(255, 122, 92, 0.1);
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.1);
+  --bg-warm: #13110f;
+  --bg-warm-card: #1c1a17;
+  --bg-warm-hover: #252320;
+  --text-warm: #ede7dd;
+  --text-warm-soft: #b8b0a4;
+  --text-warm-muted: #8a8278;
+  --border-warm: rgba(237, 231, 221, 0.08);
+  --border-warm-strong: rgba(237, 231, 221, 0.16);
+  --accent-coral: #ff7a5c;
+  --accent-amber: #d9a05b;
+  --accent-sage: #8ba888;
+  --font-display: 'Sora', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --container-max: 1440px;
+  --container-narrow: 900px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+.private-site main:focus {
+  outline: none;
+}

@@ -13,11 +13,11 @@
 }
 
 .secondary-page h1 {
-  font-family: var(--font-body);
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 1.12;
+  font-family: var(--font-serif);
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
 }
 
 .secondary-page .secondary-eyebrow {
@@ -79,7 +79,7 @@
 .secondary-page .blog-page-card:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 5px; }
 .secondary-page .blog-page-card-image { width: 144px; flex: 0 0 144px; aspect-ratio: 4 / 3; border: 0; border-radius: 6px; }
 .secondary-page .blog-page-card-body { padding: 0; min-width: 0; gap: 10px; }
-.secondary-page .blog-page-card-title { font-family: var(--font-body); font-weight: 600; line-height: 1.4; }
+.secondary-page .blog-page-card-title { font-family: var(--font-serif); font-weight: 500; line-height: 1.35; }
 .secondary-page .blog-page-card-date { font-size: 0.7rem; }
 .secondary-page .blog-page-card-cta { padding-top: 0; }
 .secondary-page .blog-page-card-tags { display: none; }
@@ -87,8 +87,8 @@
 .writing-pagination { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: var(--text-warm-muted); }
 .writing-pagination button { min-height: 44px; padding: 10px 16px; background: transparent; border: 1px solid var(--border-warm-strong); border-radius: 6px; color: var(--text-warm); cursor: pointer; }
 .writing-pagination button:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 3px; }
-.secondary-page.blog-post-page-warm .blog-post-title { font-family: var(--font-body); font-weight: 600; line-height: 1.18; }
-.secondary-page.blog-post-page-warm .blog-post-excerpt { font-family: var(--font-body); font-style: normal; font-size: 1.1rem; }
+.secondary-page.blog-post-page-warm .blog-post-title { font-family: var(--font-serif); font-weight: 500; line-height: 1.08; }
+.secondary-page.blog-post-page-warm .blog-post-excerpt { font-family: var(--font-serif); font-style: italic; font-size: 1.2rem; }
 .secondary-page.blog-post-page-warm .blog-post-cover { max-height: 360px; }
 .secondary-page.blog-post-page-warm .blog-post-cover img { max-height: 360px; object-fit: cover; }
 .secondary-page .blog-post-content { overflow-wrap: anywhere; }
@@ -101,11 +101,11 @@
 .secondary-page .live-lede { line-height: 1.7; }
 .secondary-page .ai-tools-search input { min-height: 44px; }
 .secondary-page .ai-tools-chip { min-height: 44px; }
-.secondary-page .ai-tools-card-name { font-family: var(--font-body); font-weight: 600; }
+.secondary-page .ai-tools-card-name { font-family: var(--font-serif); font-weight: 500; }
 .secondary-page .ai-tools-header-meta { letter-spacing: 0.02em; }
-.secondary-page .board-heading { font-family: var(--font-body); }
+.secondary-page .board-heading { font-family: var(--font-serif); }
 .secondary-page .board-legend-item { min-height: 44px; }
-.secondary-page.moltbook-page-warm .moltbook-header h1 { font-family: var(--font-body); font-weight: 600; }
+.secondary-page.moltbook-page-warm .moltbook-header h1 { font-family: var(--font-serif); font-weight: 500; }
 .secondary-page.moltbook-page-warm .moltbook-description { padding: 0 0 24px; background: transparent; border: 0; border-bottom: 1px solid var(--border-warm); border-radius: 0; }
 .secondary-page.moltbook-page-warm .moltbook-avatar { width: 56px; height: 56px; flex-shrink: 0; }
 .secondary-page.moltbook-page-warm .moltbook-avatar svg { width: 36px; height: 36px; }
@@ -119,7 +119,7 @@
 .privacy-header h1 { margin: 0 0 18px; }
 .privacy-header > p:last-child { max-width: 60ch; font-size: 1.08rem; line-height: 1.75; color: var(--text-warm-soft); }
 .privacy-section { margin-top: 32px; }
-.privacy-section h2 { font-size: 1.15rem; font-weight: 600; margin: 0 0 12px; }
+.privacy-section h2 { font-family: var(--font-serif); font-size: 1.35rem; font-weight: 500; margin: 0 0 12px; }
 .privacy-section p { color: var(--text-warm-soft); font-size: 1rem; line-height: 1.8; margin: 0; }
 .privacy-section a { color: var(--text-warm); text-underline-offset: 4px; overflow-wrap: anywhere; }
 

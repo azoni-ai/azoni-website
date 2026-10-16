@@ -101,13 +101,13 @@ const LivePulseStrip = ({ githubStats }) => {
           {(() => {
             // One combined liveness number so this doesn't restate the commit
             // counts that the CommitStats band above already owns.
-            const todayCommits = githubStats?.today || 0;
+            const recentCommits = commitItems.filter((item) => Date.now() - item.ms < 86400000).length;
             const agents24h = agentItems.filter((a) => Date.now() - a.ms < 86400000).length;
-            const total = todayCommits + agents24h;
+            const total = recentCommits + agents24h;
             if (total <= 0) return null;
             return (
               <div className="pulse-strip-stats">
-                <span><strong>{total}</strong> updates &middot; 24h</span>
+                <span><strong>{total}</strong> recent updates &middot; 24h</span>
               </div>
             );
           })()}

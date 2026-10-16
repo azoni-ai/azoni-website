@@ -45,7 +45,7 @@ export const useChat = (initialMode = 'professional') => {
   useEffect(() => {
     setMessages([{
       role: 'assistant',
-      content: `I'm Charlton's AI assistant. I can explain his consulting focus, point you to relevant work, or help you outline a project inquiry. What are you working on?`,
+      content: `Hey, I'm Azoni AI. Ask me about Charlton's work, kick around a software or AI idea for your business, or take a look under the hood. What would you like to explore?`,
       rag: null // No RAG for initial message
     }]);
   }, []);

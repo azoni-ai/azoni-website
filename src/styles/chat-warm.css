@@ -1,4 +1,4 @@
-/* Consulting assistant: quiet defaults, optional implementation details. */
+/* Azoni AI: warm dark surfaces, playful exploration, and useful technical depth. */
 .chat-page-warm.consulting-chat {
   max-width: 940px;
   height: 100dvh;
@@ -26,6 +26,9 @@
 }
 .consulting-chat .chat-eyebrow { margin: 0 0 10px; }
 .consulting-chat .chat-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-family: var(--font-serif);
   font-size: clamp(1.6rem, 3.5vw, 2.4rem);
   font-weight: 500;
@@ -33,6 +36,7 @@
   line-height: 1.15;
   color: var(--text-warm);
 }
+.consulting-chat .chat-title svg { color: var(--accent-coral); }
 .consulting-chat .chat-intro {
   margin: 10px 0 0;
   color: var(--text-warm-soft);
@@ -55,6 +59,10 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+.consulting-chat .chat-settings-toggle span { display: grid; gap: 4px; text-align: left; }
+.consulting-chat .chat-settings-toggle strong { font-weight: 500; color: var(--text-warm); }
+.consulting-chat .chat-settings-toggle small { font-size: .64rem; color: var(--text-warm-muted); }
+.consulting-chat .chat-settings-toggle[aria-expanded="true"] { border-color: var(--accent-coral); }
 .consulting-chat .chat-direct-links {
   display: flex;
   flex-wrap: wrap;
@@ -126,9 +134,9 @@
 }
 .consulting-chat .chat-message.user {
   margin-left: auto;
-  background: color-mix(in srgb, var(--accent-coral) 10%, var(--bg-warm));
-  border: 1px solid color-mix(in srgb, var(--accent-coral) 23%, var(--border-warm));
-  color: var(--text-warm);
+  background: var(--accent-coral);
+  border: 1px solid var(--accent-coral);
+  color: #18110e;
 }
 .consulting-chat .chat-thinking { color: var(--text-warm-muted); font-size: .9rem; }
 .consulting-chat .chat-answer-sources { max-width: 90%; color: var(--text-warm-muted); font-size: .74rem; }
@@ -140,6 +148,64 @@
 .consulting-chat .chat-technical-details dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; }
 .consulting-chat .chat-technical-details dd { margin: 0; overflow-wrap: anywhere; }
 .consulting-chat .chat-input-area { padding: 16px 0 18px; border-top: 1px solid var(--border-warm); }
+.consulting-chat .chat-architecture {
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-coral) 4%, var(--bg-warm-card));
+  margin: 0 0 22px;
+}
+.consulting-chat .chat-architecture-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 46px;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-warm-soft);
+  cursor: pointer;
+  font: .78rem var(--font-body);
+  text-align: left;
+}
+.consulting-chat .chat-architecture-toggle span { display: flex; align-items: center; gap: 8px; }
+.consulting-chat .chat-architecture-toggle span svg { color: var(--accent-coral); }
+.consulting-chat .chat-architecture-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.consulting-chat .chat-pipeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 2px 14px 12px; }
+.consulting-chat .chat-pipeline button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 74px;
+  padding: 10px 5px;
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  background: var(--bg-warm);
+  color: var(--text-warm-soft);
+  font: .74rem var(--font-body);
+  cursor: pointer;
+}
+.consulting-chat .chat-pipeline button[aria-pressed="true"] { border-color: var(--accent-coral); color: var(--accent-coral); background: color-mix(in srgb, var(--accent-coral) 8%, var(--bg-warm)); }
+.consulting-chat .chat-pipeline-explanation { margin: 0; padding: 0 14px 14px; color: var(--text-warm-soft); font-size: .8rem; line-height: 1.6; }
+.consulting-chat .chat-discovery { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.consulting-chat .chat-topics { display: flex; flex-wrap: wrap; gap: 3px; }
+.consulting-chat .chat-topics button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: transparent;
+  color: var(--text-warm-muted);
+  font: .72rem var(--font-body);
+  cursor: pointer;
+}
+.consulting-chat .chat-topics button:hover,
+.consulting-chat .chat-topics button[aria-pressed="true"] { color: var(--accent-coral); background: color-mix(in srgb, var(--accent-coral) 8%, transparent); }
+.consulting-chat .chat-more-questions { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; border: 1px solid var(--border-warm); border-radius: 50%; background: transparent; color: var(--text-warm-soft); cursor: pointer; }
+.consulting-chat .chat-more-questions:hover { color: var(--accent-coral); border-color: var(--accent-coral); }
 .consulting-chat .chat-suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .consulting-chat .chat-suggestion {
   min-height: 40px;
@@ -178,7 +244,7 @@
   min-width: 86px;
   padding: 12px 16px;
   background: var(--accent-coral);
-  color: #fff;
+  color: #18110e;
   border: 1px solid var(--accent-coral);
   border-radius: 9px;
 }
@@ -204,6 +270,7 @@
   .consulting-chat .chat-intro { font-size: .8rem; }
   .consulting-chat .chat-eyebrow { font-size: .58rem; letter-spacing: .08em; }
   .consulting-chat .chat-settings-toggle { padding: 8px; font-size: .7rem; }
+  .consulting-chat .chat-settings-toggle small { max-width: 98px; font-size: .6rem; line-height: 1.4; }
   .consulting-chat .chat-settings-toggle svg { display: none; }
   .consulting-chat .chat-direct-links { gap: 4px 16px; }
   .consulting-chat .chat-direct-links a { font-size: .75rem; }
@@ -212,6 +279,10 @@
   .consulting-chat .chat-input-area { padding-top: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   .consulting-chat .chat-suggestions { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; gap: 6px; }
   .consulting-chat .chat-suggestion { flex-shrink: 0; max-width: 235px; font-size: .74rem; }
+  .consulting-chat .chat-topics { flex-wrap: nowrap; overflow-x: auto; }
+  .consulting-chat .chat-topics button { flex-shrink: 0; padding: 6px; font-size: .64rem; }
+  .consulting-chat .chat-pipeline { gap: 5px; padding: 2px 10px 10px; }
+  .consulting-chat .chat-pipeline button { font-size: .65rem; }
   .consulting-chat .chat-form .btn-primary { min-width: 48px; padding: 12px; }
   .consulting-chat .chat-form .btn-primary span { display: none; }
   .consulting-chat .chat-disclaimer { font-size: .67rem; }

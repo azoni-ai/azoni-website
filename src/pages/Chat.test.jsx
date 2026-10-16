@@ -44,25 +44,48 @@ function render() { act(() => root.render(<Chat />)); }
 function button(label) { return Array.from(container.querySelectorAll('button')).find(item => item.textContent.includes(label)); }
 function click(element) { act(() => element.dispatchEvent(new MouseEvent('click', { bubbles: true }))); }
 
-test('leads with consulting prompts and direct contact, with model settings hidden', () => {
+test('keeps Azoni AI visible with varied exploration and direct contact', () => {
   render();
-  expect(container.querySelector('h1').textContent).toBe('Ask about working together.');
+  expect(container.querySelector('h1').textContent.trim()).toBe('Azoni AI');
   expect(container.querySelectorAll('.chat-suggestion')).toHaveLength(4);
-  expect(container.querySelector('.chat-direct-links a').href).toBe('mailto:charlton@azoni.ai?subject=Project%20inquiry');
+  expect(container.querySelector('.chat-direct-links a').href).toBe('mailto:charlton@azoni.ai');
   expect(container.querySelector('#chat-model')).toBeNull();
-  expect(container.querySelector('.rag-architecture')).toBeNull();
-  expect(container.querySelector('textarea').getAttribute('aria-label')).toBe('Your question or project brief');
-  expect(container.querySelector('.chat-disclaimer').textContent).toContain('does not send an inquiry');
-  click(button('How can you help?'));
-  expect(chat.sendMessage).toHaveBeenCalledWith('What consulting services does Charlton offer?');
+  expect(container.querySelector('.chat-architecture')).not.toBeNull();
+  expect(container.querySelector('textarea').getAttribute('aria-label')).toBe('Your question or idea');
+  expect(container.querySelector('.chat-disclaimer').textContent).toContain('aren’t sent as email');
+  expect(button('Model & tone').textContent).toContain('Test model');
+  click(button('What could AI improve in my business?'));
+  expect(chat.sendMessage).toHaveBeenCalledWith('What could AI improve in my business?');
 });
 
 test('optional settings have labelled controls and stay out of the default conversation', () => {
   render();
-  click(button('Options'));
-  expect(button('Options').getAttribute('aria-expanded')).toBe('true');
+  click(button('Model & tone'));
+  expect(button('Model & tone').getAttribute('aria-expanded')).toBe('true');
   expect(container.querySelector('label[for="chat-model"]').textContent).toBe('Model');
   expect(container.querySelector('label[for="chat-tone"]').textContent).toBe('Tone');
+});
+
+test('visitors can explore the pipeline without sending a paid chat request', () => {
+  render();
+  click(button('See how Azoni AI works'));
+  expect(button('See how Azoni AI works').getAttribute('aria-expanded')).toBe('true');
+  expect(container.querySelector('.chat-pipeline-explanation').textContent).toContain('Curated background');
+  click(button('Your question'));
+  expect(button('Your question').getAttribute('aria-pressed')).toBe('true');
+  expect(container.querySelector('.chat-pipeline-explanation').textContent).toContain('Follow-up questions');
+  expect(chat.sendMessage).not.toHaveBeenCalled();
+});
+
+test('topic selection and more ideas restore browsable questions without automatic sends', () => {
+  render();
+  click(button('Charlton & his work'));
+  expect(button('Charlton & his work').getAttribute('aria-pressed')).toBe('true');
+  expect(container.querySelector('.chat-suggestions').textContent).toContain('college hackathons');
+  const first = container.querySelector('.chat-suggestion').textContent;
+  click(container.querySelector('[aria-label="More question ideas"]'));
+  expect(container.querySelector('.chat-suggestion').textContent).not.toBe(first);
+  expect(chat.sendMessage).not.toHaveBeenCalled();
 });
 
 test('submits a multiline project brief and prevents duplicate sends while loading', () => {

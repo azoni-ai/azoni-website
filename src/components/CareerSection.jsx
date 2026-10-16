@@ -1,8 +1,13 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { STATION_DEFS } from '../utils/station-mapping';
 import '../styles/career-section.css';
 
-const careerEntries = STATION_DEFS.filter((s) => s.category === 'career');
+const careerEntries = [
+  { id: 'azoni-consulting', label: 'Azoni', tagline: 'Principal Software Engineer & Consultant', logo: '/logo192.png', desc: 'Currently helping a client in a principal engineering role with a strong focus on AI. Software, automation, and practical AI for businesses of any size.', tech: ['Principal engineering', 'AI', 'Automation'] },
+  { id: 'independent', label: 'Independent products', tagline: 'Software Engineer / Nov 2023 onward', logo: '/logo192.png', desc: 'Building and operating AI tools, community products, and the infrastructure behind them. From embedding gateways to agents and full-stack applications.', tech: ['Python', 'TypeScript', 'AI systems'] },
+  ...STATION_DEFS.filter((s) => s.category === 'career').sort((a, b) => (a.id === 'capitalone' ? -1 : b.id === 'capitalone' ? 1 : 0)),
+];
 
 // The stations carry literal corporate brand hexes (magenta/navy/violet/cyan) so
 // the ecosystem map can render true logos. On the warm home timeline those read
@@ -21,6 +26,7 @@ const CareerSection = () => {
         <h2 id="career-heading" className="career-section-heading">
           Experience
         </h2>
+        <Link to="/resume" className="consult-text-link">Full experience &amp; r&eacute;sum&eacute; <span aria-hidden="true">&rarr;</span></Link>
       </header>
 
       <ol className="career-list">

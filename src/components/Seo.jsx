@@ -8,11 +8,11 @@ import React from 'react';
 // noindex for owner-only routes. Kept intentionally to that clean set so we
 // don't emit duplicate/ conflicting og tags against the static defaults.
 
-const SITE = 'Charlton Smith';
+const SITE = 'Azoni';
 const BASE_URL = 'https://azoni.ai';
 
 const Seo = ({ title, description, path = '', noIndex = false }) => {
-  const fullTitle = title ? `${title} · ${SITE}` : `${SITE} — Principal Software Engineer & AI Consultant`;
+  const fullTitle = title ? `${title} · ${SITE}` : `${SITE} — Software, AI & Automation by Charlton Smith`;
   const canonical = `${BASE_URL}${path}`;
 
   return (

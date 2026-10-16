@@ -14,6 +14,10 @@ const cases = [
   ['What consulting services does Charlton offer?', 'services'],
   ['Can you help us build an AI agent for our support team?', 'services'],
   ['Can he review our cloud infrastructure?', 'services'],
+  ['What could AI improve in my business?', 'services'],
+  ['Can Azoni help a small business?', 'services'],
+  ['Can you automate a repetitive workflow?', 'services'],
+  ['Tell me about his college hackathons.', 'experience'],
   ['What is he working on right now?', 'services'],
   ['Who is the current client?', 'services'],
   ['What are his consulting rates?', 'negotiation'],
@@ -50,6 +54,20 @@ test('current consulting facts take priority and generated facts never enter the
   assert.match(prompt, /Older career history from a manual record/);
   assert.doesNotMatch(prompt, /CLIENT_SECRET_AND_GUARANTEED_RESULTS/);
   assert.doesNotMatch(prompt, /actively exploring opportunities|chose to leave/);
+  assert.match(prompt, /You are Azoni AI/);
+  assert.match(prompt, /businesses of any size/);
+  assert.match(prompt, /weekly hackathons during college/);
+  assert.match(prompt, /master's degree while working at T-Mobile/);
+  assert.match(prompt, /recent years deeply focused on AI/);
+  assert.match(prompt, /no specific subject line or project brief is required/);
+});
+
+test('story fallback stays within owner-confirmed background and current contact', () => {
+  const answer = core.buildLocalFallbackAnswer('How did Charlton get into software and AI?', { intent: 'experience' });
+  assert.match(answer, /weekly hackathons/);
+  assert.match(answer, /master's degree while working at T-Mobile/);
+  assert.match(answer, /charlton@azoni.ai/);
+  assert.doesNotMatch(answer, /won|award|client name|gmail/);
 });
 
 test('fallback does not repeat retrieved speculation or invent a client', () => {

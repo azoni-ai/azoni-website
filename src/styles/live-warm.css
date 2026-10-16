@@ -67,7 +67,7 @@
 }
 
 .live-tab.is-active {
-  color: #ffffff;
+  color: #18110e;
   background: var(--accent-coral);
 }
 
@@ -114,7 +114,7 @@
 
 .live-body .lb-tab.active,
 .live-body .lb-window-btn.active {
-  color: #ffffff;
+  color: #18110e;
 }
 
 @media (max-width: 640px) {
