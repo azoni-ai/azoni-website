@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
-const links = [{ path: '/services', label: 'Services' }, { path: '/projects', label: 'Projects' }, { path: '/live', label: 'Live' }, { path: '/about', label: 'About me' }, { path: '/resume', label: 'Experience' }, { path: '/chat', label: 'Chat' }];
+const links = [{ path: '/services', label: 'Services' }, { path: '/projects', label: 'Projects' }, { path: '/live', label: 'Live' }, { path: '/about', label: 'About me' }, { path: '/resume', label: 'Resume' }, { path: '/chat', label: 'Chat' }];
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();

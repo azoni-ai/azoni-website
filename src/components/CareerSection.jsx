@@ -26,7 +26,7 @@ const CareerSection = () => {
         <h2 id="career-heading" className="career-section-heading">
           Experience
         </h2>
-        <Link to="/resume" className="consult-text-link">Full experience &amp; r&eacute;sum&eacute; <span aria-hidden="true">&rarr;</span></Link>
+        <Link to="/resume" className="consult-text-link">View r&eacute;sum&eacute; <span aria-hidden="true">&rarr;</span></Link>
       </header>
 
       <ol className="career-list">

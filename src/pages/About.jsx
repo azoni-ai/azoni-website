@@ -47,7 +47,7 @@ export default function About() {
               <p>Since late 2023, I&rsquo;ve been building and running my own products. <Link to="/projects/fab-stats">FaB Stats</Link> grew out of a card game I play. <Link to="/projects/row-crew">RowCrew</Link> makes rowing with friends more interesting. <Link to="/projects/embedroute">EmbedRoute</Link> came from repeatedly needing the same embedding infrastructure. I like having real reasons to build things, then living with the results.</p>
               <p>Over the last few years, I&rsquo;ve spent much of my time working with AI: retrieval, agents, tools, and the software around them. I formed <strong>Azoni LLC</strong> in 2026, and I&rsquo;m currently working with a client as a <strong>principal software engineer with a strong AI focus</strong>. I still build and operate my independent projects alongside that work.</p>
             </div>
-            <Link to="/resume" className="about-text-link">My full experience and education <span aria-hidden="true">&rarr;</span></Link>
+            <Link to="/resume" className="about-text-link">View my r&eacute;sum&eacute; <span aria-hidden="true">&rarr;</span></Link>
           </section>
 
           <section className="about-section about-business">
