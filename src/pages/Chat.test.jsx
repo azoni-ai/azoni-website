@@ -48,7 +48,7 @@ test('leads with consulting prompts and direct contact, with model settings hidd
   render();
   expect(container.querySelector('h1').textContent).toBe('Ask about working together.');
   expect(container.querySelectorAll('.chat-suggestion')).toHaveLength(4);
-  expect(container.querySelector('.chat-direct-links a').href).toBe('mailto:charltonuw@gmail.com?subject=Project%20inquiry');
+  expect(container.querySelector('.chat-direct-links a').href).toBe('mailto:charlton@azoni.ai?subject=Project%20inquiry');
   expect(container.querySelector('#chat-model')).toBeNull();
   expect(container.querySelector('.rag-architecture')).toBeNull();
   expect(container.querySelector('textarea').getAttribute('aria-label')).toBe('Your question or project brief');

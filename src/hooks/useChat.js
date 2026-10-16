@@ -354,7 +354,7 @@ export const useChat = (initialMode = 'professional') => {
         setError(err.message);
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: 'Sorry, something went wrong. Email charltonuw@gmail.com directly.',
+          content: 'Sorry, something went wrong. Email charlton@azoni.ai directly.',
           rag: null
         }]);
         // Both endpoints failed for a real visitor — report it so the admin error

@@ -1,8 +1,8 @@
-export const projectEmailHref = 'mailto:charltonuw@gmail.com?subject=Project%20inquiry';
+export const projectEmailHref = 'mailto:charlton@azoni.ai?subject=Project%20inquiry';
 export const consulting = {
   name: 'Charlton Smith',
   role: 'Principal Software Engineer & AI Consultant',
-  email: 'charltonuw@gmail.com',
+  email: 'charlton@azoni.ai',
   description: 'Independent software and AI consulting. Principal engineering, applied AI, and full-stack product development with Charlton Smith.',
   projectEmailHref,
 };

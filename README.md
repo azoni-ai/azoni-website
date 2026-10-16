@@ -120,6 +120,6 @@ MIT
 
 ## Contact
 
-- Email: charltonuw@gmail.com
+- Email: charlton@azoni.ai
 - LinkedIn: [/in/charltonsmith](https://linkedin.com/in/charltonsmith)
 - GitHub: [@azoni](https://github.com/azoni)

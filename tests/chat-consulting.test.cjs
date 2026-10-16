@@ -67,7 +67,7 @@ test('fallback preserves boundary on rates and availability', () => {
   for (const query of ['What is his hourly rate?', 'Is he available next week?']) {
     const answer = core.buildLocalFallbackAnswer(query, core.detectIntent(query));
     assert.match(answer, /cannot quote or confirm/);
-    assert.match(answer, /charltonuw@gmail.com/);
+    assert.match(answer, /charlton@azoni.ai/);
     assert.doesNotMatch(answer, /available to start|\$\d/);
   }
 });

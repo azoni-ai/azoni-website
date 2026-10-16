@@ -3,7 +3,7 @@ export const profile = {
   title: "Principal Software Engineer & AI Consultant",
   degree: "M.S. Software Engineering",
   location: "Seattle, WA",
-  email: "charltonuw@gmail.com",
+  email: "charlton@azoni.ai",
   tagline: "Principal engineering · Applied AI",
   bio: `Independent consultant and principal software engineer with a focus on AI. I help teams design, build, and improve production software. My background spans enterprise engineering at Capital One and T-Mobile, co-founding OLI Fitness, and building independent AI and full-stack products.`,
   // Surfaced as the "Now ·" pill in the home hero. Falls back to the latest
