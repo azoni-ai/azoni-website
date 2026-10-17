@@ -1,0 +1,85 @@
+.business-overview { min-width: 0; color: var(--text-warm); }
+.business-overview-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 24px; }
+.business-overview-eyebrow { margin: 0 0 5px; color: var(--accent-coral); font-size: .72rem; letter-spacing: .11em; text-transform: uppercase; }
+.business-overview h2, .business-overview h3, .business-overview h4 { margin: 0; }
+.business-overview-heading h2 { font-family: var(--font-serif); font-size: 2rem; font-weight: 500; }
+.business-overview-heading time { color: var(--text-warm-muted); font-size: .8rem; white-space: nowrap; }
+.business-overview-money { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.business-overview-tile { min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 9px; background: var(--bg-warm-card); border: 1px solid var(--border-warm); border-radius: 10px; padding: 20px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.business-overview-tile:hover { border-color: var(--border-warm-strong); background: var(--bg-warm-hover); }
+.business-overview-tile-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .82rem; color: var(--text-warm-soft); }
+.business-overview-tile-label svg { flex-shrink: 0; color: var(--text-warm-muted); }
+.business-overview-tile strong { font-size: clamp(1.45rem, 2.5vw, 2rem); font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.25; overflow-wrap: anywhere; }
+.business-overview-tile-detail { margin-top: auto; font-size: .73rem; color: var(--text-warm-muted); line-height: 1.5; }
+.business-overview-quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 16px 0 26px; }
+.business-overview-quick button { min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 11px 14px; color: var(--text-warm-soft); font: inherit; font-size: .82rem; background: transparent; border: 1px solid var(--border-warm); border-radius: 8px; text-align: left; cursor: pointer; }
+.business-overview-quick button:hover { color: var(--text-warm); background: var(--bg-warm-card); }
+.business-overview-quick svg { flex-shrink: 0; color: var(--accent-coral); }
+.business-overview-quick-arrow { margin-left: auto; opacity: .6; }
+.business-overview-columns { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.business-overview-panel { min-width: 0; border: 1px solid var(--border-warm); border-radius: 10px; overflow: hidden; }
+.business-overview-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border-warm); }
+.business-overview-panel-heading h3 { font-family: var(--font-serif); font-size: 1.2rem; font-weight: 500; }
+.business-overview-panel-heading > span { font-size: .72rem; color: var(--text-warm-muted); }
+.business-overview-action { padding: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.business-overview-action + .business-overview-action { border-top: 1px solid var(--border-warm); }
+.business-overview-action.is-primary { background: var(--bg-warm-card); padding-top: 23px; padding-bottom: 23px; }
+.business-overview-action h4 { font-family: var(--font-body); font-size: .95rem; font-weight: 550; line-height: 1.45; overflow-wrap: anywhere; }
+.business-overview-action.is-primary h4 { font-family: var(--font-serif); font-size: 1.45rem; font-weight: 500; }
+.business-overview-action.needs-attention.is-primary { border-top: 2px solid var(--accent-coral); }
+.business-overview-action p, .business-overview-dor-summary p { color: var(--text-warm-soft); font-size: .82rem; line-height: 1.6; margin: 7px 0 0; }
+.business-overview-action p.business-overview-deadline { font-size: .78rem; color: var(--accent-amber); margin-top: 12px; }
+.business-overview p.business-overview-scope { font-size: .71rem; color: var(--text-warm-muted); line-height: 1.5; }
+.business-overview .billing-btn.primary { display: inline-flex; align-items: center; gap: 14px; min-height: 44px; color: #18110e; white-space: normal; text-align: left; }
+.business-overview-text-link { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: .78rem; text-align: left; color: var(--accent-coral); border: 0; padding: 4px 0; background: none; cursor: pointer; line-height: 1.5; }
+.business-overview-text-link svg { flex-shrink: 0; }
+.business-overview-text-link:hover { color: var(--text-warm); }
+.business-overview-dor-summary { padding: 18px 20px; border-top: 1px solid var(--border-warm); }
+.business-overview-dor-summary > span { color: var(--accent-sage); font-size: .77rem; }
+.business-overview-dor-summary .business-overview-text-link { margin-top: 8px; }
+.business-overview-accounts { display: grid; }
+.business-overview-account { min-width: 0; padding: 17px 20px; }
+.business-overview-account + .business-overview-account { border-top: 1px solid var(--border-warm); }
+.business-overview-account-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.business-overview-account-title h4 { font-family: var(--font-body); font-size: .88rem; font-weight: 550; line-height: 1.5; overflow-wrap: anywhere; }
+.business-overview-account-title a, .business-overview-account-title button { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex-shrink: 0; border: 1px solid var(--border-warm); border-radius: 7px; color: var(--accent-coral); background: transparent; cursor: pointer; }
+.business-overview-account-title a:hover, .business-overview-account-title button:hover { background: var(--bg-warm-hover); }
+.business-overview-account-url { color: var(--text-warm-muted); font-family: var(--font-mono); font-size: .68rem; line-height: 1.55; margin: 1px 0 12px; overflow-wrap: anywhere; }
+.business-overview-username { display: flex; flex-direction: column; gap: 4px; }
+.business-overview-username span { font-size: .67rem; color: var(--text-warm-muted); }
+.business-overview-username code { font-family: var(--font-mono); font-size: .75rem; line-height: 1.6; color: var(--text-warm-soft); overflow-wrap: anywhere; }
+.business-overview-account-edit { margin: 0 20px 16px; }
+.business-overview-empty { margin: 18px 20px; font-size: .83rem; color: var(--text-warm-soft); line-height: 1.6; }
+.business-overview :is(button, a):focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 4px; }
+@media (max-width: 800px) {
+  .business-overview-columns { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .business-overview-accounts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .business-overview-account + .business-overview-account { border-top: 0; }
+  .business-overview-account:nth-child(even) { border-left: 1px solid var(--border-warm); }
+  .business-overview-account:nth-child(n+3) { border-top: 1px solid var(--border-warm); }
+  .business-overview-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .business-overview-heading { align-items: center; }
+  .business-overview-heading h2 { font-size: 1.75rem; }
+  .business-overview-heading time { font-size: .72rem; }
+  .business-overview-money { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .business-overview-tile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); gap: 5px 14px; padding: 15px 16px; }
+  .business-overview-tile-label { font-size: .8rem; align-self: center; }
+  .business-overview-tile-label svg { display: none; }
+  .business-overview-tile strong { font-size: 1.4rem; text-align: right; }
+  .business-overview-tile-detail { grid-column: 1 / -1; font-size: .7rem; }
+  .business-overview-quick { gap: 8px; margin-bottom: 20px; }
+  .business-overview-quick button { gap: 8px; padding: 10px 12px; font-size: .76rem; }
+  .business-overview-quick-arrow { display: none; }
+  .business-overview-panel-heading { padding: 15px 16px; flex-wrap: wrap; }
+  .business-overview-action, .business-overview-dor-summary { padding: 18px 16px; }
+  .business-overview-action.is-primary h4 { font-size: 1.3rem; }
+  .business-overview-accounts { grid-template-columns: minmax(0, 1fr); }
+  .business-overview-account { padding: 14px 16px; }
+  .business-overview-account:nth-child(even) { border-left: 0; }
+  .business-overview-account + .business-overview-account { border-top: 1px solid var(--border-warm); }
+  .business-overview-account-title a, .business-overview-account-title button { width: 44px; height: 44px; }
+  .business-overview-account-edit { margin-left: 16px; }
+  .business-overview-text-link { min-height: 44px; }
+}

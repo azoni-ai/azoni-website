@@ -86,6 +86,7 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
       taxChecklist: data.taxChecklist,
       dorInvoiceReviews: data.dorInvoiceReviews,
       dorFilings: data.dorFilings,
+      businessAccounts: data.businessAccounts,
     };
     mutate((d) => ({ ...d, settings: { ...d.settings, lastBackup: today } }));
     downloadFile(`azoni-billing-backup-${today}.json`, JSON.stringify(snapshot, null, 2));
@@ -98,7 +99,7 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
         const parsed = JSON.parse(reader.result);
         if (!validBackup(parsed)) throw new Error('bad shape');
         if (!window.confirm(
-          'Replace billing data with this backup? Existing recorded DOR filings will be retained as history. Export a backup of the current data first if unsure.'
+          'Replace billing data with this backup? It may include private account usernames and notes. Existing recorded DOR filings will be retained as history. Export a backup of the current data first if unsure.'
         )) return;
         // Pass the whole backup through — replaceAll normalizes, and cherry-
         // picking keys here once silently dropped dayNotes/companyNotes.
@@ -263,7 +264,8 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
         <p className="billing-hint">
           Data lives in a private Firestore document, readable only through the authenticated
           admin endpoint. Backups use the same JSON format as the desktop app, so either can
-          import the other's export. Last backup downloaded:{' '}
+          import the other's export. Backups include private account usernames and notes; keep them somewhere secure.
+          {' '}Last backup downloaded:{' '}
           {data.settings.lastBackup ? fmtDate(data.settings.lastBackup) : 'never'}.
         </p>
       </div>

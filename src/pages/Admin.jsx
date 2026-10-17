@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { db } from '../config/firebase';
@@ -59,8 +59,22 @@ const Admin = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState('usage');
+  const [activeTab, setActiveTab] = useState('billing');
+  const [leaving, setLeaving] = useState(false);
+  const [blockedLeave, setBlockedLeave] = useState(null);
+  const billingBeforeLeaveRef = useRef(null);
+  const leavingRef = useRef(false);
+  const mountedRef = useRef(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const registerBillingBeforeLeave = useCallback((callback) => {
+    billingBeforeLeaveRef.current = callback;
+  }, []);
 
   // The token is the session: it was only ever stored after a server-side
   // verify, and every gated endpoint re-checks it on each call.
@@ -93,23 +107,47 @@ const Admin = () => {
     }
   };
 
-  // Memoized: UsageTab takes this as an effect dependency (401 -> sign out).
-  const handleLogout = useCallback(() => {
-    setAuthenticated(false);
-    sessionStorage.removeItem('admin_authenticated'); // legacy flag cleanup
-    sessionStorage.removeItem('rag_admin_token');
-    navigate('/');
+  const finishLeave = useCallback((target) => {
+    setBlockedLeave(null);
+    if (target === 'logout') {
+      setAuthenticated(false);
+      sessionStorage.removeItem('admin_authenticated'); // legacy flag cleanup
+      sessionStorage.removeItem('rag_admin_token');
+      navigate('/');
+    } else setActiveTab(target);
   }, [navigate]);
+
+  const requestLeave = useCallback(async (target, discard = false) => {
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    setLeaving(true);
+    setBlockedLeave(null);
+    let saved = false;
+    try {
+      saved = billingBeforeLeaveRef.current
+        ? await billingBeforeLeaveRef.current({ discard }) : true;
+    } catch { /* Keep unsaved work visible if the flush cannot complete. */ }
+    leavingRef.current = false;
+    if (!mountedRef.current) return;
+    setLeaving(false);
+    if (saved) finishLeave(target);
+    else setBlockedLeave(target);
+  }, [finishLeave]);
+
+  // Stable: UsageTab takes this as an effect dependency (401 -> sign out).
+  const handleLogout = useCallback(() => requestLeave('logout'), [requestLeave]);
 
   if (!authenticated) {
     return (
       <Layout>
         <section className="section" style={{ paddingTop: '120px' }}>
           <div className="container" style={{ maxWidth: '400px' }}>
-            <h1 style={{ marginBottom: 'var(--space-xl)', textAlign: 'center' }}>Admin</h1>
+            <h1 style={{ marginBottom: 'var(--space-xl)', textAlign: 'center' }}>Your workspace</h1>
             <form onSubmit={handleLogin} className="admin-login-form">
               <input
                 type="password"
+                aria-label="Admin password"
+                autoComplete="current-password"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -132,36 +170,50 @@ const Admin = () => {
       <section className="section" style={{ paddingTop: '120px' }}>
         <div className="container">
           <div className="admin-header">
-            <h1>Admin Panel</h1>
-            <button onClick={handleLogout} className="btn btn-secondary">Logout</button>
+            <div>
+              <p className="admin-eyebrow">Azoni / Private workspace</p>
+              <h1>{activeTab === 'billing' ? 'Business workspace' : 'Website tools'}</h1>
+              <p className="admin-description">{activeTab === 'billing' ? 'Manage your work, invoices, taxes and accounts.' : 'Manage your website conversations, comments and AI tools.'}</p>
+            </div>
+            <button onClick={handleLogout} disabled={leaving} className="btn btn-secondary">{leaving ? 'Saving...' : 'Sign out'}</button>
           </div>
+
+          {leaving && <p role="status">Saving your changes before leaving...</p>}
+          {blockedLeave && <div className="billing-conflict" role="alert">
+            <span>Your changes could not be saved. They are still open here. Resolve any save conflict, retry, or explicitly discard unsaved changes to continue.</span>
+            <div className="billing-conflict-actions">
+              <button type="button" className="billing-btn" onClick={() => requestLeave(blockedLeave)}>Retry save and continue</button>
+              <button type="button" className="billing-btn" onClick={() => setBlockedLeave(null)}>Keep editing</button>
+              <button type="button" className="billing-btn danger" onClick={() => requestLeave(blockedLeave, true)}>Discard unsaved changes and {blockedLeave === 'logout' ? 'sign out' : 'continue'}</button>
+            </div>
+          </div>}
 
           <div className="admin-main-tabs">
             <button
-              className={`admin-main-tab ${activeTab === 'usage' ? 'active' : ''}`}
-              onClick={() => setActiveTab('usage')}
-            >
-              Chat usage
-            </button>
-            <button
-              className={`admin-main-tab ${activeTab === 'comments' ? 'active' : ''}`}
-              onClick={() => setActiveTab('comments')}
-            >
-              Comments
-            </button>
-            <button
               className={`admin-main-tab ${activeTab === 'billing' ? 'active' : ''}`}
               onClick={() => setActiveTab('billing')}
+              disabled={leaving}
+              aria-current={activeTab === 'billing' ? 'page' : undefined}
             >
-              Billing
+              Business
             </button>
             <button
-              className={`admin-main-tab ${activeTab === 'tools' ? 'active' : ''}`}
-              onClick={() => setActiveTab('tools')}
+              className={`admin-main-tab ${activeTab !== 'billing' ? 'active' : ''}`}
+              onClick={() => requestLeave('usage')}
+              disabled={leaving}
+              aria-current={activeTab !== 'billing' ? 'page' : undefined}
             >
-              AI Tools
+              Website tools
             </button>
           </div>
+
+          {activeTab !== 'billing' && (
+            <nav className="admin-website-tabs" aria-label="Website tools">
+              {[['usage', 'Chat activity'], ['comments', 'Comments'], ['tools', 'AI tools']].map(([key, label]) => (
+                <button key={key} className={activeTab === key ? 'active' : ''} aria-current={activeTab === key ? 'page' : undefined} disabled={leaving} onClick={() => setActiveTab(key)}>{label}</button>
+              ))}
+            </nav>
+          )}
 
           {activeTab === 'usage' && <UsageTab onAuthFailure={handleLogout} />}
           {activeTab === 'comments' && <CommentsTab />}
@@ -169,11 +221,11 @@ const Admin = () => {
             <Suspense
               fallback={
                 <div style={{ padding: '40px 0', color: 'var(--text-warm-muted)' }}>
-                  Loading billing...
+                  Loading your business workspace...
                 </div>
               }
             >
-              <BillingTab />
+              <BillingTab onBeforeLeaveChange={registerBillingBeforeLeave} />
             </Suspense>
           )}
           {activeTab === 'tools' && (

@@ -13,6 +13,14 @@ export default function Navbar() {
     document.addEventListener('keydown', close);
     return () => document.removeEventListener('keydown', close);
   }, [open]);
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    return (
+      <header className="admin-site-header">
+        <Link className="site-wordmark navbar-logo" to="/" aria-label="Azoni home"><span>azoni<span className="navbar-logo-dot">.</span></span></Link>
+        <Link className="admin-view-site" to="/">View website <ArrowUpRight size={16} /></Link>
+      </header>
+    );
+  }
   return (
     <header className="site-header">
       <nav className="site-nav" aria-label="Main navigation">

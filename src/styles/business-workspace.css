@@ -1,0 +1,21 @@
+/* Navigation is shared across the private business tools, not invoice documents. */
+.billing-root .business-navigation { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.billing-root .business-primary-nav { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.billing-root .business-primary-nav button { min-height: 44px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text-warm-soft); font: inherit; font-size: .86rem; padding: 10px 14px; cursor: pointer; }
+.billing-root .business-primary-nav button:hover { background: var(--bg-warm-card); color: var(--text-warm); }
+.billing-root .business-primary-nav button.active { background: var(--accent-coral); color: #18110e; font-weight: 650; }
+.billing-root .business-secondary-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: -8px 0 24px; border-bottom: 1px solid var(--border-warm); }
+.billing-root .business-secondary-nav button { min-height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-warm-soft); font: inherit; font-size: .82rem; padding: 8px 14px 12px; cursor: pointer; }
+.billing-root .business-secondary-nav button.active { color: var(--accent-coral); border-bottom-color: var(--accent-coral); }
+.billing-root .billing-savestate-wrap { min-height: 24px; }
+.billing-root .billing-companynote { min-height: 240px; }
+.dor-admin .dor-getting-started { border: 1px solid var(--border-warm-strong); border-radius: 10px; padding: 16px 18px; margin-bottom: 20px; background: var(--bg-warm-card); }
+.dor-admin .dor-getting-started strong { color: var(--text-warm); }
+.dor-admin .dor-getting-started p { color: var(--text-warm-soft); font-size: .86rem; line-height: 1.7; margin: 6px 0 0; }
+@media (max-width: 560px) {
+  .billing-root .business-navigation { margin-bottom: 20px; gap: 6px; }
+  .billing-root .business-primary-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 6px; }
+  .billing-root .business-primary-nav button { padding: 9px 5px; font-size: .78rem; border-color: var(--border-warm); }
+  .billing-root .business-primary-nav button:last-child { grid-column: span 2; }
+  .billing-root .business-secondary-nav button { padding-left: 8px; padding-right: 8px; }
+}

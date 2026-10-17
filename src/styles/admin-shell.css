@@ -45,3 +45,50 @@
 .private-site main:focus {
   outline: none;
 }
+
+.private-site .admin-site-header {
+  height: 76px;
+  padding: 0 max(24px, calc((100vw - 1392px) / 2));
+  border-bottom: 1px solid var(--border-warm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--bg-primary);
+}
+.private-site .admin-site-header .site-wordmark {
+  font-family: var(--font-serif);
+  color: var(--text-warm);
+  font-size: 30px;
+  text-decoration: none;
+}
+.private-site .admin-view-site {
+  color: var(--text-warm-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  min-height: 44px;
+}
+.private-site main > .section { padding-top: 34px !important; padding-bottom: 64px; }
+.private-site .admin-header { align-items: flex-start; gap: 18px; margin-bottom: 20px; }
+.private-site .admin-header > div { min-width: 0; }
+.private-site .admin-header h1 { font-family: var(--font-serif); font-size: clamp(1.7rem, 3.5vw, 2.6rem); line-height: 1.2; margin: 6px 0 10px; }
+.private-site .admin-eyebrow { color: var(--accent-coral); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; margin: 0; }
+.private-site .admin-description { color: var(--text-warm-soft); font-size: .9rem; line-height: 1.6; margin: 0; }
+.private-site .admin-header > button { flex-shrink: 0; min-height: 42px; }
+.private-site .admin-main-tabs { margin-bottom: 24px; padding-bottom: 0; gap: 20px; }
+.private-site .admin-main-tab { padding: 12px 0; min-height: 44px; font-size: .88rem; }
+.private-site .admin-website-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.private-site .admin-website-tabs button { border: 1px solid var(--border-warm); border-radius: 8px; background: var(--bg-warm-card); color: var(--text-warm-soft); padding: 10px 16px; min-height: 44px; font: inherit; font-size: .85rem; cursor: pointer; }
+.private-site .admin-website-tabs button.active { border-color: var(--accent-coral); color: var(--accent-coral); }
+.private-site button:focus-visible, .private-site a:focus-visible, .private-site summary:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 4px; }
+@media (max-width: 560px) {
+  .private-site .admin-site-header { height: 64px; padding: 0 20px; }
+  .private-site main > .section { padding-top: 24px !important; }
+  .private-site .admin-header { flex-wrap: wrap; }
+  .private-site .admin-header > div { flex: 1 1 205px; }
+  .private-site .admin-description { font-size: .82rem; }
+  .private-site .admin-main-tabs { gap: 24px; }
+}

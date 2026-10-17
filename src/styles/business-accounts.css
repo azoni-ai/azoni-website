@@ -1,0 +1,64 @@
+.business-accounts { min-width: 0; color: var(--text-warm); }
+.business-accounts-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 22px; }
+.business-accounts-header h3 { font-family: var(--font-serif); font-size: 1.55rem; font-weight: 500; margin: 0; }
+.business-accounts-header p { color: var(--text-warm-muted); font-size: .84rem; line-height: 1.6; margin: 7px 0 0; }
+.business-accounts .billing-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; }
+.business-accounts .billing-btn:disabled { opacity: .5; cursor: not-allowed; }
+.business-accounts .billing-linkish { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+.business-accounts-notice { color: var(--accent-sage); font-size: .87rem; margin: 0 0 18px; }
+.business-account-editor { margin-bottom: 22px; }
+.business-account-editor h4 { font-family: var(--font-serif); font-size: 1.15rem; font-weight: 500; margin: 0; }
+.business-account-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0; }
+.business-account-full { grid-column: 1 / -1; }
+.business-accounts .billing-fld input, .business-accounts .billing-fld select { min-height: 42px; width: 100%; }
+.business-accounts .billing-fld textarea { width: 100%; }
+.business-account-errors { border-left: 3px solid var(--accent-amber); color: var(--accent-amber); padding: 8px 12px 8px 28px; font-size: .85rem; line-height: 1.6; }
+.business-account-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.business-account-search { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; min-width: 0; border: 1px solid var(--border-warm-strong); background: var(--bg-warm-card); border-radius: 8px; padding: 0 12px; color: var(--text-warm-muted); }
+.business-account-search input { width: 100%; min-width: 0; height: 42px; border: 0; outline: 0; background: transparent; color: var(--text-warm); font: inherit; font-size: .9rem; }
+.business-account-search:focus-within { outline: 2px solid var(--accent-coral); outline-offset: 1px; }
+.business-account-filters > .billing-fld { flex: 0 1 195px; }
+.business-account-pinned-filter { margin: 0; padding: 0; min-height: 42px; white-space: nowrap; }
+.business-account-result-count { font-size: .76rem; color: var(--text-warm-muted); margin: 13px 0 14px; }
+.business-account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.business-account-card.billing-card { margin-bottom: 0; min-width: 0; display: flex; flex-direction: column; }
+.business-account-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.business-account-card-head > div { min-width: 0; }
+.business-account-category { color: var(--text-warm-muted); font-size: .72rem; }
+.business-account-card h4 { font-family: var(--font-serif); font-size: 1.2rem; font-weight: 500; line-height: 1.3; margin: 6px 0 0; overflow-wrap: anywhere; }
+.business-account-pin { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; color: var(--text-warm-muted); background: transparent; border: 1px solid var(--border-warm); border-radius: 8px; cursor: pointer; }
+.business-account-pin.is-pinned { color: var(--accent-coral); border-color: color-mix(in srgb, var(--accent-coral) 45%, var(--border-warm)); background: color-mix(in srgb, var(--accent-coral) 8%, transparent); }
+.business-account-open { display: flex; align-items: center; justify-content: space-between; gap: 14px; text-decoration: none; color: var(--accent-coral); border: 1px solid var(--border-warm); border-radius: 8px; padding: 12px; margin: 18px 0; min-height: 64px; }
+.business-account-open:hover { background: var(--bg-warm-hover); border-color: var(--border-warm-strong); }
+.business-account-open > span { min-width: 0; }
+.business-account-open strong { display: block; font-size: .87rem; font-weight: 500; }
+.business-account-open small { display: block; color: var(--text-warm-muted); font-size: .73rem; margin-top: 4px; overflow-wrap: anywhere; }
+.business-account-open svg { flex-shrink: 0; }
+.business-account-field-label { display: block; color: var(--text-warm-muted); font-size: .74rem; margin-bottom: 6px; }
+.business-account-copy-row { display: flex; align-items: center; gap: 8px; }
+.business-account-copy-row input { width: 100%; min-width: 0; color: var(--text-warm); background: var(--bg-warm-hover); border: 1px solid var(--border-warm); border-radius: 7px; padding: 9px 10px; font: inherit; font-size: .85rem; min-height: 42px; }
+.business-account-copy-row .billing-btn { flex-shrink: 0; }
+.business-account-copy-status { color: var(--text-warm-soft); font-size: .76rem; line-height: 1.5; margin: 6px 0 0; }
+.business-account-copy-status:empty { display: none; }
+.business-account-add-username { font-size: .83rem; }
+.business-account-notes { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-warm-soft); font-size: .84rem; line-height: 1.65; margin: 16px 0 0; }
+.business-account-card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; padding-top: 12px; margin-top: auto; }
+.business-account-card-actions .danger { margin-left: auto; }
+.business-account-invalid { color: var(--accent-amber); font-size: .85rem; line-height: 1.6; }
+.business-account-empty { color: var(--text-warm-muted); border: 1px dashed var(--border-warm-strong); border-radius: 10px; padding: 24px; font-size: .9rem; }
+.business-account-empty p { margin: 0 0 12px; }
+.business-account-suggestions { border-top: 1px solid var(--border-warm); margin-top: 26px; padding-top: 20px; }
+.business-account-suggestions h4 { font-family: var(--font-body); font-size: .88rem; font-weight: 500; margin: 0; }
+.business-account-suggestions p { color: var(--text-warm-muted); font-size: .8rem; margin: 6px 0 12px; }
+.business-account-suggestions > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.business-account-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.business-accounts :is(a,button,input,select,textarea):focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 2px; }
+@media (max-width: 700px) { .business-account-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 450px) {
+  .business-account-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .business-account-filters > .billing-fld { flex: 1 1 150px; }
+  .business-accounts .billing-btn, .business-accounts .billing-linkish, .business-account-pin { min-height: 44px; }
+  .business-account-pin { width: 44px; }
+  .business-account-card.billing-card, .business-account-editor.billing-card { padding: 14px; }
+  .business-account-copy-row { gap: 6px; }
+}

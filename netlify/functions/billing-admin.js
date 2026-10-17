@@ -15,6 +15,7 @@
 const crypto = require('crypto');
 const admin = require('firebase-admin');
 const { validDorFields, mergeDorFilings } = require('./lib/dor-validation');
+const { validBusinessAccounts } = require('./lib/business-accounts-validation');
 
 if (!admin.apps.length && process.env.FIREBASE_PROJECT_ID) {
   admin.initializeApp({
@@ -85,7 +86,8 @@ const validShape = (d) =>
   (d.taxPayments === undefined || (Array.isArray(d.taxPayments) && d.taxPayments.length <= 5000)) &&
   (d.taxChecklist === undefined ||
     (d.taxChecklist && typeof d.taxChecklist === 'object' && !Array.isArray(d.taxChecklist) &&
-     Object.keys(d.taxChecklist).length <= 100)) && validDorFields(d);
+     Object.keys(d.taxChecklist).length <= 100)) && validDorFields(d) &&
+  (d.businessAccounts === undefined || validBusinessAccounts(d.businessAccounts));
 
 exports.handler = async (event) => {
   const headers = {
@@ -156,6 +158,9 @@ exports.handler = async (event) => {
             taxChecklist: d.taxChecklist || {},
             dorInvoiceReviews: d.dorInvoiceReviews || {},
             dorFilings: d.dorFilings || [],
+            // Absence lets the UI seed public portal links for legacy accounts.
+            // An explicit empty list means the owner removed them.
+            ...(d.businessAccounts === undefined ? {} : { businessAccounts: d.businessAccounts }),
           },
         }),
       };
@@ -202,6 +207,8 @@ exports.handler = async (event) => {
             rev: nextRev,
             updatedAt: new Date().toISOString(),
           };
+          if (data.businessAccounts !== undefined) next.businessAccounts = data.businessAccounts;
+          else if (current.businessAccounts !== undefined) next.businessAccounts = current.businessAccounts;
           if (next.dorFilings.length > 2000 || Buffer.byteLength(JSON.stringify(next), 'utf8') > MAX_BYTES) {
             const error = new Error('Data too large');
             error.code = 'BILLING_TOO_LARGE';

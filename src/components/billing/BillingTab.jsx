@@ -1,21 +1,31 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getBilling, saveBilling } from '../../utils/billingApi';
-import {
-  addDaysISO, computeStats, fmtDate, hoursFmt, invoiceDateFor, moneyWhole,
-  normalizeData, periodForDate, todayISO,
-} from './billing-lib';
+import { normalizeData } from './billing-lib';
+import BusinessOverview from './BusinessOverview';
+import BusinessAccountsSection from './BusinessAccountsSection';
 import CalendarSection from './CalendarSection';
 import TimeLogSection from './TimeLogSection';
 import InvoicesSection from './InvoicesSection';
 import ExpensesSection from './ExpensesSection';
 import TaxesSection from './TaxesSection';
 import DorSection from './DorSection';
-import { suggestedDorPeriod } from './dor-lib';
-import { waPeriods } from './tax-lib';
 import CompanySection from './CompanySection';
 import BillingSettingsSection from './BillingSettingsSection';
 import '../../styles/billing-warm.css';
 import '../../styles/dor-admin.css';
+import '../../styles/business-workspace.css';
+
+const NAV_GROUPS = [
+  { label: 'Overview', sections: ['overview'] },
+  { label: 'Work', sections: ['calendar', 'time'], labels: ['Calendar', 'Time log'] },
+  { label: 'Invoices', sections: ['invoices'] },
+  { label: 'Expenses', sections: ['expenses'] },
+  { label: 'Taxes', sections: ['dor', 'taxes'], labels: ['WA DOR', 'Planning & payments'] },
+  { label: 'Accounts', sections: ['accounts'] },
+  { label: 'Business details', sections: ['settings', 'company'], labels: ['Invoice settings & backups', 'Business notes'] },
+];
+const SECTIONS = new Set(NAV_GROUPS.flatMap((group) => group.sections));
 
 const SAVE_DEBOUNCE_MS = 1200;
 
@@ -29,12 +39,21 @@ const SAVE_LABELS = {
   error: 'Save failed',
 };
 
-const BillingTab = () => {
+const BillingTab = ({ onBeforeLeaveChange }) => {
   const [status, setStatus] = useState('loading');
   const [loadError, setLoadError] = useState('');
   const [data, setData] = useState(null);
   const [saveState, setSaveState] = useState('idle');
-  const [section, setSection] = useState('calendar');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSection = searchParams.get('section');
+  const section = SECTIONS.has(requestedSection) ? requestedSection : 'overview';
+  const setSection = (next) => {
+    if (!SECTIONS.has(next)) return;
+    const params = new URLSearchParams(searchParams);
+    if (next === 'overview') params.delete('section');
+    else params.set('section', next);
+    setSearchParams(params);
+  };
 
   const revRef = useRef(0);
   const dataRef = useRef(null);
@@ -42,11 +61,18 @@ const BillingTab = () => {
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
+  const flushWaitersRef = useRef([]);
+  const discardedRef = useRef(false);
   // An unresolved 409: only "Load latest" or "Overwrite" clears it. Tracked in
   // a ref so a keystroke's mutate() can't downgrade the banner to 'dirty' and
   // resume autosaves that are guaranteed to 409 against the stale rev.
   const conflictRef = useRef(false);
   const filingConflictRef = useRef(false);
+  const settleFlush = useCallback((saved) => {
+    const waiters = flushWaitersRef.current;
+    flushWaitersRef.current = [];
+    waiters.forEach((resolve) => resolve(saved));
+  }, []);
 
   const load = useCallback(async () => {
     // Reloading discards local changes, so drop any pending debounced save —
@@ -93,6 +119,10 @@ const BillingTab = () => {
     const snapshot = dataRef.current;
     try {
       const res = await saveBilling(snapshot, revRef.current, force);
+      if (discardedRef.current) {
+        savingRef.current = false;
+        return;
+      }
       revRef.current = res.rev;
       const editedDuringSave = pendingRef.current || dataRef.current !== snapshot;
       // The server retains filing history even after a stale-tab overwrite.
@@ -114,10 +144,14 @@ const BillingTab = () => {
       } else {
         dirtyRef.current = false;
         setSaveState('saved');
+        settleFlush(true);
       }
     } catch (e) {
       savingRef.current = false;
       pendingRef.current = false;
+      clearTimeout(timerRef.current);
+      settleFlush(false);
+      if (discardedRef.current) return;
       if (e.code === 'DOR_FILING_IMMUTABLE') {
         filingConflictRef.current = true;
         setSaveState('filing-conflict');
@@ -127,7 +161,31 @@ const BillingTab = () => {
       } else if (e.status === 401) setSaveState('auth');
       else setSaveState('error');
     }
-  }, []);
+  }, [settleFlush]);
+
+  // Admin navigation waits for the last save, including edits made while a
+  // request is in flight. Merely waiting must not queue a redundant save.
+  const beforeLeave = useCallback(({ discard = false } = {}) => {
+    clearTimeout(timerRef.current);
+    if (discard) {
+      discardedRef.current = true;
+      dirtyRef.current = false;
+      pendingRef.current = false;
+      settleFlush(false);
+      return Promise.resolve(true);
+    }
+    if (!dirtyRef.current && !savingRef.current) return Promise.resolve(true);
+    if (!savingRef.current && (conflictRef.current || filingConflictRef.current)) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      flushWaitersRef.current.push(resolve);
+      if (!savingRef.current) persist();
+    });
+  }, [persist, settleFlush]);
+
+  useEffect(() => {
+    onBeforeLeaveChange?.(beforeLeave);
+    return () => onBeforeLeaveChange?.(null);
+  }, [beforeLeave, onBeforeLeaveChange]);
 
   const scheduleSave = useCallback(() => {
     clearTimeout(timerRef.current);
@@ -162,6 +220,8 @@ const BillingTab = () => {
     (next) => {
       clearTimeout(timerRef.current);
       const normalized = normalizeData(next);
+      // An older backup has no account directory to restore; retain the current one.
+      if (next.businessAccounts === undefined) normalized.businessAccounts = dataRef.current?.businessAccounts || normalized.businessAccounts;
       // Backups can add history, but cannot rewrite an already recorded filing.
       const existing = dataRef.current?.dorFilings || [];
       const existingIds = new Set(existing.map((f) => f.id));
@@ -185,12 +245,13 @@ const BillingTab = () => {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, []);
 
-  // Flush unsaved work if the user switches admin tabs mid-edit. With a save
-  // in flight, setting pendingRef makes its completion chain persist(), which
-  // re-reads dataRef — the refs and closures outlive the component.
+  // Admin tab changes/sign-out use beforeLeave above. Keep the best-effort
+  // flush for other app navigation; explicit discard must never restart it.
   useEffect(
     () => () => {
       clearTimeout(timerRef.current);
+      settleFlush(false);
+      if (discardedRef.current) return;
       if (!dirtyRef.current || !dataRef.current) return;
       if (conflictRef.current || filingConflictRef.current) return;
       if (savingRef.current) {
@@ -199,36 +260,22 @@ const BillingTab = () => {
         saveBilling(dataRef.current, revRef.current).catch(() => {});
       }
     },
-    []
+    [settleFlush]
   );
 
   if (status === 'loading') {
-    return <div className="billing-note">Loading billing data...</div>;
+    return <div className="billing-note">Loading your business workspace...</div>;
   }
   if (status === 'error') {
     return (
       <div className="billing-note">
-        <p>Could not load billing data: {loadError}</p>
+        <p>Could not load your business workspace: {loadError}</p>
         <button className="billing-btn" onClick={load}>Retry</button>
       </div>
     );
   }
 
-  const stats = computeStats(data);
-  const dorSuggested = suggestedDorPeriod(data);
-  const dorPeriod = waPeriods(dorSuggested.year, dorSuggested.frequency).find((p) => p.key === dorSuggested.periodKey);
-  const dorSetupConfirmed = !!data.taxSettings.waFrequency && !!data.taxSettings.waBasis;
-  const dorOverride = data.taxSettings.waDueOverrides?.[dorPeriod.key];
-
-  // Current-cycle context line: period, invoice date, due date.
-  const anchor = data.settings.cycleAnchor;
-  const today = todayISO();
-  let cycleLine = null;
-  if (anchor && today >= anchor) {
-    const p = periodForDate(anchor, today);
-    const invDate = invoiceDateFor(p.end);
-    cycleLine = `Current period ${fmtDate(p.start)} to ${fmtDate(p.end)} · invoice ${fmtDate(invDate)} · due ${fmtDate(addDaysISO(invDate, data.settings.netDays || 0))}`;
-  }
+  const activeGroup = NAV_GROUPS.find((group) => group.sections.includes(section));
 
   return (
     <div className="billing-root">
@@ -254,116 +301,33 @@ const BillingTab = () => {
         </div>
       )}
 
-      <div className="billing-tiles">
-        <div className="billing-tile">
-          <div className="bt-label">Unbilled</div>
-          <div className="bt-value">{moneyWhole(stats.uAmt)}</div>
-          <div className="bt-sub">{hoursFmt(stats.uHours)} hours</div>
-        </div>
-        <div className="billing-tile">
-          <div className="bt-label">Outstanding</div>
-          <div className="bt-value">{moneyWhole(stats.oAmt)}</div>
-          <div className="bt-sub">
-            {stats.oCount} invoice{stats.oCount === 1 ? '' : 's'}
-            {stats.overdue > 0 && (
-              <span className="bt-flag"> {'⚠'} {stats.overdue} overdue</span>
-            )}
-          </div>
-        </div>
-        <div className="billing-tile">
-          <div className="bt-label">Paid in {stats.year}</div>
-          <div className="bt-value">{moneyWhole(stats.pAmt)}</div>
-          <div className="bt-sub">{stats.pCount} invoice{stats.pCount === 1 ? '' : 's'}</div>
-        </div>
-        <div className="billing-tile">
-          <div className="bt-label">Sales tax collected</div>
-          <div className="bt-value">{moneyWhole(stats.tAmt)}</div>
-          <div className="bt-sub">recorded on paid invoices, before remittances</div>
-        </div>
-        <div className="billing-tile">
-          <div className="bt-label">Expenses in {stats.year}</div>
-          <div className="bt-value">{moneyWhole(stats.xDeductible)}</div>
-          <div className="bt-sub">
-            deductible from {stats.xCount} expense{stats.xCount === 1 ? '' : 's'}
-            {stats.xTotal !== stats.xDeductible && `, ${moneyWhole(stats.xTotal)} spent`}
-          </div>
+      <div className="business-navigation">
+        <nav className="business-primary-nav" aria-label="Business sections">
+          {NAV_GROUPS.map((group) => (
+            <button key={group.label} className={group === activeGroup ? 'active' : ''}
+              aria-current={group === activeGroup ? 'page' : undefined}
+              onClick={() => setSection(group.sections.includes(section) ? section : group.sections[0])}>
+              {group.label}
+            </button>
+          ))}
+        </nav>
+        <div className="billing-savestate-wrap" aria-live="polite">
+          <span className={'billing-savestate ' + saveState}>{SAVE_LABELS[saveState]}</span>
+          {saveState === 'error' && <button className="billing-btn small" onClick={() => persist()}>Retry save</button>}
         </div>
       </div>
-
-      {cycleLine && <div className="billing-cycleline">{cycleLine}</div>}
-
-      {section !== 'dor' && (
-        <div className="billing-dor-callout">
-          <div>
-            <strong>WA DOR · {dorPeriod.label} {dorSuggested.year}</strong>
-            <p>
-              {dorSetupConfirmed ? '' : 'Preview — confirm your filing schedule and accounting basis. '}
-              {dorOverride ? `Recorded extension: ${fmtDate(dorOverride.date)}. ` : ''}
-              {dorPeriod.dueVerified ? 'Standard deadline' : 'Estimated deadline — verify with DOR'}: {fmtDate(dorPeriod.due)}.
-            </p>
-          </div>
-          <button className="billing-btn primary" onClick={() => setSection('dor')}>Prepare return</button>
-        </div>
+      {activeGroup.sections.length > 1 && (
+        <nav className="business-secondary-nav" aria-label={activeGroup.label + ' views'}>
+          {activeGroup.sections.map((key, index) => (
+            <button key={key} className={key === section ? 'active' : ''}
+              aria-current={key === section ? 'page' : undefined} onClick={() => setSection(key)}>
+              {activeGroup.labels[index]}
+            </button>
+          ))}
+        </nav>
       )}
-
-      <div className="billing-bar">
-        <div className="billing-subtabs">
-          <button
-            className={`billing-subtab ${section === 'calendar' ? 'active' : ''}`}
-            onClick={() => setSection('calendar')}
-          >
-            Calendar
-          </button>
-          <button
-            className={`billing-subtab ${section === 'time' ? 'active' : ''}`}
-            onClick={() => setSection('time')}
-          >
-            Time log
-          </button>
-          <button
-            className={`billing-subtab ${section === 'invoices' ? 'active' : ''}`}
-            onClick={() => setSection('invoices')}
-          >
-            Invoices
-          </button>
-          <button
-            className={`billing-subtab ${section === 'expenses' ? 'active' : ''}`}
-            onClick={() => setSection('expenses')}
-          >
-            Expenses
-          </button>
-          <button
-            className={`billing-subtab ${section === 'dor' ? 'active' : ''}`}
-            onClick={() => setSection('dor')}
-          >
-            WA DOR
-          </button>
-          <button
-            className={`billing-subtab ${section === 'taxes' ? 'active' : ''}`}
-            onClick={() => setSection('taxes')}
-          >
-            Tax planning
-          </button>
-          <button
-            className={`billing-subtab ${section === 'company' ? 'active' : ''}`}
-            onClick={() => setSection('company')}
-          >
-            Company
-          </button>
-          <button
-            className={`billing-subtab ${section === 'settings' ? 'active' : ''}`}
-            onClick={() => setSection('settings')}
-          >
-            Settings
-          </button>
-        </div>
-        <div className="billing-savestate-wrap">
-          <span className={`billing-savestate ${saveState}`}>{SAVE_LABELS[saveState]}</span>
-          {saveState === 'error' && (
-            <button className="billing-btn small" onClick={() => persist()}>Retry</button>
-          )}
-        </div>
-      </div>
+      {section === 'overview' && <BusinessOverview data={data} onNavigate={setSection} />}
+      {section === 'accounts' && <BusinessAccountsSection data={data} mutate={mutate} onNavigate={setSection} />}
 
       {section === 'calendar' && <CalendarSection data={data} mutate={mutate} />}
       {section === 'time' && <TimeLogSection data={data} mutate={mutate} />}

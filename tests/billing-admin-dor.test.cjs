@@ -69,6 +69,7 @@ function loadHandler(initial, { failRead = false } = {}) {
       if (name === 'crypto') return require('node:crypto');
       if (name === 'firebase-admin') return { apps: [{}], firestore };
       if (name === './lib/dor-validation') return require('../netlify/functions/lib/dor-validation');
+      if (name === './lib/business-accounts-validation') return require('../netlify/functions/lib/business-accounts-validation');
       throw new Error(`Unexpected dependency: ${name}`);
     },
   };

@@ -6,6 +6,8 @@
 // any other contract terms out of them. Real values live only in the private
 // Firestore doc.
 
+import { SEED_BUSINESS_ACCOUNTS, validateBusinessAccount } from './business-accounts-lib';
+
 export const round2 = (n) => Math.round(((n || 0) + Number.EPSILON) * 100) / 100;
 
 const moneyFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -88,6 +90,7 @@ export const defaultData = () => ({
   taxChecklist: {},
   dorInvoiceReviews: {},
   dorFilings: [],
+  businessAccounts: SEED_BUSINESS_ACCOUNTS.map(account => ({ ...account })),
 });
 
 const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
@@ -109,6 +112,8 @@ export const normalizeData = (d) => {
     taxChecklist: plainObject(d.taxChecklist) ? d.taxChecklist : {},
     dorInvoiceReviews: plainObject(d.dorInvoiceReviews) ? d.dorInvoiceReviews : {},
     dorFilings: Array.isArray(d.dorFilings) ? d.dorFilings : [],
+    businessAccounts: Array.isArray(d.businessAccounts)
+      ? d.businessAccounts.map(account => validateBusinessAccount(account).account || { ...account }) : base.businessAccounts,
   };
 };
 
@@ -317,10 +322,18 @@ export const periodCoverage = (data, p) => {
   };
 };
 
+const ACCOUNT_FIELDS = new Set(['id', 'name', 'url', 'username', 'category', 'notes', 'pinned']);
+const validBackupAccounts = accounts => Array.isArray(accounts) && accounts.length <= 100
+  && accounts.every(account => plainObject(account)
+    && Object.keys(account).every(key => ACCOUNT_FIELDS.has(key))
+    && validateBusinessAccount(account).errors.length === 0)
+  && new Set(accounts.map(account => validateBusinessAccount(account).account.id)).size === accounts.length;
+
 export const validBackup = (d) =>
   !!(d && typeof d === 'object' && !Array.isArray(d) &&
      d.settings && typeof d.settings === 'object' && !Array.isArray(d.settings) &&
-     Array.isArray(d.entries) && Array.isArray(d.invoices));
+     Array.isArray(d.entries) && Array.isArray(d.invoices) &&
+     (d.businessAccounts === undefined || validBackupAccounts(d.businessAccounts)));
 
 // Entries available to an invoice. For a new invoice that is everything
 // unbilled; when editing an existing one its own entries count as available

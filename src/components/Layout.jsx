@@ -12,7 +12,7 @@ const Layout = ({ children, hideFooter = false }) => {
       <a href="#main-content" className="skip-link">Skip to content</a>
       <Navbar />
       <main id="main-content" tabIndex={-1}>{children}</main>
-      {!hideFooter && <Footer />}
+      {!hideFooter && !isAdmin && <Footer />}
     </div>
   );
 };
