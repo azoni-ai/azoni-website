@@ -17,6 +17,7 @@ const call = async (payload) => {
   if (!res.ok) {
     const err = new Error(body.error || `billing-admin failed (${res.status})`);
     err.status = res.status;
+    if (body.code) err.code = body.code;
     if (body.rev !== undefined) err.rev = body.rev;
     throw err;
   }

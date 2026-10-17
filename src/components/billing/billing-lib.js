@@ -83,9 +83,11 @@ export const defaultData = () => ({
   recurringExpenses: [],
   // Taxes tab: planning settings, payments made to the IRS / DOR / cities,
   // and the per-year filing checklist ({ [year]: { [itemKey]: true } }).
-  taxSettings: { setAsidePct: 30, priorYearTax: 0, highIncome: false, waFrequency: '', boRate: 0.471 },
+  taxSettings: { setAsidePct: 30, priorYearTax: 0, highIncome: false, waFrequency: '', waBasis: '', waDueOverrides: {}, boRate: 0.471 },
   taxPayments: [],
   taxChecklist: {},
+  dorInvoiceReviews: {},
+  dorFilings: [],
 });
 
 const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
@@ -105,6 +107,8 @@ export const normalizeData = (d) => {
     taxSettings: { ...base.taxSettings, ...(plainObject(d.taxSettings) ? d.taxSettings : {}) },
     taxPayments: Array.isArray(d.taxPayments) ? d.taxPayments : [],
     taxChecklist: plainObject(d.taxChecklist) ? d.taxChecklist : {},
+    dorInvoiceReviews: plainObject(d.dorInvoiceReviews) ? d.dorInvoiceReviews : {},
+    dorFilings: Array.isArray(d.dorFilings) ? d.dorFilings : [],
   };
 };
 

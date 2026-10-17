@@ -9,9 +9,13 @@ import TimeLogSection from './TimeLogSection';
 import InvoicesSection from './InvoicesSection';
 import ExpensesSection from './ExpensesSection';
 import TaxesSection from './TaxesSection';
+import DorSection from './DorSection';
+import { suggestedDorPeriod } from './dor-lib';
+import { waPeriods } from './tax-lib';
 import CompanySection from './CompanySection';
 import BillingSettingsSection from './BillingSettingsSection';
 import '../../styles/billing-warm.css';
+import '../../styles/dor-admin.css';
 
 const SAVE_DEBOUNCE_MS = 1200;
 
@@ -42,6 +46,7 @@ const BillingTab = () => {
   // a ref so a keystroke's mutate() can't downgrade the banner to 'dirty' and
   // resume autosaves that are guaranteed to 409 against the stale rev.
   const conflictRef = useRef(false);
+  const filingConflictRef = useRef(false);
 
   const load = useCallback(async () => {
     // Reloading discards local changes, so drop any pending debounced save —
@@ -57,6 +62,7 @@ const BillingTab = () => {
       dataRef.current = d;
       dirtyRef.current = false;
       conflictRef.current = false;
+      filingConflictRef.current = false;
       setData(d);
       setSaveState('idle');
       setStatus('ready');
@@ -88,9 +94,20 @@ const BillingTab = () => {
     try {
       const res = await saveBilling(snapshot, revRef.current, force);
       revRef.current = res.rev;
+      const editedDuringSave = pendingRef.current || dataRef.current !== snapshot;
+      // The server retains filing history even after a stale-tab overwrite.
+      // Reconcile that canonical history without discarding edits still in flight.
+      if (Array.isArray(res.dorFilings)) {
+        const savedIds = new Set(res.dorFilings.map((f) => f.id));
+        const dorFilings = [...res.dorFilings, ...(dataRef.current.dorFilings || []).filter((f) => !savedIds.has(f.id))];
+        const next = { ...dataRef.current, dorFilings };
+        dataRef.current = next;
+        setData(next);
+      }
       conflictRef.current = false;
+      filingConflictRef.current = false;
       savingRef.current = false;
-      if (pendingRef.current || dataRef.current !== snapshot) {
+      if (editedDuringSave) {
         pendingRef.current = false;
         clearTimeout(timerRef.current);
         persist();
@@ -101,7 +118,10 @@ const BillingTab = () => {
     } catch (e) {
       savingRef.current = false;
       pendingRef.current = false;
-      if (e.status === 409) {
+      if (e.code === 'DOR_FILING_IMMUTABLE') {
+        filingConflictRef.current = true;
+        setSaveState('filing-conflict');
+      } else if (e.status === 409) {
         conflictRef.current = true;
         setSaveState('conflict');
       } else if (e.status === 401) setSaveState('auth');
@@ -122,7 +142,9 @@ const BillingTab = () => {
       dataRef.current = next;
       dirtyRef.current = true;
       setData(next);
-      if (conflictRef.current) {
+      if (filingConflictRef.current) {
+        setSaveState('filing-conflict');
+      } else if (conflictRef.current) {
         // Keep editing locally, but the banner stays and no save is scheduled
         // until the conflict is resolved one way or the other.
         setSaveState('conflict');
@@ -140,6 +162,10 @@ const BillingTab = () => {
     (next) => {
       clearTimeout(timerRef.current);
       const normalized = normalizeData(next);
+      // Backups can add history, but cannot rewrite an already recorded filing.
+      const existing = dataRef.current?.dorFilings || [];
+      const existingIds = new Set(existing.map((f) => f.id));
+      normalized.dorFilings = [...existing, ...normalized.dorFilings.filter((f) => !existingIds.has(f.id))];
       dataRef.current = normalized;
       dirtyRef.current = true;
       setData(normalized);
@@ -166,7 +192,7 @@ const BillingTab = () => {
     () => () => {
       clearTimeout(timerRef.current);
       if (!dirtyRef.current || !dataRef.current) return;
-      if (conflictRef.current) return; // a flush would just 409 against the stale rev
+      if (conflictRef.current || filingConflictRef.current) return;
       if (savingRef.current) {
         pendingRef.current = true;
       } else {
@@ -189,6 +215,10 @@ const BillingTab = () => {
   }
 
   const stats = computeStats(data);
+  const dorSuggested = suggestedDorPeriod(data);
+  const dorPeriod = waPeriods(dorSuggested.year, dorSuggested.frequency).find((p) => p.key === dorSuggested.periodKey);
+  const dorSetupConfirmed = !!data.taxSettings.waFrequency && !!data.taxSettings.waBasis;
+  const dorOverride = data.taxSettings.waDueOverrides?.[dorPeriod.key];
 
   // Current-cycle context line: period, invoice date, due date.
   const anchor = data.settings.cycleAnchor;
@@ -202,6 +232,12 @@ const BillingTab = () => {
 
   return (
     <div className="billing-root">
+      {saveState === 'filing-conflict' && (
+        <div className="billing-conflict" role="alert">
+          <span>A recorded DOR filing cannot be overwritten. Load the saved history, then record an amendment as a new filing.</span>
+          <button className="billing-btn" onClick={load}>Load latest (discards changes here)</button>
+        </div>
+      )}
       {saveState === 'conflict' && (
         <div className="billing-conflict">
           <span>
@@ -242,7 +278,7 @@ const BillingTab = () => {
         <div className="billing-tile">
           <div className="bt-label">Sales tax collected</div>
           <div className="bt-value">{moneyWhole(stats.tAmt)}</div>
-          <div className="bt-sub">from paid invoices, owed to DOR</div>
+          <div className="bt-sub">recorded on paid invoices, before remittances</div>
         </div>
         <div className="billing-tile">
           <div className="bt-label">Expenses in {stats.year}</div>
@@ -255,6 +291,20 @@ const BillingTab = () => {
       </div>
 
       {cycleLine && <div className="billing-cycleline">{cycleLine}</div>}
+
+      {section !== 'dor' && (
+        <div className="billing-dor-callout">
+          <div>
+            <strong>WA DOR · {dorPeriod.label} {dorSuggested.year}</strong>
+            <p>
+              {dorSetupConfirmed ? '' : 'Preview — confirm your filing schedule and accounting basis. '}
+              {dorOverride ? `Recorded extension: ${fmtDate(dorOverride.date)}. ` : ''}
+              {dorPeriod.dueVerified ? 'Standard deadline' : 'Estimated deadline — verify with DOR'}: {fmtDate(dorPeriod.due)}.
+            </p>
+          </div>
+          <button className="billing-btn primary" onClick={() => setSection('dor')}>Prepare return</button>
+        </div>
+      )}
 
       <div className="billing-bar">
         <div className="billing-subtabs">
@@ -283,10 +333,16 @@ const BillingTab = () => {
             Expenses
           </button>
           <button
+            className={`billing-subtab ${section === 'dor' ? 'active' : ''}`}
+            onClick={() => setSection('dor')}
+          >
+            WA DOR
+          </button>
+          <button
             className={`billing-subtab ${section === 'taxes' ? 'active' : ''}`}
             onClick={() => setSection('taxes')}
           >
-            Taxes
+            Tax planning
           </button>
           <button
             className={`billing-subtab ${section === 'company' ? 'active' : ''}`}
@@ -311,9 +367,10 @@ const BillingTab = () => {
 
       {section === 'calendar' && <CalendarSection data={data} mutate={mutate} />}
       {section === 'time' && <TimeLogSection data={data} mutate={mutate} />}
-      {section === 'invoices' && <InvoicesSection data={data} mutate={mutate} />}
+      {section === 'invoices' && <InvoicesSection data={data} mutate={mutate} onOpenDor={() => setSection('dor')} />}
       {section === 'expenses' && <ExpensesSection data={data} mutate={mutate} />}
-      {section === 'taxes' && <TaxesSection data={data} mutate={mutate} />}
+      {section === 'dor' && <DorSection data={data} mutate={mutate} />}
+      {section === 'taxes' && <TaxesSection data={data} mutate={mutate} onOpenDor={() => setSection('dor')} />}
       {section === 'company' && <CompanySection data={data} mutate={mutate} />}
       {section === 'settings' && (
         <BillingSettingsSection data={data} mutate={mutate} replaceAll={replaceAll} />

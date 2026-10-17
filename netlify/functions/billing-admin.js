@@ -14,6 +14,7 @@
 
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const { validDorFields, mergeDorFilings } = require('./lib/dor-validation');
 
 if (!admin.apps.length && process.env.FIREBASE_PROJECT_ID) {
   admin.initializeApp({
@@ -84,7 +85,7 @@ const validShape = (d) =>
   (d.taxPayments === undefined || (Array.isArray(d.taxPayments) && d.taxPayments.length <= 5000)) &&
   (d.taxChecklist === undefined ||
     (d.taxChecklist && typeof d.taxChecklist === 'object' && !Array.isArray(d.taxChecklist) &&
-     Object.keys(d.taxChecklist).length <= 100));
+     Object.keys(d.taxChecklist).length <= 100)) && validDorFields(d);
 
 exports.handler = async (event) => {
   const headers = {
@@ -153,6 +154,8 @@ exports.handler = async (event) => {
             taxSettings: d.taxSettings || {},
             taxPayments: d.taxPayments || [],
             taxChecklist: d.taxChecklist || {},
+            dorInvoiceReviews: d.dorInvoiceReviews || {},
+            dorFilings: d.dorFilings || [],
           },
         }),
       };
@@ -168,9 +171,10 @@ exports.handler = async (event) => {
       }
 
       try {
-        const rev = await db.runTransaction(async (tx) => {
+        const saved = await db.runTransaction(async (tx) => {
           const snap = await tx.get(ref);
-          const currentRev = snap.exists ? snap.data().rev || 0 : 0;
+          const current = snap.exists ? snap.data() : {};
+          const currentRev = current.rev || 0;
           if (snap.exists && Number(baseRev) !== currentRev && !force) {
             const conflict = new Error('conflict');
             conflict.code = 'BILLING_CONFLICT';
@@ -178,7 +182,11 @@ exports.handler = async (event) => {
             throw conflict;
           }
           const nextRev = currentRev + 1;
-          tx.set(ref, {
+          const taxSettings = { ...(data.taxSettings || {}) };
+          for (const key of ['waBasis', 'waDueOverrides']) {
+            if (taxSettings[key] === undefined && current.taxSettings?.[key] !== undefined) taxSettings[key] = current.taxSettings[key];
+          }
+          const next = {
             settings: data.settings,
             entries: data.entries,
             invoices: data.invoices,
@@ -186,16 +194,30 @@ exports.handler = async (event) => {
             companyNotes: data.companyNotes || '',
             expenses: data.expenses || [],
             recurringExpenses: data.recurringExpenses || [],
-            taxSettings: data.taxSettings || {},
+            taxSettings,
             taxPayments: data.taxPayments || [],
             taxChecklist: data.taxChecklist || {},
+            dorInvoiceReviews: data.dorInvoiceReviews === undefined ? current.dorInvoiceReviews || {} : data.dorInvoiceReviews,
+            dorFilings: mergeDorFilings(current.dorFilings || [], data.dorFilings || []),
             rev: nextRev,
             updatedAt: new Date().toISOString(),
-          });
-          return nextRev;
+          };
+          if (next.dorFilings.length > 2000 || Buffer.byteLength(JSON.stringify(next), 'utf8') > MAX_BYTES) {
+            const error = new Error('Data too large');
+            error.code = 'BILLING_TOO_LARGE';
+            throw error;
+          }
+          tx.set(ref, next);
+          return { rev: nextRev, dorFilings: next.dorFilings };
         });
-        return { statusCode: 200, headers, body: JSON.stringify({ rev }) };
+        return { statusCode: 200, headers, body: JSON.stringify(saved) };
       } catch (err) {
+        if (err.code === 'DOR_FILING_IMMUTABLE') {
+          return { statusCode: 409, headers, body: JSON.stringify({ error: err.message, code: err.code }) };
+        }
+        if (err.code === 'BILLING_TOO_LARGE') {
+          return { statusCode: 413, headers, body: JSON.stringify({ error: 'Data too large' }) };
+        }
         if (err.code === 'BILLING_CONFLICT') {
           return {
             statusCode: 409,
@@ -210,6 +232,6 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
   } catch (err) {
     console.error('[billing-admin]', err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Billing data could not be saved or loaded. Try again.' }) };
   }
 };

@@ -1,0 +1,89 @@
+/* WA DOR workspace: scoped to admin; invoice documents are unchanged. */
+.dor-admin { min-width: 0; max-width: 100%; }
+.dor-admin a { color: var(--accent-coral); }
+.dor-admin .billing-btn.primary { color: #18110e; }
+.dor-admin .billing-btn { min-height: 40px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.dor-admin .billing-fld input,
+.dor-admin .billing-fld select { min-height: 42px; width: 100%; }
+.dor-admin .billing-fld textarea { width: 100%; }
+.dor-admin .billing-hint { line-height: 1.6; }
+.dor-admin .billing-tablewrap { max-width: 100%; }
+.dor-admin .billing-card-head { margin-bottom: 16px; }
+.dor-admin .billing-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.dor-period-controls { display: grid; grid-template-columns: .65fr 1fr 1.5fr 1fr; gap: 12px; }
+.dor-deadline { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 0; }
+.dor-deadline > div { min-width: 0; }
+.dor-deadline > div > span { color: var(--text-warm-soft); font-size: .85rem; }
+.dor-deadline strong { display: block; font-size: 1.45rem; font-family: var(--font-serif); margin-top: 6px; }
+.dor-deadline p { font-size: .8rem; color: var(--text-warm-muted); margin: 7px 0 0; line-height: 1.6; }
+.dor-deadline .billing-pill { white-space: normal; text-align: center; }
+.dor-warning { border-left: 3px solid var(--accent-amber); padding: 10px 14px; color: var(--accent-amber); background: color-mix(in srgb, var(--accent-amber) 6%, transparent); font-size: .85rem; line-height: 1.6; margin: 14px 0; }
+.dor-setup, .dor-extension { margin-top: 14px; border-top: 1px solid var(--border-warm); padding-top: 12px; }
+.dor-admin summary { cursor: pointer; color: var(--text-warm-soft); font-size: .88rem; line-height: 1.5; padding: 6px 0; }
+.dor-setup form, .dor-extension form { padding-top: 8px; }
+.dor-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0 16px; }
+.dor-span-all { grid-column: 1 / -1; }
+.dor-inline-hint { margin-left: 12px; }
+.dor-ledger-scope { padding: 14px 18px; border: 1px solid var(--border-warm-strong); border-radius: 8px; margin-bottom: 16px; font-size: .85rem; }
+.dor-ledger-scope strong { color: var(--text-warm); }
+.dor-ledger-scope p { margin: 6px 0 0; color: var(--text-warm-soft); line-height: 1.6; }
+.dor-notice { color: var(--accent-sage); font-size: .85rem; line-height: 1.5; }
+.dor-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.dor-summary .billing-tile { min-width: 0; }
+.dor-summary .bt-value { font-size: clamp(1.15rem, 2.2vw, 1.65rem); overflow-wrap: anywhere; }
+.dor-issues { padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--accent-amber) 35%, transparent); border-radius: 8px; color: var(--text-warm-soft); font-size: .82rem; line-height: 1.6; margin: 14px 0; }
+.dor-issues > strong { color: var(--accent-amber); }
+.dor-issues ul { margin: 6px 0 0; padding-left: 18px; }
+.dor-issues li + li { margin-top: 4px; }
+.dor-cell-note { display: block; font-size: .75rem; color: var(--text-warm-muted); margin-top: 4px; line-height: 1.5; white-space: normal; }
+.dor-cell-note.dor-tax-difference { color: var(--accent-amber); }
+.dor-basis-note { margin: 0 0 14px; }
+.dor-review-table { min-width: 680px; }
+.dor-location-table { min-width: 760px; }
+.dor-review-editor { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-warm-strong); }
+.dor-review-editor h4 { font-family: var(--font-serif); font-weight: 500; font-size: 1.2rem; margin: 0; }
+.dor-admin fieldset { border: 1px solid var(--border-warm); border-radius: 8px; margin: 18px 0; padding: 8px 16px 16px; min-width: 0; }
+.dor-admin legend { color: var(--text-warm); font-size: .9rem; padding: 0 6px; }
+.dor-invoice-facts, .dor-filing-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+.dor-filing-totals { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dor-invoice-facts dt, .dor-filing-totals dt { font-size: .76rem; color: var(--text-warm-muted); line-height: 1.5; }
+.dor-invoice-facts dd, .dor-filing-totals dd { margin: 5px 0 0; font-size: 1rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.dor-filing-totals dd { font-size: 1.2rem; }
+.dor-preserve-lines { white-space: pre-line; overflow-wrap: anywhere; }
+.dor-form-actions { margin-top: 18px; }
+.dor-confirm { margin-top: 8px; line-height: 1.5; align-items: flex-start; }
+.dor-confirm input { margin-top: 3px; flex-shrink: 0; }
+.dor-form-details { border-top: 1px solid var(--border-warm); margin-top: 16px; padding-top: 10px; }
+.dor-form-content { padding: 6px 0 4px; }
+.dor-history { margin: 18px 0; }
+.dor-history-record { border: 1px solid var(--border-warm); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
+.dor-history-record > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dor-history-record > summary::before { content: '+'; color: var(--accent-coral); }
+.dor-history-record[open] > summary::before { content: '\2212'; }
+.dor-history-record > summary > span { flex: 1; }
+.dor-snapshot { margin-top: 14px; border-top: 1px solid var(--border-warm); padding-top: 8px; }
+.dor-snapshot .billing-tablewrap { margin-top: 12px; }
+.dor-payments { margin-top: 20px; }
+.dor-payments caption { text-align: left; color: var(--text-warm-soft); padding-bottom: 8px; font-size: .85rem; }
+.dor-source-links { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 20px 0; font-size: .8rem; }
+.billing-dor-callout { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; margin-bottom: 18px; border: 1px solid color-mix(in srgb, var(--accent-coral) 40%, var(--border-warm)); border-radius: 10px; background: var(--bg-warm-card); }
+.billing-dor-callout strong { color: var(--text-warm); font-size: .95rem; }
+.billing-dor-callout p { margin: 5px 0 0; color: var(--text-warm-soft); font-size: .82rem; line-height: 1.6; }
+.billing-dor-callout .billing-btn { flex-shrink: 0; min-height: 42px; }
+@media (max-width: 850px) {
+  .dor-period-controls, .dor-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dor-invoice-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .dor-admin .billing-card { padding: 14px; }
+  .dor-deadline { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .dor-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .dor-period-controls { grid-template-columns: minmax(0, 1fr); }
+  .dor-summary { gap: 8px; }
+  .dor-summary .billing-tile { padding: 12px; }
+  .dor-filing-totals { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .dor-admin fieldset { padding: 8px 12px 12px; }
+  .dor-admin .billing-btn, .dor-admin summary { min-height: 44px; }
+  .dor-inline-hint { display: block; margin: 8px 0 0; }
+  .billing-dor-callout { align-items: flex-start; flex-direction: column; gap: 12px; }
+}

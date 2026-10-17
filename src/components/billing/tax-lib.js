@@ -48,6 +48,24 @@ export const TAX_CHECKLIST = [
 const iso = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 const lastDay = (y, m) => new Date(y, m, 0).getDate();
 
+// Official filing / My DOR ACH initiation dates, not bank settlement dates.
+// https://dor.wa.gov/file-pay-taxes/filing-frequencies-due-dates/2026-eft-due-dates
+const WA_VERIFIED_DATES = {
+  '2025-12': '2026-01-26',
+  '2026-01': '2026-02-25', '2026-02': '2026-03-25', '2026-03': '2026-04-27',
+  '2026-04': '2026-05-26', '2026-05': '2026-06-25', '2026-06': '2026-07-27',
+  '2026-07': '2026-08-25', '2026-08': '2026-09-25', '2026-09': '2026-10-26',
+  '2026-10': '2026-11-25', '2026-11': '2026-12-28', '2026-12': '2027-01-25',
+  '2025-Q4': '2026-02-02', '2026-Q1': '2026-04-30', '2026-Q2': '2026-07-31',
+  '2026-Q3': '2026-11-02', '2026-Q4': '2027-02-01',
+  '2025': '2026-04-15', '2026': '2027-04-15',
+};
+const withWaDue = (period) => ({
+  ...period,
+  due: WA_VERIFIED_DATES[period.key] || period.due,
+  dueVerified: Object.prototype.hasOwnProperty.call(WA_VERIFIED_DATES, period.key),
+});
+
 // Due dates that land on a weekend move to Monday. Federal holidays can push
 // a date one more day; the tables say so.
 export const rollWeekend = (s) => {
@@ -80,13 +98,13 @@ export const waPeriods = (year, frequency) => {
       const m = i + 1;
       const ny = m === 12 ? y + 1 : y;
       const nm = m === 12 ? 1 : m + 1;
-      return {
+      return withWaDue({
         key: `${y}-${String(m).padStart(2, '0')}`,
         label: parseISO(iso(y, m, 1)).toLocaleDateString('en-US', { month: 'short' }),
         start: iso(y, m, 1),
         end: iso(y, m, lastDay(y, m)),
         due: rollWeekend(iso(ny, nm, 25)),
-      };
+      });
     });
   }
   if (frequency === 'quarterly') {
@@ -95,17 +113,17 @@ export const waPeriods = (year, frequency) => {
       const em = sm + 2;
       const ny = q === 4 ? y + 1 : y;
       const nm = q === 4 ? 1 : em + 1;
-      return {
+      return withWaDue({
         key: `${y}-Q${q}`,
         label: `Q${q}`,
         start: iso(y, sm, 1),
         end: iso(y, em, lastDay(y, em)),
         due: rollWeekend(iso(ny, nm, lastDay(ny, nm))),
-      };
+      });
     });
   }
   if (frequency === 'annual') {
-    return [{ key: `${y}`, label: String(y), start: iso(y, 1, 1), end: iso(y, 12, 31), due: rollWeekend(iso(y + 1, 4, 15)) }];
+    return [withWaDue({ key: `${y}`, label: String(y), start: iso(y, 1, 1), end: iso(y, 12, 31), due: rollWeekend(iso(y + 1, 4, 15)) })];
   }
   return [];
 };

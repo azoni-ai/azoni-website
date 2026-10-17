@@ -13,7 +13,7 @@ const StatusPill = ({ inv }) => {
   return <span className="billing-pill">Draft</span>;
 };
 
-const InvoicesSection = ({ data, mutate }) => {
+const InvoicesSection = ({ data, mutate, onOpenDor }) => {
   const [view, setView] = useState({ mode: 'list', id: null });
   const [draft, setDraft] = useState(null);
 
@@ -423,6 +423,7 @@ const InvoicesSection = ({ data, mutate }) => {
               <button className="billing-btn primary" onClick={() => printInvoice(inv)}>
                 Print / save PDF
               </button>
+              {onOpenDor && <button className="billing-btn" onClick={onOpenDor}>DOR worksheet</button>}
               <button className="billing-btn danger" onClick={() => removeInvoice(inv)}>
                 Delete
               </button>
@@ -510,7 +511,10 @@ const InvoicesSection = ({ data, mutate }) => {
     <div className="billing-card">
       <div className="billing-card-head">
         <h3>Invoices</h3>
-        <button className="billing-btn primary" onClick={openNew}>New invoice</button>
+        <div className="billing-actions">
+          {onOpenDor && <button className="billing-btn" onClick={onOpenDor}>DOR worksheet</button>}
+          <button className="billing-btn primary" onClick={openNew}>New invoice</button>
+        </div>
       </div>
       {invoices.length ? (
         <div className="billing-tablewrap">

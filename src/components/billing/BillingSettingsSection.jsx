@@ -84,6 +84,8 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
       taxSettings: data.taxSettings,
       taxPayments: data.taxPayments,
       taxChecklist: data.taxChecklist,
+      dorInvoiceReviews: data.dorInvoiceReviews,
+      dorFilings: data.dorFilings,
     };
     mutate((d) => ({ ...d, settings: { ...d.settings, lastBackup: today } }));
     downloadFile(`azoni-billing-backup-${today}.json`, JSON.stringify(snapshot, null, 2));
@@ -96,7 +98,7 @@ const BillingSettingsSection = ({ data, mutate, replaceAll }) => {
         const parsed = JSON.parse(reader.result);
         if (!validBackup(parsed)) throw new Error('bad shape');
         if (!window.confirm(
-          'Replace ALL billing data on the server with this backup? Export a backup of the current data first if unsure.'
+          'Replace billing data with this backup? Existing recorded DOR filings will be retained as history. Export a backup of the current data first if unsure.'
         )) return;
         // Pass the whole backup through — replaceAll normalizes, and cherry-
         // picking keys here once silently dropped dayNotes/companyNotes.

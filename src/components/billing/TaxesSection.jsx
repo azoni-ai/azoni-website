@@ -1,30 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { downloadFile, expensesCsv, fmtDate, money, todayISO, uid } from './billing-lib';
 import {
-  STATUS_LABEL, STATUS_PILL, TAX_AGENCIES, TAX_CHECKLIST, WA_FREQUENCIES, agencyLabel,
+  TAX_AGENCIES, TAX_CHECKLIST, agencyLabel,
   federalQuarters, federalRows, fmtRange, incomeCsv, safeHarborAnnual, taxPaymentsCsv,
-  taxYearSummary, taxYears, waPeriods, waRows,
+  taxYearSummary, taxYears, waPeriods,
 } from './tax-lib';
 
 const CUSTOM = '__custom';
-
-const StatusPill = ({ status }) => (
-  <span className={`billing-pill ${STATUS_PILL[status] || ''}`}>{STATUS_LABEL[status]}</span>
-);
 
 const emptyPayment = () => ({
   date: todayISO(), agency: 'irs', period: '', periodCustom: '', amount: '', confirmation: '', note: '',
 });
 
-const flattenSettings = (ts) => ({
+const flattenSettings = (ts = {}) => ({
   setAsidePct: ts.setAsidePct ?? 30,
   priorYearTax: ts.priorYearTax ?? 0,
   highIncome: !!ts.highIncome,
-  waFrequency: ts.waFrequency || '',
-  boRate: ts.boRate ?? 0.471,
 });
 
-const TaxesSection = ({ data, mutate }) => {
+const TaxesSection = ({ data, mutate, onOpenDor }) => {
   const [year, setYear] = useState(() => String(new Date().getFullYear()));
   const [form, setForm] = useState(emptyPayment);
   const [editingId, setEditingId] = useState(null);
@@ -38,8 +32,7 @@ const TaxesSection = ({ data, mutate }) => {
   const years = useMemo(() => taxYears(data), [data]);
   const summary = useMemo(() => taxYearSummary(data, year), [data, year]);
   const fed = useMemo(() => federalRows(data, year), [data, year]);
-  const wa = useMemo(() => waRows(data, year), [data, year]);
-  const harbor = safeHarborAnnual(data.taxSettings);
+  const priorYearBenchmark = safeHarborAnnual(data.taxSettings);
   const pct = Number(data.taxSettings.setAsidePct) || 0;
 
   const payments = useMemo(
@@ -156,8 +149,6 @@ const TaxesSection = ({ data, mutate }) => {
         setAsidePct: Math.min(100, Math.max(0, Number(settings.setAsidePct) || 0)),
         priorYearTax: Math.max(0, Number(settings.priorYearTax) || 0),
         highIncome: !!settings.highIncome,
-        waFrequency: WA_FREQUENCIES.some((f) => f.key === settings.waFrequency) ? settings.waFrequency : '',
-        boRate: Math.max(0, Number(settings.boRate) || 0),
       },
     }));
     setSettingsDirty(false);
@@ -172,7 +163,7 @@ const TaxesSection = ({ data, mutate }) => {
     <>
       <div className="billing-card">
         <div className="billing-card-head">
-          <h3>Tax year {year}</h3>
+          <h3>Cash activity overview, {year}</h3>
           <div className="billing-actions">
             <select value={year} onChange={(e) => setYear(e.target.value)}>
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -207,40 +198,36 @@ const TaxesSection = ({ data, mutate }) => {
                 <td className="num">{money(summary.gross)}</td>
               </tr>
               <tr>
-                <td>Deductible expenses</td>
+                <td>Tracked deductible expenses</td>
                 <td className="num">{money(summary.deductible)}</td>
               </tr>
               <tr className="strong">
-                <td>Net profit (Schedule C)</td>
+                <td>Net from recorded activity</td>
                 <td className="num">{money(summary.net)}</td>
               </tr>
               <tr>
-                <td>Set aside for federal at {pct}%</td>
+                <td>Annual reserve estimate at {pct}%</td>
                 <td className="num">{money(summary.setAside)}</td>
               </tr>
               <tr>
-                <td>Federal estimates paid</td>
+                <td>Federal payments recorded</td>
                 <td className="num">{money(summary.fedPaid)}</td>
               </tr>
               <tr className="strong">
-                <td>Still to pay the IRS, roughly</td>
+                <td>Remaining planning reserve</td>
                 <td className="num">{money(summary.remaining)}</td>
               </tr>
               <tr>
-                <td>Sales tax collected, owed to DOR</td>
+                <td>Sales tax recorded on paid invoices</td>
                 <td className="num">{money(summary.salesTax)}</td>
               </tr>
               <tr>
-                <td>Retailing B&amp;O estimate, before the small business credit</td>
-                <td className="num">{money(summary.bo)}</td>
-              </tr>
-              <tr>
-                <td>Paid to WA DOR</td>
+                <td>WA DOR payments recorded</td>
                 <td className="num">{money(summary.waPaid)}</td>
               </tr>
               {summary.cityPaid > 0 && (
                 <tr>
-                  <td>Paid to Seattle and Kent</td>
+                  <td>Seattle and Kent payments recorded</td>
                   <td className="num">{money(summary.cityPaid)}</td>
                 </tr>
               )}
@@ -248,26 +235,25 @@ const TaxesSection = ({ data, mutate }) => {
           </table>
         </div>
         <p className="billing-hint">
-          Cash basis: income counts when the invoice is marked paid, expenses on their date.
-          Gross receipts leave out sales tax, which is DOR's money passing through.
-          The annual return (Form 1040 with Schedule C and SE) is due {fmtDate(`${Number(year) + 1}-04-15`)}.
+          This overview uses the paid date on invoices marked paid and the date on each tracked expense.
+          Gross receipts exclude recorded sales tax. Partial payments, other income, and adjustments
+          need separate reconciliation. The reserve is a planning estimate, not your tax liability.
         </p>
       </div>
 
       <div className="billing-card">
-        <h3>Federal estimated payments, {year}</h3>
+        <h3>Federal payment planning, {year}</h3>
         <div className="billing-tablewrap">
           <table className="billing-table">
             <thead>
               <tr>
                 <th>Period</th>
-                <th>Due</th>
-                <th className="num">Received</th>
-                <th className="num">Net</th>
-                <th className="num">Rough ({pct}%)</th>
-                {harbor > 0 && <th className="num">Safe harbor</th>}
-                <th className="num">Paid</th>
-                <th></th>
+                <th>Scheduled deadline</th>
+                <th className="num">Recorded receipts</th>
+                <th className="num">Recorded net</th>
+                <th className="num">Period reserve ({pct}%)</th>
+                {priorYearBenchmark > 0 && <th className="num">Prior-year benchmark / 4</th>}
+                <th className="num">Payments recorded</th>
               </tr>
             </thead>
             <tbody>
@@ -278,82 +264,48 @@ const TaxesSection = ({ data, mutate }) => {
                   <td className="num">{money(r.gross)}</td>
                   <td className="num">{money(r.net)}</td>
                   <td className="num">{money(r.rough)}</td>
-                  {harbor > 0 && <td className="num">{money(r.safe)}</td>}
+                  {priorYearBenchmark > 0 && <td className="num">{money(r.safe)}</td>}
                   <td className="num">{money(r.paid)}</td>
-                  <td><StatusPill status={r.status} /></td>
                 </tr>
               ))}
               <tr className="billing-dayhead">
-                <td colSpan={2}>Total</td>
+                <td colSpan={2}>Period totals</td>
                 <td className="num">{money(fedTotals.gross)}</td>
                 <td className="num">{money(fedTotals.net)}</td>
                 <td className="num">{money(fedTotals.rough)}</td>
-                {harbor > 0 && <td className="num">{money(harbor)}</td>}
+                {priorYearBenchmark > 0 && <td className="num">{money(priorYearBenchmark)}</td>}
                 <td className="num">{money(fedTotals.paid)}</td>
-                <td></td>
               </tr>
             </tbody>
           </table>
         </div>
         <p className="billing-hint">
-          Rough is net profit received in the period times the set-aside rate.
-          {harbor > 0
-            ? ' Safe harbor is a quarter of last year\'s tax; paying the lower of the two by each due date avoids the underpayment penalty.'
-            : ' Enter last year\'s total tax in the settings below to see the safe-harbor amount.'}
-          {' '}Pay at IRS Direct Pay, reason "Estimated tax", form 1040-ES, tax year {year}, then record it below.
-          A federal holiday can move a due date by a day.
+          Each period reserve is positive recorded net times your chosen percentage; a loss gives a zero reserve.
+          {priorYearBenchmark > 0
+            ? ` The benchmark is ${data.taxSettings.highIncome ? '110%' : '100%'} of the entered prior-year tax, divided into four equal amounts.`
+            : ' Enter prior-year total tax below to display a comparison benchmark.'}
+          {' '}These figures do not calculate required payments or establish protection from underpayment penalties.
+          Withholding, credits, total tax, eligibility, and payment timing affect your requirements.
+          {' '}Confirm amounts and deadlines, including holidays, with{' '}
+          <a href="https://www.irs.gov/faqs/estimated-tax" target="_blank" rel="noopener noreferrer">IRS guidance</a>
+          {' '}or your tax preparer, then record payments below.
         </p>
       </div>
 
       <div className="billing-card">
-        <h3>Washington excise returns, {year}</h3>
-        {wa.length ? (
-          <>
-            <div className="billing-tablewrap">
-              <table className="billing-table">
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Due</th>
-                    <th className="num">Gross</th>
-                    <th className="num">Sales tax</th>
-                    <th className="num">B&amp;O est.</th>
-                    <th className="num">Remitted</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {wa.map((r) => (
-                    <tr key={r.key}>
-                      <td className="nowrap">{r.label} · {fmtRange(r.start, r.end)}</td>
-                      <td className="nowrap">{fmtDate(r.due)}</td>
-                      <td className="num">{money(r.gross)}</td>
-                      <td className="num">{money(r.salesTax)}</td>
-                      <td className="num">{money(r.bo)}</td>
-                      <td className="num">{money(r.paid)}</td>
-                      <td><StatusPill status={r.status} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="billing-hint">
-              File the Combined Excise Tax Return in My DOR. Report the gross under Retailing B&amp;O,
-              retail sales tax, and local sales tax, since custom software and customization of
-              prewritten software are retail sales in Washington. A period with nothing received
-              still needs a no-business return.
-            </p>
-          </>
-        ) : (
-          <p className="billing-hint">
-            Set your DOR filing frequency in the settings below. It is in My DOR under the
-            business account, assigned when the UBI was registered.
-          </p>
+        <h3>Washington DOR filing workspace</h3>
+        <p className="billing-hint">
+          Review invoice tax, sourcing locations, B&amp;O classifications, and recorded filings in the DOR tab.
+          Confirm your assigned filing frequency and reporting basis there before preparing a return.
+        </p>
+        {onOpenDor && (
+          <button type="button" className="billing-btn primary" onClick={onOpenDor}>Open DOR worksheet</button>
         )}
       </div>
 
       <div className="billing-card">
         <h3>{editingId ? 'Edit payment' : 'Record a payment'}</h3>
+        <p className="billing-hint">Payment records track transfers. They do not confirm that a return was filed or that all tax has been paid.</p>
         <form onSubmit={submit}>
           <div className="billing-frow">
             <label className="billing-fld">
@@ -455,39 +407,30 @@ const TaxesSection = ({ data, mutate }) => {
 
       <form onSubmit={saveSettings}>
         <div className="billing-card">
-          <h3>Tax settings</h3>
+          <h3>Federal planning settings</h3>
           <div className="billing-frow">
             <label className="billing-fld pct">
-              <span>Set aside (%)</span>
+              <span>Planning reserve (%)</span>
               <input type="number" step="1" min="0" max="100" value={settings.setAsidePct} onChange={setS('setAsidePct')} />
             </label>
             <label className="billing-fld amt">
-              <span>Last year's total tax ($)</span>
+              <span>Prior-year total tax for comparison ($)</span>
               <input type="number" step="1" min="0" value={settings.priorYearTax} onChange={setS('priorYearTax')} />
             </label>
             <label className="billing-check">
               <input type="checkbox" checked={settings.highIncome} onChange={setS('highIncome')} />
-              last year's AGI was over $150k
+              Use the 110% prior-year benchmark
             </label>
           </div>
           <div className="billing-frow" style={{ marginTop: '10px' }}>
-            <label className="billing-fld grow">
-              <span>WA DOR filing frequency</span>
-              <select value={settings.waFrequency} onChange={setS('waFrequency')}>
-                {WA_FREQUENCIES.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-              </select>
-            </label>
-            <label className="billing-fld pct">
-              <span>B&amp;O rate (%)</span>
-              <input type="number" step="0.001" min="0" value={settings.boRate} onChange={setS('boRate')} />
-            </label>
             <button className="billing-btn primary" type="submit">Save</button>
             {settingsDirty && <span className="billing-hint">Unapplied edits.</span>}
           </div>
           <p className="billing-hint">
-            Set aside covers self-employment tax plus income tax; 25 to 30 percent of net profit is
-            the usual range. Total tax is the "total tax" line on last year's 1040. Retailing B&amp;O
-            is 0.471 percent; the small business credit usually removes most of it at this size.
+            These settings are shared across years; verify the entered prior-year tax for the year you are viewing.
+            The 110% prior-year rule generally applies when prior-year AGI exceeded $150,000
+            ($75,000 if married filing separately). A chosen reserve percentage is for budgeting;
+            it does not calculate income or self-employment tax.
           </p>
         </div>
       </form>
