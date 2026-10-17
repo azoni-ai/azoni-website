@@ -1,0 +1,41 @@
+/* The contact flow stays email-first, including a browser and copy fallback. */
+.az-contact { padding-top: 150px; padding-bottom: 54px; }
+.az-contact-heading { max-width: 700px; margin-bottom: 54px; }
+.az-contact-heading .consult-eyebrow { color: var(--accent-coral); }
+.az-contact-heading h1 { font-size: clamp(42px, 5vw, 66px); line-height: 1.08; font-weight: 500; letter-spacing: -.055em; }
+.az-contact-heading h1 span { color: var(--accent-coral); }
+.az-contact-heading > p:last-child { font-size: 18px; line-height: 1.7; color: var(--text-warm-soft); max-width: 560px; margin-top: 25px; }
+.az-contact-main { display: grid; grid-template-columns: 1.2fr 1fr; gap: 72px; padding-block: 38px 44px; border-block: 1px solid var(--border-warm-strong); }
+.az-contact-main h2 { font-size: 17px; font-weight: 500; letter-spacing: -.02em; }
+.az-contact-address { display: inline-block; font-size: clamp(22px, 2.7vw, 31px); letter-spacing: -.035em; color: var(--accent-coral); margin-block: 15px 25px; overflow-wrap: anywhere; }
+.az-contact-address:hover { text-decoration: underline; text-underline-offset: 6px; }
+.az-contact-actions { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; }
+.az-contact-copy { color: var(--text-warm-soft); display: inline-flex; align-items: center; gap: 9px; font: inherit; font-size: 12px; min-height: 44px; padding-block: 8px; }
+.az-contact-copy:hover { color: var(--text-warm); }
+.az-contact-status { color: var(--accent-coral); font-size: 12px; margin-top: 8px; min-height: 22px; }
+.az-contact-alternatives { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; color: var(--text-warm-soft); font-size: 12px; margin-top: 12px; }
+.az-contact-alternatives > p { width: 100%; font-size: 11px; color: var(--text-warm-muted); }
+.az-contact-alternatives a { display: inline-flex; align-items: center; gap: 9px; min-height: 36px; }
+.az-contact-alternatives a:hover { color: var(--accent-coral); }
+.az-contact-start { border-left: 1px solid var(--border-warm); padding-left: 36px; }
+.az-contact-start > p { max-width: 370px; color: var(--text-warm-soft); font-size: 14px; line-height: 1.8; margin-top: 18px; }
+.az-contact-start .az-contact-welcome { color: var(--text-warm-muted); font-size: 12px; margin-top: 25px; }
+.az-contact-more { display: flex; align-items: center; justify-content: space-between; gap: 45px; padding-top: 37px; }
+.az-contact-more h2 { font-size: 18px; font-weight: 500; letter-spacing: -.02em; }
+.az-contact-more p { color: var(--text-warm-soft); font-size: 13px; max-width: 490px; margin-top: 11px; }
+.az-contact-more-links { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.az-contact-more-links a { display: flex; justify-content: space-between; align-items: center; gap: 24px; color: var(--accent-coral); padding-block: 10px; font-size: 12px; }
+.az-contact-more-links a:hover { text-decoration: underline; text-underline-offset: 5px; }
+@media (max-width: 900px) {
+  .az-contact { padding-top: 124px; padding-bottom: 40px; }
+  .az-contact-heading { margin-bottom: 35px; }
+  .az-contact-heading h1 { font-size: clamp(37px, 8.7vw, 56px); }
+  .az-contact-heading > p:last-child { font-size: 16px; }
+  .az-contact-main { gap: 30px; grid-template-columns: 1fr; padding-block: 27px; }
+  .az-contact-start { border-left: 0; border-top: 1px solid var(--border-warm); padding: 24px 0 0; }
+  .az-contact-start > p { max-width: 540px; margin-top: 13px; }
+  .az-contact-start .az-contact-welcome { margin-top: 17px; }
+  .az-contact-more { flex-direction: column; align-items: flex-start; gap: 20px; padding-top: 28px; }
+  .az-contact-more-links { flex-direction: row; flex-wrap: wrap; gap: 5px 28px; }
+  .az-contact-more-links a { gap: 12px; }
+}

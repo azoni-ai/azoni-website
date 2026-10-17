@@ -52,7 +52,7 @@ const ProjectDetail = () => {
       <Seo title={project.title} description={story ? story.headline + ' ' + story.outcome : project.description || project.tagline} path={'/projects/' + id} />
       <div className="project-detail-page">
         <div className="project-detail-inner">
-          <nav className="project-detail-nav" aria-label="Work breadcrumb"><Link to="/projects" className="project-detail-back"><span aria-hidden="true">&larr;</span> All projects</Link><span>{project.archived ? 'Earlier work' : 'Independent product'}</span></nav>
+          <nav className="project-detail-nav" aria-label="Work breadcrumb"><Link to="/projects" className="project-detail-back"><span aria-hidden="true">&larr;</span> All work</Link><span>{project.archived ? 'Earlier work' : 'Independent product'}</span></nav>
           <header className="project-detail-header">
             <p className="project-detail-eyebrow">{story?.label || 'Product & engineering'}</p>
             <h1 className="project-detail-title">{project.title}</h1>
@@ -72,7 +72,7 @@ const ProjectDetail = () => {
           {businessSections ? businessSections.map((section) => <DetailSection key={section.heading} section={section} />) : cs?.sections ? cs.sections.map((section) => <DetailSection key={section.heading} section={section} />) : <DetailSection section={{ heading: 'Overview', body: project.longDescription || project.description }} />}
 
           {story ? (
-            <details className="project-implementation" open>
+            <details className="project-implementation">
               <summary>Inside the implementation <span aria-hidden="true">+</span></summary>
               <div className="project-implementation-content">
                 {cs?.sections ? cs.sections.map((section) => <DetailSection key={section.heading} section={section} />) : <DetailSection section={{ heading: 'Engineering approach', body: project.longDescription }} />}

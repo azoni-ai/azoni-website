@@ -68,19 +68,19 @@ Players log matches, browse hero-level performance, compare matchup win rates, a
   },
   {
     id: 'embedroute',
-    metric: { value: '4', label: 'providers, one key' },
+    metric: { value: '1 API', label: 'multiple providers' },
     title: 'EmbedRoute',
-    tagline: 'Embedding API gateway with one key for four providers.',
-    description: 'Embedding API gateway. One key for four providers, with a drop-in OpenAI-compatible endpoint.',
-    longDescription: `Every RAG project I built repeated the same embedding wrapper, provider switch, and usage logger. I pulled them out into EmbedRoute so I'd stop rewriting them.
+    tagline: 'One embedding API, multiple providers, and a model-comparison lab.',
+    description: 'An OpenAI-compatible gateway for embedding providers, with a lab to compare models using your own data.',
+    longDescription: `Every retrieval project needed another embedding integration. I built EmbedRoute to put multiple providers behind one OpenAI-compatible interface.
 
-The endpoint is OpenAI-compatible, so it drops into existing SDK code. It routes to OpenAI, Voyage, Cohere, or Mistral, caches duplicate requests, logs cost per call, and scopes usage per API key. Switching models is a config change instead of a redeploy.`,
+The gateway routes requests using your own provider keys. The Lab lets you compare embedding models on your own data, so you can explore retrieval quality before choosing an integration.`,
     tech: ['Next.js', 'TypeScript', 'Supabase', 'PostgreSQL', 'Netlify'],
     highlights: [
       'OpenAI-compatible endpoint, drops into existing SDK code',
-      'Supabase auth with per-key usage scoping and a PostgreSQL request log',
-      'Provider routing with dedup caching to reduce cost',
-      'Powers the azoni.ai chatbot and Old Ways Today'
+      'Bring your own provider keys for stateless routing',
+      'Compare embedding models using your own data in the Lab',
+      'A common interface for retrieval integrations'
     ],
     links: {
       live: 'https://www.embedroute.com',
@@ -92,16 +92,16 @@ The endpoint is OpenAI-compatible, so it drops into existing SDK code. It routes
   },
   {
     id: 'azoni-mcp',
-    metric: { value: '37', label: 'tools across 9 domains' },
+    metric: { value: '1', label: 'shared tool API' },
     title: 'Azoni MCP Server',
     tagline: 'Shared tool server the agents call for data.',
-    description: 'One server holding the tools my agents use: 37 tools across 9 domains, behind auth and rate limits.',
+    description: 'One server holding the tools my agents use, organized by domain and protected by authentication and rate limits.',
     longDescription: `Every agent I run calls this MCP server for data. It exposes activity logs, per-app health, analytics, and action execution behind one authenticated API.
 
 Grouped by domain (fitness, gaming, content, ops), with auth and rate limits on every route. Chat and autonomous workflows hit the same endpoints, so logging is in one place. Hosted on Render, called from Netlify Functions and the Moltbook agent.`,
     tech: ['Node.js', 'Express', 'Firebase Admin', 'Render', 'REST'],
     highlights: [
-      '37 tools across 9 domains',
+      'Shared tools organized by product domain',
       'Auth and rate limits on every route',
       'One place to see what every agent has done',
       'Hosted on Render; called by my other agents'
@@ -118,8 +118,6 @@ Grouped by domain (fitness, gaming, content, ops), with auth and rate limits on 
       timeline: '2024 – present',
       stack: 'Node.js · Express · Firebase Admin · Render',
       metrics: [
-        { value: '37', label: 'tools' },
-        { value: '9', label: 'domains' },
         { value: '1', label: 'shared API' },
       ],
       sections: [
@@ -147,7 +145,7 @@ Grouped by domain (fitness, gaming, content, ops), with auth and rate limits on 
         },
         {
           heading: 'Outcomes',
-          body: `37 tools across 9 domains behind one authenticated, rate-limited API that all my agents call. It's internal infrastructure rather than a public app, and the logging is how I know what the agents are doing.`,
+          body: `A shared set of tools behind one authenticated, rate-limited API that my agents call. The activity logs let me see what the agents are doing across products.`,
         },
         {
           heading: 'What I’d do differently',

@@ -1,108 +1,102 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, ArrowUpRight, Search, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import ProductCard from '../components/ProductCard';
 import { useProjects } from '../hooks/useProjects';
 import useProductMetrics from '../hooks/useProductMetrics';
+import { selectedWorkIds, workStories } from '../data/workStories';
 import { timeAgo } from '../utils/boardStatus';
-import '../styles/projects-warm.css';
 import '../styles/products-warm.css';
+import '../styles/projects-warm.css';
 
-const Projects = () => {
-  const {
-    projects: filteredProjects,
-    categories,
-    activeCategory,
-    changeCategory,
-    loading,
-  } = useProjects('all');
-
+export default function Projects() {
+  const { projects, allProjects, categories, activeCategory, changeCategory, loading } = useProjects('all');
   const productMetrics = useProductMetrics();
-  const metricsMap = useMemo(() => productMetrics?.map || {}, [productMetrics]);
-
-  // Live products up top (sorted by recent traffic), archived work below.
-  const { live, archived } = useMemo(() => {
-    const liveList = filteredProjects.filter((p) => !p.archived);
-    const archivedList = filteredProjects.filter((p) => p.archived);
-    liveList.sort((a, b) => {
-      const av = metricsMap[a.id]?.visitors7d || 0;
-      const bv = metricsMap[b.id]?.visitors7d || 0;
-      if (av !== bv) return bv - av;
-      if (a.featured !== b.featured) return b.featured ? 1 : -1;
-      return (a.displayOrder ?? 999) - (b.displayOrder ?? 999);
-    });
-    return { live: liveList, archived: archivedList };
-  }, [filteredProjects, metricsMap]);
+  const [query, setQuery] = useState('');
+  const collectionRef = useRef(null);
+  const selected = selectedWorkIds.map((id) => allProjects.find((project) => project.id === id)).filter(Boolean);
+  const visibleProjects = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return projects.filter((project) => !term || [project.title, project.tagline, project.description, ...(project.tech || [])].join(' ').toLowerCase().includes(term));
+  }, [projects, query]);
+  const current = visibleProjects.filter((project) => !project.archived);
+  const earlier = visibleProjects.filter((project) => project.archived);
+  const updatedAt = productMetrics?.updatedAt ? new Date(productMetrics.updatedAt).getTime() : null;
+  const reset = () => { setQuery(''); changeCategory('all'); };
+  const renderProject = (project) => <ProductCard key={project.id} project={project} metrics={productMetrics?.map?.[project.id]} />;
 
   return (
     <Layout>
-      <Seo
-        title="Projects"
-        description="Every product I run, with live traffic and status: FaB Stats, EmbedRoute, an agent stack, and 15+ apps."
-        path="/projects"
-      />
+      <Seo title="Work" description="Selected software, AI systems, and data products designed, built, and operated by Charlton Smith at Azoni." path="/projects" />
       <div className="projects-page">
         <div className="projects-page-inner">
           <header className="projects-page-header">
-            <h1 className="projects-heading">Projects</h1>
-            <p className="projects-tagline">
-              Every product I run, with live traffic and status. Click any card for the details.
-            </p>
-            {productMetrics?.updatedAt && (
-              <p className="projects-metrics-note">
-                Metrics updated {timeAgo(new Date(productMetrics.updatedAt).getTime())} ago
-              </p>
-            )}
+            <p className="projects-eyebrow">Selected work</p>
+            <h1 className="projects-heading">Ideas into<br /><span>working software.</span></h1>
+            <p className="projects-tagline">A closer look at the products, AI systems, and data workflows I design, build, and operate.</p>
+            <a href="#project-collection" className="projects-collection-link" onClick={() => { collectionRef.current.open = true; }}>Explore the full collection <ArrowRight size={16} /></a>
           </header>
 
-          {categories && Object.keys(categories).length > 0 && (
-            <nav className="projects-filters" aria-label="Filter projects">
-              {Object.entries(categories).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => changeCategory(key)}
-                  className={`projects-filter${activeCategory === key ? ' is-active' : ''}`}
-                  aria-pressed={activeCategory === key}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-          )}
-
-          {loading ? (
-            <p className="projects-status">Loading projects&hellip;</p>
-          ) : (
-            <>
-              {live.length > 0 && (
-                <div className="product-grid">
-                  {live.map((project) => (
-                    <ProductCard key={project.id} project={project} metrics={metricsMap[project.id]} />
-                  ))}
+          <section className="projects-selected" aria-labelledby="projects-selected-heading">
+            <div className="projects-section-heading">
+              <h2 id="projects-selected-heading">Built and in use.</h2>
+              <p>These are my own products. Each one shows how I approach a different engineering problem.</p>
+            </div>
+            {selected.map((project, index) => {
+              const story = workStories[project.id];
+              return <article key={project.id} className="projects-story">
+                <div className="projects-story-identity">
+                  <p className="projects-story-label"><span>{String(index + 1).padStart(2, '0')}</span>{story.label}</p>
+                  <h3><Link to={`/projects/${project.id}`}>{project.title}</Link></h3>
+                  <p className="projects-story-role">{story.role}</p>
                 </div>
-              )}
-
-              {archived.length > 0 && (
-                <>
-                  <h2 className="projects-archive-heading">Earlier work</h2>
-                  <div className="product-grid">
-                    {archived.map((project) => (
-                      <ProductCard key={project.id} project={project} metrics={metricsMap[project.id]} />
-                    ))}
+                <div className="projects-story-body">
+                  <p className="projects-story-headline">{story.headline}</p>
+                  <p className="projects-story-description">{story.approach}</p>
+                  <p className="projects-story-outcome">{story.outcome}</p>
+                  <div className="projects-story-links">
+                    <Link to={`/projects/${project.id}`} className="projects-read-link">Read the story <ArrowRight size={16} /></Link>
+                    {project.links?.live && <a href={project.links.live} target="_blank" rel="noopener noreferrer" className="projects-live-link">Visit product <ArrowUpRight size={15} /></a>}
                   </div>
-                </>
-              )}
+                </div>
+              </article>;
+            })}
+          </section>
 
-              {live.length === 0 && archived.length === 0 && (
-                <p className="projects-status">No projects in this category yet.</p>
-              )}
-            </>
-          )}
+          <details className="projects-collection" id="project-collection" ref={collectionRef}>
+            <summary>
+              <span><span className="projects-collection-eyebrow">Keep exploring</span><span className="projects-collection-title">The full collection <span>({allProjects.length})</span></span></span>
+              <span className="projects-collection-toggle" aria-hidden="true">+</span>
+            </summary>
+            <div className="projects-collection-content">
+              <p className="projects-collection-description">Products, smaller experiments, and earlier work. Search by name, technology, or what it does.</p>
+              <div className="projects-search-wrap">
+                <label className="projects-search" htmlFor="project-search"><Search size={18} aria-hidden="true" /><input id="project-search" type="search" aria-label="Search projects" placeholder="Search projects" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+                {query && <button type="button" className="projects-clear" onClick={() => setQuery('')} aria-label="Clear search"><X size={16} /></button>}
+              </div>
+              <nav className="projects-filters" aria-label="Filter projects">
+                {Object.entries(categories).map(([key, label]) => <button key={key} type="button" onClick={() => changeCategory(key)} className={`projects-filter${activeCategory === key ? ' is-active' : ''}`} aria-pressed={activeCategory === key}>{key === 'all' ? 'All' : label}</button>)}
+              </nav>
+              <div className="projects-results-summary">
+                <p aria-live="polite">{visibleProjects.length} {visibleProjects.length === 1 ? 'project' : 'projects'}{activeCategory !== 'all' ? ` in ${categories[activeCategory]}` : ''}</p>
+                {Number.isFinite(updatedAt) && <p>Usage updated {timeAgo(updatedAt)} ago</p>}
+              </div>
+              {loading ? <p className="projects-status">Loading projects&hellip;</p> : <>
+                {current.length > 0 && <div className="product-grid">{current.map(renderProject)}</div>}
+                {earlier.length > 0 && <><h3 className="projects-archive-heading">Earlier work</h3><div className="product-grid">{earlier.map(renderProject)}</div></>}
+                {visibleProjects.length === 0 && <div className="projects-status"><p>No projects match your search.</p><button type="button" onClick={reset}>Clear search and filters <ArrowRight size={16} /></button></div>}
+              </>}
+            </div>
+          </details>
+
+          <section className="projects-next-step">
+            <div><p className="projects-eyebrow">Your next step</p><h2>Have something in mind?</h2><p>Tell me what your business needs to do better.</p></div>
+            <Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} /></Link>
+          </section>
         </div>
       </div>
     </Layout>
   );
-};
-
-export default Projects;
+}

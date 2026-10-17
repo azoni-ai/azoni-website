@@ -1,21 +1,71 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Check, Copy } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { consulting, projectEmailHref } from '../data/consulting';
 import { profile } from '../data/profile';
+import '../styles/contact-refined.css';
+
 export default function Contact() {
   const [copyStatus, setCopyStatus] = useState('');
+  const emailRef = useRef(null);
   const copyEmail = async () => {
-    try { await navigator.clipboard.writeText(consulting.email); setCopyStatus('Email address copied.'); }
-    catch { setCopyStatus('Select the email address above to copy it.'); }
+    try {
+      await navigator.clipboard.writeText(consulting.email);
+      setCopyStatus('Email address copied.');
+    } catch {
+      // Select the visible address so copying remains possible when clipboard access is blocked.
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(emailRef.current);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      try {
+        if (!document.execCommand('copy')) throw new Error('Copy unavailable');
+        setCopyStatus('Email address copied.');
+      } catch {
+        setCopyStatus('Email selected. Use your device’s copy command to copy it.');
+      }
+    }
   };
-  return <Layout><Seo title="Contact" path="/contact" description="Get in touch with Charlton Smith at Azoni about improving your business with software, AI, and automation." />
-    <div className="consult-page consult-container consult-contact">
-      <header className="consult-page-heading"><p className="consult-eyebrow">Contact Charlton</p><h1>Let's make things<br /><span>work better.</span></h1><p>Tell me about your business and what you&rsquo;d like to improve. You don&rsquo;t need a finished brief or a technical plan to start a conversation.</p></header>
-      <div className="consult-contact-grid"><section className="consult-contact-address"><h2>Email me directly</h2><a className="consult-address" href={projectEmailHref}>{consulting.email}</a><div className="consult-actions"><a className="consult-button" href={projectEmailHref}>Open email app <ArrowUpRight size={18} /></a><button className="consult-copy" onClick={copyEmail}>{copyStatus === 'Email address copied.' ? <Check size={16} /> : <Copy size={16} />} Copy email</button></div><p role="status" className="consult-copy-status">{copyStatus}</p><p className="consult-email-fallback">No email app set up? Copy the address or use your browser.</p><div className="consult-email-options"><a className="consult-text-link" href={'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(consulting.email)} target="_blank" rel="noopener noreferrer">Open Gmail <ArrowUpRight size={16} /></a><a className="consult-text-link" href={profile.links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn <ArrowUpRight size={16} /></a></div></section><section className="consult-contact-notes"><p className="consult-eyebrow">A useful starting point</p><ul><li>What your business does.</li><li>The task, workflow, or system you want to improve.</li><li>What a better day would look like for you and your team.</li></ul><p>Solo businesses, growing teams, and larger organizations are all welcome.</p></section></div>
-      <div className="consult-contact-assistant"><div><h2>Want to learn more first?</h2><p>The AI assistant can explain my services, background, and public work. Email me directly to discuss scope or availability.</p></div><Link className="consult-text-link" to="/chat">Ask the assistant <ArrowRight size={17} /></Link></div>
+
+  return <Layout>
+    <Seo title="Contact" path="/contact" description="Email Charlton Smith at Azoni about improving your business with software, AI, and automation." />
+    <div className="az-contact consult-container">
+      <header className="az-contact-heading">
+        <p className="consult-eyebrow">Contact Charlton</p>
+        <h1>What could work<br /><span>better for you?</span></h1>
+        <p>A better workflow. A new product. A system that needs some attention. Tell me what you have in mind.</p>
+      </header>
+
+      <div className="az-contact-main">
+        <section className="az-contact-direct" aria-labelledby="az-contact-email-title">
+          <h2 id="az-contact-email-title">Email me directly.</h2>
+          <a className="az-contact-address" ref={emailRef} href={projectEmailHref}>{consulting.email}</a>
+          <div className="az-contact-actions">
+            <a className="consult-button" href={projectEmailHref}>Open email app <ArrowUpRight size={17} /></a>
+            <button type="button" className="az-contact-copy" onClick={copyEmail}>{copyStatus === 'Email address copied.' ? <Check size={16} /> : <Copy size={16} />} Copy address</button>
+          </div>
+          <p role="status" className="az-contact-status">{copyStatus}</p>
+          <div className="az-contact-alternatives">
+            <p>Prefer your browser?</p>
+            <a href={'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(consulting.email)} target="_blank" rel="noopener noreferrer">Open Gmail <ArrowUpRight size={15} /></a>
+            <a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn <ArrowUpRight size={15} /></a>
+          </div>
+        </section>
+        <section className="az-contact-start" aria-labelledby="az-contact-start-title">
+          <h2 id="az-contact-start-title">A few lines is enough.</h2>
+          <p>Start with what your business does, what is slowing you down, and what you would like to change.</p>
+          <p>You don&rsquo;t need a technical plan. We can work through that together.</p>
+          <p className="az-contact-welcome">Businesses of any size are welcome.</p>
+        </section>
+      </div>
+
+      <section className="az-contact-more">
+        <div><h2>Get to know my work first.</h2><p>Explore what I&rsquo;ve built, or ask the AI assistant about my services and experience.</p></div>
+        <div className="az-contact-more-links"><Link to="/projects">Selected work <ArrowRight size={16} /></Link><Link to="/chat">Ask the assistant <ArrowRight size={16} /></Link></div>
+      </section>
     </div>
   </Layout>;
 }

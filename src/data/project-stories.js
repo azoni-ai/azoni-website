@@ -108,7 +108,7 @@ export const PROJECT_STORIES = [
   {
     id: 'embedroute',
     name: 'EmbedRoute',
-    tagline: 'Embedding API gateway. One key, four providers.',
+    tagline: 'One embedding API and a lab to compare models.',
     role: 'Solo · 2025',
     accent: '#20d9d2',
     url: 'https://www.embedroute.com',
@@ -116,12 +116,12 @@ export const PROJECT_STORIES = [
     metric: null,
     story: [
       "Every RAG project had the same three files: an embedding wrapper, a provider switch, a usage logger. I extracted them into a real gateway so I'd stop rewriting them.",
-      "OpenAI-compatible endpoint, drop-in for existing SDK code. Routes by provider, caches duplicate requests, logs cost per call, scopes usage per API key. Swapping models is a config change, not a deploy.",
+      "An OpenAI-compatible endpoint routes requests using your own provider keys. The Lab compares embedding models on your own data to help choose an integration.",
     ],
     built: [
       "OpenAI-compatible endpoint — drop-in for existing SDK code",
-      "Supabase auth + per-key usage scoping, PostgreSQL request log",
-      "Provider routing + dedup caching to cut bill",
+      "Bring your own provider keys for stateless routing",
+      "Compare model retrieval quality in the Lab",
     ],
     tech: ['Next.js', 'Supabase', 'PostgreSQL', 'OpenAI SDK'],
   },

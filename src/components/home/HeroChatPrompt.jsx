@@ -90,16 +90,16 @@ const HeroChatPrompt = () => {
 
   return (
     <div className="hero-chat" aria-label="Inline Azoni AI chat">
-      <form className="hero-chat-form" onSubmit={onSubmit} role="search">
+      <form className="hero-chat-form" onSubmit={onSubmit}>
         <label className="hero-chat-label" htmlFor="hero-chat-input">
-          Ask my chatbot
+          Ask the Azoni assistant
         </label>
         <div className="hero-chat-inputwrap">
           <input
             id="hero-chat-input"
             className="hero-chat-input"
             type="text"
-            placeholder="Ask anything…"
+            placeholder="What would you like to know?"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
@@ -120,7 +120,7 @@ const HeroChatPrompt = () => {
         </div>
 
         {conversation.length === 0 && (
-          <div className="hero-chat-suggestions" role="list">
+          <div className="hero-chat-suggestions" aria-label="Suggested questions">
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}
@@ -128,7 +128,6 @@ const HeroChatPrompt = () => {
                 className="hero-chat-suggestion"
                 onClick={() => onSuggestion(s)}
                 disabled={isLoading}
-                role="listitem"
               >
                 {s}
               </button>
@@ -138,7 +137,7 @@ const HeroChatPrompt = () => {
       </form>
 
       {conversation.length > 0 && (
-        <div className="hero-chat-thread" ref={replyBoxRef}>
+        <div className="hero-chat-thread" ref={replyBoxRef} role="log" aria-label="Chat conversation" aria-live="polite" aria-busy={isLoading}>
           {conversation.map((m, i) => (
             <div key={i} className={`hero-chat-msg hero-chat-msg--${m.role}`}>
               {m.role === 'user' ? (
@@ -151,6 +150,7 @@ const HeroChatPrompt = () => {
                       <p key={idx}>{line}</p>
                     ))}
                   </div>
+                  {m.meta && <details className="hero-chat-answer-details"><summary>Sources and details</summary>
                   {m.meta?.topChunks?.length > 0 && (
                     <p className="hero-chat-msg-sources">
                       <span className="hero-chat-msg-sources-label">Drew from</span>
@@ -178,6 +178,7 @@ const HeroChatPrompt = () => {
                       )}
                     </p>
                   )}
+                  </details>}
                 </div>
               )}
             </div>

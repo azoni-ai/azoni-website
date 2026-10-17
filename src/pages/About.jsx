@@ -1,82 +1,93 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
-import { profile, skills, awards } from '../data/profile';
+import { profile, education } from '../data/profile';
 import '../styles/about-warm.css';
 
-const METHOD = [
-  { title: 'I define the problem before handing it to an agent', body: 'I work out the data model, the boundaries, and what done means. An agent can draft the implementation; I still own the decisions and review the code.' },
-  { title: 'I automate the repetitive parts', body: 'Boilerplate, first drafts, research, and routine changes are good places to use AI. Architecture, security, and decisions that are hard to undo need closer attention.' },
-  { title: 'I want to know what the system actually did', body: 'My agent stack logs tool calls, costs, and errors. I put validation and controls in code so I can investigate a bad result and fix the underlying problem.' },
-  { title: 'I keep using what I build', body: 'Running my own products means I see the bugs, the awkward workflows, and the maintenance after launch. That feedback is a big part of how I get better at this.' },
-];
-const SKILL_GROUPS = [
-  { label: 'Languages', items: skills.languages },
-  { label: 'Frontend', items: skills.frontend },
-  { label: 'Backend', items: skills.backend },
-  { label: 'AI & agents', items: ['Claude API', 'OpenAI APIs', 'RAG', 'LLM agents', 'MCP', 'Embeddings'] },
-  { label: 'Cloud & infrastructure', items: skills.cloud.concat(['Netlify', 'Render']) },
-  { label: 'Data', items: skills.databases },
+const CAREER = [
+  {
+    period: 'Current engagement', company: 'Azoni', role: 'Principal software engineer & AI consultant',
+    description: 'Working with a client as a principal software engineer with a strong AI focus. Alongside consulting, I build and operate my own products, including AI agents, retrieval systems, and web applications.',
+  },
+  {
+    period: 'Nov 2022–Nov 2023', company: 'Capital One', role: 'Senior software engineer',
+    description: 'Built Python microservices and automated testing infrastructure with AWS Lambda and S3. Mentored an intern who shipped a test automation tool for the team.',
+  },
+  {
+    period: 'Sep 2021–Jun 2022', company: 'Dustbunny', role: 'Web3 automation engineer',
+    description: 'Built a distributed bidding system across 50 machines, with Redis caching and automation handling 2,500 requests per minute.',
+  },
+  {
+    period: 'Jun 2018–Apr 2022', company: 'T-Mobile', role: 'Software Engineer II',
+    description: 'Built an internal automation application that reduced a team’s manual workload by about 80%. Developed Python/Django services and migrated a frontend to Angular.',
+  },
+  {
+    period: 'Jan 2016–Mar 2018', company: 'OLI Fitness', role: 'Co-founder & technical lead',
+    description: 'Used computer vision and the Kinect SDK to give people real-time exercise feedback. Published an extended abstract at ACM CHI 2017 and reached the Princeton Tiger Launch finals.',
+  },
 ];
 
 export default function About() {
   return (
     <Layout>
-      <Seo title="About" description="Meet Charlton Smith, the engineer behind Azoni. From college hackathons and enterprise engineering to AI products, software consulting, and automation." path="/about" />
+      <Seo title="About Charlton Smith" description="Meet Charlton Smith, the engineer behind Azoni. Principal software engineering, practical AI, and a career spent building useful software." path="/about" />
       <div className="about-page">
         <div className="about-inner">
           <header className="about-hero">
-            <p className="about-eyebrow"><span className="about-mark" aria-hidden="true" /> About &middot; {profile.location}</p>
-            <h1 className="about-title">I&rsquo;m Charlton.<br />I build and run software.</h1>
-            <p className="about-lede">I&rsquo;m the engineer behind <strong>Azoni</strong>. I build my own products and help businesses with software, AI, and automation. The last few years have taken me deep into AI, but the part I enjoy has stayed the same: making something useful and seeing people use it.</p>
-            <div className="about-hero-actions"><Link to="/contact" className="about-contact-button">Email me <span aria-hidden="true">&rarr;</span></Link><Link to="/projects" className="about-text-link">See what I&rsquo;ve built <span aria-hidden="true">&rarr;</span></Link></div>
+            <div>
+              <p className="consult-eyebrow">About Azoni</p>
+              <h1>I’m Charlton.<br /><span>A builder at heart.</span></h1>
+              <p className="about-lede">I’m the engineer behind Azoni. I help businesses of any size improve how they work through software, AI, and automation.</p>
+              <div className="about-hero-actions">
+                <Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link>
+                <a href={profile.links.linkedin} className="consult-text-link" target="_blank" rel="noopener noreferrer">LinkedIn <ArrowUpRight size={16} aria-hidden="true" /></a>
+              </div>
+            </div>
+            <aside className="about-at-a-glance" aria-label="At a glance">
+              <p>Charlton Smith</p>
+              <span>Principal software engineer<br />&amp; AI consultant</span>
+              <dl>
+                <div><dt>Based in</dt><dd>Seattle area</dd></div>
+                <div><dt>Previously</dt><dd>Capital One · T-Mobile</dd></div>
+                <div><dt>These days</dt><dd>Applied AI &amp; useful software</dd></div>
+              </dl>
+            </aside>
           </header>
 
-          <section className="about-career" aria-label="Engineering experience">
-            <div><span className="about-career-period">Now</span><h2>Azoni</h2><p>Principal software engineer<br />AI consulting</p></div>
-            <div><span className="about-career-period">2022&ndash;2023</span><h2>Capital One</h2><p>Senior software engineer<br />Python &amp; AWS</p></div>
-            <div><span className="about-career-period">2018&ndash;2022</span><h2>T-Mobile</h2><p>Software Engineer II<br />Automation &amp; web applications</p></div>
-          </section>
-
-          <section className="about-section">
-            <h2 className="about-h2">How I got here</h2>
+          <section className="about-editorial" aria-labelledby="about-story">
+            <div className="about-section-label"><p className="consult-eyebrow">The person behind the work</p><h2 id="about-story">It started with<br /> weekend hackathons.</h2></div>
             <div className="about-prose">
-              <p>In college, I was at hackathons every weekend. I liked the challenge of taking an idea, building something with a team, and getting it in front of people. I co-founded <strong>OLI Fitness</strong>, where we used the Kinect for real-time exercise feedback, published an extended abstract at <strong>ACM CHI 2017</strong>, and made the Princeton Tiger Launch finals.</p>
-              <p>At <strong>T-Mobile</strong>, I built internal automation that cut a team&rsquo;s manual workload by about 80%, developed Python/Django services, and moved a frontend from Django templates to Angular. I also completed my <strong>master&rsquo;s in software engineering while working there</strong>. Later, as a senior engineer at <strong>Capital One</strong>, I built Python microservices and automated testing infrastructure on AWS, and mentored an intern who shipped a tool for the team.</p>
-              <p>Since late 2023, I&rsquo;ve been building and running my own products. <Link to="/projects/fab-stats">FaB Stats</Link> grew out of a card game I play. <Link to="/projects/row-crew">RowCrew</Link> makes rowing with friends more interesting. <Link to="/projects/embedroute">EmbedRoute</Link> came from repeatedly needing the same embedding infrastructure. I like having real reasons to build things, then living with the results.</p>
-              <p>Over the last few years, I&rsquo;ve spent much of my time working with AI: retrieval, agents, tools, and the software around them. I formed <strong>Azoni LLC</strong> in 2026, and I&rsquo;m currently working with a client as a <strong>principal software engineer with a strong AI focus</strong>. I still build and operate my independent projects alongside that work.</p>
+              <p>In college, I was at hackathons every weekend. I loved taking an idea, building it with a team, and getting it in front of people. That led to co-founding OLI Fitness, where we built computer vision software to help people exercise.</p>
+              <p>I went on to build internal tools at T-Mobile, complete my <strong>master’s in software engineering while working there</strong>, and work on automation at Capital One. Over the last few years, I’ve spent much of my time deep in AI: retrieval, agents, and the software that makes them useful.</p>
+              <p>I’ve been building and running independent products since late 2023 and formed <strong>Azoni LLC in 2026</strong>. Some start with my own interests: <Link to="/projects/fab-stats">FaB Stats</Link> came from a card game I play; <Link to="/projects/row-crew">RowCrew</Link> makes rowing with friends more interesting. Running them keeps me close to the people using what I build.</p>
             </div>
-            <Link to="/resume" className="about-text-link">View my r&eacute;sum&eacute; <span aria-hidden="true">&rarr;</span></Link>
           </section>
 
-          <section className="about-section about-business">
-            <p className="about-eyebrow">Working with Azoni</p>
-            <h2 className="about-h2">Useful software for businesses of any size.</h2>
-            <div className="about-prose"><p>I can help a small business automate work that lives in spreadsheets, connect tools that don&rsquo;t talk to each other, or build a customer-facing app. I can also join an enterprise team to work through architecture, improve an existing system, or bring AI into a workflow.</p><p>I like getting into the details of how a business works. That&rsquo;s how we figure out what will save time, make a process easier, or give customers a better experience &mdash; and what we should build first.</p></div>
-            <Link to="/services" className="about-text-link">How I can help <span aria-hidden="true">&rarr;</span></Link>
+          <section id="experience" className="about-editorial" aria-labelledby="about-experience">
+            <div className="about-section-label"><p className="consult-eyebrow">Experience</p><h2 id="about-experience">From enterprise teams<br /> to my own products.</h2><Link to="/resume" className="consult-text-link">Full résumé <ArrowRight size={16} aria-hidden="true" /></Link></div>
+            <ol className="about-experience-list">
+              {CAREER.map(job => (
+                <li key={job.company}>
+                  <div className="about-experience-heading"><h3>{job.company}</h3><span>{job.period}</span></div>
+                  <p className="about-role">{job.role}</p>
+                  <p>{job.description}</p>
+                </li>
+              ))}
+            </ol>
           </section>
 
-          <section className="about-section about-method-section">
-            <h2 className="about-h2">How I work with AI</h2>
-            <p className="about-section-lede">AI is part of my daily workflow. Building and running the agent stack behind my own products has taught me where it helps, where it needs checks, and where I need to stay involved.</p>
-            <div className="about-method-grid">{METHOD.map((item) => <article className="about-method-card" key={item.title}><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+          <section className="about-editorial about-education-section" aria-labelledby="about-education">
+            <div className="about-section-label"><p className="consult-eyebrow">Education</p><h2 id="about-education">Always learning.</h2></div>
+            <div className="about-education">
+              {education.map(item => <div key={item.degree}><h3>{item.degree}</h3><p>{item.school} <span>· {item.year}</span></p><small>{item.year === '2021' ? 'Completed while working full-time at T-Mobile' : 'Graduated with honors · Teaching assistant · Huscii Coding Club president'}</small></div>)}
+            </div>
           </section>
 
-          <section className="about-section">
-            <h2 className="about-h2">A few things from along the way</h2>
-            <div className="about-awards">{awards.map((award) => <article key={award.event}><span>{award.title}</span><h3>{award.event}</h3><p>{award.description}</p></article>)}</div>
-          </section>
-
-          <section className="about-section">
-            <h2 className="about-h2">Tools I use</h2>
-            <div className="about-skills">{SKILL_GROUPS.map((group) => <div className="about-skill-group" key={group.label}><h3>{group.label}</h3><ul>{group.items.map((item) => <li key={item}>{item}</li>)}</ul></div>)}</div>
-          </section>
-
-          <section className="about-contact">
-            <h2>Tell me what you&rsquo;re working on.</h2><p>A new idea, a repetitive process, or a system that could work better &mdash; I&rsquo;d like to hear about it.</p>
-            <Link to="/contact" className="about-contact-button">Email me <span aria-hidden="true">&rarr;</span></Link>
-            <a className="about-email" href={'mailto:' + profile.email}>{profile.email}</a>
+          <section className="about-closing" aria-labelledby="about-contact-title">
+            <div><p className="consult-eyebrow">Working together</p><h2 id="about-contact-title">You’ll work directly with me.</h2><p>I like getting into the details of how a business works, figuring out what would make a difference, and building it. A small automation or a complex system — I’d like to hear what you have in mind.</p></div>
+            <div className="about-closing-actions"><Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link><Link to="/services" className="consult-text-link">How I can help <ArrowRight size={16} aria-hidden="true" /></Link></div>
           </section>
         </div>
       </div>

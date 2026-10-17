@@ -3,7 +3,7 @@ export const profile = {
   businessName: "Azoni",
   title: "Principal Software Engineer & AI Consultant",
   degree: "M.S. Software Engineering",
-  location: "Seattle, WA",
+  location: "Seattle area, WA",
   email: "charlton@azoni.ai",
   tagline: "Principal engineering · Applied AI",
   bio: `I'm Charlton, the engineer behind Azoni. I build software and help businesses of any size put AI and automation to work. I spent my college weekends at hackathons, co-founded OLI Fitness, and worked at T-Mobile and Capital One. Over the last few years I've gone deep into AI, building and running my own products alongside my current work as a principal software engineer for a client.`,
@@ -45,7 +45,7 @@ export const experience = [
     type: "AI & full-stack",
     highlights: [
       "Ship and operate 15+ live products on a shared agent + RAG stack (Firebase, FastAPI, Netlify/Render)",
-      "Built EmbedRoute, a one-key gateway over four embedding providers, powering RAG across the ecosystem",
+      "Built EmbedRoute, a shared API for embedding providers and a lab for comparing models",
       "Run autonomous agents (Conductor, Scribe, Moltbook) with per-call cost and error logging"
     ]
   },

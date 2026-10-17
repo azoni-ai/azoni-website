@@ -7,10 +7,10 @@ export const workStories = {
     label: 'AI infrastructure',
     headline: 'One integration for multiple embedding providers.',
     role: 'Product design, engineering, and operation',
-    problem: 'Each retrieval project repeated the same provider integration, switching logic, and usage logging.',
-    approach: 'Built an OpenAI-compatible gateway with provider routing, request caching, API-key scoping, and per-call cost logging.',
-    outcome: 'A shared API for four embedding providers, used by the azoni.ai assistant and Old Ways Today.',
-    relevance: 'AI integration, retrieval infrastructure, and usage visibility.',
+    problem: 'Each retrieval project repeated provider integrations, and comparing embedding models required custom code.',
+    approach: 'Built an OpenAI-compatible gateway for multiple embedding providers, with a lab for comparing models on your own data.',
+    outcome: 'One interface for provider routing and a practical way to evaluate models before choosing an integration.',
+    relevance: 'AI integration, retrieval infrastructure, and model evaluation.',
   },
   'fab-stats': {
     label: 'Product & data platform',
@@ -36,7 +36,7 @@ export const workStories = {
     role: 'Architecture, implementation, and operation',
     problem: 'Separate agents duplicated API access and logging, making their actions difficult to inspect in one place.',
     approach: 'Centralized tools behind authenticated, rate-limited endpoints with common activity logging.',
-    outcome: 'A shared server for chat and autonomous workflows, with 37 tools organized across nine domains.',
+    outcome: 'A shared tool server for chat and autonomous workflows, with common access controls and activity logs.',
     relevance: 'Agent architecture, integrations, and operational visibility.',
   },
 };

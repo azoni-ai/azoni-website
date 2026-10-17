@@ -1,14 +1,15 @@
 /* Shared Azoni public layout. Palette comes from the original warm theme. */
 .consulting-site { background: var(--bg-warm); color: var(--text-warm); min-height: 100vh; }
 .consulting-site main:focus { outline: none; }
+.consulting-site :is(.projects-page, .az-contact, .about-page, .services-page, .project-detail-page, .consulting-chat) :is(h1, h2, h3) { font-family: var(--font-body); }
 .consulting-site ::selection { background: var(--accent-coral); color: #18110e; }
 .site-header { position: fixed; inset: 0 0 auto; z-index: 100; color: var(--text-warm); background: rgba(19,17,15,.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-warm); }
-.site-nav { max-width: 1184px; padding: 0 32px; min-height: 88px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.site-nav { max-width: 1184px; padding: 0 32px; min-height: 72px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
 .site-wordmark { display: flex; gap: 13px; align-items: center; flex-shrink: 0; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.25px; }
 .site-monogram { display: grid; grid-auto-flow: column; align-items: center; font-size: 32px; font-weight: 600; letter-spacing: -3px; padding-right: 5px; }
 .site-monogram span { color: var(--accent-coral); }
 .site-wordmark-caption { display: block; color: var(--text-warm-muted); font-size: 11px; font-weight: 400; letter-spacing: 0; margin-top: 2px; }
-.site-navigation { display: flex; align-items: center; gap: 23px; font-size: 13px; font-weight: 500; }
+.site-navigation { display: flex; align-items: center; gap: 30px; font-size: 13px; font-weight: 500; }
 .site-navigation > a { padding: 12px 0; }
 .site-navigation a:hover, .site-navigation a[aria-current] { color: var(--accent-coral); }
 .site-navigation .site-nav-contact { border: 1px solid var(--border-warm-strong); padding: 10px 15px; border-radius: 5px; display: flex; align-items: center; gap: 12px; margin-left: 6px; }

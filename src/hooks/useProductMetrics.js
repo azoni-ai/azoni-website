@@ -60,11 +60,10 @@ function load() {
         if (!pid) return;
         const hs = bySite[site.id] || null;
         const impactFn = IMPACT[site.id];
-        // Real degraded/down wins; otherwise a site with a live URL reads as
-        // "up" (no active health check just means we're not probing it).
+        // A URL alone does not establish health. Show only observed statuses.
         const rawStatus = hs?.health?.status;
         const status =
-          rawStatus && rawStatus !== 'unknown' ? rawStatus : site.url ? 'up' : null;
+          ['healthy', 'up', 'degraded', 'down'].includes(rawStatus) ? rawStatus : null;
         map[pid] = {
           siteId: site.id,
           hasLiveData: !!hs || !!impactFn,
