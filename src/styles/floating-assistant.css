@@ -15,7 +15,9 @@
 .assistant-widget .assistant-panel-note a { color: var(--text-warm-soft); text-decoration: underline; text-underline-offset: 3px; }
 .assistant-widget .assistant-loading { padding: 20px; color: var(--text-warm-soft); font-size: 14px; }
 .assistant-widget .hero-chat { display: flex; flex-direction: column; width: 100%; min-width: 0; min-height: 0; margin: 0; }
-.assistant-widget .hero-chat-intro { font-size: 16px; line-height: 1.65; color: var(--text-warm); margin: 24px 20px auto; }
+.assistant-widget .hero-chat-start { display: flex; flex-direction: column; gap: 20px; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 22px 16px 0; }
+.assistant-widget .hero-chat-intro { flex-shrink: 0; font-size: 16px; line-height: 1.65; color: var(--text-warm); margin: 0 4px; }
+.assistant-widget .hero-chat-start .hero-chat-suggestions { flex-shrink: 0; margin-top: auto; }
 .assistant-widget .hero-chat-form { display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; order: 2; padding: 16px 16px 0; }
 .assistant-widget .hero-chat-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .assistant-widget .hero-chat-inputwrap { display: flex; gap: 7px; align-items: center; order: 2; padding: 5px 5px 5px 12px; border: 1px solid var(--border-warm-strong); border-radius: 10px; background: var(--bg-warm); }

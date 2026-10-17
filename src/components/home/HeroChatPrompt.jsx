@@ -95,10 +95,13 @@ const HeroChatPrompt = ({ floating = false, autoFocus = false }) => {
   };
 
   const conversation = messages.filter((m) => m.content);
+  const suggestions = <div className="hero-chat-suggestions" aria-label="Suggested questions">
+    {SUGGESTIONS.map(s => <button key={s} type="button" className="hero-chat-suggestion" onClick={() => onSuggestion(s)} disabled={isLoading}>{s}</button>)}
+  </div>;
 
   return (
     <div className="hero-chat" aria-label="Azoni AI chat">
-      {floating && conversation.length === 0 && <p className="hero-chat-intro">Hi, I&rsquo;m Azoni AI. Ask about Charlton&rsquo;s work or an idea for your business.</p>}
+      {floating && conversation.length === 0 && <div className="hero-chat-start"><p className="hero-chat-intro">Hi, I&rsquo;m Azoni AI. Ask about Charlton&rsquo;s work or an idea for your business.</p>{suggestions}</div>}
       <form className="hero-chat-form" onSubmit={onSubmit}>
         <label className="hero-chat-label" htmlFor="hero-chat-input">
           Ask the Azoni assistant
@@ -130,21 +133,7 @@ const HeroChatPrompt = ({ floating = false, autoFocus = false }) => {
           </button>
         </div>
 
-        {conversation.length === 0 && (
-          <div className="hero-chat-suggestions" aria-label="Suggested questions">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="hero-chat-suggestion"
-                onClick={() => onSuggestion(s)}
-                disabled={isLoading}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
+        {!floating && conversation.length === 0 && suggestions}
       </form>
 
       {conversation.length > 0 && (
