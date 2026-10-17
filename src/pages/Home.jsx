@@ -4,7 +4,6 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import HomeHero from '../components/home/HomeHero';
-import HeroChatPrompt from '../components/home/HeroChatPrompt';
 import CommitStats from '../components/home/CommitStats';
 import { services } from '../data/consulting';
 import { workStories } from '../data/workStories';
@@ -73,11 +72,6 @@ export default function Home() {
       </section>
 
       <div className="azoni-telemetry"><CommitStats githubStats={githubStats} loading={githubLoading} compact /><div className="azoni-live-link consult-container"><span>Curious about what&rsquo;s running behind the scenes?</span><Link className="consult-text-link" to="/live">Explore the live dashboard <ArrowRight size={16} aria-hidden="true" /></Link></div></div>
-
-      <section className="azoni-assistant consult-container" aria-labelledby="home-assistant-heading">
-        <div><p className="consult-eyebrow">Try something I built</p><h2 id="home-assistant-heading">Meet the Azoni assistant.</h2><p>Ask about my work, explore where AI might help your business, or see a practical example of an assistant grounded in real project knowledge.</p><Link className="consult-text-link" to="/chat">Open the full chat <ArrowRight size={16} aria-hidden="true" /></Link><span className="azoni-assistant-note">AI-generated answers. For scope and availability, talk to me directly.</span></div>
-        <HeroChatPrompt />
-      </section>
 
       <section className="azoni-contact consult-container"><div><p className="consult-eyebrow">Let&rsquo;s talk</p><h2>What could work better<br />in your business?</h2><p>An idea, a repetitive process, or a system you&rsquo;ve outgrown. Start there.</p></div><Link className="consult-button" to="/contact">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link></section>
     </div>

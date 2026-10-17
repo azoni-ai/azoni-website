@@ -63,8 +63,8 @@ export default function Contact() {
       </div>
 
       <section className="az-contact-more">
-        <div><h2>Get to know my work first.</h2><p>Explore what I&rsquo;ve built, or ask the AI assistant about my services and experience.</p></div>
-        <div className="az-contact-more-links"><Link to="/projects">Selected work <ArrowRight size={16} /></Link><Link to="/chat">Ask the assistant <ArrowRight size={16} /></Link></div>
+        <div><h2>Get to know my work first.</h2><p>Explore what I&rsquo;ve built and how I approach the work.</p></div>
+        <div className="az-contact-more-links"><Link to="/projects">Selected work <ArrowRight size={16} /></Link></div>
       </section>
     </div>
   </Layout>;

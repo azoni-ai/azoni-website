@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getJourneyId, getHeroSessionId } from '../../utils/chatSession';
 
@@ -13,7 +13,7 @@ const SYSTEM_GREETING = null; // no pre-seeded history; keeps the one-shot clean
 // Hero is the fast path (tight timeout) — use a low-latency, temperature-friendly model.
 const MODEL = 'google/gemini-2.5-flash-lite';
 
-const HeroChatPrompt = () => {
+const HeroChatPrompt = ({ floating = false, autoFocus = false }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]); // [{ role, content, meta? }]
   const [isLoading, setIsLoading] = useState(false);
@@ -22,10 +22,15 @@ const HeroChatPrompt = () => {
   // one conversation in the admin logs.
   const sessionIdRef = useRef(getHeroSessionId());
   const replyBoxRef = useRef(null);
+  const requestRef = useRef(null);
+  useEffect(() => () => requestRef.current?.abort(), []);
 
   const send = useCallback(async (text) => {
     const content = text.trim();
-    if (!content || isLoading) return;
+    if (!content || isLoading || requestRef.current) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     setError(null);
     const nextMessages = [...messages, { role: 'user', content }];
@@ -36,6 +41,7 @@ const HeroChatPrompt = () => {
     try {
       const res = await fetch('/.netlify/functions/chat', {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: nextMessages.map(({ role, content }) => ({ role, content })),
@@ -44,13 +50,13 @@ const HeroChatPrompt = () => {
           sessionId: sessionIdRef.current,
           journeyId: getJourneyId(),
           turnId: `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          context: 'home-hero',
+          context: floating ? 'floating-assistant' : 'home-hero',
           fast: true,
         }),
       });
       const data = await res.json();
 
-      if (!res.ok || !data.choices?.[0]) {
+      if (!res.ok || typeof data.choices?.[0]?.message?.content !== 'string') {
         throw new Error(data.error || 'Chat failed');
       }
 
@@ -64,17 +70,19 @@ const HeroChatPrompt = () => {
 
       setMessages((prev) => [...prev, { role: 'assistant', content: reply, meta }]);
 
-      // Scroll reply into view on next paint
+      // Scroll the transcript without moving the page underneath the widget.
       requestAnimationFrame(() => {
-        replyBoxRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        if (replyBoxRef.current) replyBoxRef.current.scrollTop = replyBoxRef.current.scrollHeight;
       });
     } catch (err) {
       console.error('hero chat error', err);
       setError('Something went wrong. Use "Continue in full chat" below to retry.');
     } finally {
+      clearTimeout(timeout);
+      requestRef.current = null;
       setIsLoading(false);
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, floating]);
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -89,7 +97,8 @@ const HeroChatPrompt = () => {
   const conversation = messages.filter((m) => m.content);
 
   return (
-    <div className="hero-chat" aria-label="Inline Azoni AI chat">
+    <div className="hero-chat" aria-label="Azoni AI chat">
+      {floating && conversation.length === 0 && <p className="hero-chat-intro">Hi, I&rsquo;m Azoni AI. Ask about Charlton&rsquo;s work or an idea for your business.</p>}
       <form className="hero-chat-form" onSubmit={onSubmit}>
         <label className="hero-chat-label" htmlFor="hero-chat-input">
           Ask the Azoni assistant
@@ -104,6 +113,8 @@ const HeroChatPrompt = () => {
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
             autoComplete="off"
+            autoFocus={autoFocus}
+            maxLength={12000}
           />
           <button
             type="submit"
@@ -192,7 +203,7 @@ const HeroChatPrompt = () => {
             </div>
           )}
           {error && <p className="hero-chat-error">{error}</p>}
-          <div className="hero-chat-cta-row">
+          {!isLoading && <div className="hero-chat-cta-row">
             {/* Carry the whole hero thread (and session id, as a log join key) into
                 the full chat via router state, so the conversation continues instead
                 of re-asking the question from scratch. ?q= remains the fallback for
@@ -207,7 +218,7 @@ const HeroChatPrompt = () => {
             >
               Continue in full chat →
             </Link>
-          </div>
+          </div>}
         </div>
       )}
 

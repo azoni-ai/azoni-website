@@ -6,6 +6,7 @@ import Loading from "./components/Loading";
 import ScrollToTop from "./components/ScrollToTop";
 import Layout from "./components/Layout";
 import Seo from "./components/Seo";
+import FloatingAssistant from "./components/FloatingAssistant";
 import { Link } from "react-router-dom";
 
 // Lazy load pages for code splitting
@@ -74,6 +75,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          <FloatingAssistant />
         </Router>
       </AppProvider>
     </ErrorBoundary>

@@ -19,7 +19,7 @@
 .azoni-credentials > span { font-size: 14px; font-weight: 500; letter-spacing: -.01em; }
 .azoni-credentials > a { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-warm-soft); margin-left: auto; min-height: 40px; }
 .azoni-credentials > a:hover { color: var(--accent-coral); }
-.azoni-work, .azoni-services, .azoni-background, .azoni-assistant { padding-top: 72px; padding-bottom: 72px; }
+.azoni-work, .azoni-services, .azoni-background { padding-top: 72px; padding-bottom: 72px; }
 .azoni-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .azoni-section-heading > .consult-text-link { flex-shrink: 0; }
 .azoni-section-intro { color: var(--text-warm-soft); max-width: 630px; font-size: 15px; line-height: 1.7; margin: 18px 0 30px; }
@@ -63,22 +63,6 @@
 .home-consulting .commit-band-split[open] > summary { margin-bottom: 12px; }
 .azoni-live-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 15px; padding-bottom: 28px; }
 .azoni-live-link > span { font-size: 12px; color: var(--text-warm-muted); }
-.azoni-assistant { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 85px; }
-.azoni-assistant h2 { font-size: 34px; }
-.azoni-assistant > div > p:not(.consult-eyebrow) { color: var(--text-warm-soft); font-size: 15px; line-height: 1.8; margin: 20px 0 12px; }
-.azoni-assistant-note { display: block; color: var(--text-warm-muted); font-size: 11px; line-height: 1.7; margin-top: 18px; }
-.azoni-assistant .hero-chat { border-left: 1px solid var(--border-warm-strong); padding-left: 34px; align-self: start; }
-.azoni-assistant .hero-chat-label { color: var(--text-warm-soft); font-family: var(--font-body); text-transform: none; font-size: 14px; letter-spacing: 0; margin-bottom: 16px; }
-.azoni-assistant .hero-chat-inputwrap { border-radius: 5px; padding: 5px 5px 5px 14px; background: var(--bg-warm-card); }
-.azoni-assistant .hero-chat-send { border-radius: 3px; }
-.azoni-assistant .hero-chat-suggestions { display: grid; gap: 0; margin-top: 17px; }
-.azoni-assistant .hero-chat-suggestion { border: 0; border-bottom: 1px solid var(--border-warm); border-radius: 0; text-align: left; font-family: var(--font-body); font-size: 13px; background: transparent; padding: 13px 0; line-height: 1.5; }
-.azoni-assistant .hero-chat-suggestion::after { content: '\2197'; float: right; color: var(--accent-coral); margin-left: 8px; }
-.azoni-assistant .hero-chat-thread { max-height: 420px; }
-.azoni-assistant .hero-chat-msg-body { border-radius: 5px; }
-.azoni-assistant .hero-chat-msg-text { overflow-wrap: anywhere; }
-.hero-chat-answer-details { font-size: 11px; color: var(--text-warm-muted); margin-top: 12px; }
-.hero-chat-answer-details summary { cursor: pointer; min-height: 30px; }
 .azoni-contact { border-top: 1px solid var(--border-warm-strong); padding-block: 56px 72px; display: flex; align-items: center; justify-content: space-between; gap: 36px; }
 .azoni-contact h2 { font-size: clamp(32px, 4vw, 48px); }
 .azoni-contact p:not(.consult-eyebrow) { color: var(--text-warm-soft); font-size: 14px; margin-top: 20px; }
@@ -88,7 +72,7 @@
   .azoni-hero h1 { font-size: 60px; }
   .azoni-credentials { gap: 15px 24px; }
   .azoni-credentials > a { margin-left: 0; }
-  .azoni-background, .azoni-assistant { gap: 40px; }
+  .azoni-background { gap: 40px; }
   .azoni-service-row { gap: 20px; }
 }
 @media (max-width: 900px) {
@@ -109,7 +93,7 @@
   .azoni-credentials p { max-width: none; width: 100%; }
   .azoni-credentials > span { font-size: 12px; }
   .azoni-credentials > a { width: 100%; min-height: 30px; }
-  .azoni-work, .azoni-services, .azoni-background, .azoni-assistant { padding-block: 46px; }
+  .azoni-work, .azoni-services, .azoni-background { padding-block: 46px; }
   .azoni-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .azoni-section-intro { margin-top: 12px; font-size: 14px; }
   .azoni-work-grid { grid-template-columns: 1fr; gap: 32px; }
@@ -122,7 +106,7 @@
   .azoni-service-row h3 { font-size: 21px; }
   .azoni-service-row p { grid-column: 2; font-size: 13px; }
   .azoni-service-row > svg { grid-row: 1; grid-column: 3; margin-top: 3px; width: 18px; }
-  .azoni-background, .azoni-assistant { grid-template-columns: 1fr; gap: 25px; }
+  .azoni-background { grid-template-columns: 1fr; gap: 25px; }
   .azoni-background > div:last-child > p { font-size: 15px; }
   .home-consulting .commit-band { padding-top: 32px; }
   .home-consulting .commit-band-tiles { grid-template-columns: repeat(2, 1fr); gap: 22px 0; }
@@ -130,7 +114,5 @@
   .home-consulting .commit-tile-value { font-size: 34px; }
   .home-consulting .commit-tile-label { font-size: 9px; }
   .azoni-live-link { flex-direction: column; align-items: flex-start; gap: 5px; padding-top: 14px; }
-  .azoni-assistant h2 { font-size: 28px; }
-  .azoni-assistant .hero-chat { border-left: 0; border-top: 1px solid var(--border-warm); padding: 24px 0 0; }
   .azoni-contact { flex-direction: column; align-items: flex-start; padding-block: 40px 48px; gap: 26px; }
 }
