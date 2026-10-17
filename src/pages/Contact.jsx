@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Check, Copy } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, Copy, Linkedin } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { consulting, projectEmailHref } from '../data/consulting';
@@ -51,7 +51,9 @@ export default function Contact() {
           <div className="az-contact-alternatives">
             <p>Prefer your browser?</p>
             <a href={'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(consulting.email)} target="_blank" rel="noopener noreferrer">Open Gmail <ArrowUpRight size={15} /></a>
-            <a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn <ArrowUpRight size={15} /></a>
+          </div>
+          <div className="az-contact-linkedin">
+            <a className="consult-text-link" href={profile.links.linkedin} target="_blank" rel="noopener noreferrer" aria-label="Connect on LinkedIn (opens in a new tab)"><Linkedin size={17} aria-hidden="true" /> Connect on LinkedIn <ArrowUpRight size={16} aria-hidden="true" /></a>
           </div>
         </section>
         <section className="az-contact-start" aria-labelledby="az-contact-start-title">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Linkedin } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { profile, education } from '../data/profile';
@@ -42,17 +42,22 @@ export default function About() {
               <p className="about-lede">I’m the engineer behind Azoni. I help businesses of any size improve how they work through software, AI, and automation.</p>
               <div className="about-hero-actions">
                 <Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link>
-                <a href={profile.links.linkedin} className="consult-text-link" target="_blank" rel="noopener noreferrer">LinkedIn <ArrowUpRight size={16} aria-hidden="true" /></a>
               </div>
             </div>
             <aside className="about-at-a-glance" aria-label="At a glance">
-              <p>Charlton Smith</p>
-              <span>Principal software engineer<br />&amp; AI consultant</span>
+              <div className="about-profile">
+                <img className="about-portrait" src={profile.photo} alt="Charlton Smith" width="200" height="200" decoding="async" />
+                <div className="about-profile-details">
+                  <p>Charlton Smith</p>
+                  <span>Principal software engineer<br />&amp; AI consultant</span>
+                </div>
+              </div>
               <dl>
                 <div><dt>Based in</dt><dd>Seattle area</dd></div>
                 <div><dt>Previously</dt><dd>Capital One · T-Mobile</dd></div>
                 <div><dt>These days</dt><dd>Applied AI &amp; useful software</dd></div>
               </dl>
+              <a href={profile.links.linkedin} className="about-linkedin consult-text-link" target="_blank" rel="noopener noreferrer" aria-label="Connect with Charlton on LinkedIn (opens in a new tab)"><Linkedin size={17} aria-hidden="true" /> Connect on LinkedIn <ArrowUpRight size={16} aria-hidden="true" /></a>
             </aside>
           </header>
 

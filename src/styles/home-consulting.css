@@ -14,6 +14,8 @@
 .azoni-person-name { font-size: 21px; color: var(--text-warm); letter-spacing: -.025em; }
 .azoni-person-role { color: var(--text-warm-soft); font-size: 13px; margin: 5px 0 20px; line-height: 1.6; }
 .azoni-hero-person > p:last-of-type { font-size: 14px; color: var(--text-warm-soft); line-height: 1.8; margin-bottom: 13px; }
+.azoni-person-links { display: flex; flex-wrap: wrap; gap: 0 24px; }
+.azoni-person-links .consult-text-link { min-height: 44px; }
 .azoni-credentials { display: flex; align-items: center; flex-wrap: wrap; gap: 18px 28px; padding-block: 23px; border-block: 1px solid var(--border-warm-strong); margin-top: 60px; }
 .azoni-credentials p { font-size: 11px; color: var(--text-warm-muted); max-width: 125px; line-height: 1.6; }
 .azoni-credentials > span { font-size: 14px; font-weight: 500; letter-spacing: -.01em; }

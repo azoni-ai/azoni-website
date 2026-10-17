@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Linkedin } from 'lucide-react';
 import { profile } from '../data/profile';
 import { projectEmailHref } from '../data/consulting';
 export default function Footer() {
@@ -9,12 +9,15 @@ export default function Footer() {
       <div className="site-footer-inner">
         <div className="site-footer-top">
           <div><Link to="/" className="site-footer-name navbar-logo">azoni<span className="navbar-logo-dot">.</span></Link><p>Software, AI &amp; automation by Charlton Smith.<br />Based in the Seattle area. Working with businesses of any size.</p></div>
-          <a className="site-footer-email" href={projectEmailHref}>charlton@azoni.ai <ArrowUpRight size={19} /></a>
+          <div className="site-footer-contact">
+            <a className="site-footer-email" href={projectEmailHref}>charlton@azoni.ai <ArrowUpRight size={19} aria-hidden="true" /></a>
+            <a className="site-footer-linkedin" href={profile.links.linkedin} target="_blank" rel="noopener noreferrer" aria-label="Connect on LinkedIn (opens in a new tab)"><Linkedin size={16} aria-hidden="true" /> Connect on LinkedIn <ArrowUpRight size={16} aria-hidden="true" /></a>
+          </div>
         </div>
         <nav className="site-footer-links" aria-label="Footer navigation">
           <Link to="/services">Services</Link><Link to="/projects">Work</Link><Link to="/about">About</Link><Link to="/contact">Contact</Link><Link to="/live">Live dashboard</Link><Link to="/blog">Writing</Link>
         </nav>
-        <div className="site-footer-bottom"><span>&copy; {new Date().getFullYear()} Azoni LLC</span><div><a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a><a href={profile.links.github} target="_blank" rel="noopener noreferrer">GitHub</a><Link to="/privacy">Privacy</Link></div></div>
+        <div className="site-footer-bottom"><span>&copy; {new Date().getFullYear()} Azoni LLC</span><div><a href={profile.links.github} target="_blank" rel="noopener noreferrer">GitHub</a><Link to="/privacy">Privacy</Link></div></div>
       </div>
     </footer>
   );

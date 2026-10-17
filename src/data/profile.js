@@ -1,5 +1,6 @@
 export const profile = {
   name: "Charlton Smith",
+  photo: "/images/charlton-linkedin.jpg",
   businessName: "Azoni",
   title: "Principal Software Engineer & AI Consultant",
   degree: "M.S. Software Engineering",
@@ -12,7 +13,7 @@ export const profile = {
   currentlyBuilding: "AI software for a client, plus the products and agents I run through Azoni.",
   links: {
     github: "https://github.com/azoni",
-    linkedin: "https://linkedin.com/in/charltonsmith",
+    linkedin: "https://www.linkedin.com/in/charltonsmith",
     twitter: "https://x.com/azonitcg",
     resume: "/CharltonSmith-Consulting.pdf"
   }

@@ -17,6 +17,9 @@
 .az-contact-alternatives > p { width: 100%; font-size: 11px; color: var(--text-warm-muted); }
 .az-contact-alternatives a { display: inline-flex; align-items: center; gap: 9px; min-height: 36px; }
 .az-contact-alternatives a:hover { color: var(--accent-coral); }
+.az-contact-linkedin { border-top: 1px solid var(--border-warm); margin-top: 16px; padding-top: 12px; }
+.az-contact-linkedin .consult-text-link { min-height: 44px; color: var(--text-warm); gap: 10px; }
+.az-contact-linkedin svg { flex-shrink: 0; }
 .az-contact-start { border-left: 1px solid var(--border-warm); padding-left: 36px; }
 .az-contact-start > p { max-width: 370px; color: var(--text-warm-soft); font-size: 14px; line-height: 1.8; margin-top: 18px; }
 .az-contact-start .az-contact-welcome { color: var(--text-warm-muted); font-size: 12px; margin-top: 25px; }

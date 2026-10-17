@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { profile } from '../../data/profile';
 
 export default function HomeHero() {
   return (
@@ -20,7 +21,10 @@ export default function HomeHero() {
           <p className="azoni-person-name">Charlton Smith</p>
           <p className="azoni-person-role">Principal software engineer<br /> The person behind Azoni.</p>
           <p>I help businesses of any size build software, automate repetitive work, and put AI to practical use. You work directly with me, from the first conversation to the implementation.</p>
-          <Link to="/about" className="consult-text-link">A little about me <ArrowRight size={16} aria-hidden="true" /></Link>
+          <div className="azoni-person-links">
+            <Link to="/about" className="consult-text-link">A little about me <ArrowRight size={16} aria-hidden="true" /></Link>
+            <a href={profile.links.linkedin} className="consult-text-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile (opens in a new tab)">LinkedIn <ArrowUpRight size={16} aria-hidden="true" /></a>
+          </div>
         </div>
       </div>
       <div className="azoni-credentials" aria-label="Engineering background">
