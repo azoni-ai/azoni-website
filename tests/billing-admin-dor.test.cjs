@@ -70,6 +70,7 @@ function loadHandler(initial, { failRead = false } = {}) {
       if (name === 'firebase-admin') return { apps: [{}], firestore };
       if (name === './lib/dor-validation') return require('../netlify/functions/lib/dor-validation');
       if (name === './lib/business-accounts-validation') return require('../netlify/functions/lib/business-accounts-validation');
+      if (name === './lib/tax-workspace-validation') return require('../netlify/functions/lib/tax-workspace-validation');
       throw new Error(`Unexpected dependency: ${name}`);
     },
   };

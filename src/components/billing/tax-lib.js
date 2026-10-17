@@ -2,15 +2,15 @@
 // excise-return periods, cash-basis income per period, and the year rollup.
 //
 // Everything is cash basis: income counts on the invoice's paidDate, expenses
-// on their date. Nothing here is tax advice; the "rough payment" is a planning
-// number (net profit × set-aside %) and the safe harbor is the prior-year rule.
+// on their date. Reserve percentages and prior-year comparisons are budgeting
+// inputs only; neither determines liability, payment requirements, or penalties.
 
 import {
   addDaysISO, csvCell, expenseDeductible, parseISO, round2, todayISO,
 } from './billing-lib';
 
 export const TAX_AGENCIES = [
-  { key: 'irs', label: 'IRS (1040-ES)' },
+  { key: 'irs', label: 'IRS (federal)' },
   { key: 'wa', label: 'WA DOR (excise return)' },
   { key: 'seattle', label: 'City of Seattle' },
   { key: 'kent', label: 'City of Kent' },
@@ -29,13 +29,13 @@ export const WA_FREQUENCIES = [
 
 // Per-year filing checklist. Ticks persist in data.taxChecklist[year][key].
 export const TAX_CHECKLIST = [
-  { key: 'income', label: 'Paid-invoice subtotal for the year matches the client 1099-NEC' },
+  { key: 'income', label: 'Income records reconciled with bank statements and any tax forms received' },
   { key: 'expenses', label: 'Expenses CSV exported and every receipt is in one folder' },
   { key: 'bank', label: 'Business bank statements for the year saved' },
-  { key: 'fed', label: 'All four federal estimated payments recorded below' },
-  { key: 'wa', label: 'WA excise return filed for every period and sales tax remitted' },
-  { key: 'city', label: 'Seattle and Kent license tax filed, or confirmed under the threshold' },
-  { key: 'licenses', label: 'WA, Seattle, and Kent business licenses renewed' },
+  { key: 'fed', label: 'Federal estimated payments and withholding reviewed with tax records' },
+  { key: 'wa', label: 'Required WA excise returns and payments reviewed in My DOR' },
+  { key: 'city', label: 'City filing and payment requirements checked for each city where I do business' },
+  { key: 'licenses', label: 'Applicable business licenses and annual reports reviewed for renewal' },
   { key: 'homeoffice', label: 'Home office square footage measured, if claiming it' },
   { key: 'mileage', label: 'Mileage log complete, if claiming a vehicle' },
   { key: 'health', label: 'Health insurance premiums for the year totaled' },
@@ -166,24 +166,23 @@ const paymentsInYear = (data, agencies, year) =>
       .reduce((s, p) => s + (Number(p.amount) || 0), 0)
   );
 
-// Prior-year safe harbor: 100% of last year's total tax, 110% when AGI was
-// over $150k. Paying a quarter of it by each date avoids the penalty.
+// Prior-year comparison only. Eligibility, withholding, current-year tax,
+// credits, annualization, and payment timing are not evaluated here.
 export const safeHarborAnnual = (ts) =>
   round2((Number(ts.priorYearTax) || 0) * (ts.highIncome ? 1.1 : 1));
 
 export const periodStatus = (period, target, paid) => {
-  const today = todayISO();
-  if (paid > 0 && paid >= target) return 'paid';
-  if (today <= period.end) return 'upcoming';
-  if (target <= 0) return 'none';
-  if (today <= period.due) return 'open';
-  return 'overdue';
+  // `target` remains in the signature for older callers. A planning number
+  // cannot establish that tax is paid, overdue, or not owed.
+  if (paid > 0) return 'recorded';
+  if (period.start && todayISO() < period.start) return 'upcoming';
+  return 'review';
 };
 
 export const STATUS_LABEL = {
-  paid: 'paid', upcoming: 'upcoming', none: 'nothing due', open: 'due', overdue: 'late',
+  recorded: 'payment recorded', upcoming: 'upcoming period', review: 'review required',
 };
-export const STATUS_PILL = { paid: 'paid', open: 'sent', overdue: 'overdue', upcoming: '', none: '' };
+export const STATUS_PILL = { recorded: '', upcoming: '', review: '' };
 
 // One row per federal quarter with income, planning numbers, and payments.
 export const federalRows = (data, year) => {
@@ -196,8 +195,9 @@ export const federalRows = (data, year) => {
     const net = round2(gross - deductible);
     const rough = round2(Math.max(0, net) * pct / 100);
     const safe = harbor > 0 ? round2(harbor / 4) : null;
-    // Either amount satisfies the rule, so the lower one is the target.
-    const target = safe !== null ? Math.min(rough, safe) : rough;
+    // A chosen percentage of recorded income is not the current-year tax.
+    // Keep the field for older consumers without suggesting an amount due.
+    const target = null;
     const paid = paymentsFor(data, 'irs', q.key);
     return { ...q, gross, deductible, net, rough, safe, target, paid, status: periodStatus(q, target, paid) };
   });
@@ -234,11 +234,16 @@ export const taxYearSummary = (data, year) => {
 };
 
 // Years with any paid invoice, expense, or payment, plus the current year.
+// A January payment can belong to the prior tax year.
 export const taxYears = (data) => {
   const years = new Set();
   data.invoices.forEach((i) => { if (i.status === 'paid' && i.paidDate) years.add(i.paidDate.slice(0, 4)); });
   data.expenses.forEach((x) => { if (x.date) years.add(x.date.slice(0, 4)); });
-  data.taxPayments.forEach((p) => { if (p.date) years.add(p.date.slice(0, 4)); });
+  data.taxPayments.forEach((p) => {
+    if (p.date) years.add(p.date.slice(0, 4));
+    const periodYear = String(p.period || '').match(/^(\d{4})(?:$|[-\s])/);
+    if (periodYear) years.add(periodYear[1]);
+  });
   years.add(String(new Date().getFullYear()));
   return [...years].filter(Boolean).sort().reverse();
 };

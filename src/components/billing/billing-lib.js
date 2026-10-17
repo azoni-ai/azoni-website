@@ -55,6 +55,10 @@ export const uid = () =>
     ? crypto.randomUUID()
     : Date.now().toString(36) + Math.random().toString(36).slice(2);
 
+export const defaultTaxProfile = () => ({
+  entity: 'unknown', startedOn: '', city: '', federalPlan: 'unknown', cityStatus: 'unknown',
+});
+
 export const defaultData = () => ({
   settings: {
     from: { name: 'Azoni LLC', address: '', email: '', phone: '', website: '', ubi: '' },
@@ -91,9 +95,52 @@ export const defaultData = () => ({
   dorInvoiceReviews: {},
   dorFilings: [],
   businessAccounts: SEED_BUSINESS_ACCOUNTS.map(account => ({ ...account })),
+  // Setup remains unknown until the owner confirms it. A reminder is only
+  // a manually entered task; its completion never records a tax payment.
+  taxProfile: defaultTaxProfile(),
+  taxReminders: [],
 });
 
 const plainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
+
+// Keep the backup rules aligned with the private function's validator.
+const TAX_PROFILE_FIELDS = new Set(['entity', 'startedOn', 'city', 'federalPlan', 'cityStatus']);
+const TAX_ENTITIES = new Set(['unknown', 'sole-proprietor', 's-corp', 'c-corp', 'partnership']);
+const FEDERAL_PLANS = new Set(['unknown', 'estimated', 'withholding', 'adviser']);
+const CITY_STATUSES = new Set(['unknown', 'required', 'not-required']);
+const TAX_REMINDER_FIELDS = new Set(['id', 'title', 'dueDate', 'category', 'notes', 'completed']);
+const TAX_REMINDER_CATEGORIES = new Set(['city-tax', 'license', 'annual-filing', 'other']);
+const RESERVED_TAX_IDS = new Set(['__proto__', 'constructor', 'prototype']);
+const taxText = (value, max, required = false) => typeof value === 'string'
+  // Reject hidden control characters while allowing ordinary multiline notes.
+  // eslint-disable-next-line no-control-regex
+  && value.length <= max && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)
+  && (!required || value.trim().length > 0);
+const validTaxDate = value => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const year = Number(value.slice(0, 4));
+  if (year < 1900 || year > 2200) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+
+export const validTaxProfile = profile => !!(plainObject(profile)
+  && Object.keys(profile).every(key => TAX_PROFILE_FIELDS.has(key))
+  && TAX_ENTITIES.has(profile.entity) && (profile.startedOn === '' || validTaxDate(profile.startedOn))
+  && taxText(profile.city, 120) && FEDERAL_PLANS.has(profile.federalPlan) && CITY_STATUSES.has(profile.cityStatus));
+
+export const validTaxReminders = reminders => Array.isArray(reminders) && reminders.length <= 200
+  && reminders.every(reminder => plainObject(reminder)
+    && Object.keys(reminder).every(key => TAX_REMINDER_FIELDS.has(key))
+    && taxText(reminder.id, 128, true) && !RESERVED_TAX_IDS.has(reminder.id.trim().toLowerCase())
+    && taxText(reminder.title, 160, true) && validTaxDate(reminder.dueDate)
+    && TAX_REMINDER_CATEGORIES.has(reminder.category) && taxText(reminder.notes, 2000)
+    && typeof reminder.completed === 'boolean')
+  && new Set(reminders.map(reminder => reminder.id.trim())).size === reminders.length;
+
+export const validTaxWorkspace = data => !!(plainObject(data)
+  && (data.taxProfile === undefined || validTaxProfile(data.taxProfile))
+  && (data.taxReminders === undefined || validTaxReminders(data.taxReminders)));
 
 // Older saves and desktop-app backups predate dayNotes/companyNotes/cycleAnchor
 // and expenses; fill the gaps so every consumer can assume the full shape.
@@ -114,6 +161,9 @@ export const normalizeData = (d) => {
     dorFilings: Array.isArray(d.dorFilings) ? d.dorFilings : [],
     businessAccounts: Array.isArray(d.businessAccounts)
       ? d.businessAccounts.map(account => validateBusinessAccount(account).account || { ...account }) : base.businessAccounts,
+    taxProfile: { ...base.taxProfile, ...(plainObject(d.taxProfile) ? d.taxProfile : {}) },
+    taxReminders: Array.isArray(d.taxReminders)
+      ? d.taxReminders.map(reminder => plainObject(reminder) ? { ...reminder } : reminder) : [],
   };
 };
 
@@ -333,7 +383,7 @@ export const validBackup = (d) =>
   !!(d && typeof d === 'object' && !Array.isArray(d) &&
      d.settings && typeof d.settings === 'object' && !Array.isArray(d.settings) &&
      Array.isArray(d.entries) && Array.isArray(d.invoices) &&
-     (d.businessAccounts === undefined || validBackupAccounts(d.businessAccounts)));
+     (d.businessAccounts === undefined || validBackupAccounts(d.businessAccounts)) && validTaxWorkspace(d));
 
 // Entries available to an invoice. For a new invoice that is everything
 // unbilled; when editing an existing one its own entries count as available

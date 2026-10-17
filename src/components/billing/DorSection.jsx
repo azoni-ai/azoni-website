@@ -163,8 +163,14 @@ function ExtensionForm({ period, override, mutate, onNotice }) {
   return <details className="dor-extension"><summary>{override?.date ? 'Edit recorded extension' : 'Record an approved extension'}</summary><form onSubmit={submit}><p className="billing-hint">Only enter an extension already approved by DOR. The standard deadline remains visible.</p><div className="dor-form-grid"><Field label="Approved extension date"><input type="date" min={period.due} value={form.date} onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))} /></Field><Field label="Approval / extension note"><input maxLength={2000} value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} /></Field></div><Issues items={error ? [error] : []} /><button type="submit" className="billing-btn small">Save extension details</button></form></details>;
 }
 
-export default function DorSection({ data, mutate }) {
-  const [selection, setSelection] = useState(() => suggestedDorPeriod(data));
+export default function DorSection({ data, mutate, initialPeriod }) {
+  const [selection, setSelection] = useState(() => {
+    if (initialPeriod && /^\d{4}$/.test(initialPeriod.year || '') && ['monthly', 'quarterly', 'annual'].includes(initialPeriod.frequency)) {
+      const period = waPeriods(initialPeriod.year, initialPeriod.frequency).find(item => item.key === initialPeriod.periodKey);
+      if (period) return { year: initialPeriod.year, frequency: initialPeriod.frequency, periodKey: period.key };
+    }
+    return suggestedDorPeriod(data);
+  });
   const [previewBasis, setPreviewBasis] = useState(data.taxSettings?.waBasis || 'cash');
   const [setup, setSetup] = useState({ waFrequency: data.taxSettings?.waFrequency || '', waBasis: data.taxSettings?.waBasis || '' });
   const [setupDirty, setSetupDirty] = useState(false);

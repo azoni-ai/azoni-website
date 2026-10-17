@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 const { validDorFields, mergeDorFilings } = require('./lib/dor-validation');
 const { validBusinessAccounts } = require('./lib/business-accounts-validation');
+const { validTaxWorkspace } = require('./lib/tax-workspace-validation');
 
 if (!admin.apps.length && process.env.FIREBASE_PROJECT_ID) {
   admin.initializeApp({
@@ -67,6 +68,13 @@ const recordFailure = (ip) => {
 // half-succeeds. Years of entries fit comfortably under this.
 const MAX_BYTES = 900000;
 
+// Owner confirmed the sole-proprietor / single-member LLC tax treatment and
+// Kent business location on October 17, 2026. Only seed an absent profile;
+// never replace an explicit saved setup or infer when income first arrived.
+const ownerTaxProfile = () => ({
+  entity: 'sole-proprietor', startedOn: '', city: 'Kent', federalPlan: 'unknown', cityStatus: 'unknown',
+});
+
 const validShape = (d) =>
   d && typeof d === 'object' && !Array.isArray(d) &&
   d.settings && typeof d.settings === 'object' && !Array.isArray(d.settings) &&
@@ -87,7 +95,7 @@ const validShape = (d) =>
   (d.taxChecklist === undefined ||
     (d.taxChecklist && typeof d.taxChecklist === 'object' && !Array.isArray(d.taxChecklist) &&
      Object.keys(d.taxChecklist).length <= 100)) && validDorFields(d) &&
-  (d.businessAccounts === undefined || validBusinessAccounts(d.businessAccounts));
+  (d.businessAccounts === undefined || validBusinessAccounts(d.businessAccounts)) && validTaxWorkspace(d);
 
 exports.handler = async (event) => {
   const headers = {
@@ -161,6 +169,8 @@ exports.handler = async (event) => {
             // Absence lets the UI seed public portal links for legacy accounts.
             // An explicit empty list means the owner removed them.
             ...(d.businessAccounts === undefined ? {} : { businessAccounts: d.businessAccounts }),
+            taxProfile: d.taxProfile === undefined ? ownerTaxProfile() : d.taxProfile,
+            ...(d.taxReminders === undefined ? {} : { taxReminders: d.taxReminders }),
           },
         }),
       };
@@ -207,8 +217,13 @@ exports.handler = async (event) => {
             rev: nextRev,
             updatedAt: new Date().toISOString(),
           };
-          if (data.businessAccounts !== undefined) next.businessAccounts = data.businessAccounts;
-          else if (current.businessAccounts !== undefined) next.businessAccounts = current.businessAccounts;
+          // Legacy clients cannot erase newer private workspace fields they
+          // did not load. Explicit empty lists still mean remove all records.
+          for (const key of ['businessAccounts', 'taxProfile', 'taxReminders']) {
+            if (data[key] !== undefined) next[key] = data[key];
+            else if (current[key] !== undefined) next[key] = current[key];
+          }
+          if (next.taxProfile === undefined) next.taxProfile = ownerTaxProfile();
           if (next.dorFilings.length > 2000 || Buffer.byteLength(JSON.stringify(next), 'utf8') > MAX_BYTES) {
             const error = new Error('Data too large');
             error.code = 'BILLING_TOO_LARGE';

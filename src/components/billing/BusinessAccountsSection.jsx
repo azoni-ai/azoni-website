@@ -11,6 +11,7 @@ const SUGGESTIONS = [
   ...SEED_BUSINESS_ACCOUNTS,
   { name: 'WA Secretary of State', url: 'https://ccfs.sos.wa.gov/', category: 'operations' },
   { name: 'IRS individual tax account', url: 'https://www.irs.gov/payments/online-account-for-individuals', category: 'taxes' },
+  { name: 'Kent TaxFile (B&O)', url: 'https://taxfile.kentwa.gov/', category: 'taxes' },
   { name: 'GitHub', url: 'https://github.com/login', category: 'software' },
   { name: 'Netlify', url: 'https://app.netlify.com/', category: 'software' },
 ];

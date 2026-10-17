@@ -2,7 +2,9 @@ import React, { useMemo } from 'react';
 import { ArrowRight, ArrowUpRight, Clock3, FileText, Receipt, PanelsTopLeft } from 'lucide-react';
 import { fmtDate, money } from './billing-lib';
 import { buildBusinessOverview } from './business-overview-lib';
+import { buildTaxAgenda } from './tax-tasks-lib';
 import '../../styles/business-overview.css';
+import '../../styles/tax-center.css';
 
 const QUICK_ACTIONS = [
   { label: 'Log work', section: 'calendar', icon: Clock3 },
@@ -13,6 +15,7 @@ const QUICK_ACTIONS = [
 
 export default function BusinessOverview({ data, onNavigate }) {
   const overview = useMemo(() => buildBusinessOverview(data), [data]);
+  const taxAgenda = useMemo(() => buildTaxAgenda(data), [data]);
   const { metrics, nextActions, accounts, dor } = overview;
   const tiles = [
     { label: 'Unbilled work', ...metrics.unbilled },
@@ -37,6 +40,8 @@ export default function BusinessOverview({ data, onNavigate }) {
     <nav className="business-overview-quick" aria-label="Business quick actions">
       {QUICK_ACTIONS.map(({ label, section, icon: Icon }) => <button type="button" key={section} onClick={() => onNavigate(section)}><Icon size={18} aria-hidden="true" /><span>{label}</span><ArrowRight className="business-overview-quick-arrow" size={15} aria-hidden="true" /></button>)}
     </nav>
+
+    <section className="business-tax-preview" aria-label="Tax dates and next steps"><div><strong>Keep taxes on your radar</strong><p>{taxAgenda.past.length ? `${taxAgenda.past.length} earlier dates to review. ` : ''}{taxAgenda.next[0] ? `Next date to review: ${fmtDate(taxAgenda.next[0].due)} · ${taxAgenda.next[0].title}${taxAgenda.next[0].dueVerified ? '.' : ' (verify date).'}` : 'Confirm your setup to see the dates that apply.'}</p><p>{taxAgenda.setupTasks.length ? 'Some filing details still need confirmation.' : 'Review dates, then keep filing and payment records together.'}</p></div><button className="billing-btn" type="button" onClick={() => onNavigate('tax-center')}>Open tax timeline</button></section>
 
     <div className="business-overview-columns">
       <section className="business-overview-panel" aria-labelledby="business-next-title">

@@ -9,6 +9,7 @@ import TimeLogSection from './TimeLogSection';
 import InvoicesSection from './InvoicesSection';
 import ExpensesSection from './ExpensesSection';
 import TaxesSection from './TaxesSection';
+import TaxCenter from './TaxCenter';
 import DorSection from './DorSection';
 import CompanySection from './CompanySection';
 import BillingSettingsSection from './BillingSettingsSection';
@@ -21,7 +22,7 @@ const NAV_GROUPS = [
   { label: 'Work', sections: ['calendar', 'time'], labels: ['Calendar', 'Time log'] },
   { label: 'Invoices', sections: ['invoices'] },
   { label: 'Expenses', sections: ['expenses'] },
-  { label: 'Taxes', sections: ['dor', 'taxes'], labels: ['WA DOR', 'Planning & payments'] },
+  { label: 'Taxes', sections: ['tax-center', 'dor', 'taxes'], labels: ['Dates & next steps', 'WA DOR worksheet', 'Payment records'] },
   { label: 'Accounts', sections: ['accounts'] },
   { label: 'Business details', sections: ['settings', 'company'], labels: ['Invoice settings & backups', 'Business notes'] },
 ];
@@ -47,11 +48,16 @@ const BillingTab = ({ onBeforeLeaveChange }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedSection = searchParams.get('section');
   const section = SECTIONS.has(requestedSection) ? requestedSection : 'overview';
-  const setSection = (next) => {
+  const setSection = (next, task) => {
     if (!SECTIONS.has(next)) return;
     const params = new URLSearchParams(searchParams);
     if (next === 'overview') params.delete('section');
     else params.set('section', next);
+    ['taxPeriod', 'taxYear', 'taxFrequency', 'taxAgency'].forEach(key => params.delete(key));
+    if (task?.periodKey) params.set('taxPeriod', task.periodKey);
+    if (task?.year) params.set('taxYear', task.year);
+    if (task?.frequency) params.set('taxFrequency', task.frequency);
+    if (task?.agency) params.set('taxAgency', task.agency);
     setSearchParams(params);
   };
 
@@ -222,6 +228,9 @@ const BillingTab = ({ onBeforeLeaveChange }) => {
       const normalized = normalizeData(next);
       // An older backup has no account directory to restore; retain the current one.
       if (next.businessAccounts === undefined) normalized.businessAccounts = dataRef.current?.businessAccounts || normalized.businessAccounts;
+      for (const key of ['taxProfile', 'taxReminders']) {
+        if (next[key] === undefined && dataRef.current?.[key] !== undefined) normalized[key] = dataRef.current[key];
+      }
       // Backups can add history, but cannot rewrite an already recorded filing.
       const existing = dataRef.current?.dorFilings || [];
       const existingIds = new Set(existing.map((f) => f.id));
@@ -333,8 +342,9 @@ const BillingTab = ({ onBeforeLeaveChange }) => {
       {section === 'time' && <TimeLogSection data={data} mutate={mutate} />}
       {section === 'invoices' && <InvoicesSection data={data} mutate={mutate} onOpenDor={() => setSection('dor')} />}
       {section === 'expenses' && <ExpensesSection data={data} mutate={mutate} />}
-      {section === 'dor' && <DorSection data={data} mutate={mutate} />}
-      {section === 'taxes' && <TaxesSection data={data} mutate={mutate} onOpenDor={() => setSection('dor')} />}
+      {section === 'tax-center' && <TaxCenter data={data} mutate={mutate} onNavigate={setSection} />}
+      {section === 'dor' && <DorSection key={searchParams.get('taxPeriod') || 'default'} data={data} mutate={mutate} initialPeriod={{ periodKey: searchParams.get('taxPeriod'), year: searchParams.get('taxYear'), frequency: searchParams.get('taxFrequency') }} />}
+      {section === 'taxes' && <TaxesSection data={data} mutate={mutate} focusAgency={searchParams.get('taxAgency')} focusPeriod={searchParams.get('taxPeriod')} onOpenDor={() => setSection('dor')} />}
       {section === 'company' && <CompanySection data={data} mutate={mutate} />}
       {section === 'settings' && (
         <BillingSettingsSection data={data} mutate={mutate} replaceAll={replaceAll} />
