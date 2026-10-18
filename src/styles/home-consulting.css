@@ -65,10 +65,6 @@
 .home-consulting .commit-band-split[open] > summary { margin-bottom: 12px; }
 .azoni-live-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 15px; padding-bottom: 28px; }
 .azoni-live-link > span { font-size: 12px; color: var(--text-warm-muted); }
-.azoni-contact { border-top: 1px solid var(--border-warm-strong); padding-block: 56px 72px; display: flex; align-items: center; justify-content: space-between; gap: 36px; }
-.azoni-contact h2 { font-size: clamp(32px, 4vw, 48px); }
-.azoni-contact p:not(.consult-eyebrow) { color: var(--text-warm-soft); font-size: 14px; margin-top: 20px; }
-.azoni-contact .consult-button { flex-shrink: 0; }
 @media (max-width: 1000px) {
   .azoni-hero-grid { gap: 38px; grid-template-columns: 1.7fr 1fr; }
   .azoni-hero h1 { font-size: 60px; }
@@ -116,5 +112,4 @@
   .home-consulting .commit-tile-value { font-size: 34px; }
   .home-consulting .commit-tile-label { font-size: 9px; }
   .azoni-live-link { flex-direction: column; align-items: flex-start; gap: 5px; padding-top: 14px; }
-  .azoni-contact { flex-direction: column; align-items: flex-start; padding-block: 40px 48px; gap: 26px; }
 }

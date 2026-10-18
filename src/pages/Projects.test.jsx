@@ -3,7 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { getDocs } from 'firebase/firestore';
 import Projects from './Projects';
 
-jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }), { virtual: true });
+let mockHash = '';
+jest.mock('react-router-dom', () => ({
+  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
+  useLocation: () => ({ hash: mockHash }),
+}), { virtual: true });
 jest.mock('../components/Layout', () => ({ children }) => <main>{children}</main>);
 jest.mock('../components/Seo', () => () => null);
 jest.mock('../config/firebase', () => ({ db: {} }));
@@ -21,8 +25,13 @@ test('visitors can open the collection, combine search with categories, and reco
     await act(async () => root.render(<Projects />));
     expect(container.querySelectorAll('.projects-story')).toHaveLength(4);
     expect(container.querySelector('details').open).toBe(false);
+    const collection = container.querySelector('details');
+    collection.scrollIntoView = jest.fn();
     click(container.querySelector('.projects-collection-link'));
-    expect(container.querySelector('details').open).toBe(true);
+    expect(collection.open).toBe(true);
+    expect(collection.scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
+    click(container.querySelector('.projects-collection-link'));
+    expect(collection.scrollIntoView).toHaveBeenCalledTimes(2);
     const input = container.querySelector('input[type="search"]');
     act(() => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Kinect');
@@ -39,5 +48,23 @@ test('visitors can open the collection, combine search with categories, and reco
   } finally {
     act(() => root.unmount());
     container.remove();
+  }
+});
+
+test('a direct collection link opens the projects that would otherwise stay hidden', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  getDocs.mockResolvedValue({ docs: [] });
+  mockHash = '#project-collection';
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(<Projects />));
+    expect(container.querySelector('#project-collection').open).toBe(true);
+    expect(container.querySelectorAll('.product-card').length).toBeGreaterThan(20);
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    mockHash = '';
   }
 });

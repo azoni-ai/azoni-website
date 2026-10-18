@@ -7,7 +7,7 @@ export default function SecondaryPageLinks({ compact = false }) {
     <nav className={`secondary-links${compact ? ' secondary-links--compact' : ''}`} aria-label="Explore Charlton's work">
       <Link to="/projects">View projects <span aria-hidden="true">↗</span></Link>
       <Link to="/contact">
-        Email me <span aria-hidden="true">↗</span>
+        Contact <span aria-hidden="true">↗</span>
       </Link>
     </nav>
   );

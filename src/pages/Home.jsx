@@ -73,7 +73,6 @@ export default function Home() {
 
       <div className="azoni-telemetry"><CommitStats githubStats={githubStats} loading={githubLoading} compact /><div className="azoni-live-link consult-container"><span>Curious about what&rsquo;s running behind the scenes?</span><Link className="consult-text-link" to="/live">Explore the live dashboard <ArrowRight size={16} aria-hidden="true" /></Link></div></div>
 
-      <section className="azoni-contact consult-container"><div><p className="consult-eyebrow">Let&rsquo;s talk</p><h2>What could work better<br />in your business?</h2><p>An idea, a repetitive process, or a system you&rsquo;ve outgrown. Start there.</p></div><Link className="consult-button" to="/contact">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link></section>
     </div>
   </Layout>;
 }

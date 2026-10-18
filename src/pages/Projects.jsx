@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Search, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
@@ -12,10 +12,16 @@ import '../styles/products-warm.css';
 import '../styles/projects-warm.css';
 
 export default function Projects() {
+  const { hash } = useLocation();
   const { projects, allProjects, categories, activeCategory, changeCategory, loading } = useProjects('all');
   const productMetrics = useProductMetrics();
   const [query, setQuery] = useState('');
   const collectionRef = useRef(null);
+  useLayoutEffect(() => {
+    if (hash === '#project-collection' && collectionRef.current) {
+      collectionRef.current.open = true;
+    }
+  }, [hash]);
   const selected = selectedWorkIds.map((id) => allProjects.find((project) => project.id === id)).filter(Boolean);
   const visibleProjects = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -36,7 +42,12 @@ export default function Projects() {
             <p className="projects-eyebrow">Selected work</p>
             <h1 className="projects-heading">Ideas into<br /><span>working software.</span></h1>
             <p className="projects-tagline">A closer look at the products, AI systems, and data workflows I design, build, and operate.</p>
-            <a href="#project-collection" className="projects-collection-link" onClick={() => { collectionRef.current.open = true; }}>Explore the full collection <ArrowRight size={16} /></a>
+            <Link to="#project-collection" className="projects-collection-link" onClick={() => {
+              if (collectionRef.current) {
+                collectionRef.current.open = true;
+                collectionRef.current.scrollIntoView({ block: 'start', behavior: 'instant' });
+              }
+            }}>Explore the full collection <ArrowRight size={16} /></Link>
           </header>
 
           <section className="projects-selected" aria-labelledby="projects-selected-heading">
@@ -55,9 +66,8 @@ export default function Projects() {
                 <div className="projects-story-body">
                   <p className="projects-story-headline">{story.headline}</p>
                   <p className="projects-story-description">{story.approach}</p>
-                  <p className="projects-story-outcome">{story.outcome}</p>
                   <div className="projects-story-links">
-                    <Link to={`/projects/${project.id}`} className="projects-read-link">Read the story <ArrowRight size={16} /></Link>
+                    <Link to={`/projects/${project.id}`} className="projects-read-link">View project <ArrowRight size={16} /></Link>
                     {project.links?.live && <a href={project.links.live} target="_blank" rel="noopener noreferrer" className="projects-live-link">Visit product <ArrowUpRight size={15} /></a>}
                   </div>
                 </div>
@@ -90,11 +100,6 @@ export default function Projects() {
               </>}
             </div>
           </details>
-
-          <section className="projects-next-step">
-            <div><p className="projects-eyebrow">Your next step</p><h2>Have something in mind?</h2><p>Tell me what your business needs to do better.</p></div>
-            <Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} /></Link>
-          </section>
         </div>
       </div>
     </Layout>

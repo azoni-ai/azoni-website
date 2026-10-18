@@ -9,7 +9,7 @@
 .services-page .services-detail { display: grid; grid-template-columns: .55fr 1.2fr 1fr; gap: 42px; border-top: 1px solid var(--border-warm-strong); padding: 48px 0 52px; }
 .services-page .services-index > span { font-family: var(--font-mono); color: var(--accent-coral); font-size: .7rem; }
 .services-page .services-index > p { font-size: .83rem; font-weight: 500; margin-top: 13px; line-height: 1.6; max-width: 150px; }
-.services-page .services-main h2, .services-page .services-process h2, .services-page .services-closing h2 { font-family: var(--font-body); font-size: clamp(1.7rem, 2.6vw, 2.15rem); line-height: 1.2; font-weight: 500; letter-spacing: -.04em; margin: 0 0 18px; }
+.services-page .services-main h2, .services-page .services-process h2 { font-family: var(--font-body); font-size: clamp(1.7rem, 2.6vw, 2.15rem); line-height: 1.2; font-weight: 500; letter-spacing: -.04em; margin: 0 0 18px; }
 .services-page .services-main > p { font-size: .95rem; line-height: 1.8; color: var(--text-warm-soft); margin: 0 0 18px; }
 .services-page .services-examples h3 { font-size: .72rem; font-weight: 500; color: var(--text-warm); margin: 0 0 13px; }
 .services-page .services-examples ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
@@ -28,10 +28,6 @@
 .services-page .services-process li > span { font-family: var(--font-mono); font-size: .68rem; color: var(--accent-coral); padding-top: 4px; }
 .services-page .services-process h3 { font-size: .98rem; font-weight: 500; margin: 0 0 9px; }
 .services-page .services-process li p { color: var(--text-warm-soft); font-size: .85rem; line-height: 1.8; margin: 0; }
-.services-page .services-closing { border-top: 1px solid var(--border-warm-strong); padding: 44px 0 64px; display: flex; justify-content: space-between; align-items: center; gap: 40px; }
-.services-page .services-closing h2 { margin-bottom: 15px; }
-.services-page .services-closing p { max-width: 530px; color: var(--text-warm-soft); font-size: .95rem; line-height: 1.8; }
-.services-page .services-closing > a { flex-shrink: 0; }
 .services-page a:focus-visible { outline: 2px solid var(--accent-coral); outline-offset: 5px; }
 @media (max-width: 1000px) {
   .services-page .services-detail { grid-template-columns: .65fr 1.25fr 1fr; gap: 28px; }
@@ -56,5 +52,4 @@
   .services-page .services-examples li { font-size: .85rem; }
   .services-page .services-process { grid-template-columns: 1fr; gap: 32px; padding: 34px 0; }
   .services-page .services-process > div > p:not(.consult-eyebrow) { max-width: none; }
-  .services-page .services-closing { flex-direction: column; align-items: flex-start; gap: 24px; padding: 34px 0 44px; }
 }

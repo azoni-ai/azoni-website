@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { services } from '../data/consulting';
@@ -42,7 +42,7 @@ export default function Services() {
           <p className="consult-eyebrow">Software · AI · Automation</p>
           <h1>Make your business<br /><span>work better.</span></h1>
           <p>I help businesses of any size turn slow processes, disconnected tools, and new ideas into useful software. You work directly with me, from the first conversation through implementation.</p>
-          <div className="services-hero-actions"><Link className="consult-button" to="/contact">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link><a className="consult-text-link" href="#services">Explore the services <ArrowRight size={16} aria-hidden="true" /></a></div>
+          <div className="services-hero-actions"><a className="consult-text-link" href="#services">Explore the services <ArrowRight size={16} aria-hidden="true" /></a></div>
         </header>
 
         <div id="services" className="services-list">
@@ -71,10 +71,6 @@ export default function Services() {
           <ol>{PROCESS.map((step, index) => <li key={step.title}><span aria-hidden="true">0{index + 1}</span><div><h3>{step.title}</h3><p>{step.description}</p></div></li>)}</ol>
         </section>
 
-        <section className="services-closing" aria-labelledby="services-contact-title">
-          <div><h2 id="services-contact-title">What could work better?</h2><p>You don’t need a technical brief. Tell me about your business and what you would like to improve.</p></div>
-          <Link className="consult-button" to="/contact">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link>
-        </section>
       </div>
     </Layout>
   );

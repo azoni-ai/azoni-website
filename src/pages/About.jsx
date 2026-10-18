@@ -40,9 +40,6 @@ export default function About() {
               <p className="consult-eyebrow">About Azoni</p>
               <h1>I’m Charlton.<br /><span>A builder at heart.</span></h1>
               <p className="about-lede">I’m the engineer behind Azoni. I help businesses of any size improve how they work through software, AI, and automation.</p>
-              <div className="about-hero-actions">
-                <Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link>
-              </div>
             </div>
             <aside className="about-at-a-glance" aria-label="At a glance">
               <div className="about-profile">
@@ -92,7 +89,7 @@ export default function About() {
 
           <section className="about-closing" aria-labelledby="about-contact-title">
             <div><p className="consult-eyebrow">Working together</p><h2 id="about-contact-title">You’ll work directly with me.</h2><p>I like getting into the details of how a business works, figuring out what would make a difference, and building it. A small automation or a complex system — I’d like to hear what you have in mind.</p></div>
-            <div className="about-closing-actions"><Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link><Link to="/services" className="consult-text-link">How I can help <ArrowRight size={16} aria-hidden="true" /></Link></div>
+            <div className="about-closing-actions"><Link to="/services" className="consult-text-link">How I can help <ArrowRight size={16} aria-hidden="true" /></Link></div>
           </section>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { useProjects } from '../hooks/useProjects';
@@ -31,6 +32,7 @@ const ProjectDetail = () => {
   const currentIndex = orderedProjects.findIndex((item) => item.id === id);
   const prevProject = currentIndex > 0 ? orderedProjects[currentIndex - 1] : null;
   const nextProject = currentIndex >= 0 ? orderedProjects[currentIndex + 1] : null;
+  const collectionPath = selectedWorkIds.includes(id) ? '/projects' : '/projects#project-collection';
 
   useEffect(() => { window.scrollTo(0, 0); }, [id]);
 
@@ -52,15 +54,15 @@ const ProjectDetail = () => {
       <Seo title={project.title} description={story ? story.headline + ' ' + story.outcome : project.description || project.tagline} path={'/projects/' + id} />
       <div className="project-detail-page">
         <div className="project-detail-inner">
-          <nav className="project-detail-nav" aria-label="Work breadcrumb"><Link to="/projects" className="project-detail-back"><span aria-hidden="true">&larr;</span> All work</Link><span>{project.archived ? 'Earlier work' : 'Independent product'}</span></nav>
+          <nav className="project-detail-nav" aria-label="Work breadcrumb"><Link to={collectionPath} className="project-detail-back"><span aria-hidden="true">&larr;</span> All work</Link><span>{project.archived ? 'Earlier work' : 'Independent product'}</span></nav>
           <header className="project-detail-header">
             <p className="project-detail-eyebrow">{story?.label || 'Product & engineering'}</p>
             <h1 className="project-detail-title">{project.title}</h1>
             <p className="project-detail-lede">{title}</p>
             <div className="project-detail-actions">
-              {project.links?.live && <a href={project.links.live} target="_blank" rel="noopener noreferrer" className="project-detail-cta">Explore the product <span aria-hidden="true">&nearr;</span></a>}
-              {project.links?.github && <a href={project.links.github} target="_blank" rel="noopener noreferrer" className="project-detail-cta">View code <span aria-hidden="true">&nearr;</span></a>}
-              {project.links?.paper && <a href={project.links.paper} target="_blank" rel="noopener noreferrer" className="project-detail-cta">Read the paper <span aria-hidden="true">&nearr;</span></a>}
+              {project.links?.live && <a href={project.links.live} target="_blank" rel="noopener noreferrer" className="project-detail-cta">Explore the product <ArrowUpRight size={16} aria-hidden="true" /></a>}
+              {project.links?.github && <a href={project.links.github} target="_blank" rel="noopener noreferrer" className="project-detail-cta">View code <ArrowUpRight size={16} aria-hidden="true" /></a>}
+              {project.links?.paper && <a href={project.links.paper} target="_blank" rel="noopener noreferrer" className="project-detail-cta">Read the paper <ArrowUpRight size={16} aria-hidden="true" /></a>}
             </div>
           </header>
 
@@ -82,13 +84,9 @@ const ProjectDetail = () => {
           ) : project.highlights?.length > 0 && <section className="project-detail-block"><h2 className="project-detail-block-heading">Implementation details</h2><ul className="project-detail-highlights">{project.highlights.map((item) => <li key={item}>{item}</li>)}</ul></section>}
 
           <section className="project-detail-stack"><h2>Technology</h2><ul className="project-detail-tech">{project.tech.map((tech) => <li key={tech}>{tech}</li>)}</ul></section>
-          <section className="project-detail-contact">
-            <h2>Have a related challenge?</h2>
-            <p>Tell me about your product, team, and what you need to move forward.</p>
-            <Link to="/contact" className="project-detail-cta project-detail-cta--primary">Email me <span aria-hidden="true">&rarr;</span></Link>
-          </section>
           <nav className="project-detail-footer-nav" aria-label="More work">
             {prevProject ? <Link to={'/projects/' + prevProject.id} className="project-detail-foot-link"><span>Previous project</span><strong><span aria-hidden="true">&larr; </span>{prevProject.title}</strong></Link> : <div />}
+            <Link to={collectionPath} className="project-detail-all-work">All work</Link>
             {nextProject ? <Link to={'/projects/' + nextProject.id} className="project-detail-foot-link project-detail-foot-link--next"><span>Next project</span><strong>{nextProject.title}<span aria-hidden="true"> &rarr;</span></strong></Link> : <div />}
           </nav>
         </div>

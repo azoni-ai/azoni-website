@@ -5,7 +5,6 @@
 .about-page .about-hero h1 { font-family: var(--font-body); font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1.08; letter-spacing: -.05em; font-weight: 500; margin: 0 0 24px; }
 .about-page .about-hero h1 span { color: var(--accent-coral); }
 .about-page .about-lede { font-size: 1.1rem; line-height: 1.75; color: var(--text-warm-soft); margin: 0; max-width: 49ch; }
-.about-page .about-hero-actions { display: flex; gap: 18px 28px; flex-wrap: wrap; align-items: center; margin-top: 28px; }
 .about-page .about-at-a-glance { border-left: 1px solid var(--border-warm-strong); padding: 4px 0 0 30px; }
 .about-page .about-profile { display: flex; align-items: center; gap: 20px; }
 .about-page .about-portrait { display: block; width: 112px; height: 112px; flex-shrink: 0; object-fit: cover; border-radius: 12px; }

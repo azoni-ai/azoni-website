@@ -12,8 +12,7 @@ export default function HomeHero() {
           <h1>Make your business<br /><span>work better.</span></h1>
           <p className="azoni-hero-intro">Useful software. Connected workflows. AI that earns its place in your business.</p>
           <div className="consult-actions">
-            <Link to="/contact" className="consult-button">Email me <ArrowUpRight size={18} aria-hidden="true" /></Link>
-            <Link to="/projects" className="consult-text-link">Explore my work <ArrowRight size={17} aria-hidden="true" /></Link>
+            <Link to="/projects" className="consult-button">Explore my work <ArrowRight size={17} aria-hidden="true" /></Link>
           </div>
         </div>
         <div className="azoni-hero-person">
