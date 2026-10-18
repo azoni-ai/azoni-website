@@ -5,6 +5,9 @@
 .consulting-site ::selection { background: var(--accent-coral); color: #18110e; }
 .site-header { position: fixed; inset: 0 0 auto; z-index: 100; color: var(--text-warm); background: rgba(19,17,15,.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-warm); }
 .site-nav { max-width: 1184px; padding: 0 32px; min-height: 72px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.site-brand { display: flex; align-items: center; gap: 18px; }
+.site-construction-note { display: inline-flex; align-items: center; gap: 7px; margin: 0; padding: 5px 9px; border: 1px solid var(--border-warm); border-radius: 5px; color: var(--text-warm-soft); font-size: 11px; line-height: 1.4; white-space: nowrap; }
+.site-construction-note > span { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: var(--accent-coral); }
 .site-wordmark { display: flex; gap: 13px; align-items: center; flex-shrink: 0; font-size: 28px; font-weight: 500; line-height: 1.4; letter-spacing: -.25px; }
 .site-monogram { display: grid; grid-auto-flow: column; align-items: center; font-size: 32px; font-weight: 600; letter-spacing: -3px; padding-right: 5px; }
 .site-monogram span { color: var(--accent-coral); }
@@ -136,6 +139,8 @@
 }
 @media (max-width: 900px) {
  .site-nav { min-height: 72px; padding-inline: 22px; }
+ .site-brand { flex-direction: column; align-items: flex-start; gap: 0; }
+ .site-construction-note { border: 0; padding: 0; font-size: 10px; }
  .site-monogram { font-size: 29px; }
  .site-wordmark { font-size: 27px; gap: 12px; }
  .site-menu-toggle { display: flex; }

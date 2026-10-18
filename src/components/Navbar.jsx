@@ -24,9 +24,12 @@ export default function Navbar() {
   return (
     <header className="site-header">
       <nav className="site-nav" aria-label="Main navigation">
-        <Link className="site-wordmark navbar-logo" to="/" onClick={() => setOpen(false)} aria-label="Azoni home">
-          <span>azoni<span className="navbar-logo-dot">.</span></span>
-        </Link>
+        <div className="site-brand">
+          <Link className="site-wordmark navbar-logo" to="/" onClick={() => setOpen(false)} aria-label="Azoni home">
+            <span>azoni<span className="navbar-logo-dot">.</span></span>
+          </Link>
+          <p className="site-construction-note"><span aria-hidden="true" />Site under construction</p>
+        </div>
         <button ref={toggle} className="site-menu-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="site-navigation" onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button>
         <div id="site-navigation" className={`site-navigation${open ? ' is-open' : ''}`}>
           {links.map(({ path, label }) => <Link key={path} to={path} aria-current={pathname === path || pathname.startsWith(`${path}/`) ? 'page' : undefined}>{label}</Link>)}
