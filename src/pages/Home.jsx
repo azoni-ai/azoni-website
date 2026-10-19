@@ -12,10 +12,10 @@ import '../styles/home-v2.css';
 import '../styles/home-consulting.css';
 
 const WORK = [
-  { id: 'embedroute', name: 'EmbedRoute', image: '/images/work-embedroute.jpg', summary: 'One API for multiple embedding providers, plus a lab to compare models on your own data.' },
-  { id: 'fab-stats', name: 'FaB Stats', image: '/images/work-fabstats.jpg', summary: 'Tournament imports, match analytics, and community tools in one connected product.' },
-  { id: 'old-ways-today', name: 'Old Ways Today', image: '/images/work-oldways.jpg', summary: 'An interactive household guide with a knowledge-based AI assistant and product discovery.' },
-];
+  { id: 'embedroute', name: 'EmbedRoute' },
+  { id: 'fab-stats', name: 'FaB Stats' },
+  { id: 'old-ways-today', name: 'Old Ways Today' },
+].map(work => ({ ...work, ...workStories[work.id] }));
 
 export default function Home() {
   const [githubStats, setGithubStats] = useState(null);
@@ -49,8 +49,8 @@ export default function Home() {
         <p className="azoni-section-intro">Independent products I design, build, and operate. A closer look at how I turn an idea into working software.</p>
         <div className="azoni-work-grid">
           {WORK.map(work => <Link className="azoni-work-item" to={'/projects/' + work.id} key={work.id}>
-            <div className="azoni-work-image"><img src={work.image} alt={`${work.name} website preview`} width="1280" height="820" loading="lazy" /></div>
-            <p className="azoni-work-label">{workStories[work.id].label}</p>
+            <div className="azoni-work-image"><img src={work.preview.src} alt={work.preview.alt} width="1280" height="820" loading="lazy" /></div>
+            <p className="azoni-work-label">{work.label}</p>
             <div className="azoni-work-title"><h3>{work.name}</h3><ArrowUpRight size={21} aria-hidden="true" /></div>
             <p className="azoni-work-summary">{work.summary}</p>
             <span className="azoni-work-read">Explore the work <ArrowRight size={14} aria-hidden="true" /></span>

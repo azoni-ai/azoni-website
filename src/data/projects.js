@@ -211,19 +211,19 @@ RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and p
       sections: [
         {
           heading: 'The problem',
-          body: `This was the first time I pointed my agent stack at an actual product instead of my portfolio. I wanted an assistant that answers household questions from a curated knowledge base instead of making things up the way a raw LLM does.`,
+          body: `I wanted a household assistant that could draw on curated guides and product information. That meant connecting retrieval, conversation, and product discovery in one experience.`,
         },
         {
           heading: 'Constraints',
-          body: `A consumer chatbot has to feel fast, so responses stream. It also can't invent facts or dead links. A 404, or worse a wrong-product link, sends users somewhere useless. And because it runs on the same shared stack as everything else, every call is cost-logged.`,
+          body: `Responses stream to keep the conversation responsive. Product recommendations need usable links, so link validation is handled in code. Calls also record cost information through the shared agent stack.`,
         },
         {
           heading: 'Approach and key decisions',
           body: `I grounded the assistant in a curated Firestore knowledge base and treated the model's output as untrusted until I'd checked it.`,
           decisions: [
-            'Retrieval over a curated knowledge base through EmbedRoute, so answers come from that content, not the model\'s memory.',
-            'Streaming responses buffer product blocks until they\'re validated, so a half-formed recommendation never shows up in the UI.',
-            'Every product link is checked. A hallucinated affiliate URL that would 404 gets swapped for a search link before the user sees it.',
+            'Retrieval through EmbedRoute provides curated context for the assistant\'s responses.',
+            'Streaming responses buffer product blocks for validation before displaying them.',
+            'Unrecognized product URLs are replaced with search links during response validation.',
             'Per-call cost logging into the same agent-activity feed as my other apps.',
           ],
         },
@@ -233,7 +233,7 @@ RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and p
         },
         {
           heading: 'Outcomes',
-          body: `It answers from curated content, streams, and falls back to a safe link when the model invents one. The link check in particular turned a recurring hallucination into a non-issue.`,
+          body: `The assistant combines retrieved content with streaming responses and product-link fallback handling. Keeping validation in code makes those checks independent of the prompt.`,
         },
         {
           heading: 'What I’d do differently',
@@ -428,17 +428,17 @@ Built from the Launchpad template in an afternoon. It's one screen and a formula
   {
     id: 'crypto-tax-2025',
     title: 'Crypto Tax 2025',
-    tagline: 'Wallet-first crypto tax reconstruction. Single-user, auth-gated.',
-    description: 'Personal 2025 crypto tax reconstruction. Wallet-first imports, deterministic FIFO, audit-ready exports for TurboTax.',
+    tagline: 'Wallet-first crypto tax reconstruction with a local guest mode.',
+    description: 'A personal crypto transaction tool with wallet imports, FIFO calculations, a review queue, and exports formatted for TurboTax.',
     longDescription: `I built it to reconstruct a year of my crypto activity for taxes without handing it to a service I couldn't audit. Wallet-first imports, deterministic FIFO cost-basis math, and a review queue for the transactions that need a human call.
 
-Exports are audit-ready and formatted for TurboTax. It's single-user and auth-gated. I built it for my own filing, though the pipeline would work for others.`,
+Exports are formatted for TurboTax. I built it for my own filing, with restricted sign-in and a guest mode that lets visitors explore the pipeline using data stored in their browser.`,
     tech: ['React', 'Vite', 'Firebase', 'Claude API'],
     highlights: [
       'Wallet-first transaction imports',
       'Deterministic FIFO cost-basis engine',
-      'Audit-ready, TurboTax-friendly exports',
-      'Single-user and auth-gated, built for my own filing'
+      'Exports formatted for TurboTax',
+      'Restricted sign-in plus a local guest mode with no account required'
     ],
     links: {
       live: 'https://crypto-tax-2025.netlify.app',

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { timeAgo } from '../utils/boardStatus';
 
 // One card = marketing (what it is) + live metrics (how it's doing). Live data
@@ -19,20 +20,12 @@ const fmt = (n) => {
   return n.toLocaleString();
 };
 
-const hostOf = (url) => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return 'Visit';
-  }
-};
-
 const FALLBACK = {
   'fab-stats': 'FAB', 'old-ways-today': 'OW', 'azoni-ai': 'AI', 'azoni-mcp': 'MCP',
   'row-crew': 'RC', 'bench-only': 'BO', dustbunny: 'DB', 'oli-fitness': 'OLI',
 };
 
-function ProductCard({ project, metrics }) {
+function ProductCard({ project, metrics, workReturn }) {
   const [imgError, setImgError] = React.useState(false);
   const archived = !!project.archived;
   const status = metrics?.status;
@@ -51,6 +44,7 @@ function ProductCard({ project, metrics }) {
   return (
     <Link
       to={`/projects/${project.id}`}
+      state={workReturn ? { workReturn } : undefined}
       className={`product-card${archived ? ' is-archived' : ''}`}
     >
       <div className="product-card-head">
@@ -111,9 +105,7 @@ function ProductCard({ project, metrics }) {
             <span key={t} className="product-card-chip">{t}</span>
           ))}
         </div>
-        {project.links?.live && (
-          <span className="product-card-visit">{hostOf(project.links.live)} ↗</span>
-        )}
+        <span className="product-card-visit">View project <ArrowRight size={14} aria-hidden="true" /></span>
       </div>
     </Link>
   );

@@ -1,0 +1,22 @@
+.work-preview { margin: 0; min-width: 0; }
+.work-preview-frame, .work-preview-architecture { width: 100%; min-width: 0; border: 1px solid var(--border-warm-strong); border-radius: 8px; overflow: hidden; background: var(--bg-warm-card); aspect-ratio: 1280 / 820; }
+.work-preview-frame img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.work-preview figcaption { color: var(--text-warm-muted); font-size: 12px; line-height: 1.6; margin-top: 12px; }
+.work-preview-architecture { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; padding: 14px; color: var(--text-warm-soft); }
+.work-preview-kicker { color: var(--text-warm-muted); font-size: 10px; line-height: 1.2; letter-spacing: .11em; text-transform: uppercase; margin-bottom: 4px; }
+.work-preview-clients { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 1.4; }
+.work-preview-connector { color: var(--text-warm-muted); flex-shrink: 0; width: 16px; height: 16px; }
+.work-preview-server { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 10px 26px; border: 1px solid var(--accent-coral); border-radius: 6px; color: var(--accent-coral); }
+.work-preview-server strong { display: block; font-size: 23px; line-height: 1.2; font-weight: 500; letter-spacing: -.03em; }
+.work-preview-server span { display: block; color: var(--text-warm-soft); font-size: 12px; line-height: 1.4; margin-top: 3px; }
+.work-preview-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; font-size: 12px; line-height: 1.4; }
+.work-preview-tools > span { display: inline-flex; align-items: center; gap: 7px; }
+@media (max-width: 620px) {
+  .work-preview-architecture { padding: 16px; gap: 5px; min-height: 240px; }
+  .work-preview-kicker { margin-bottom: 5px; font-size: 9px; }
+  .work-preview-clients { font-size: 12px; gap: 8px; }
+  .work-preview-server { padding: 10px 20px; gap: 12px; }
+  .work-preview-server strong { font-size: 20px; }
+  .work-preview-server span, .work-preview-tools { font-size: 11px; }
+  .work-preview-tools { gap: 8px 14px; }
+}
