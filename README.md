@@ -44,7 +44,7 @@ npm start
 
 ### Environment Variables
 
-Secrets (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `FIREBASE_*`, `RAG_ADMIN_KEY` and the rest in `.env.example`) are read only by the Netlify Functions. Never put a secret in a `REACT_APP_*` variable: Create React App copies those into the public JavaScript, and `npm run build` fails if a non-public `REACT_APP_*` name shows up in the bundle (`scripts/check-bundle-secrets.cjs`).
+Secrets (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `FIREBASE_*`, `RAG_ADMIN_KEY` and the rest in `.env.example`) are read only by the Netlify Functions. Never put a secret in a `REACT_APP_*` variable: Create React App copies those into the public JavaScript. `npm run build` (`scripts/build.cjs`) leaves out any `REACT_APP_*` name that isn't on the public list in `scripts/check-bundle-secrets.cjs`, and fails if a key-shaped string or a non-public name still shows up in the bundle.
 
 ## Project Structure
 

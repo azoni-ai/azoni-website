@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 // These tests must never reach production services, persist logs, or spend API
 // credits. Clear service credentials before loading either server module.
-for (const key of ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[key];
+for (const key of ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'REACT_APP_OPENROUTER_API_KEY']) delete process.env[key];
 const core = require('../netlify/functions/chat-core');
 const { handler } = require('../netlify/functions/chat');
 const originalFetch = global.fetch;

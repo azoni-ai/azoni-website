@@ -100,7 +100,9 @@ export default async (req) => {
   const isFastRequest = fast === true || requestContext === 'home-hero' || requestContext === 'fast';
   const modelMessages = core.selectModelMessages(messages, isFastRequest);
 
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  // OPENROUTER_API_KEY is the name to use. The old REACT_APP_ name is still read here,
+  // server-side only: scripts/build.cjs keeps it out of the browser bundle.
+  const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
   if (!openRouterKey || !latestUserMessage) {
     // Signal the frontend to fall back to the non-streaming /chat endpoint.
     return new Response(JSON.stringify({ error: 'stream_unavailable' }), { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });

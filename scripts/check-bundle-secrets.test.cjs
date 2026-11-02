@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { scanText, scanEnv, mask, PUBLIC_ENV_NAMES } = require('./check-bundle-secrets.cjs');
+const { scanText, scanEnv, publicBuildEnv, mask, PUBLIC_ENV_NAMES } = require('./check-bundle-secrets.cjs');
 
 const SCRIPT = path.join(__dirname, 'check-bundle-secrets.cjs');
 
@@ -69,6 +69,15 @@ test('scanEnv flags unlisted REACT_APP_ variables in the build environment', () 
   const env = { PATH: '/bin', REACT_APP_GAME_SERVER: 'https://example.test', REACT_APP_SECRET_THING: FAKE_SHAPELESS };
   assert.deepEqual(scanEnv(env).map((f) => f.shown), ['REACT_APP_SECRET_THING']);
   assert.deepEqual(scanEnv({ react_app_lower: 'x' }).map((f) => f.shown), ['react_app_lower']);
+});
+
+test('publicBuildEnv drops unlisted REACT_APP_ variables and keeps everything else', () => {
+  const env = { PATH: '/bin', CI: 'true', REACT_APP_GAME_SERVER: 'https://example.test', REACT_APP_SECRET_THING: FAKE_SHAPELESS };
+  const { env: kept, leftOut } = publicBuildEnv(env);
+  assert.deepEqual(leftOut, ['REACT_APP_SECRET_THING']);
+  assert.deepEqual(kept, { PATH: '/bin', CI: 'true', REACT_APP_GAME_SERVER: 'https://example.test' });
+  assert.equal(env.REACT_APP_SECRET_THING, FAKE_SHAPELESS, 'the caller\'s env is not modified');
+  assert.deepEqual(scanEnv(kept), []);
 });
 
 test('ordinary minified code does not match', () => {

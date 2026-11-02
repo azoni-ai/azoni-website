@@ -964,7 +964,9 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       }
     }
 
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
+    // OPENROUTER_API_KEY is the name to use. The old REACT_APP_ name is still read here,
+    // server-side only: scripts/build.cjs keeps it out of the browser bundle.
+    const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
     if (!openRouterKey) {
       const fallback = buildFallbackChatResponse({
         query: latestUserMessage,

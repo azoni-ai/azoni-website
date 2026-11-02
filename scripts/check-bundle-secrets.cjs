@@ -99,6 +99,15 @@ function scanEnv(env) {
     .map((k) => ({ file: '(build environment)', rule: 'env-name-not-public', shown: k }));
 }
 
+// What scripts/build.cjs hands to react-scripts: the environment minus every
+// REACT_APP_* name off the public list, so a secret set for the build is never inlined.
+function publicBuildEnv(env) {
+  const leftOut = scanEnv(env).map((f) => f.shown);
+  const kept = { ...env };
+  for (const name of leftOut) delete kept[name];
+  return { env: kept, leftOut };
+}
+
 function main(argv, env = process.env) {
   const dir = argv[2] || DEFAULT_DIR;
   let result;
@@ -131,4 +140,4 @@ function main(argv, env = process.env) {
 
 if (require.main === module) process.exitCode = main(process.argv);
 
-module.exports = { RULES, PUBLIC_ENV_NAMES, mask, scanText, scanEnv, scanDir, main };
+module.exports = { RULES, PUBLIC_ENV_NAMES, mask, scanText, scanEnv, publicBuildEnv, scanDir, main };
