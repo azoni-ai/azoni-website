@@ -35,9 +35,8 @@ cd azoni-website
 # Install dependencies
 npm install
 
-# Set up environment variables
+# Set up environment variables (see .env.example)
 cp .env.example .env
-# Edit .env and add your OpenAI API key
 
 # Start development server
 npm start
@@ -45,11 +44,7 @@ npm start
 
 ### Environment Variables
 
-```
-REACT_APP_OPENAI_API_KEY=your_openai_api_key_here
-```
-
-**Note:** The current implementation calls OpenAI directly from the frontend. For production, you should proxy this through a backend to protect your API key.
+Secrets (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `FIREBASE_*`, `RAG_ADMIN_KEY` and the rest in `.env.example`) are read only by the Netlify Functions. Never put a secret in a `REACT_APP_*` variable: Create React App copies those into the public JavaScript. `npm run build` (`scripts/build.cjs`) leaves out any `REACT_APP_*` name that isn't on the public list in `scripts/check-bundle-secrets.cjs`, and fails if a key-shaped string or a non-public name still shows up in the bundle.
 
 ## Project Structure
 
@@ -82,7 +77,7 @@ The site is configured for Netlify deployment:
 1. Connect your GitHub repository to Netlify
 2. Set build command: `npm run build`
 3. Set publish directory: `build`
-4. Add environment variable: `REACT_APP_OPENAI_API_KEY`
+4. Add the server-side environment variables from `.env.example` (no secrets under `REACT_APP_*`)
 
 The `_redirects` file handles client-side routing.
 

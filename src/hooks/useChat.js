@@ -117,8 +117,9 @@ export const useChat = (initialMode = 'professional') => {
       linkedSessionId: linkedSessionRef.current,
       journeyId: getJourneyId(),
       turnId: extra.turnId ?? null,
-      userMessage: messageText,
-      assistantMessage: assistantContent,
+      // firestore.rules only accepts strings up to 15000 chars; a rejected write loses the log.
+      userMessage: String(messageText ?? '').slice(0, 15000),
+      assistantMessage: String(assistantContent ?? '').slice(0, 15000),
       mode: chatMode,
       model: usage?.model || model,
       modelName: modelName || model,

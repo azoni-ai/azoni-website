@@ -248,7 +248,7 @@ function buildFallbackChatResponse({ query, intent, retrievedChunks, model, pric
     if (initFirebase()) {
       db.collection('agent_activity').add({
         type: 'assistant_chat_fallback',
-        title: `Chat fallback: ${(query || '').slice(0, 60)}`,
+        title: 'Assistant chat fallback',
         description: `reason: ${reason}`,
         source: 'azoni-ai',
         model,
@@ -508,10 +508,6 @@ async function getFitnessContext(query, options = {}) {
   
   const username = 'azoni';
   
-  // Coaching queries
-  const isCoachQuery = q.includes('coach') || q.includes('trainer') || q.includes('athlete') || 
-                       q.includes('clients') || q.includes('trains') || q.includes('training clients');
-  
   // Max/PR queries
   const isMaxQuery = q.includes('max') || q.includes('pr') || q.includes('1rm') || 
                      q.includes('strongest') || q.includes('best lift') || q.includes('how much') ||
@@ -542,20 +538,6 @@ async function getFitnessContext(query, options = {}) {
                          q.includes('member') || q.includes('how long');
   
   try {
-    if (isCoachQuery) {
-      const summary = await callMCPTool(`/benchpressonly/coach/${username}`, mcpOptions);
-      if (summary && !summary.error) {
-        context.push({ title: 'Coaching Overview', data: summary });
-        toolsCalled.push('get_coach_summary');
-      }
-      
-      const athletes = await callMCPTool(`/benchpressonly/coach/${username}/athletes`, mcpOptions);
-      if (athletes && !athletes.error) {
-        context.push({ title: 'Athlete Progress', data: athletes });
-        toolsCalled.push('get_athlete_progress');
-      }
-    }
-    
     if (isMaxQuery) {
       const maxes = await callMCPTool(`/benchpressonly/maxes/${username}`, mcpOptions);
       if (maxes && !maxes.error) {
@@ -982,6 +964,8 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       }
     }
 
+    // OPENROUTER_API_KEY is the name to use. The old REACT_APP_ name is still read here,
+    // server-side only: scripts/build.cjs keeps it out of the browser bundle.
     const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
     if (!openRouterKey) {
       const fallback = buildFallbackChatResponse({
@@ -1173,8 +1157,8 @@ The server also exposes a /api/stats endpoint with live runtime metrics (uptime,
       };
       if (db) db.collection('agent_activity').add({
         type: 'assistant_chat',
-        title: `Chat: ${latestUserMessage.slice(0, 60)}`,
-        description: assistantResponse.slice(0, 200),
+        title: 'Assistant chat',
+        description: core.chatActivityDescription({ intent, model, chunksUsed: topChunks.length }),
         source: requestContext === 'autoenhance-interview' ? 'autoenhance-interview' : 'azoni-ai',
         model,
         tokens: data.usage ? { prompt: data.usage.prompt_tokens, completion: data.usage.completion_tokens, total: data.usage.total_tokens } : {},

@@ -414,7 +414,7 @@ function detectIntent(query) {
 
   if (!hasNonFitnessQualifier) {
     const strongFitnessTriggers = ['workout', 'workouts', 'gym', 'lifting', 'bench press', 'bench', 'squat', 'deadlift',
-      'coach', 'coaching', 'trainer', 'athlete', 'athletes', 'benchpressonly', 'bench only', 'benchonly',
+      'benchpressonly', 'bench only', 'benchonly',
       'pr ', 'prs', 'personal record', '1rm', 'one rep max', 'streak', 'consistency', 'consistent', 'reps', 'sets', 'volume', 'training', 'trains',
       'how much does he bench', 'how much can he lift', 'how strong', 'bmi', 'body stats', 'physique'];
     if (strongFitnessTriggers.some(t => q.includes(t))) return { intent: 'fitness', confidence: 'HIGH', reason: 'fitness_keyword' };
@@ -548,7 +548,6 @@ async function getFitnessContext(query, options = {}) {
   const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
   const username = 'azoni';
 
-  const isCoachQuery = /coach|trainer|athlete|clients|trains|training clients/.test(q);
   const isMaxQuery = /max|pr|1rm|strongest|best lift|how much|bench|squat|deadlift/.test(q);
   const isGoalQuery = /goal|target/.test(q);
   const isWorkoutQuery = /workout|session|routine/.test(q);
@@ -559,12 +558,6 @@ async function getFitnessContext(query, options = {}) {
   const isProfileQuery = /profile|about|who is|member|how long/.test(q);
 
   try {
-    if (isCoachQuery) {
-      const summary = await callMCPTool(`/benchpressonly/coach/${username}`, mcpOptions);
-      if (summary && !summary.error) { context.push({ title: 'Coaching Overview', data: summary }); toolsCalled.push('get_coach_summary'); }
-      const athletes = await callMCPTool(`/benchpressonly/coach/${username}/athletes`, mcpOptions);
-      if (athletes && !athletes.error) { context.push({ title: 'Athlete Progress', data: athletes }); toolsCalled.push('get_athlete_progress'); }
-    }
     if (isMaxQuery) {
       const maxes = await callMCPTool(`/benchpressonly/maxes/${username}`, mcpOptions);
       if (maxes && !maxes.error) { context.push({ title: 'Personal Records', data: maxes }); toolsCalled.push('get_max_lifts'); }
@@ -724,7 +717,7 @@ const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'get_fitness_data',
-      description: "Live training data from Charlton's BenchPressOnly app: max lifts / PRs, recent workouts, streak, consistency, goals, body stats, training volume, top exercises, coaching. Call this for ANY question about his lifting, strength, bench/squat/deadlift, workouts, fitness goals, or coaching.",
+      description: "Live training data from Charlton's BenchPressOnly app: max lifts / PRs, recent workouts, streak, consistency, goals, body stats, training volume, top exercises. Call this for ANY question about his lifting, strength, bench/squat/deadlift, workouts, or fitness goals.",
       parameters: { type: 'object', properties: { query: { type: 'string', description: 'The user question verbatim, used to choose which fitness metrics to pull.' } }, required: ['query'] }
     }
   },
@@ -823,21 +816,25 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], acti
 }
 
 // ============ SERVER-SIDE ACTIVITY LOGGING ============
-// Writes to agent_activity (server-only collection that feeds the cost + live-map
-// dashboards). chatLogs is still written client-side by useChat.js, so we don't
-// duplicate it here.
+// Writes to agent_activity (server-written, publicly readable; feeds the cost +
+// live-map dashboards), so rows carry metadata only, never visitor or reply text.
+// chatLogs is still written client-side by useChat.js, so we don't duplicate it here.
 const INTENT_TO_STATION = {
   fitness: 'benchpressonly', fabstats: 'fabstats', rowcrew: 'rowcrew',
   spellbrigade: 'spellbrigade', moltbook: 'moltbook', oldways: 'oldwaystoday', activity: 'activity',
 };
 
-async function logChatActivity({ userMessage, assistantMessage, model, usage, intent, chunksUsed, requestContext, totalCost }) {
+function chatActivityDescription({ intent, model, chunksUsed }) {
+  return `intent: ${intent?.intent || 'general'}, model: ${model || 'unknown'}, chunks: ${chunksUsed || 0}`;
+}
+
+async function logChatActivity({ model, usage, intent, chunksUsed, requestContext, totalCost }) {
   if (!initFirebase()) return;
   try {
     await db.collection('agent_activity').add({
       type: 'assistant_chat',
-      title: `Chat: ${(userMessage || '').slice(0, 60)}`,
-      description: (assistantMessage || '').slice(0, 200),
+      title: 'Assistant chat',
+      description: chatActivityDescription({ intent, model, chunksUsed }),
       source: requestContext === 'autoenhance-interview' ? 'autoenhance-interview' : 'azoni-ai',
       model,
       tokens: usage ? { prompt: usage.prompt_tokens, completion: usage.completion_tokens, total: usage.total_tokens } : {},
@@ -846,7 +843,8 @@ async function logChatActivity({ userMessage, assistantMessage, model, usage, in
         intent: intent?.intent || 'general',
         targetStation: INTENT_TO_STATION[intent?.intent] || null,
         chunksUsed: chunksUsed || 0,
-        context: requestContext || null,
+        // Raw from the request body, and this collection is public: keep it short.
+        context: typeof requestContext === 'string' ? requestContext.slice(0, 40) : null,
         streamed: true,
       },
       timestamp: admin.firestore.FieldValue.serverTimestamp()
@@ -934,6 +932,7 @@ module.exports = {
   supportsCustomTemperature,
   getFirebaseInitError,
   provideFirebaseAdmin,
+  chatActivityDescription,
   logChatActivity,
   logKnowledgeGap,
   logChatTurn,

@@ -78,10 +78,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Agent activity feed - public read (Activity page + board render it);
+    // Agent activity feed - NOT publicly readable: older rows hold visitors'
+    // chat text. Pages get it through functions (home-summary, board-activity);
     // all writers are server-side (functions, agents), so client writes denied.
     match /agent_activity/{document=**} {
-      allow read: if true;
+      allow read: if false;
       allow write: if false;
     }
 

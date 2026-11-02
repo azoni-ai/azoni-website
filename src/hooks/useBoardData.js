@@ -3,8 +3,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
-  limit,
   getDoc,
   getDocs,
   onSnapshot,
@@ -12,16 +10,24 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
+// agent_activity is closed to browsers (older rows hold visitors' chat text);
+// board-activity.js serves the source/type/timestamp the phase logic needs.
+const ACTIVITY_URL = '/.netlify/functions/board-activity';
+const loadActivity = () =>
+  fetch(ACTIVITY_URL)
+    .then((res) => (res.ok ? res.json() : { items: [] }))
+    .then((data) => data.items || []);
+
 /**
  * Board data: the `tasks` collection, the `boardState/config` owner-config
- * doc, and a recent slice of `agent_activity` (used for epic phase
+ * doc, and a recent slice of agent activity (used for epic phase
  * derivation + header counts).
  *
  * Visitors get ONE-SHOT reads — a public page must not hold realtime
  * listeners open on the free tier (the home page once blew the 50k reads/day
  * quota exactly that way; see home-summary.js). Realtime `onSnapshot` is
  * reserved for the owner (`realtime = true`), where live sync after edits
- * actually matters.
+ * actually matters. Activity is a one-shot fetch either way.
  */
 export default function useBoardData(realtime = false) {
   const [tasks, setTasks] = useState([]);
@@ -38,11 +44,10 @@ export default function useBoardData(realtime = false) {
       ? collection(db, 'tasks')
       : query(collection(db, 'tasks'), where('visibility', '==', 'public'));
     const configRef = doc(db, 'boardState', 'config');
-    const activityQuery = query(
-      collection(db, 'agent_activity'),
-      orderBy('timestamp', 'desc'),
-      limit(150)
-    );
+    let cancelled = false;
+    loadActivity()
+      .then((items) => !cancelled && setActivity(items))
+      .catch(() => {});
 
     const applyTasks = (snap) => {
       const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -53,19 +58,12 @@ export default function useBoardData(realtime = false) {
     };
 
     if (!realtime) {
-      let cancelled = false;
       getDocs(tasksQuery)
         .then((snap) => !cancelled && applyTasks(snap))
         .catch(() => !cancelled && setLoading(false));
       getDoc(configRef)
         .then((snap) => !cancelled && setBoardState(snap.exists() ? snap.data() : {}))
         .catch(() => !cancelled && setBoardState({}));
-      getDocs(activityQuery)
-        .then(
-          (snap) =>
-            !cancelled && setActivity(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-        )
-        .catch(() => {});
       return () => {
         cancelled = true;
       };
@@ -78,13 +76,11 @@ export default function useBoardData(realtime = false) {
         (snap) => setBoardState(snap.exists() ? snap.data() : {}),
         () => setBoardState({})
       ),
-      onSnapshot(
-        activityQuery,
-        (snap) => setActivity(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-        () => {}
-      ),
     ];
-    return () => unsubs.forEach((u) => u());
+    return () => {
+      cancelled = true;
+      unsubs.forEach((u) => u());
+    };
   }, [realtime]);
 
   return { tasks, boardState: boardState || {}, activity, loading };

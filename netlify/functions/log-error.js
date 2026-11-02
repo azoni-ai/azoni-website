@@ -74,20 +74,23 @@ exports.handler = async (event) => {
 
     // For critical/high errors, route through log-agent-activity so the event router
     // can trigger downstream actions (e.g., reactive orchestrator for critical errors)
+    // agent_activity is publicly readable and callers' error text and context can carry
+    // their own users' data, so only fixed fields are forwarded; details stay in error_logs.
     if (doc.severity === 'critical' || doc.severity === 'high') {
       const SITE_URL = process.env.URL || 'https://azoni.ai';
+      const fn = typeof doc.context?.function === 'string' ? doc.context.function.slice(0, 60) : null;
       fetch(`${SITE_URL}/.netlify/functions/log-agent-activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'error_logged',
-          title: `${doc.severity === 'critical' ? '🚨' : '⚠️'} ${doc.source}: ${doc.error.slice(0, 100)}`,
-          description: `${doc.severity.toUpperCase()} error in ${doc.source}${doc.context?.function ? ` (${doc.context.function})` : ''}`,
+          title: `${doc.severity === 'critical' ? '🚨' : '⚠️'} ${doc.severity} error in ${doc.source}`,
+          description: `${doc.severity.toUpperCase()} error in ${doc.source}${fn ? ` (${fn})` : ''}`,
           source: doc.source,
           metadata: {
             errorId: ref.id,
             severity: doc.severity,
-            context: doc.context
+            function: fn
           },
           secret: process.env.AGENT_WEBHOOK_SECRET
         }),

@@ -100,6 +100,8 @@ export default async (req) => {
   const isFastRequest = fast === true || requestContext === 'home-hero' || requestContext === 'fast';
   const modelMessages = core.selectModelMessages(messages, isFastRequest);
 
+  // OPENROUTER_API_KEY is the name to use. The old REACT_APP_ name is still read here,
+  // server-side only: scripts/build.cjs keeps it out of the browser bundle.
   const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
   if (!openRouterKey || !latestUserMessage) {
     // Signal the frontend to fall back to the non-streaming /chat endpoint.
@@ -354,8 +356,6 @@ export default async (req) => {
         // it so a slow Firestore can only delay the done event, never the tokens.
         const logTail = Promise.allSettled([
           core.logChatActivity({
-            userMessage: latestUserMessage,
-            assistantMessage: fullText,
             model,
             usage: fullUsage,
             intent,
