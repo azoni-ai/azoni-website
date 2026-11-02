@@ -30,6 +30,7 @@ const About = lazy(() => import("./pages/About"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Services = lazy(() => import("./pages/Services"));
 const Contact = lazy(() => import("./pages/Contact"));
+const Meet = lazy(() => import("./pages/Meet"));
 
 const App = () => {
   useEffect(() => {
@@ -49,6 +50,7 @@ const App = () => {
               <Route path="/" element={<Home />} />
               <Route path="/services" element={<Services />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/meet" element={<Meet />} />
               <Route path="/about" element={<About />} />
               <Route path="/aboutme" element={<Navigate to="/about" replace />} />
               <Route path="/projects" element={<Projects />} />

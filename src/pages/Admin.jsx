@@ -15,6 +15,7 @@ import {
 // Billing is its own lazy chunk so the admin bundle doesn't carry it.
 const BillingTab = lazy(() => import('../components/billing/BillingTab'));
 const AiToolsTab = lazy(() => import('../components/aitools/AiToolsTab'));
+const CalendarTab = lazy(() => import('../components/calendar/CalendarTab'));
 
 // Shared helper for the token-gated admin-data function (server-side reads/writes
 // that Firestore rules no longer allow from the client).
@@ -59,7 +60,10 @@ const Admin = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState('billing');
+  // Google's sign-in for the booking page returns to /admin?tab=calendar.
+  const [activeTab, setActiveTab] = useState(() => (
+    new URLSearchParams(window.location.search).get('tab') === 'calendar' ? 'calendar' : 'billing'
+  ));
   const [leaving, setLeaving] = useState(false);
   const [blockedLeave, setBlockedLeave] = useState(null);
   const billingBeforeLeaveRef = useRef(null);
@@ -173,7 +177,7 @@ const Admin = () => {
             <div>
               <p className="admin-eyebrow">Azoni / Private workspace</p>
               <h1>{activeTab === 'billing' ? 'Business workspace' : 'Website tools'}</h1>
-              <p className="admin-description">{activeTab === 'billing' ? 'Manage your work, invoices, taxes and accounts.' : 'Manage your website conversations, comments and AI tools.'}</p>
+              <p className="admin-description">{activeTab === 'billing' ? 'Manage your work, invoices, taxes and accounts.' : 'Manage your website conversations, comments, AI tools and booking calendar.'}</p>
             </div>
             <button onClick={handleLogout} disabled={leaving} className="btn btn-secondary">{leaving ? 'Saving...' : 'Sign out'}</button>
           </div>
@@ -209,7 +213,7 @@ const Admin = () => {
 
           {activeTab !== 'billing' && (
             <nav className="admin-website-tabs" aria-label="Website tools">
-              {[['usage', 'Chat activity'], ['comments', 'Comments'], ['tools', 'AI tools']].map(([key, label]) => (
+              {[['usage', 'Chat activity'], ['comments', 'Comments'], ['tools', 'AI tools'], ['calendar', 'Calendar']].map(([key, label]) => (
                 <button key={key} className={activeTab === key ? 'active' : ''} aria-current={activeTab === key ? 'page' : undefined} disabled={leaving} onClick={() => setActiveTab(key)}>{label}</button>
               ))}
             </nav>
@@ -237,6 +241,17 @@ const Admin = () => {
               }
             >
               <AiToolsTab />
+            </Suspense>
+          )}
+          {activeTab === 'calendar' && (
+            <Suspense
+              fallback={
+                <div style={{ padding: '40px 0', color: 'var(--text-warm-muted)' }}>
+                  Loading calendar settings...
+                </div>
+              }
+            >
+              <CalendarTab onAuthFailure={handleLogout} />
             </Suspense>
           )}
         </div>
