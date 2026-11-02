@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 // These tests must never reach production services, persist logs, or spend API
 // credits. Clear service credentials before loading either server module.
-for (const key of ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'REACT_APP_OPENROUTER_API_KEY']) delete process.env[key];
+for (const key of ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[key];
 const core = require('../netlify/functions/chat-core');
 const { handler } = require('../netlify/functions/chat');
 const originalFetch = global.fetch;
@@ -30,6 +30,50 @@ const cases = [
 for (const [question, expected] of cases) {
   test('routes intent: ' + question, () => assert.equal(core.detectIntent(question).intent, expected));
 }
+
+// Coaching data describes Charlton's athletes (third parties), so a question about
+// mentoring engineers must not route to fitness or pull coach/athlete records.
+const COACHING_QUESTIONS = [
+  'Does Charlton have experience coaching or mentoring engineers?',
+  'Has he coached or mentored junior developers on his team?',
+  'Is Charlton a good trainer for engineering teams?',
+];
+for (const question of COACHING_QUESTIONS) {
+  test('coaching question does not route to fitness: ' + question, () => assert.notEqual(core.detectIntent(question).intent, 'fitness'));
+}
+
+async function mcpPathsRequested(run) {
+  const paths = [];
+  global.fetch = async (url) => {
+    paths.push(new URL(url).pathname);
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  try {
+    await run();
+  } finally {
+    global.fetch = async () => { throw new Error('Unexpected network access in chat tests'); };
+  }
+  return paths;
+}
+
+test('fitness context and the fitness tool never request coach or athlete data', async () => {
+  const query = 'Does he coach athletes or train clients at the gym? Show his athlete progress.';
+  const paths = await mcpPathsRequested(async () => {
+    await core.getFitnessContext(query);
+    await core.executeToolCall('get_fitness_data', { query });
+  });
+  assert.ok(paths.length > 0, 'own fitness data is still fetched');
+  for (const p of paths) assert.doesNotMatch(p, /coach|athlete/i);
+  const tool = core.TOOL_DEFINITIONS.find(t => t.function.name === 'get_fitness_data');
+  assert.doesNotMatch(tool.function.description, /coach/i);
+});
+
+test('non-streaming fitness lookup never requests coach or athlete data', async () => {
+  const body = JSON.stringify({ messages: [{ role: 'user', content: 'How much does he bench, and does he coach athletes or trainers?' }] });
+  const paths = await mcpPathsRequested(() => handler({ httpMethod: 'POST', headers: {}, body }));
+  assert.ok(paths.some(p => p.startsWith('/benchpressonly/')), 'fitness intent still uses live data');
+  for (const p of paths) assert.doesNotMatch(p, /coach|athlete/i);
+});
 
 test('only manually curated knowledge is accepted as evidence', () => {
   assert.equal(core.isTrustedKnowledgeChunk({ content: 'A manually written source.' }), true);

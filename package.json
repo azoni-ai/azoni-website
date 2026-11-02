@@ -19,7 +19,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "react-scripts build && node scripts/check-bundle-secrets.cjs",
     "test": "react-scripts test",
     "audit:chat-knowledge": "node scripts/audit-chat-knowledge.js",
     "eject": "react-scripts eject"
