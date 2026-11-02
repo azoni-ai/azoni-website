@@ -27,6 +27,11 @@
 [functions."ai-tools"]
   timeout = 26
 
+# Reads two calendars (Google + the Outlook feed) and may parse years of
+# recurring meetings before answering.
+[functions."meet"]
+  timeout = 26
+
 [functions."daily-blog"]
   schedule = "0 17 * * *"
 

@@ -1,0 +1,22 @@
+/* Calendar tab (admin panel). Namespaced .cal-admin-*; cards, fields and
+   buttons come from aitools-admin.css. */
+
+.cal-admin { color: var(--text-warm); }
+.cal-admin > .ait-notice, .cal-admin > .ait-error { margin: 0 0 14px; }
+.cal-admin-text { color: var(--text-warm-soft); font-size: 0.9rem; line-height: 1.6; }
+.cal-admin-text p + p, .cal-admin-text ol + .cal-admin-code, .cal-admin-code + p { margin-top: 10px; }
+.cal-admin-text ol { margin: 8px 0 0 20px; }
+.cal-admin-text li + li { margin-top: 4px; }
+.cal-admin-text strong { color: var(--text-warm); font-weight: 500; }
+.cal-admin-text code, .cal-admin-code { font-family: var(--font-mono); font-size: 0.82rem; }
+.cal-admin-code { display: block; padding: 9px 11px; background: var(--bg-warm-hover); border: 1px solid var(--border-warm-strong); border-radius: 7px; overflow-wrap: anywhere; user-select: all; }
+.cal-admin-dot { display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%; background: var(--text-warm-muted); vertical-align: 1px; }
+.cal-admin-dot.on { background: var(--accent-sage); }
+.cal-admin-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-coral); font-size: 0.85rem; }
+.cal-admin-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.cal-admin-actions { margin-top: 14px; }
+.cal-admin-muted { color: var(--text-warm-muted); font-size: 0.8rem; }
+.cal-admin-feeds { list-style: none; margin: 14px 0 4px; padding: 0; border-top: 1px solid var(--border-warm); }
+.cal-admin-feeds li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 0; border-bottom: 1px solid var(--border-warm); font-size: 0.88rem; }
+.cal-admin-feeds li > span:first-child { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 0.82rem; }
+.cal-admin .ait-frow { margin-top: 14px; }
