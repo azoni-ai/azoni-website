@@ -243,3 +243,12 @@
 
 .hero-split-seg--both { background: #b798d8; }
 .hero-stats-value.hero-stats-value--status { font-size: 1rem; }
+
+/* Split bar colours, copied from home-v2.css so CommitStats styles itself on
+   /live now that Home no longer loads that file. */
+.commit-split-bar { display: flex; background: color-mix(in srgb, var(--bg-warm-card) 80%, transparent); }
+.commit-split-bar .hero-split-seg { display: inline-block; height: 100%; transition: width 0.4s ease; }
+.hero-split-seg--solo { background: var(--accent-coral); }
+.hero-split-seg--claude { background: var(--accent-amber); }
+.hero-split-seg--codex { background: var(--accent-sage); }
+.commit-split-legend .hero-split-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }

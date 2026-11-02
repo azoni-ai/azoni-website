@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
+import CommitStats from '../components/home/CommitStats';
 import publicWritingPolicy from '../data/publicWritingPolicy.json';
 import { GITHUB_STATS_URL, PUBLIC_FEED_SCOPE, getContributionDate, getContributionTiles, isContributionPayload } from '../utils/githubTelemetry';
 import '../styles/commits.css';
@@ -34,7 +35,13 @@ const REPO_COLORS = {
   'kalshi': '#34d399',
 };
 
-const Commits = ({ embedded = false }) => {
+// The feed shows this many commits; the rest are a link away on GitHub.
+const COMMIT_LIMIT = 30;
+const GITHUB_PROFILE = 'https://github.com/azoni';
+
+// withCommitStats swaps the plain totals for the CommitStats band (totals plus
+// the AI-tag split), which moved here from the home page.
+const Commits = ({ embedded = false, withCommitStats = false }) => {
   const [githubStats, setGithubStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [repoFilter, setRepoFilter] = useState('all');
@@ -90,17 +97,19 @@ const Commits = ({ embedded = false }) => {
     });
   }, [githubStats, repoFilter, searchQuery]);
 
+  const visibleCommits = useMemo(() => filteredCommits.slice(0, COMMIT_LIMIT), [filteredCommits]);
+
   // Group commits by date
   const groupedCommits = useMemo(() => {
     const groups = {};
-    filteredCommits.forEach(commit => {
+    visibleCommits.forEach(commit => {
       const date = new Date(commit.timestamp);
       const key = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
       if (!groups[key]) groups[key] = [];
       groups[key].push(commit);
     });
     return groups;
-  }, [filteredCommits]);
+  }, [visibleCommits]);
 
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -147,6 +156,7 @@ const Commits = ({ embedded = false }) => {
             </div>
             )}
 
+            {withCommitStats ? <CommitStats githubStats={githubStats} loading={loading} /> : (
             <section className="commits-contributions" aria-labelledby="commits-contributions-heading" aria-busy={loading}>
               <h2 id="commits-contributions-heading" className="commits-section-heading">Account-wide contributions</h2>
               <dl className="commits-stats-bar">
@@ -155,9 +165,10 @@ const Commits = ({ embedded = false }) => {
                   <dt className="commits-stat-label">{tile.label}</dt>
                 </div>)}
               </dl>
-              <p className="commits-scope-note"><a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">GitHub contribution calendar</a> totals across my account. Reporting periods use Pacific time{throughDate ? `, through ${throughDate}` : ''}.</p>
+              <p className="commits-scope-note"><a href={GITHUB_PROFILE} target="_blank" rel="noopener noreferrer">GitHub contribution calendar</a> totals across my account. Reporting periods use Pacific time{throughDate ? `, through ${throughDate}` : ''}.</p>
               {totalsUnavailable && <p className="commits-scope-note" role="status">Contribution totals are temporarily unavailable.</p>}
             </section>
+            )}
 
             <h2 className="commits-section-heading">Recent public commits</h2>
             <p className="commits-scope-note">A separate sample from selected public projects. Repository filters apply to this feed; they do not change the account-wide contribution totals.</p>
@@ -206,7 +217,7 @@ const Commits = ({ embedded = false }) => {
               <span>Loading commits...</span>
             </div>
           ) : !feedAvailable ? (
-            <div className="commits-empty" role="status"><p>The public commit feed is temporarily unavailable.</p><a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">View GitHub &nearr;</a></div>
+            <div className="commits-empty" role="status"><p>The public commit feed is temporarily unavailable.</p><a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">View GitHub &#8599;</a></div>
           ) : filteredCommits.length === 0 ? (
             <div className="commits-empty">
               <p>No recent commits{repoFilter !== 'all' ? ` for ${repoFilter}` : ''}{searchQuery ? ` matching "${searchQuery}"` : ''}</p>
@@ -279,6 +290,10 @@ const Commits = ({ embedded = false }) => {
                   </div>
                 </div>
               ))}
+              <p className="commits-more">
+                {filteredCommits.length > COMMIT_LIMIT ? `Showing the ${COMMIT_LIMIT} most recent of ${filteredCommits.length} commits. ` : ''}
+                <a href={GITHUB_PROFILE} target="_blank" rel="noopener noreferrer">See all my public work on GitHub &#8599;</a>
+              </p>
             </div>
           )}
         </div>

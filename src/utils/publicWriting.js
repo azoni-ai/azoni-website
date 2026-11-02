@@ -1,42 +1,55 @@
 import policy from '../data/publicWritingPolicy.json';
 
 export const WRITING_PAGE_SIZE = 12;
+export const BUILD_NOTES_ENDPOINT = '/.netlify/functions/blog-posts';
+// Matches the slugs daily-blog writes: the commit date, then the title.
+export const BUILD_NOTE_SLUG = /^\d{4}-\d{2}-\d{2}-[a-z0-9-]{0,60}$/;
 
-// This is editorial curation, not Firestore access control. Each entry has
-// individually reviewed content and exact generation provenance. Unknown
-// posts and changed content stay out of public pages until reviewed again.
-export function getReviewedWritingEntries(sourcePolicy = policy) {
-  const repositories = new Set(sourcePolicy.writingRepositoryFullNames || []);
-  return (sourcePolicy.reviewedPosts || []).filter((entry) => (
-    typeof entry.id === 'string' && entry.id.length > 0 &&
-    typeof entry.slug === 'string' && entry.slug.length > 0 &&
-    /^[a-f0-9]{64}$/.test(entry.contentSha256 || '') &&
-    Array.isArray(entry.sourceRepos) && entry.sourceRepos.length > 0 &&
-    entry.sourceRepos.every((repo) => repositories.has(repo))
-  ));
+// Hand-reviewed persona posts from before policy version 2. Their documents
+// stay in Firestore; their URLs redirect to /blog (public/_redirects).
+export function isRetiredPostSlug(slug, sourcePolicy = policy) {
+  return (sourcePolicy.retiredPosts || []).some((entry) => entry.slug === slug);
 }
 
-export function getReviewedWritingEntry(slug, sourcePolicy = policy) {
-  return getReviewedWritingEntries(sourcePolicy).find((entry) => entry.slug === slug) || null;
+export function repositoryProject(fullName, sourcePolicy = policy) {
+  const project = sourcePolicy.buildNotes?.repositoryProjects?.[fullName];
+  return project ? { title: project.title, path: `/projects/${project.projectId}` } : null;
 }
 
-export function writingContentForReview(post) {
-  return JSON.stringify([
-    post.title || '', post.excerpt || '', post.content || '',
-    post.coverImage || '', post.tags || [], post.relatedProject || '',
-  ]);
+// Product names for a note's repositories, once each.
+export function noteProducts(post, sourcePolicy = policy) {
+  const names = (post?.sourceRepos || []).map((repo) => repositoryProject(repo, sourcePolicy)?.title || repo);
+  return [...new Set(names)];
 }
 
-export async function isReviewedPublicPost(post, sourcePolicy = policy, cryptoApi = typeof window !== 'undefined' ? window.crypto : undefined) {
-  if (!post || post.published !== true) return false;
-  const entry = getReviewedWritingEntry(post.slug, sourcePolicy);
-  if (!entry || entry.id !== post.id || !cryptoApi?.subtle) return false;
-  try {
-    const content = new TextEncoder().encode(writingContentForReview(post));
-    const bytes = await cryptoApi.subtle.digest('SHA-256', content);
-    const digest = Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
-    return digest === entry.contentSha256;
-  } catch {
-    return false;
-  }
+// Says who wrote a note's prose: a language model, or nobody (the commit list).
+export function noteLabel(post) {
+  if (post?.generator === 'model') return 'Automated · summary written by a language model';
+  if (post?.generator === 'template') return 'Automated · commit list';
+  return 'Automated';
+}
+
+export function formatNoteDate(post) {
+  const date = post?.commitDate && /^\d{4}-\d{2}-\d{2}$/.test(post.commitDate)
+    ? new Date(`${post.commitDate}T12:00:00Z`)
+    : post?.publishedAt ? new Date(post.publishedAt) : null;
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
+export async function fetchBuildNotes(fetchImpl = fetch) {
+  const response = await fetchImpl(BUILD_NOTES_ENDPOINT);
+  if (!response.ok) throw new Error(`Build notes returned ${response.status}`);
+  const data = await response.json();
+  return Array.isArray(data.posts) ? data.posts : [];
+}
+
+// Resolves to null when the note is not public; throws when it could not load.
+export async function fetchBuildNote(slug, fetchImpl = fetch) {
+  if (!BUILD_NOTE_SLUG.test(slug || '')) return null;
+  const response = await fetchImpl(`${BUILD_NOTES_ENDPOINT}?slug=${encodeURIComponent(slug)}`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Build note returned ${response.status}`);
+  const data = await response.json();
+  return data.post || null;
 }

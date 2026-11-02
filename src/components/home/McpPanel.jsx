@@ -61,14 +61,14 @@ const McpPanel = () => {
             )}
           </span>
         </div>
-        <Link to="/projects/azoni-mcp" className="lp-panel-link">Details &rarr;</Link>
+        <Link to="/projects/azoni-ai" className="lp-panel-link">Details &rarr;</Link>
       </div>
 
       {data === null ? (
         <p className="lp-empty">Loading&hellip;</p>
       ) : tools.length === 0 ? (
         <p className="lp-empty">
-          <Link to="/projects/azoni-mcp">See the MCP server &rarr;</Link>
+          <Link to="/projects/azoni-ai">See the shared tool API &rarr;</Link>
         </p>
       ) : (
         <>

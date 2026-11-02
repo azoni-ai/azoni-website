@@ -14,8 +14,9 @@ let admin = null;
 let db = null;
 
 // ---- Bot roster -------------------------------------------------------------
-// `key` must match the `bot` field each beacon POSTs. `fallbackServers` is
-// stripped from responses (used only when no beacon data exists yet).
+// `key` must match the `bot` field each beacon POSTs. `fallbackServers`
+// and `fallbackMembers` are stripped from responses (used only when no beacon
+// data exists yet).
 const BOTS = [
   {
     key: 'fabstats-bot',
@@ -25,9 +26,12 @@ const BOTS = [
     color: '#ef4444',
     game: 'Flesh and Blood',
     blurb:
-      'Hero stats, matchup win rates, leaderboards, and daily meta digests — 24 slash commands for Flesh and Blood communities.',
+      'Hero stats, matchup win rates, leaderboards and daily meta digests for Flesh and Blood communities, through 24 slash commands.',
     openSource: false,
-    fallbackServers: 20,
+    // Last reported counts (November 2026), shown with live:false until a beacon lands.
+    // Keep in step with discordBot on fab-stats in src/data/projects.js.
+    fallbackServers: 12,
+    fallbackMembers: 1309,
   },
   {
     key: 'riftbound-card-bot',
@@ -37,7 +41,7 @@ const BOTS = [
     color: '#a78bfa',
     game: 'Riftbound (LoL TCG)',
     blurb:
-      'Instant /card image lookup for Riot’s Riftbound TCG — fuzzy autocomplete, /search filters, keyword glossary, and inline [[card]] mentions across 1,450 vendored cards.',
+      'Card image lookup for Riot’s Riftbound TCG, with fuzzy autocomplete, /search filters, a keyword glossary and inline [[card]] mentions across 1,450 vendored cards.',
     openSource: true,
     fallbackServers: null,
   },
@@ -90,12 +94,12 @@ function fast(promise, ms = 4000, fallback = null) {
 
 // Strip roster-internal fields and merge beacon stats.
 function publicBot(bot, stats) {
-  const { fallbackServers, ...pub } = bot;
+  const { fallbackServers, fallbackMembers = null, ...pub } = bot;
   const s = stats || null;
   return {
     ...pub,
     servers: s && asNumber(s.servers) != null ? asNumber(s.servers) : fallbackServers,
-    members: s ? asNumber(s.members) : null,
+    members: s ? asNumber(s.members) : fallbackMembers,
     commandsTotal: s ? asNumber(s.commandsTotal) : null,
     live: !!s,
     reportedAt: s?.updatedAt || null,

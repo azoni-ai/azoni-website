@@ -128,7 +128,7 @@ test('public-page navigation closes the panel but preserves its draft and conver
   expect(mockRequest).toHaveBeenCalledTimes(1);
 });
 
-test.each(['/admin', '/admin/invoices', '/chat', '/chat/', '/game', '/game/'])('does not expose the launcher or panel on %s', async pathname => {
+test.each(['/admin', '/admin/invoices', '/chat', '/chat/', '/game', '/game/', '/meet', '/meet/', '/contact', '/privacy'])('does not expose the launcher or panel on %s', async pathname => {
   mockPathname = pathname;
   await render();
   expect(launcher()).toBeNull();

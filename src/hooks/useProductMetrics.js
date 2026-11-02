@@ -26,10 +26,7 @@ const IMPACT = {
     a?.benchpressonly?.workoutsLogged > 0
       ? { value: fmtCount(a.benchpressonly.workoutsLogged), label: 'workouts logged' }
       : null,
-  oldwaystoday: (a) =>
-    a?.oldwaystoday?.requests > 0
-      ? { value: fmtCount(a.oldwaystoday.requests), label: 'chatbot requests' }
-      : null,
+  // No Old Ways Today resolver: its request counter mixes in non-chat events.
 };
 
 let cache = null;
@@ -101,4 +98,44 @@ export default function useProductMetrics() {
     };
   }, []);
   return data; // { map: { [projectId]: metrics }, updatedAt } | null
+}
+
+// Live reach for one Discord bot from the discord-bots endpoint. Returns null
+// until the bot itself has reported (live: true); callers show a dated fallback.
+let botCache = null;
+let botInflight = null;
+
+function loadBots() {
+  if (botCache) return Promise.resolve(botCache);
+  if (botInflight) return botInflight;
+  botInflight = fetch('/.netlify/functions/discord-bots')
+    .then((r) => (r.ok && (r.headers.get('content-type') || '').includes('json') ? r.json() : null))
+    .catch(() => null)
+    .then((data) => {
+      botCache = Array.isArray(data?.bots) ? data.bots : [];
+      return botCache;
+    })
+    .finally(() => {
+      botInflight = null;
+    });
+  return botInflight;
+}
+
+export function useBotReach(key) {
+  const [bots, setBots] = useState(botCache);
+  useEffect(() => {
+    if (!key) return undefined;
+    let alive = true;
+    loadBots().then((list) => alive && setBots(list));
+    return () => {
+      alive = false;
+    };
+  }, [key]);
+  const bot = key && Array.isArray(bots) ? bots.find((b) => b.key === key) : null;
+  if (!bot || !bot.live || !Number.isFinite(bot.servers)) return null;
+  return {
+    servers: bot.servers,
+    members: Number.isFinite(bot.members) ? bot.members : null,
+    reportedAt: bot.reportedAt || null,
+  };
 }

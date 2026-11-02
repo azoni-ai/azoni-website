@@ -1,17 +1,41 @@
+// visibility decides where a project appears. Nothing is deleted from this
+// list; entries leave the public path by changing visibility instead.
+//   featured  case study on /projects, with prev/next inside the featured set
+//   other     "Other things I've built" on /projects
+//   earlier   "Earlier work" on /projects
+//   unlisted  page still renders, marked noindex, linked from nowhere
+//   merged    content lives on another page; redirectTo matches public/_redirects
+export const PROOF_AS_OF = 'November 2026';
+// Chrome Web Store users of the FaB Stats GEM Exporter, as of PROOF_AS_OF.
+const GEM_EXPORTER_USERS = 793;
+
 export const projects = [
   {
     id: 'fab-stats',
-    metric: { value: '2,900+', label: 'players' },
+    visibility: 'featured',
+    displayOrder: 1,
+    metric: { value: '3,898', label: 'players' },
+    proof: {
+      asOf: PROOF_AS_OF,
+      items: [
+        { value: '3,898', label: 'players' },
+        { value: '1,634,956', label: 'matches tracked' },
+        { value: GEM_EXPORTER_USERS.toLocaleString('en-US'), label: 'GEM Exporter users' },
+      ],
+    },
+    facts: { years: '2023 – present', role: 'Solo: design, build and operate', status: 'Live' },
+    discordBot: { key: 'fabstats-bot', servers: 12, members: 1309, asOf: PROOF_AS_OF },
+    gemExporter: { key: 'fabstats-gem', users: GEM_EXPORTER_USERS, asOf: PROOF_AS_OF },
     title: 'FaB Stats',
     tagline: 'Stats site and Discord bot for the Flesh and Blood TCG.',
-    description: 'Stats platform for competitive Flesh and Blood. 2,900+ players and 1.2M+ matches tracked, with match logging, hero performance, matchup win rates, leaderboards, and daily minigames.',
+    description: 'Stats platform for competitive Flesh and Blood, with about 3,900 players and 1.6 million matches tracked as of November 2026. Match logging, hero performance, matchup win rates, leaderboards and daily minigames.',
     longDescription: `I built FaB Stats because the Flesh and Blood community argued about the meta with no shared data.
 
-Players log matches, browse hero-level performance, compare matchup win rates, and climb leaderboards. There's a Chrome extension that imports a tournament bracket in one click, a Discord bot in 20+ servers, and a rotating set of daily puzzle minigames (FaBdoku, Bladedash, Brutebrawl) that people play in the morning.`,
-    tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Netlify Functions', 'Satori'],
+Players log matches, browse hero-level performance, compare matchup win rates, and climb leaderboards. There's a Chrome extension that imports a tournament bracket in one click, a Discord bot for community servers, and a rotating set of daily puzzle minigames (FaBdoku, Bladedash, Brutebrawl) that people play in the morning.`,
+    tech: ['Next.js', 'React', 'TypeScript', 'Firebase', 'Netlify Functions', 'Satori', 'Discord.js'],
     highlights: [
       'Chrome extension imports a whole tournament in one click',
-      'Companion Discord bot — 24 slash commands, live in 20+ servers',
+      'Companion Discord bot with 24 slash commands',
       'Daily minigames with seeded RNG and Satori-generated OG images',
       'Hero-level analytics and matchup data'
     ],
@@ -22,16 +46,10 @@ Players log matches, browse hero-level performance, compare matchup win rates, a
     image: '/images/fabstats-icon.svg',
     featured: true,
     category: 'games',
-    displayOrder: 1,
     caseStudy: {
       role: 'Solo — design, build, and operate',
       timeline: '2023 – present',
       stack: 'Next.js · Firestore · Netlify Functions · Chrome extension',
-      metrics: [
-        { value: '2,900+', label: 'registered players' },
-        { value: '1.2M+', label: 'matches tracked' },
-        { value: '20+', label: 'Discord servers' },
-      ],
       sections: [
         {
           heading: 'The problem',
@@ -56,8 +74,14 @@ Players log matches, browse hero-level performance, compare matchup win rates, a
           body: `The site is a Next.js static export on Netlify. Aggregation and Satori share images run in Netlify Functions. Firestore holds the data, and public pages read cached summary docs so per-visitor reads stay low. The Chrome extension does bulk import. The Discord bot runs on Railway with a watchdog that restarts the gateway session if it goes stale.`,
         },
         {
+          heading: 'The Discord bot',
+          icon: '/images/fabstats-bot.png',
+          botReach: true,
+          body: `The companion bot answers hero stats, matchup queries and leaderboards directly in Discord, so nobody has to leave the channel. It has 24 slash commands with autocomplete on every searchable parameter. A background scheduler heartbeats every minute, and per-command analytics show me which queries get used. It's written in TypeScript with Discord.js and Firebase Admin.`,
+        },
+        {
           heading: 'Outcomes',
-          body: `2,900+ registered players, 1.2M+ matches, and the bot in 20+ servers. People now cite it in meta arguments instead of going on feel.`,
+          body: `As of November 2026, FaB Stats has about 3,900 registered players and 1.6 million matches, and the GEM Exporter extension has 793 users. People now cite it in meta arguments instead of going on feel.`,
         },
         {
           heading: 'What I’d do differently',
@@ -68,11 +92,13 @@ Players log matches, browse hero-level performance, compare matchup win rates, a
   },
   {
     id: 'embedroute',
-    metric: { value: '1 API', label: 'multiple providers' },
+    visibility: 'other',
+    displayOrder: 12,
+    facts: { role: 'Solo', status: 'Live' },
     title: 'EmbedRoute',
     tagline: 'One embedding API, multiple providers, and a model-comparison lab.',
     description: 'An OpenAI-compatible gateway for embedding providers, with a lab to compare models using your own data.',
-    longDescription: `Every retrieval project needed another embedding integration. I built EmbedRoute to put multiple providers behind one OpenAI-compatible interface.
+    longDescription: `Every RAG project had the same three files: an embedding wrapper, a provider switch and a usage logger. I extracted them into a gateway so I'd stop rewriting them, with multiple providers behind one OpenAI-compatible interface.
 
 The gateway routes requests using your own provider keys. The Lab lets you compare embedding models on your own data, so you can explore retrieval quality before choosing an integration.`,
     tech: ['Next.js', 'TypeScript', 'Supabase', 'PostgreSQL', 'Netlify'],
@@ -87,11 +113,13 @@ The gateway routes requests using your own provider keys. The Lab lets you compa
       github: null
     },
     image: '/images/embedroute-icon.svg',
-    featured: true,
+    featured: false,
     category: 'infra'
   },
   {
     id: 'azoni-mcp',
+    visibility: 'merged',
+    redirectTo: '/projects/azoni-ai',
     metric: { value: '1', label: 'shared tool API' },
     title: 'Azoni MCP Server',
     tagline: 'Shared tool server the agents call for data.',
@@ -111,7 +139,7 @@ Grouped by domain (fitness, gaming, content, ops), with auth and rate limits on 
       github: null
     },
     image: '/images/mcp-logo-nodes.svg',
-    featured: true,
+    featured: false,
     category: 'infra',
     caseStudy: {
       role: 'Solo',
@@ -156,6 +184,8 @@ Grouped by domain (fitness, gaming, content, ops), with auth and rate limits on 
   },
   {
     id: 'moltbook-agent',
+    visibility: 'merged',
+    redirectTo: '/projects/azoni-ai',
     title: 'Azoni Moltbook Agent',
     tagline: 'LangGraph agent that posts to a social network on its own.',
     description: 'LangGraph agent that posts to a social network on its own: it reads the feed, decides, drafts, checks its own draft, then posts.',
@@ -174,18 +204,21 @@ LangGraph state machine on Render. Every few hours it reads the feed and decides
       github: null
     },
     image: '/images/moltbook-lobster.svg',
-    featured: true,
+    featured: false,
     category: 'ai'
   },
   {
     id: 'old-ways-today',
+    visibility: 'featured',
+    displayOrder: 3,
+    facts: { years: '2025 – present', role: 'Solo', status: 'Live' },
     title: 'Old Ways Today',
     tagline: 'Wellness site about non-toxic household alternatives.',
-    description: 'Wellness site about non-toxic household alternatives. RAG chatbot, editorial blog, and product recommendations.',
+    description: 'Wellness site about non-toxic household alternatives, with a streaming assistant grounded in a curated knowledge base, an editorial blog and product recommendations.',
     longDescription: `My first time using this agent stack for an actual product rather than my portfolio.
 
 RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and product recommendations. FastAPI backend, Next.js frontend, EmbedRoute for vector search. Same logging and per-call cost tracking as my other apps.`,
-    tech: ['Next.js', 'FastAPI', 'Firestore', 'PostgreSQL', 'EmbedRoute', 'Render'],
+    tech: ['Next.js', 'FastAPI', 'Firestore', 'EmbedRoute', 'Render'],
     highlights: [
       'RAG chatbot over a curated Firestore knowledge base',
       'Editorial blog and product recommendations',
@@ -214,18 +247,18 @@ RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and p
           body: `I wanted a household assistant that could draw on curated guides and product information. That meant connecting retrieval, conversation, and product discovery in one experience.`,
         },
         {
-          heading: 'Constraints',
-          body: `Responses stream to keep the conversation responsive. Product recommendations need usable links, so link validation is handled in code. Calls also record cost information through the shared agent stack.`,
-        },
-        {
           heading: 'Approach and key decisions',
-          body: `I grounded the assistant in a curated Firestore knowledge base and treated the model's output as untrusted until I'd checked it.`,
+          body: `I grounded the assistant in a curated Firestore knowledge base and treated the model's output as untrusted until my code had checked it.`,
           decisions: [
+            'Product blocks in the streamed answer are buffered and checked before they render.',
+            'Any product URL the code doesn\'t recognize is swapped for a search link before it renders.',
             'Retrieval through EmbedRoute provides curated context for the assistant\'s responses.',
-            'Streaming responses buffer product blocks for validation before displaying them.',
-            'Unrecognized product URLs are replaced with search links during response validation.',
             'Per-call cost logging into the same agent-activity feed as my other apps.',
           ],
+        },
+        {
+          heading: 'Constraints',
+          body: `Responses stream to keep the conversation responsive. Product recommendations need usable links, so link validation is handled in code. Calls also record cost information through the shared agent stack.`,
         },
         {
           heading: 'Architecture',
@@ -233,7 +266,7 @@ RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and p
         },
         {
           heading: 'Outcomes',
-          body: `The assistant combines retrieved content with streaming responses and product-link fallback handling. Keeping validation in code makes those checks independent of the prompt.`,
+          body: `Visitors can browse guides, explore products and ask follow-up questions. The site also has an editorial blog, a step-by-step swap guide and product discovery with affiliate links. Because validation lives in code, the link checks don't depend on the prompt behaving.`,
         },
         {
           heading: 'What I’d do differently',
@@ -244,9 +277,19 @@ RAG chatbot grounded in a curated Firestore knowledge base. Editorial blog and p
   },
   {
     id: 'bench-only',
+    visibility: 'other',
+    displayOrder: 11,
+    facts: { role: 'Solo', status: 'Live' },
+    proof: {
+      asOf: PROOF_AS_OF,
+      items: [
+        { value: '15', label: 'users' },
+        { value: '61', label: 'workouts logged' },
+      ],
+    },
     title: 'Bench Only',
     tagline: 'Strength training app that writes the program for you.',
-    description: 'Strength training app that writes the program. Offline-first PWA, Netlify Functions behind Firebase auth.',
+    description: 'A strength training app that writes the program from your history. It is an offline-first PWA, with Netlify Functions behind Firebase auth.',
     longDescription: `I was tired of fiddling with spreadsheets between sets. I wanted an app that knew what I lifted last week and could hand me today's session.
 
 It generates workouts from your history and recent fatigue. It's an offline-first PWA, so it works in basement gyms and syncs when you leave. Netlify Functions handle the OpenAI calls behind Firebase auth, so the API key never ships to clients, and a per-user token dashboard tracks spend per account.`,
@@ -254,7 +297,6 @@ It generates workouts from your history and recent fatigue. It's an offline-firs
     highlights: [
       'Per-user workout generation that adapts to volume and fatigue',
       'Offline-first PWA with service-worker sync',
-      'API key stays server-side via Netlify Functions',
       'Per-user token dashboard for OpenAI spend'
     ],
     links: {
@@ -262,15 +304,25 @@ It generates workouts from your history and recent fatigue. It's an offline-firs
       github: null
     },
     image: '/images/benchpressonly.svg',
-    featured: true,
+    featured: false,
     category: 'ai'
   },
   {
     id: 'row-crew',
+    visibility: 'featured',
+    displayOrder: 4,
+    facts: { role: 'Solo', status: 'Live' },
+    proof: {
+      asOf: PROOF_AS_OF,
+      items: [
+        { value: '15', label: 'rowers' },
+        { value: '814 km', label: 'rowed together' },
+      ],
+    },
     title: 'Row Crew',
     tagline: 'Rowing tracker with photo-verified meters.',
-    description: 'Rowing tracker that turns ergs into a team. Tesseract OCR + Claude verification of erg photos.',
-    longDescription: `Rowing alone on a machine gets boring. RowCrew adds everyone's meters into a shared lap of the planet (40,075 km), passing real landmarks along the way.
+    description: 'A rowing tracker that adds everyone\'s erg meters into a shared lap of the planet. Tesseract OCR and a Claude check verify each erg photo.',
+    longDescription: `Rowing alone on a machine gets boring. Row Crew adds everyone's meters into a shared lap of the planet (40,075 km), passing real landmarks along the way.
 
 At the end of a session users photograph their erg screen. Tesseract reads the numbers on-device, and a Claude API call checks that the photo matches the claimed meters. It's a cheap anti-cheat check.`,
     tech: ['React', 'Firebase', 'Tesseract.js', 'Claude API', 'Netlify'],
@@ -286,56 +338,139 @@ At the end of a session users photograph their erg screen. Tesseract reads the n
     },
     image: '/images/rowing-favicon.svg',
     featured: true,
-    category: 'ai'
+    category: 'ai',
+    caseStudy: {
+      sections: [
+        {
+          heading: 'The problem',
+          body: `Rowing alone on a machine gets boring. I built Row Crew to make rowing with friends more interesting.`,
+        },
+        {
+          heading: 'Approach and key decisions',
+          body: `Row Crew adds everyone's meters into a shared lap of the planet (40,075 km), passing real landmarks along the way.`,
+          decisions: [
+            'At the end of a session you photograph the erg screen. Tesseract reads the numbers on-device, and a Claude API call checks that the photo matches the claimed meters. It\'s a cheap anti-cheat check.',
+            'Leaderboards update in real time through Firestore listeners.',
+            'It\'s a PWA, so it works on a phone at the gym and syncs when it\'s back online.',
+          ],
+        },
+        {
+          heading: 'Outcomes',
+          body: `As of November 2026, 15 rowers have logged 814 km together.`,
+        },
+      ],
+    },
   },
   {
     id: 'azoni-ai',
-    title: 'azoni.ai',
-    tagline: 'This site. Chatbot, agents, and the stack underneath.',
-    description: 'This site. Chatbot answering questions, agents writing the blog, activity feed running live.',
+    visibility: 'featured',
+    displayOrder: 2,
+    facts: { years: '2024 – present', role: 'Solo', status: 'Live' },
+    title: 'azoni.ai agent platform',
+    tagline: 'The assistant, agents and shared tool API behind this site.',
+    description: 'The agent platform behind azoni.ai: an assistant grounded in records I wrote or checked, a shared tool API my agents call, scheduled agents, and a Moltbook agent.',
     longDescription: `This site is itself an AI product, on the same stack as my other apps.
 
-Scribe writes a blog post every weekday from my GitHub commits. Conductor runs every 3 hours and decides what to do next. Azoni AI answers questions over a Firestore RAG index that adds new content when retrieval scores drop. Every action (chat reply, blog post, knowledge generation) is logged with its model and cost.`,
-    tech: ['React', 'Firebase', 'Netlify Functions', 'OpenRouter', 'EmbedRoute'],
+The assistant answers questions from a Firestore retrieval index, and questions about me are answered only from facts and records I wrote or checked. Every agent I run calls one shared tool API for data. Scribe is a daily job that turns my public GitHub commits into build notes, with a language model writing the title and a short summary for each project. Conductor runs every 3 hours and decides what to do next. Every action is logged with its model and cost.`,
+    tech: ['React', 'Firebase', 'Netlify Functions', 'OpenRouter', 'EmbedRoute', 'Node.js', 'Express', 'Render', 'Python', 'LangGraph', 'FastAPI'],
     highlights: [
-      'Live RAG chatbot with on-the-fly knowledge generation',
-      'Daily Scribe cron writes blog posts from commits',
-      'Conductor cron picks the next agent action every 3h',
-      'All cost + tokens logged in the activity feed'
+      'Assistant grounded in records I wrote or checked, with machine-written text filtered out',
+      'Shared tool API with auth and rate limits on every route',
+      'Daily Scribe job turns public commits into build notes',
+      'Conductor picks the next agent action every 3 hours',
+      'All cost and tokens logged in the activity feed'
     ],
     links: {
       live: 'https://azoni.ai',
-      github: null
+      github: null,
+      internal: [
+        { to: '/chat', label: 'Try the assistant' },
+      ],
     },
     image: '/images/azoni.png',
     featured: true,
-    category: 'web'
+    category: 'web',
+    caseStudy: {
+      role: 'Solo',
+      timeline: '2024 – present',
+      sections: [
+        {
+          heading: 'The problem',
+          body: `Once I had several products and a few agents, each one hit Firestore and third-party APIs on its own, with auth, rate limiting, and logging copy-pasted and drifting apart. When an agent misbehaved I had no single place to see what it had done. And an assistant that answers questions about me can't be allowed to make things up.`,
+        },
+        {
+          heading: 'The assistant and its grounding',
+          body: `The assistant on this site answers questions about my work. It retrieves from a Firestore index, but facts about me have to come from records I wrote or checked. A filter keeps machine-written text, such as blog posts and generated notes, out of that evidence. If a fact is missing, the instructions tell it to say so instead of guessing, and it treats retrieved text as information, not instructions.`,
+        },
+        {
+          heading: 'A shared tool API',
+          icon: '/images/mcp-logo-nodes.svg',
+          body: `Every agent I run calls one shared tool API for data. It's an Express server on Render that exposes activity logs, per-app health, analytics and action execution, grouped by domain (fitness, gaming, content, ops). Netlify Functions and the Moltbook agent call in over authenticated routes.`,
+          decisions: [
+            'One server grouped by domain, so a new capability is just another tool rather than another service to deploy.',
+            'Auth and rate limits on every route by default, because the callers are agents, not just me. A buggy agent can\'t flood a downstream API or run up a bill without me noticing.',
+            'Every call is logged in one place, so I can go back and see exactly what an agent did.',
+            'Chat and autonomous workflows use the same endpoints, so there\'s one place that defines what an agent can do.',
+          ],
+        },
+        {
+          heading: 'The Moltbook agent',
+          icon: '/images/moltbook-lobster.svg',
+          body: `Moltbook is a social network where AI agents are allowed to post. I built one of the agents. It's a LangGraph state machine in Python, served with FastAPI on Render. I designed it to read the feed every few hours and decide whether to post, comment or upvote. If it drafts a post, it checks the draft before publishing. It respects the platform's 30-minute cooldown, and every state transition is logged to Firestore for replay and debugging.`,
+        },
+        {
+          heading: 'Scheduled agents',
+          body: `Scribe is a daily job that turns my public GitHub commits into build notes. A script collects the commits, a language model writes the title and a short summary for each project, and an automated check runs before anything is published. Conductor runs every 3 hours and decides which agent task to run next. Every action, from a chat reply to a build note, is logged with its model and cost.`,
+        },
+        {
+          heading: 'Architecture',
+          body: `The site is React on Netlify Functions, with Firestore for data and OpenRouter for model calls. The tool API runs on Render with Firebase Admin holding the data and activity logs. Since every agent action goes through it, it's also where the cost and activity data on this site comes from.`,
+        },
+        {
+          heading: 'What I’d do differently',
+          body: `I'd add per-tool schemas and typed contracts to the tool API sooner. A few tools grew ad hoc and need stricter input validation.`,
+        },
+      ],
+    },
   },
   {
     id: 'launchpad',
+    visibility: 'other',
+    displayOrder: 14,
+    // The console's own copy says each app was generated by AI from one prompt;
+    // keep the link off the page until that copy matches this one.
+    liveLinkHidden: true,
+    // A starter template, not client-style work: no consulting close.
+    closing: false,
+    facts: { role: 'Solo', status: 'Live' },
     title: 'Launchpad',
-    tagline: 'Monorepo and checklist for shipping small web apps fast.',
-    description: 'A monorepo and quality checklist that turns one prompt into a deployed app. 8 shipped so far.',
-    longDescription: `I kept losing app ideas to setup friction. Launchpad is a Next.js template plus a CLAUDE.md quality checklist (SEO, llms.txt, analytics, OG images, PWA icons, Firebase, Netlify, security headers) that takes one prompt from idea to deployed app.
+    tagline: 'The template and production checklist I start small web apps from.',
+    description: 'A monorepo template and the production checklist I apply to small web apps: SEO, security headers, analytics and LLM cost logging.',
+    longDescription: `I kept losing app ideas to setup friction. Launchpad is a Next.js template plus a CLAUDE.md quality checklist, so every small app starts with the production basics: SEO, llms.txt, analytics, OG images, PWA icons, Firebase, Netlify, security headers and LLM cost logging.
 
-Every app deploys independently from one monorepo and reports back to a central console: views, errors, and uptime in one place. Eight apps shipped from the template so far, and each one beacons traffic into the site leaderboard.`,
+Every app deploys independently from one monorepo and reports back to a central console, so views, errors and uptime are in one place.`,
     tech: ['Next.js', 'TypeScript', 'Firebase', 'Netlify', 'Claude Code'],
     highlights: [
-      'One prompt from idea to a deployed, SEO-complete app',
       'Quality checklist: SEO, llms.txt, PWA icons, OG images, security headers, LLM cost logging',
       'Central console gallery aggregating views and errors across apps',
-      '8 apps shipped: MeepleMatch, PyroGuard, MacroMarket, Daily, and more'
+      'Each app deploys independently from one monorepo'
     ],
+    galleryTitle: 'Apps built with the checklist',
+    galleryNote: { text: 'PyroGuard also started from this template.', to: '/projects/pyroguard', label: 'Read about PyroGuard' },
     links: {
       live: 'https://launchpad-console.netlify.app',
       github: null
     },
     image: '/images/launchpad-rocket.svg',
-    featured: true,
+    featured: false,
     category: 'launchpad'
   },
   {
     id: 'meeplematch',
+    visibility: 'merged',
+    galleryOrder: 1,
+    redirectTo: '/projects/launchpad',
+    galleryLine: 'Swipe through a curated catalog of board games, and your votes drive recommendations you can buy on Amazon. It was the first app from the template and the design reference for the rest. I designed the look by hand: Comic Neue and Lilita One type, kraft-cardboard cards, candy colors and chunky offset-shadow buttons.',
     title: 'MeepleMatch',
     tagline: 'Swipe to discover your next board game.',
     description: 'Board game discovery with swipe-based voting. Swipe through curated games, get recommendations, buy on Amazon.',
@@ -359,6 +494,10 @@ First app shipped from the Launchpad template, and the design reference for the 
   },
   {
     id: 'blackdiamond',
+    visibility: 'unlisted',
+    // The linked demo presents itself as a real local business; keep the link
+    // off the page until it's labeled (see the site audit).
+    liveLinkHidden: true,
     title: 'Black Diamond Alpine Wash',
     tagline: 'Exterior cleaning company site with quote flow.',
     description: 'Exterior cleaning company site with service pages, quote request form, and local SEO.',
@@ -382,6 +521,10 @@ The plainest app in the set. I built it to show the template handles an ordinary
   },
   {
     id: 'benchmark',
+    visibility: 'merged',
+    galleryOrder: 2,
+    redirectTo: '/projects/launchpad',
+    galleryLine: 'A joke app. Tell it anything you\'ve done (ran a marathon, shipped a startup, survived a group project) and Claude converts it into pounds on the bench. The result cards are made to screenshot and share, every LLM call is cost-logged like my other apps, and the API key stays server-side in Netlify Functions.',
     title: 'Benchmark',
     tagline: 'Turn any achievement into a bench press max.',
     description: 'A shareable joke app that translates any achievement into a bench-press max, using Claude.',
@@ -405,6 +548,10 @@ The result cards are made to screenshot and share. Every LLM call is cost-logged
   },
   {
     id: 'repmatch',
+    visibility: 'merged',
+    galleryOrder: 3,
+    redirectTo: '/projects/launchpad',
+    galleryLine: 'Lifting with friends who are stronger or weaker than you stops being fun when the loads aren\'t comparable. Everyone enters their max, the app rolls a rep count, and each lifter gets a weight that\'s equally hard for them. I built it in an afternoon. It\'s one screen and a formula.',
     title: 'RepMatch',
     tagline: 'Workout rep-equivalence calculator for friends.',
     description: 'Input your max, roll a random rep count, and compete with friends at equal effort.',
@@ -427,6 +574,7 @@ Built from the Launchpad template in an afternoon. It's one screen and a formula
   },
   {
     id: 'crypto-tax-2025',
+    visibility: 'unlisted',
     title: 'Crypto Tax 2025',
     tagline: 'Wallet-first crypto tax reconstruction with a local guest mode.',
     description: 'A personal crypto transaction tool with wallet imports, FIFO calculations, a review queue, and exports formatted for TurboTax.',
@@ -450,17 +598,20 @@ Exports are formatted for TurboTax. I built it for my own filing, with restricte
   },
   {
     id: 'pyroguard',
+    visibility: 'other',
+    displayOrder: 15,
+    facts: { status: 'v2 rebuild in progress' },
     title: 'PyroGuard',
     tagline: 'Ops platform for fire & life-safety inspection contractors.',
-    description: 'Operations platform for fire and life-safety inspection contractors, meant to replace SedonaOffice, the legacy system most of the industry still runs on.',
-    longDescription: `Operations platform for fire and life-safety inspection contractors, meant to replace SedonaOffice, the legacy system most of the industry still runs on.
+    description: 'An operations platform for fire and life-safety inspection contractors. The first version is a playable demo, and I\'m rebuilding it from the ground up as v2.',
+    longDescription: `An operations platform for fire and life-safety inspection contractors. I'm rebuilding it from the ground up as v2.
 
-The demo is playable. "A Day in the Field" walks through one NFPA 25 inspection from the riser to the invoice, including offline photo capture in a cellular dead zone.`,
+The first version is a playable demo. "A Day in the Field" walks through one NFPA 25 inspection from the riser to the invoice, including offline photo capture in a cellular dead zone.`,
     tech: ['Next.js', 'TypeScript', 'Tailwind'],
     highlights: [
       'Playable demo: one real NFPA 25 inspection, riser to invoice',
       'Offline photo capture in a cellular dead zone',
-      'SedonaOffice replacement, rebuilt from the ground up',
+      'v2 is a ground-up rebuild that keeps the demo\'s design shell',
       'Tactical ops-console design language'
     ],
     links: {
@@ -473,6 +624,9 @@ The demo is playable. "A Day in the Field" walks through one NFPA 25 inspection 
   },
   {
     id: 'dayrun',
+    visibility: 'unlisted',
+    // The linked app's public demo and profile need fixing first (see the site audit).
+    liveLinkHidden: true,
     title: 'Daily',
     tagline: 'An opt-in calendar and interview pipeline.',
     description: 'Sign in with Google, sync your Calendar, track interviews and opportunities, and toggle what the world sees on your public profile.',
@@ -496,6 +650,10 @@ Underneath it is an interview-and-opportunity pipeline: applications, follow-ups
   },
   {
     id: 'macromarket',
+    visibility: 'merged',
+    galleryOrder: 4,
+    redirectTo: '/projects/launchpad',
+    galleryLine: 'People track protein closely but rarely compare what it costs. MacroMarket ranks foods, snacks and supplements by dollars per gram of protein, with a protein-goal calculator, a deals tab, a Claude-powered coach that recommends the cheapest picks for your target, and Amazon affiliate links.',
     title: 'MacroMarket',
     tagline: 'Foods ranked by cost per gram of protein.',
     description: 'Ranks foods, snacks, and supplements by dollars per gram of protein, with a goal calculator, deals tab, and AI protein coach.',
@@ -519,10 +677,12 @@ Includes a protein-goal calculator, a deals tab, and a Claude-powered coach that
   },
   {
     id: 'fab-stats-bot',
+    visibility: 'merged',
+    redirectTo: '/projects/fab-stats',
     metric: { value: '24', label: 'slash commands' },
     title: 'FaB Stats Discord Bot',
-    tagline: 'Companion bot for FaB Stats. Lives in 20+ servers.',
-    description: 'TypeScript Discord bot with 24 slash commands. Lives in 20+ FaB community servers.',
+    tagline: 'Companion Discord bot for FaB Stats.',
+    description: 'TypeScript Discord bot with 24 slash commands for Flesh and Blood community servers.',
     longDescription: `Companion bot for FaB Stats. Slash commands answer hero stats, matchup queries, and leaderboards directly in Discord without leaving the channel.
 
 Background scheduler heartbeats every minute, autocomplete handlers reduce search friction, and per-command analytics show me which queries get used.`,
@@ -531,7 +691,7 @@ Background scheduler heartbeats every minute, autocomplete handlers reduce searc
       '24 slash commands across hero stats, matchups, and leaderboards',
       'Autocomplete on every searchable parameter',
       'Heartbeat + per-command analytics',
-      'Lives in 20+ community servers'
+      'Used in Flesh and Blood community servers'
     ],
     links: {
       live: null,
@@ -543,10 +703,14 @@ Background scheduler heartbeats every minute, autocomplete handlers reduce searc
   },
   {
     id: 'tcgdoku',
+    visibility: 'other',
+    displayOrder: 16,
+    // No page of its own any more: the card links to the live puzzle.
+    redirectTo: '/projects',
     title: 'TCGDoku',
-    tagline: 'Daily TCG puzzle. Wordle for card games.',
-    description: 'Daily TCG puzzle. Same seed for everyone, share results.',
-    longDescription: `Wordle for trading card games. Same seeded daily puzzle for every player so results are comparable, plus a custom puzzle builder for sharing your own.
+    tagline: 'A daily card-game puzzle with the same seed for everyone. It has a custom puzzle builder, shareable links, per-player streaks and stats, and card validation against Scryfall.',
+    description: 'A daily trading card game puzzle. Everyone gets the same seeded puzzle, and results are shareable.',
+    longDescription: `A daily puzzle for trading card games. Every player gets the same seeded puzzle so results are comparable, plus a custom puzzle builder for sharing your own.
 
 Card validation hits the Scryfall API on submit. Streaks and shares persist in Firebase.`,
     tech: ['React', 'Firebase', 'Scryfall API', 'Netlify'],
@@ -561,15 +725,20 @@ Card validation hits the Scryfall API on submit. Streaks and shares persist in F
       github: null
     },
     image: '/images/tcgdoku.svg',
-    featured: true,
+    featured: false,
     category: 'games'
   },
   {
     id: 'spell-brigade',
+    visibility: 'other',
+    // A hobby game: no consulting close on its page.
+    closing: false,
+    displayOrder: 13,
+    facts: { role: 'Solo' },
     metric: { value: '6', label: 'zones · 3 classes' },
     title: 'Spell Brigade',
     tagline: 'Real-time multiplayer wizard game with AI-generated characters.',
-    description: 'Real-time multiplayer wizard game with AI-generated characters. Server-authoritative Socket.IO loop.',
+    description: 'Real-time multiplayer wizard game with AI-generated characters, running on a server-authoritative Socket.IO loop.',
     longDescription: `A real-time multiplayer game. Wizards co-op through procedural dungeons over Socket.IO. Three classes (Pyromancer, Cryomancer, Arcanist) and six zones from Sanctuary to the Abyss.
 
 It started as a single Node.js file. Once it got too big to read, I split the server into separate modules: auth, room manager, combat tick, persistence, AI generation. Fixing bugs got a lot easier after that.`,
@@ -582,14 +751,16 @@ It started as a single Node.js file. Once it got too big to read, I split the se
     ],
     links: {
       live: 'https://azoni.ai/game',
-      github: null
+      github: null,
+      internal: [{ to: '/game', label: 'Play the game' }],
     },
     image: '/images/spell-brigade-hero.svg',
-    featured: true,
+    featured: false,
     category: 'games'
   },
   {
     id: 'polymarket-tool',
+    visibility: 'unlisted',
     archived: true,
     metric: { value: '3', label: 'strategy modules' },
     title: 'Polymarket Edge Finder',
@@ -615,6 +786,7 @@ It's a research tool. The frontend is for exploring markets; the backend is what
   },
   {
     id: 'image-pipeline-api',
+    visibility: 'unlisted',
     archived: true,
     title: 'Image Pipeline API',
     tagline: 'FastAPI image worker with job queues and observability.',
@@ -639,17 +811,17 @@ Every request gets a trace ID and a duration metric. Background workers spin up 
   },
   {
     id: 'scryfall-ai',
+    visibility: 'unlisted',
     archived: true,
     title: 'Scryfall AI',
     tagline: 'Natural-language card search over Scryfall.',
-    description: 'Plain-English to Scryfall query syntax. Ask for "blue counter spells under 3 mana", get the search string.',
-    longDescription: `Scryfall's query language is powerful but unfriendly. Scryfall AI wraps an LLM around it so you can ask in plain English and get a working query.
+    description: 'Plain-English requests turned into Scryfall query syntax. Ask for "blue counter spells under 3 mana", get the search string.',
+    longDescription: `Scryfall's query language is powerful but unfriendly. Scryfall AI lets you ask for cards in plain English and turns the request into a working Scryfall query.
 
-The prompt forces structured Scryfall syntax with no chatter. Drop the result into Scryfall's URL bar and it works.`,
-    tech: ['Node.js', 'Express', 'OpenAI API', 'Scryfall API'],
+The output is plain Scryfall syntax. Drop the result into Scryfall's URL bar and it works.`,
+    tech: ['Node.js', 'Express', 'Scryfall API'],
     highlights: [
       'Plain English to Scryfall query syntax',
-      'Constrained output prompt, no LLM chatter',
       'Simple API; drop straight into a search URL',
       'For people who don\'t know Scryfall\'s syntax'
     ],
@@ -663,11 +835,16 @@ The prompt forces structured Scryfall syntax with no chatter. Drop the result in
   },
   {
     id: 'dustbunny',
+    visibility: 'earlier',
+    displayOrder: 21,
     archived: true,
-    metric: { value: '2,500/min', label: 'bids, sustained 6mo' },
+    facts: { years: 'Sep 2021 – Jun 2022', status: 'Shut down' },
+    metric: { value: '2,500/min', label: 'requests, sustained 6mo' },
+    // A compressed copy of /images/dustbunny.png, which stays in the repo.
+    photo: { src: '/images/dustbunny-photo.jpg', alt: 'A room of laptops from the Dustbunny years.', width: 689, height: 919 },
     title: 'Dustbunny',
-    tagline: '50 Dockerized bots, 2,500 req/min, 24/7 uptime.',
-    description: 'Distributed NFT bidding bot. 50 Dockerized workers, Redis coordination, ~2,500 req/min, 24/7 uptime.',
+    tagline: 'A distributed NFT bidding bot I ran from September 2021 to June 2022.',
+    description: 'Distributed NFT bidding bot. 50 Dockerized workers with Redis coordination, sustaining about 2,500 requests per minute.',
     longDescription: `A bidding bot competing against every other floor sniper on OpenSea. Distributed across 50 Dockerized workers with Redis-backed coordination so they didn't trip over each other.
 
 It held around 2,500 req/min for six months. I adapted the strategy daily; when other bots changed their patterns, mine had to change too to stay profitable. Eventually the marketplace cooled and I shut it down.`,
@@ -682,18 +859,21 @@ It held around 2,500 req/min for six months. I adapted the strategy daily; when 
       live: null,
       github: null
     },
-    image: '/images/dustbunny.png',
+    image: '/images/dustbunny-icon.png',
     featured: false,
     category: 'web3'
   },
   {
     id: 'oli-fitness',
+    visibility: 'earlier',
+    displayOrder: 22,
     archived: true,
+    facts: { years: 'Jan 2016 – Mar 2018', role: 'Co-founder & technical lead' },
     metric: { value: 'CHI 2017', label: 'ACM published' },
     title: 'OLI Fitness',
-    tagline: 'Co-founded a Kinect-based form analyzer. ACM CHI 2017.',
+    tagline: 'A Kinect-based weightlifting form analyzer I co-founded in college.',
     description: 'Real-time weightlifting form analyzer using Kinect: 25 joints at 30fps, scored against expert references.',
-    longDescription: `Co-founded OLI Fitness in college. A Kinect-based body tracker that scored your lifting form against expert reference movements in real time, at 25 joints and 30 frames per second.
+    longDescription: `I co-founded OLI Fitness in college. We built a Kinect body tracker that scored lifting form against expert reference movements in real time, at 25 joints and 30 frames per second.
 
 I led a team of five to an ACM CHI 2017 extended abstract and several startup competitions, including a Princeton Tiger Launch finals spot. It was my first time taking a product from nothing to a demo people could try.`,
     tech: ['C#', 'Kinect SDK', 'Computer Vision', 'Unity'],
@@ -714,10 +894,12 @@ I led a team of five to an ACM CHI 2017 extended abstract and several startup co
   },
   {
     id: 'hashmaps',
+    visibility: 'earlier',
+    displayOrder: 23,
     archived: true,
     metric: { value: '1st', label: 'hackathon win' },
     title: 'HashMaps',
-    tagline: 'OpenCV + geolocation hashtag generator. 1st place, T-Mobile Big Data Hackathon.',
+    tagline: 'A hashtag generator from photos and location. 1st place at the T-Mobile Big Data Hackathon.',
     description: 'Contextual hashtag generator combining image analysis with location data. Built in a weekend, won 1st place.',
     longDescription: `Built in 36 hours for the T-Mobile Big Data Hackathon. Take a photo, extract objects and scenes via OpenCV, fuse with the device location, return context-aware hashtags ready to paste.
 
@@ -732,7 +914,7 @@ Won 1st place for combining vision, location, and time context. One of the first
       live: null,
       github: null
     },
-    image: '/images/hashmaps.png',
+    image: '/images/hashmaps-icon.png',
     featured: false,
     category: 'ai'
   }
@@ -748,6 +930,27 @@ export const categories = {
   games: 'Games',
   web: 'Web Apps'
 };
+
+export const VISIBILITIES = ['featured', 'other', 'earlier', 'unlisted', 'merged'];
+// Only these show up on /projects and in prev/next links.
+export const LISTED_VISIBILITIES = ['featured', 'other', 'earlier'];
+
+const byOrder = (a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999);
+export const getWorkGroups = (list = projects) => ({
+  featured: list.filter((p) => p.visibility === 'featured').sort(byOrder),
+  other: list.filter((p) => p.visibility === 'other').sort(byOrder),
+  earlier: list.filter((p) => p.visibility === 'earlier').sort(byOrder),
+});
+// Projects whose content was folded into another project's page.
+// Gallery order is set here, so it doesn't depend on how the list was sorted.
+export const getMergedInto = (id, list = projects) =>
+  list.filter((p) => p.visibility === 'merged' && p.redirectTo === `/projects/${id}`)
+    .sort((a, b) => (a.galleryOrder ?? 999) - (b.galleryOrder ?? 999));
+
+// '3,898 players · 1,634,956 matches tracked, as of November 2026'
+export const proofLine = (proof) => (proof?.items?.length
+  ? `${proof.items.map((item) => `${item.value} ${item.label}`).join(' · ')}, as of ${proof.asOf}`
+  : null);
 
 export const getFeaturedProjects = () => projects.filter((p) => p.featured);
 export const getProjectById = (id) => projects.find((p) => p.id === id);

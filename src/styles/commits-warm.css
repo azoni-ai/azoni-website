@@ -30,9 +30,8 @@
 }
 
 .commits-page-warm .commits-page-header h1 {
-  font-family: var(--font-serif);
+  font-family: var(--font-body);
   font-weight: 500;
-  font-variation-settings: 'opsz' 144, 'SOFT' 30;
   font-size: clamp(2.25rem, 5vw, 3rem);
   letter-spacing: -0.02em;
   color: var(--text-warm);
@@ -75,7 +74,7 @@
 
 .commits-page-warm .commits-section-heading {
   margin: 0 0 14px;
-  font-family: var(--font-serif);
+  font-family: var(--font-body);
   font-size: 1.35rem;
   font-weight: 500;
   color: var(--text-warm);
@@ -250,4 +249,35 @@
 
 .commits-page-warm .repo-dot {
   box-shadow: 0 0 6px color-mix(in srgb, var(--repo-color, var(--accent-coral)) 60%, transparent);
+}
+
+/* CommitStats inside the commits view: drop the home band's full-width frame
+   and gutters, and its link to this same view. */
+.commits-page-warm .commit-band {
+  padding: 0 0 var(--space-xl);
+  border: 0;
+}
+
+.commits-page-warm .commit-band-inner {
+  max-width: none;
+  padding: 0;
+}
+
+.commits-page-warm .commit-band-heading {
+  font-family: var(--font-body);
+}
+
+.commits-page-warm .commit-band-link {
+  display: none;
+}
+
+.commits-page-warm .commits-more {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-warm-soft);
+}
+
+.commits-page-warm .commits-more a {
+  color: var(--accent-coral);
+  white-space: nowrap;
 }

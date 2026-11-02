@@ -5,8 +5,10 @@
 // `description` for link previews (it cannot import from src). Update both.
 // Unlisted while the series is being set up: no nav link, out of the sitemap,
 // and noindex on both pages. The URLs still work for anyone who has them, so
-// they can be shared for review. To launch it publicly: set this to false and
-// add <loc>https://azoni.ai/ai-tools</loc> back to public/sitemap.xml.
+// they can be shared for review. To launch it publicly: set this to false,
+// add <loc>https://azoni.ai/ai-tools</loc> back to public/sitemap.xml, and take
+// '/ai-tools' and '/ai-tools/*' out of netlify/edge-functions/noindex-headers.js.
+// tests/seo-coverage.test.cjs checks the three agree.
 const UNLISTED = true;
 
 export const AI_TOOLS = {

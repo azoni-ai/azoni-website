@@ -1,4 +1,4 @@
-/* Public consulting homepage: one offer, real work, and room to read. */
+/* Public homepage: the person first, then real work, background, consulting and a next step. */
 .home-consulting { padding-top: 72px; background: var(--bg-warm); color: var(--text-warm); }
 .home-consulting h1, .home-consulting h2, .home-consulting h3 { font-family: var(--font-body); font-weight: 500; }
 .home-consulting h2 { font-size: clamp(28px, 3vw, 38px); line-height: 1.2; letter-spacing: -.04em; }
@@ -6,14 +6,12 @@
 .azoni-hero { padding-top: 72px; }
 .azoni-hero > .consult-eyebrow { color: var(--accent-coral); margin-bottom: 30px; }
 .azoni-hero-grid { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); gap: 68px; align-items: end; }
-.azoni-hero h1 { font-size: clamp(50px, 5.5vw, 78px); line-height: 1.06; letter-spacing: -.065em; }
-.azoni-hero h1 span { color: var(--accent-coral); }
+.azoni-hero h1 { font-size: clamp(42px, 4.6vw, 64px); line-height: 1.08; letter-spacing: -.055em; max-width: 760px; }
 .azoni-hero-intro { max-width: 450px; font-size: 19px; line-height: 1.6; color: var(--text-warm-soft); margin: 25px 0 28px; }
 .azoni-hero-person { padding: 4px 0; }
-.azoni-person-rule { display: block; width: 34px; height: 2px; background: var(--accent-coral); margin-bottom: 23px; }
+.azoni-person-photo { display: block; width: 96px; height: 96px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 1px solid var(--border-warm-strong); }
 .azoni-person-name { font-size: 21px; color: var(--text-warm); letter-spacing: -.025em; }
-.azoni-person-role { color: var(--text-warm-soft); font-size: 13px; margin: 5px 0 20px; line-height: 1.6; }
-.azoni-hero-person > p:last-of-type { font-size: 14px; color: var(--text-warm-soft); line-height: 1.8; margin-bottom: 13px; }
+.azoni-person-role { color: var(--text-warm-soft); font-size: 13px; margin: 5px 0 12px; line-height: 1.6; }
 .azoni-person-links { display: flex; flex-wrap: wrap; gap: 0 24px; }
 .azoni-person-links .consult-text-link { min-height: 44px; }
 .azoni-credentials { display: flex; align-items: center; flex-wrap: wrap; gap: 18px 28px; padding-block: 23px; border-block: 1px solid var(--border-warm-strong); margin-top: 60px; }
@@ -21,13 +19,14 @@
 .azoni-credentials > span { font-size: 14px; font-weight: 500; letter-spacing: -.01em; }
 .azoni-credentials > a { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-warm-soft); margin-left: auto; min-height: 40px; }
 .azoni-credentials > a:hover { color: var(--accent-coral); }
-.azoni-work, .azoni-services, .azoni-background { padding-top: 72px; padding-bottom: 72px; }
+.azoni-work, .azoni-background, .azoni-consulting { padding-top: 72px; padding-bottom: 72px; }
 .azoni-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .azoni-section-heading > .consult-text-link { flex-shrink: 0; }
 .azoni-section-intro { color: var(--text-warm-soft); max-width: 630px; font-size: 15px; line-height: 1.7; margin: 18px 0 30px; }
 .azoni-work-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
 .azoni-work-item { display: flex; flex-direction: column; min-width: 0; }
-.azoni-work-image { aspect-ratio: 1280 / 820; background: var(--bg-warm-card); border: 1px solid var(--border-warm-strong); overflow: hidden; }
+/* Shows only the top of each capture; the lower FaB Stats panels list real players. */
+.azoni-work-image { aspect-ratio: 1280 / 500; background: var(--bg-warm-card); border: 1px solid var(--border-warm-strong); overflow: hidden; }
 .azoni-work-image img { display: block; height: 100%; width: 100%; object-fit: cover; object-position: top; transition: transform 250ms ease; }
 .azoni-work-item:hover .azoni-work-image img { transform: scale(1.025); }
 .azoni-work-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-warm-muted); margin: 22px 0 8px; }
@@ -37,79 +36,61 @@
 .azoni-work-summary { font-size: 14px; line-height: 1.75; color: var(--text-warm-soft); padding: 13px 0 20px; flex: 1; }
 .azoni-work-read { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--accent-coral); }
 .azoni-work-item:hover h3 { color: var(--accent-coral); }
-.azoni-services { border-top: 1px solid var(--border-warm); }
-.azoni-service-list { margin-top: 34px; }
-.azoni-service-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr) 24px; gap: 26px; align-items: center; padding-block: 28px; border-top: 1px solid var(--border-warm-strong); }
-.azoni-service-number { color: var(--accent-coral); font-size: 11px; font-family: var(--font-mono); }
-.azoni-service-row h3 { font-size: 24px; letter-spacing: -.035em; line-height: 1.35; }
-.azoni-service-row p { color: var(--text-warm-soft); font-size: 14px; line-height: 1.7; max-width: 350px; }
-.azoni-service-row > svg { color: var(--text-warm-muted); }
-.azoni-service-row:hover h3, .azoni-service-row:hover > svg { color: var(--accent-coral); }
 .azoni-background { border-top: 1px solid var(--border-warm); display: grid; grid-template-columns: 1fr 1fr; gap: 85px; }
 .azoni-background > div:last-child > p { color: var(--text-warm-soft); font-size: 16px; line-height: 1.8; margin-bottom: 20px; }
-.azoni-telemetry { background: var(--bg-warm-card); border-block: 1px solid var(--border-warm); }
-.home-consulting .commit-band { border: 0; padding-block: 42px 0; }
-.home-consulting .commit-band-inner { max-width: 1184px; padding-inline: 32px; }
-.home-consulting .commit-band-eyebrow { font-family: var(--font-body); font-size: 10px; letter-spacing: .12em; margin-bottom: 14px; color: var(--text-warm-soft); }
-.home-consulting .commit-band-pulse { background: var(--accent-coral); box-shadow: none; animation: none; }
-.home-consulting .commit-band-heading { font-size: 26px; }
-.home-consulting .commit-band-link { font-family: var(--font-body); font-size: 12px; }
-.home-consulting .commit-band-tiles { gap: 0; margin-block: 26px 18px; }
-.home-consulting .commit-tile { padding: 5px 24px; border: 0; border-left: 1px solid var(--border-warm-strong); background: transparent; border-radius: 0; gap: 9px; }
-.home-consulting .commit-tile:first-child { border-left: 0; padding-left: 0; }
-.home-consulting .commit-tile-value { font-family: var(--font-body); font-size: 38px; font-weight: 400; letter-spacing: -.04em; }
-.home-consulting .commit-tile-label { font-family: var(--font-body); font-size: 10px; letter-spacing: .04em; }
-.home-consulting .commit-scope { margin: 20px 0 18px; font-size: 11px; line-height: 1.75; }
-.home-consulting .commit-band-split { padding-top: 12px; }
-.home-consulting .commit-band-split > summary { font-size: 12px; color: var(--text-warm-soft); cursor: pointer; padding: 8px 0; }
-.home-consulting .commit-band-split[open] > summary { margin-bottom: 12px; }
-.azoni-live-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 15px; padding-bottom: 28px; }
-.azoni-live-link > span { font-size: 12px; color: var(--text-warm-muted); }
+.consult-button.azoni-button-quiet { background: transparent; color: var(--text-warm); border-color: var(--border-warm-strong); }
+.consult-button.azoni-button-quiet:hover { background: transparent; border-color: var(--accent-coral); color: var(--accent-coral); }
+.azoni-proof { padding-block: 26px 4px; }
+.azoni-proof-caption { font-size: 11px; color: var(--text-warm-muted); margin-bottom: 16px; }
+.azoni-proof-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
+.azoni-proof-list > div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 6px; min-width: 0; padding: 2px 22px; border-left: 1px solid var(--border-warm-strong); }
+.azoni-proof-list > div:first-child { border-left: 0; padding-left: 0; }
+.azoni-proof-list dd { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.04em; line-height: 1.15; color: var(--text-warm); font-variant-numeric: tabular-nums; }
+.azoni-proof-list dt { font-size: 12px; line-height: 1.55; color: var(--text-warm-soft); }
+.azoni-proof-list dt a:hover { color: var(--accent-coral); text-decoration: underline; text-underline-offset: 4px; }
+.azoni-background .azoni-person-links { margin-top: -4px; }
+.azoni-consulting { border-top: 1px solid var(--border-warm); display: grid; grid-template-columns: 1fr 1fr; gap: 85px; }
+.azoni-consulting > div:last-child > p { color: var(--text-warm-soft); font-size: 16px; line-height: 1.8; margin-bottom: 14px; }
+.azoni-next { border-top: 1px solid var(--border-warm-strong); display: flex; align-items: center; justify-content: space-between; gap: 32px; padding-block: 56px 72px; }
+.azoni-next p { color: var(--text-warm-soft); font-size: 15px; line-height: 1.7; margin-top: 12px; max-width: 520px; }
+.azoni-next .consult-actions { flex-shrink: 0; }
+.azoni-next .consult-text-link { overflow-wrap: anywhere; }
 @media (max-width: 1000px) {
   .azoni-hero-grid { gap: 38px; grid-template-columns: 1.7fr 1fr; }
-  .azoni-hero h1 { font-size: 60px; }
+  .azoni-hero h1 { font-size: 52px; }
   .azoni-credentials { gap: 15px 24px; }
   .azoni-credentials > a { margin-left: 0; }
-  .azoni-background { gap: 40px; }
-  .azoni-service-row { gap: 20px; }
-}
-@media (max-width: 900px) {
-  .home-consulting .commit-band-inner { padding-inline: 22px; }
+  .azoni-background, .azoni-consulting { gap: 40px; }
+  .azoni-proof-list dd { font-size: 30px; }
+  .azoni-proof-list > div { padding-inline: 16px; }
 }
 @media (max-width: 760px) {
   .azoni-hero { padding-top: 45px; }
   .azoni-hero > .consult-eyebrow { margin-bottom: 24px; font-size: 9px; }
   .azoni-hero-grid { grid-template-columns: 1fr; gap: 35px; }
-  .azoni-hero h1 { font-size: clamp(42px, 9vw, 64px); letter-spacing: -.055em; }
+  .azoni-hero h1 { font-size: clamp(34px, 8.6vw, 52px); letter-spacing: -.05em; }
   .azoni-hero-intro { font-size: 17px; margin: 22px 0 24px; }
   .azoni-hero-person { border-top: 1px solid var(--border-warm); padding-top: 24px; }
-  .azoni-person-rule { display: none; }
+  .azoni-person-photo { width: 72px; height: 72px; margin-bottom: 14px; }
   .azoni-person-name { font-size: 20px; }
   .azoni-person-role { margin-bottom: 14px; }
-  .azoni-hero-person > p:last-of-type { max-width: 580px; }
   .azoni-credentials { margin-top: 30px; gap: 12px 20px; padding-block: 20px; }
   .azoni-credentials p { max-width: none; width: 100%; }
   .azoni-credentials > span { font-size: 12px; }
   .azoni-credentials > a { width: 100%; min-height: 30px; }
-  .azoni-work, .azoni-services, .azoni-background { padding-block: 46px; }
+  .azoni-work, .azoni-background, .azoni-consulting { padding-block: 46px; }
   .azoni-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .azoni-section-intro { margin-top: 12px; font-size: 14px; }
   .azoni-work-grid { grid-template-columns: 1fr; gap: 32px; }
   .azoni-work-label { margin-top: 18px; }
   .azoni-work-summary { padding-block: 10px 14px; }
   .azoni-work-item + .azoni-work-item { border-top: 1px solid var(--border-warm); padding-top: 32px; }
-  .azoni-service-list { margin-top: 24px; }
-  .azoni-service-row { grid-template-columns: 24px 1fr 20px; gap: 10px 13px; padding-block: 22px; align-items: start; }
-  .azoni-service-number { padding-top: 5px; }
-  .azoni-service-row h3 { font-size: 21px; }
-  .azoni-service-row p { grid-column: 2; font-size: 13px; }
-  .azoni-service-row > svg { grid-row: 1; grid-column: 3; margin-top: 3px; width: 18px; }
-  .azoni-background { grid-template-columns: 1fr; gap: 25px; }
+  .azoni-background, .azoni-consulting { grid-template-columns: 1fr; gap: 25px; }
+  .azoni-consulting > div:last-child > p { font-size: 15px; }
+  .azoni-proof { padding-top: 22px; }
+  .azoni-proof-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 0; }
+  .azoni-proof-list > div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .azoni-proof-list dd { font-size: 28px; }
+  .azoni-next { flex-direction: column; align-items: flex-start; gap: 22px; padding-block: 40px 56px; }
   .azoni-background > div:last-child > p { font-size: 15px; }
-  .home-consulting .commit-band { padding-top: 32px; }
-  .home-consulting .commit-band-tiles { grid-template-columns: repeat(2, 1fr); gap: 22px 0; }
-  .home-consulting .commit-tile:nth-child(3) { border-left: 0; padding-left: 0; }
-  .home-consulting .commit-tile-value { font-size: 34px; }
-  .home-consulting .commit-tile-label { font-size: 9px; }
-  .azoni-live-link { flex-direction: column; align-items: flex-start; gap: 5px; padding-top: 14px; }
 }

@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowUpRight, Check } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
-import { consulting } from '../data/consulting';
+import { consulting, resumePath } from '../data/consulting';
+import { profile } from '../data/profile';
 import '../styles/meet.css';
 
 const API = '/.netlify/functions/meet';
@@ -83,14 +85,34 @@ export default function Meet() {
   };
 
   const emailFallback = <a className="consult-text-link" href={`mailto:${consulting.email}`}>Email {consulting.email} <ArrowUpRight size={16} /></a>;
+  // Until there is a time to pick, the details column has nothing to offer.
+  const hasTimes = days.length > 0;
+  const waitingMessage = {
+    loading: 'Loading open times…',
+    error: 'Open times couldn’t be loaded right now. Email me and we’ll find a time.',
+    ready: 'Nothing is open in the next two weeks. Email me and we’ll find a time.',
+  }[availability.status];
 
   return <Layout>
-    <Seo title="Book a call" path="/meet" description="Pick a time for a call with Charlton Smith." noIndex />
+    <Seo title="Book a call with Charlton Smith" path="/meet" description="A 30-minute call with Charlton Smith, principal software engineer." noIndex />
     <div className="az-meet consult-container">
       <header className="az-meet-heading">
-        <p className="consult-eyebrow">Book a call</p>
-        <h1>Pick a time<br /><span>that works for you.</span></h1>
-        <p>{availability.durationMinutes} minutes. Times are shown in {zoneName}.</p>
+        <div className="az-meet-intro">
+          <p className="consult-eyebrow">Book a call</p>
+          <h1>Pick a time<br /><span>that works for you.</span></h1>
+          <p>A {availability.durationMinutes}-minute call with Charlton Smith, principal software engineer in the Seattle area. Times are shown in {zoneName}.</p>
+        </div>
+        <aside className="az-meet-host" aria-label="Who you’re meeting">
+          <img src={profile.photo} alt="" width="64" height="64" />
+          <div>
+            <p className="az-meet-host-name">{profile.name}</p>
+            <p className="az-meet-host-title">Principal software engineer</p>
+            <p className="az-meet-host-links">
+              <Link to={resumePath}>Résumé</Link>
+              <a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn (opens in a new tab)">LinkedIn <ArrowUpRight size={14} aria-hidden="true" /></a>
+            </p>
+          </div>
+        </aside>
       </header>
 
       {booked ? (
@@ -104,13 +126,16 @@ export default function Meet() {
           </div>
         </section>
       ) : (
-        <div className="az-meet-main">
+        <div className={`az-meet-main${hasTimes ? '' : ' is-waiting'}`}>
           <section aria-labelledby="az-meet-pick-title">
             <h2 id="az-meet-pick-title">Choose a day and time.</h2>
-            {availability.status === 'loading' && <p role="status" className="az-meet-note">Loading open times&hellip;</p>}
-            {availability.status === 'error' && <div className="az-meet-note"><p>Open times couldn&rsquo;t be loaded right now.</p>{emailFallback}</div>}
-            {availability.status === 'ready' && !days.length && <div className="az-meet-note"><p>Nothing is open in the next two weeks. Email me and we&rsquo;ll find a time.</p>{emailFallback}</div>}
-            {!!days.length && <>
+            {!hasTimes && <div className="az-meet-note az-meet-waiting">
+              <p role="status">{waitingMessage}</p>
+              {emailFallback}
+              {/* A taken slot can empty the list; its reason still has to show. */}
+              {submit.message && <p role="alert" className="az-meet-status">{submit.message}</p>}
+            </div>}
+            {hasTimes && <>
               <div className="az-meet-days" role="group" aria-label="Days">
                 {days.map((d) => (
                   <button type="button" key={d.key} className="az-meet-day" aria-pressed={d.key === day} onClick={() => { setDay(d.key); setSlot(null); }}>
@@ -128,9 +153,9 @@ export default function Meet() {
             </>}
           </section>
 
-          <section className="az-meet-details" aria-labelledby="az-meet-details-title">
+          {hasTimes && <section className="az-meet-details" aria-labelledby="az-meet-details-title">
             <h2 id="az-meet-details-title">Your details.</h2>
-            {!slot ? <p className="az-meet-note">Pick a time to continue.</p> : (
+            {!slot ? <p className="az-meet-note">Pick a time to continue.</p> : <>
               <form className="az-meet-form" onSubmit={book}>
                 <p className="az-meet-selected">{longDate.format(new Date(slot))}</p>
                 <label><span>Name</span><input required autoComplete="name" maxLength={100} value={form.name} onChange={update('name')} /></label>
@@ -149,10 +174,11 @@ export default function Meet() {
                   {submit.status === 'sending' ? 'Booking…' : 'Book this time'}
                 </button>
               </form>
-            )}
+              <p className="az-meet-privacy">Your details go into the calendar invite for this call. <Link to="/privacy">Privacy notice</Link></p>
+            </>}
             {/* Outside the form: a taken slot clears the selection, and the reason must stay visible. */}
             <p role="status" className="az-meet-status">{submit.message}</p>
-          </section>
+          </section>}
         </div>
       )}
     </div>

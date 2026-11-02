@@ -28,12 +28,11 @@
 }
 
 .blog-page-heading {
-  font-family: var(--font-serif);
+  font-family: var(--font-body);
   font-weight: 500;
-  font-variation-settings: 'opsz' 144, 'SOFT' 30;
   font-size: clamp(2.25rem, 5vw, 3.25rem);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
   color: var(--text-warm);
   margin: 0 0 var(--space-md);
 }
@@ -132,9 +131,8 @@
 }
 
 .blog-page-card-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-body);
   font-weight: 500;
-  font-variation-settings: 'opsz' 72;
   font-size: 1.25rem;
   line-height: 1.2;
   color: var(--text-warm);
@@ -162,6 +160,21 @@
   margin-top: auto;
   padding-top: 4px;
 }
+
+.blog-page-card-products {
+  font-size: 0.73rem;
+  color: var(--text-warm-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Sans headings, like the core pages (secondary-pages.css sets the serif). */
+.secondary-page.blog-page-warm .blog-page-heading,
+.secondary-page.blog-page-warm .blog-page-card-title {
+  font-family: var(--font-body);
+  letter-spacing: -0.03em;
+}
+
+.secondary-page.blog-page-warm .blog-page-heading { letter-spacing: -0.04em; }
 
 @media (max-width: 768px) {
   .blog-page-warm {

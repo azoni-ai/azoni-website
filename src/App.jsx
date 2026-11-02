@@ -8,6 +8,7 @@ import Layout from "./components/Layout";
 import Seo from "./components/Seo";
 import FloatingAssistant from "./components/FloatingAssistant";
 import { Link } from "react-router-dom";
+import { bookingCta, resumePath } from "./data/consulting";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -73,7 +74,8 @@ const App = () => {
               {/* Board kanban stays; Hub retired into the live project cards */}
               <Route path="/board" element={<Board />} />
               <Route path="/hub" element={<Navigate to="/projects" replace />} />
-              {/* 404 catch-all */}
+              {/* 404 catch-all. public/_redirects serves unknown URLs with HTTP 404;
+                  add a 200 rule there for every new route (tests/route-coverage.test.cjs). */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
@@ -84,12 +86,14 @@ const App = () => {
   );
 };
 
+// Seo leaves out the canonical on noindex pages, so the 404 has none.
 const NotFound = () => (
-  <Layout><Seo title="Page not found" noIndex />
+  <Layout>
+    <Seo title="Page not found" noIndex />
     <div className="consult-page consult-container" style={{ minHeight: '70vh', paddingBottom: 80 }}>
-      <p className="consult-eyebrow">404</p><h1>Page not found.</h1>
-      <p style={{ margin: '24px 0', color: 'var(--text-warm-soft)' }}>This page may have moved. Explore my services or return home.</p>
-      <div className="consult-actions"><Link className="consult-button" to="/">Back to home</Link><Link className="consult-text-link" to="/services">Explore services</Link></div>
+      <p className="consult-eyebrow">404</p><h1 style={{ fontFamily: 'var(--font-body)' }}>Page not found.</h1>
+      <p style={{ margin: '24px 0', color: 'var(--text-warm-soft)' }}>This page may have moved. You can see my work, read my résumé or get in touch.</p>
+      <div className="consult-actions"><Link className="consult-button" to="/projects">See my work</Link><Link className="consult-text-link" to={resumePath}>Résumé</Link><Link className="consult-text-link" to={bookingCta.to}>{bookingCta.label}</Link></div>
     </div>
   </Layout>
 );

@@ -10,6 +10,7 @@ import { WORLD_WIDTH, WORLD_HEIGHT, ZONE_POLYGONS, ZONE_INFO, PORTAL_POSITIONS, 
 // Note: hooks/useAudio.js is available for future refactoring
 import { createStyles } from './styles';
 import useVisitTracker from '../../hooks/useVisitTracker';
+import Seo from '../Seo';
 
 // Extracted UI Components
 import { GlobalStyles, LoadingScreen, AuthScreen, DeathScreen, TitleScreen, GameModals } from './components';
@@ -53,6 +54,16 @@ export default function SpellBrigade() {
   const screenRef = useRef('loading'); // Ref version for socket handlers
   const [tab, setTab] = useState('play');
   const [connected, setConnected] = useState(false);
+  // After about 10 seconds on "Connecting to server...", say the server is waking up or offline.
+  const [slowConnect, setSlowConnect] = useState(false);
+  useEffect(() => {
+    if (screen !== 'loading') {
+      setSlowConnect(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setSlowConnect(true), 10000);
+    return () => clearTimeout(timer);
+  }, [screen]);
   const [playerName, setPlayerName] = useState('');
   const [selectedClass, setSelectedClass] = useState('pyromancer');
   const [selectedSkin, setSelectedSkin] = useState('pyromancer_default');
@@ -859,6 +870,7 @@ export default function SpellBrigade() {
       } else if (savedId) {
         // No session but has a player ID - stale data, clear it
         localStorage.removeItem('spellBrigadePlayerId');
+        setScreen('auth');
       } else {
         // Truly new player - go to auth screen
         setScreen('auth');
@@ -13742,7 +13754,7 @@ export default function SpellBrigade() {
         background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)',
         backdropFilter: 'blur(4px)', opacity: 0.6,
       }}>
-        &larr; Portfolio
+        &larr; Back to azoni.ai
       </Link>
       <style>{`@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
       {/* Game Canvas */}
@@ -13813,11 +13825,22 @@ export default function SpellBrigade() {
       {/* Global Styles */}
 
       <GlobalStyles screen={screen} />
-      {/* Loading Screen */}
+      <Seo title="Spell Brigade" description="Real-time multiplayer wizard game with AI-generated characters." path="/game" noIndex />
+      {/* Loading Screen. Only the active screen mounts, so only its heading is on the page. */}
 
-      <LoadingScreen visible={screen === 'loading'} styles={styles} />
+      {screen === 'loading' && !slowConnect && <LoadingScreen visible styles={styles} />}
+      {screen === 'loading' && slowConnect && (
+        <div style={styles.overlay} role="status">
+          <h1 style={{ color: '#fff', fontSize: '1.5rem', margin: '48px 16px 12px', textAlign: 'center' }}>The game server is waking up or offline</h1>
+          <p style={{ ...styles.loadingText, maxWidth: 420, padding: '0 16px', textAlign: 'center' }}>
+            The game keeps trying to connect and starts as soon as the server answers. You can also try again or come back later.
+          </p>
+          <button type="button" style={styles.btn} onClick={() => window.location.reload()}>Try again</button>
+        </div>
+      )}
       {/* Auth Screen */}
 
+      {screen === 'auth' && (
       <AuthScreen
 
         visible={screen === 'auth'}
@@ -13845,9 +13868,11 @@ export default function SpellBrigade() {
         sessionTokenRef={sessionTokenRef}
         SERVER_URL={SERVER_URL}
       />
+      )}
 
       {/* Title Screen */}
 
+      {screen === 'title' && (
       <TitleScreen
         visible={screen === 'title'}
         styles={styles}
@@ -13903,9 +13928,11 @@ export default function SpellBrigade() {
         DEFAULT_SKINS={DEFAULT_SKINS}
         SERVER_URL={SERVER_URL}
       />
+      )}
 
       {/* Death Screen */}
 
+      {screen === 'dead' && (
       <DeathScreen
 
         visible={screen === 'dead'}
@@ -13976,6 +14003,7 @@ export default function SpellBrigade() {
         }}
 
       />
+      )}
 
       {/* Dungeon HUD Overlay */}
       {screen === 'game' && inDungeon && playerInfo && (

@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
-const links = [{ path: '/services', label: 'Services' }, { path: '/projects', label: 'Work' }, { path: '/about', label: 'About' }, { path: '/contact', label: 'Contact' }];
+import { bookingCta, resumePath } from '../data/consulting';
+const links = [{ path: '/projects', label: 'Work' }, { path: '/about', label: 'About' }, { path: resumePath, label: 'Résumé' }, { path: '/services', label: 'Consulting' }];
+const isCurrent = (pathname, path) => (pathname === path || pathname.startsWith(`${path}/`) ? 'page' : undefined);
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -25,14 +27,15 @@ export default function Navbar() {
     <header className="site-header">
       <nav className="site-nav" aria-label="Main navigation">
         <div className="site-brand">
-          <Link className="site-wordmark navbar-logo" to="/" onClick={() => setOpen(false)} aria-label="Azoni home">
-            <span>azoni<span className="navbar-logo-dot">.</span></span>
+          <Link className="site-wordmark navbar-logo" to="/" onClick={() => setOpen(false)} aria-label="Charlton Smith, home">
+            <span aria-hidden="true">azoni<span className="navbar-logo-dot">.</span></span>
+            <span className="site-wordmark-caption">Charlton Smith</span>
           </Link>
-          <p className="site-construction-note"><span aria-hidden="true" />Site under construction</p>
         </div>
         <button ref={toggle} className="site-menu-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="site-navigation" onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button>
         <div id="site-navigation" className={`site-navigation${open ? ' is-open' : ''}`}>
-          {links.map(({ path, label }) => <Link key={path} to={path} onClick={() => setOpen(false)} aria-current={pathname === path || pathname.startsWith(`${path}/`) ? 'page' : undefined}>{label}</Link>)}
+          {links.map(({ path, label }) => <Link key={path} to={path} onClick={() => setOpen(false)} aria-current={isCurrent(pathname, path)}>{label}</Link>)}
+          <Link className="site-nav-cta" to={bookingCta.to} onClick={() => setOpen(false)} aria-current={isCurrent(pathname, bookingCta.to)}>{bookingCta.label}</Link>
         </div>
       </nav>
     </header>

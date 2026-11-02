@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import SecondaryPageLinks from '../components/SecondaryPageLinks';
 import '../styles/blog-post-warm.css';
-import { db } from '../config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { getReviewedWritingEntry, isReviewedPublicPost } from '../utils/publicWriting';
+import { fetchBuildNote, formatNoteDate, isRetiredPostSlug, noteLabel, repositoryProject } from '../utils/publicWriting';
 
 const BlogPost = () => {
   const { slug } = useParams();
@@ -21,44 +19,23 @@ const BlogPost = () => {
     setPost(null);
     setNotFound(false);
     setLoadError(false);
-    const fetchPost = async () => {
-      try {
-        const approved = getReviewedWritingEntry(slug);
-        if (!approved) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-        const snapshot = await getDoc(doc(db, 'blogPosts', approved.id));
+    if (isRetiredPostSlug(slug)) return undefined;
+    fetchBuildNote(slug)
+      .then((note) => {
         if (cancelled) return;
-        const candidate = snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } : null;
-        const reviewed = await isReviewedPublicPost(candidate);
+        if (note) setPost(note);
+        else setNotFound(true);
+      })
+      .catch((error) => {
         if (cancelled) return;
-        if (!reviewed) {
-          setNotFound(true);
-        } else {
-          setPost(candidate);
-        }
-      } catch (error) {
-        if (cancelled) return;
-        console.error('Error fetching post:', error);
+        console.error('Error fetching build note:', error);
         setLoadError(true);
-      }
-      setLoading(false);
-    };
-
-    fetchPost();
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => { cancelled = true; };
   }, [slug]);
-
-  const formatDate = (timestamp) => {
-    if (!timestamp?.toDate) return '';
-    return timestamp.toDate().toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
 
   // Simple markdown-like rendering
   const renderContent = (content) => {
@@ -179,10 +156,14 @@ const BlogPost = () => {
     return parts;
   };
 
+  // The two retired persona posts: their URLs redirect to /blog at the edge
+  // too (public/_redirects); this covers in-app navigation.
+  if (isRetiredPostSlug(slug)) return <Navigate to="/blog" replace />;
+
   if (loading) {
     return (
       <Layout>
-        <Seo title="Writing" path="/blog" />
+        <Seo title="Build notes" path={`/blog/${slug}`} noIndex />
         <section className="section blog-post-page blog-post-page-warm secondary-page">
           <div className="container">
             <div className="blog-loading">Loading...</div>
@@ -195,13 +176,13 @@ const BlogPost = () => {
   if (notFound || loadError) {
     return (
       <Layout>
-        <Seo title="Writing unavailable" path="/blog" noIndex />
+        <Seo title="Build note unavailable" path="/blog" noIndex />
         <section className="section blog-post-page blog-post-page-warm secondary-page">
           <div className="container">
             <div className="blog-not-found">
-              <h1>{loadError ? 'This note could not load' : 'This note is not in the public archive'}</h1>
-              <p>{loadError ? 'Please try again later, or browse the writing archive.' : 'Browse the selected notes from independent public projects.'}</p>
-              <Link to="/blog" className="btn btn-primary">Back to writing</Link>
+              <h1>{loadError ? 'This note could not load' : 'This note is not published'}</h1>
+              <p>{loadError ? 'Please try again later, or browse the other build notes.' : 'It may have been held back by the publishing check, or the link is out of date.'}</p>
+              <Link to="/blog" className="btn btn-primary">All build notes</Link>
             </div>
           </div>
         </section>
@@ -211,19 +192,21 @@ const BlogPost = () => {
 
   return (
     <Layout>
+      {/* Automated notes stay out of search results; /blog itself is indexed. */}
       <Seo
         title={post.title}
         description={post.excerpt || undefined}
         path={`/blog/${slug}`}
+        noIndex
       />
       <article className="section blog-post-page blog-post-page-warm secondary-page">
         <div className="container">
-          <Link to="/blog" className="blog-back-link">← Back to writing</Link>
-          
+          <Link to="/blog" className="blog-back-link">← All build notes</Link>
+
           <header className="blog-post-header">
             <div className="blog-post-meta">
-              <span className="blog-post-date">{formatDate(post.publishedAt)}</span>
-              <span className="blog-ai-label">AI-generated build note</span>
+              <span className="blog-post-date">Commits from {formatNoteDate(post)}</span>
+              <span className="blog-ai-label">{noteLabel(post)}</span>
               {post.tags?.length > 0 && (
                 <div className="blog-post-tags">
                   {post.tags.map(tag => (
@@ -236,12 +219,20 @@ const BlogPost = () => {
             {post.excerpt && (
               <p className="blog-post-excerpt">{post.excerpt}</p>
             )}
-            <p className="secondary-notice">Generated by Scribe from public repository activity. This is an automated summary, not a client case study or an article written by Charlton.</p>
+            <p className="secondary-notice">
+              {post.generator === 'model'
+                ? 'A language model wrote this note’s title and summaries from the day’s public commits.'
+                : post.generator === 'template'
+                  ? 'This note lists the day’s public commits as they were written.'
+                  : 'This note was generated automatically from the day’s public commits.'}
+              {' '}It passed an automated check before it was published.
+              {' '}I don&rsquo;t write or edit these notes. The commit links are the record.
+            </p>
           </header>
 
           {post.coverImage && (
             <div className="blog-post-cover">
-              <img src={post.coverImage} alt={post.title} />
+              <img src={post.coverImage} alt="" />
             </div>
           )}
 
@@ -249,12 +240,20 @@ const BlogPost = () => {
             {renderContent(post.content)}
           </div>
 
-          {post.relatedProject && (
+          {post.sourceRepos?.length > 0 && (
             <div className="blog-post-related">
-              <h3>Related Project</h3>
-              <Link to={`/projects/${post.relatedProject}`} className="btn btn-secondary">
-                View Project →
-              </Link>
+              <h3>Sources</h3>
+              <ul className="blog-post-sources">
+                {post.sourceRepos.map((repo) => {
+                  const project = repositoryProject(repo);
+                  return (
+                    <li key={repo}>
+                      <a href={`https://github.com/${repo}`} target="_blank" rel="noopener noreferrer">{repo}</a>
+                      {project && <Link to={project.path}>{project.title}</Link>}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
           <SecondaryPageLinks />
