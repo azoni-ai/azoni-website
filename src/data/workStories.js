@@ -88,7 +88,7 @@ export const workStories = {
       caption: 'An earlier screenshot of the Row Crew app.',
     },
   },
-  // Home still shows this one; on /projects it sits under "Other things I've built".
+  // Used on /projects/embedroute; on /projects it sits under "Other things I've built".
   embedroute: {
     label: 'AI infrastructure',
     headline: 'An embedding API and model comparison lab.',

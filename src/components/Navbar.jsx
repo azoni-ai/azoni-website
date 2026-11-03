@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
-import { bookingCta, resumePath } from '../data/consulting';
-const links = [{ path: '/projects', label: 'Work' }, { path: '/about', label: 'About' }, { path: resumePath, label: 'Résumé' }, { path: '/services', label: 'Consulting' }];
+import { bookingCta, meetLive, resumePath } from '../data/consulting';
+const links = [{ path: '/projects', label: 'Work' }, { path: '/about', label: 'About' }, { path: resumePath, label: 'Resume' }, { path: '/services', label: 'Consulting' }];
 const isCurrent = (pathname, path) => (pathname === path || pathname.startsWith(`${path}/`) ? 'page' : undefined);
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -35,7 +35,8 @@ export default function Navbar() {
         <button ref={toggle} className="site-menu-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="site-navigation" onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button>
         <div id="site-navigation" className={`site-navigation${open ? ' is-open' : ''}`}>
           {links.map(({ path, label }) => <Link key={path} to={path} onClick={() => setOpen(false)} aria-current={isCurrent(pathname, path)}>{label}</Link>)}
-          <Link className="site-nav-cta" to={bookingCta.to} onClick={() => setOpen(false)} aria-current={isCurrent(pathname, bookingCta.to)}>{bookingCta.label}</Link>
+          {/* The spot for availability: "Book a call" shows once /meet takes bookings (meetLive). */}
+          {meetLive && <Link className="site-nav-cta" to={bookingCta.to} onClick={() => setOpen(false)} aria-current={isCurrent(pathname, bookingCta.to)}>{bookingCta.label}</Link>}
         </div>
       </nav>
     </header>

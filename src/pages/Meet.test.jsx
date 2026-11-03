@@ -69,7 +69,7 @@ test('a slot taken in the meantime refreshes the times and says so', async () =>
   }
 });
 
-test('says whose call it is and links the résumé and LinkedIn', async () => {
+test('says whose call it is and links the resume and LinkedIn', async () => {
   const page = await renderMeet(() => json({}));
   try {
     const heading = page.container.querySelector('.az-meet-heading').textContent;

@@ -8,7 +8,7 @@ export const profile = {
   email: "charlton@azoni.ai",
   tagline: "Principal engineering · Applied AI",
   bio: `I'm Charlton Smith. I build and run AI products and the infrastructure behind them. I spent my college weekends at hackathons, co-founded OLI Fitness, and worked at T-Mobile and Capital One. Over the last few years I've gone deep into AI, building and running my own products alongside my current work as a principal software engineer for a client.`,
-  // Lead paragraph of the HTML résumé (/resume).
+  // A one-paragraph summary. /resume shows the PDF resume rather than this.
   summary: `I build and run AI products and the infrastructure behind them. I work with a client as a principal software engineer with a strong focus on AI, and I build and operate my own products, including AI agents, retrieval systems and web applications. Earlier, I built internal tools at T-Mobile, developed test automation at Capital One and co-founded OLI Fitness.`,
   // Surfaced as the "Now ·" pill in the home hero. Falls back to the latest
   // Scribe blog post if not set. Keep it short, one sentence max.
@@ -17,7 +17,7 @@ export const profile = {
     github: "https://github.com/azoni",
     linkedin: "https://www.linkedin.com/in/charltonsmith",
     twitter: "https://x.com/azonitcg",
-    resume: "/CharltonSmith-Consulting.pdf"
+    resume: "/CharltonResume.pdf"
   }
 };
 
@@ -41,9 +41,10 @@ export const skillLabels = {
   web3: "Web3"
 };
 
-// The one source for About's experience list and the /resume page.
+// The one source for About's experience list (/resume shows the PDF resume).
 // kind: 'role' is a job or engagement; 'project' is something I built and ran myself.
-// summary is the one-paragraph version (About); highlights are résumé bullets.
+// summary is the one-paragraph version About shows. highlights (like skills
+// below) are kept as source text and are not shown on any page.
 export const experience = [
   {
     id: "principal",

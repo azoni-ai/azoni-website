@@ -29,7 +29,7 @@ export default function About() {
               <p className="about-lede">I build and run AI products and the infrastructure behind them, both for a client and through Azoni.</p>
               <div className="consult-actions about-actions">
                 <Link to={bookingCta.to} className="consult-button">{bookingCta.label} <ArrowRight size={17} aria-hidden="true" /></Link>
-                <Link to={resumePath} className="consult-button about-button-quiet">Résumé</Link>
+                <Link to={resumePath} className="consult-button about-button-quiet">Resume</Link>
               </div>
             </div>
             <aside className="about-at-a-glance" aria-label="At a glance">
@@ -59,7 +59,7 @@ export default function About() {
           </section>
 
           <section id="experience" className="about-editorial" aria-labelledby="about-experience">
-            <div className="about-section-label"><p className="consult-eyebrow">Experience</p><h2 id="about-experience">What I’ve worked on since 2016.</h2><Link to={resumePath} className="consult-text-link">Full résumé <ArrowRight size={16} aria-hidden="true" /></Link></div>
+            <div className="about-section-label"><p className="consult-eyebrow">Experience</p><h2 id="about-experience">What I’ve worked on since 2016.</h2><Link to={resumePath} className="consult-text-link">Full resume <ArrowRight size={16} aria-hidden="true" /></Link></div>
             <ol className="about-experience-list">
               {experience.map(job => (
                 <li key={job.id}>
@@ -96,7 +96,7 @@ export default function About() {
               <p className="consult-eyebrow">Next steps</p>
               <h2 id="about-contact-title">See the work, or get in touch.</h2>
               <p>The products I build and run are on the Work page, with notes on how I built them. If you have something in mind, email me.</p>
-              <p className="about-closing-more">The <Link to={resumePath}>résumé</Link> has the full history, and the <Link to="/services">consulting page</Link> explains how I work with clients.</p>
+              <p className="about-closing-more">The <Link to={resumePath}>resume</Link> has the full history, and the <Link to="/services">consulting page</Link> explains how I work with clients.</p>
             </div>
             <div className="about-closing-actions">
               <Link to="/projects" className="consult-button about-button-quiet">See my work <ArrowRight size={17} aria-hidden="true" /></Link>
