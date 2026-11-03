@@ -62,7 +62,7 @@ test('other and earlier work are compact lists, and unlisted or merged entries s
   });
 });
 
-test('the at-work strip links to experience and the résumé', () => {
+test('the at-work strip links to experience and the resume', () => {
   const links = Array.from(container.querySelectorAll('.projects-atwork a')).map((link) => link.getAttribute('href'));
   expect(links).toEqual(['/about#experience', '/resume']);
   expect(container.querySelector('.projects-atwork').textContent).not.toMatch(/open to|looking for|job/i);

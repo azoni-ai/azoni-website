@@ -20,7 +20,7 @@ test('renders history and awards from profile.js and ends on two paths', () => {
     expect(container.textContent.match(/work with a client as a principal software engineer/gi)).toHaveLength(1);
 
     const heroButtons = [...container.querySelectorAll('.about-hero .consult-button')].map(link => [link.getAttribute('href'), link.textContent.trim()]);
-    expect(heroButtons).toEqual([[bookingCta.to, bookingCta.label], ['/resume', 'Résumé']]);
+    expect(heroButtons).toEqual([[bookingCta.to, bookingCta.label], ['/resume', 'Resume']]);
 
     const rows = container.querySelectorAll('#experience .about-experience-list > li');
     expect(rows).toHaveLength(experience.length);

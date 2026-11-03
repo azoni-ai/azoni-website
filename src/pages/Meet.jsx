@@ -108,7 +108,7 @@ export default function Meet() {
             <p className="az-meet-host-name">{profile.name}</p>
             <p className="az-meet-host-title">Principal software engineer</p>
             <p className="az-meet-host-links">
-              <Link to={resumePath}>Résumé</Link>
+              <Link to={resumePath}>Resume</Link>
               <a href={profile.links.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn (opens in a new tab)">LinkedIn <ArrowUpRight size={14} aria-hidden="true" /></a>
             </p>
           </div>

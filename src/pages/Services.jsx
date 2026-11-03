@@ -42,7 +42,7 @@ export default function Services() {
             <div>
               <p className="services-byline-name">{profile.name}</p>
               <p>Principal software engineer. Previously <span className="services-nowrap">T-Mobile</span> and Capital One, and co-founder of OLI Fitness.</p>
-              <p className="services-byline-links"><Link to="/about">About me</Link><Link to={resumePath}>Résumé</Link></p>
+              <p className="services-byline-links"><Link to="/about">About me</Link><Link to={resumePath}>Resume</Link></p>
             </div>
           </div>
         </header>

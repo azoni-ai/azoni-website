@@ -59,11 +59,11 @@ export default function Projects() {
           <section className="projects-atwork" aria-labelledby="projects-atwork-heading">
             <div>
               <h2 id="projects-atwork-heading">At work</h2>
-              <p>This page covers my own products and earlier projects. My professional experience, at <span className="projects-nowrap">T-Mobile</span>, Capital One and in my current principal engineering role, is on my About page and résumé.</p>
+              <p>This page covers my own products and earlier projects. My professional experience, at <span className="projects-nowrap">T-Mobile</span>, Capital One and in my current principal engineering role, is on my About page and resume.</p>
             </div>
             <div className="projects-atwork-links">
               <Link to="/about#experience" className="projects-atwork-link">Experience <ArrowRight size={16} aria-hidden="true" /></Link>
-              <Link to={resumePath} className="projects-atwork-link">Résumé <ArrowRight size={16} aria-hidden="true" /></Link>
+              <Link to={resumePath} className="projects-atwork-link">Resume <ArrowRight size={16} aria-hidden="true" /></Link>
             </div>
           </section>
         </div>

@@ -15,7 +15,7 @@ export default function Footer() {
           </div>
         </div>
         <nav className="site-footer-links" aria-label="Footer navigation">
-          <Link to="/projects">Work</Link><Link to="/about">About</Link><Link to={resumePath}>Résumé</Link><Link to="/services">Consulting</Link><Link to="/contact">Contact</Link><Link to="/blog">Build notes</Link><Link to="/live">Usage and code changes</Link>
+          <Link to="/projects">Work</Link><Link to="/about">About</Link><Link to={resumePath}>Resume</Link><Link to="/services">Consulting</Link><Link to="/contact">Contact</Link><Link to="/blog">Build notes</Link><Link to="/live">Usage and code changes</Link>
         </nav>
         <div className="site-footer-bottom"><span>&copy; {new Date().getFullYear()} Azoni LLC</span><div><a href={profile.links.github} target="_blank" rel="noopener noreferrer">GitHub</a><Link to="/privacy">Privacy</Link></div></div>
       </div>

@@ -1,53 +1,47 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import fs from 'fs';
+import path from 'path';
 import Resume from './Resume';
-import { profile, experience, education, awards, skills } from '../data/profile';
-import { bookingCta } from '../data/consulting';
+import { profile, experience } from '../data/profile';
 
 jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }), { virtual: true });
 jest.mock('../components/Layout', () => ({ children }) => <main>{children}</main>);
 let mockSeoProps;
 jest.mock('../components/Seo', () => props => { mockSeoProps = props; return null; });
 
-test('renders the résumé as HTML from profile.js, printable, with the consulting PDF labeled as such', () => {
+const publicDir = path.join(__dirname, '..', '..', 'public');
+
+test('shows the PDF resume with download and open-in-new-tab links', () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
   try {
     act(() => root.render(<Resume />));
-    expect(mockSeoProps.title).toBe('Résumé');
-    expect(mockSeoProps.noindex).toBeFalsy();
-    expect(container.querySelector('iframe')).toBeNull();
-    expect(container.querySelector('h1').textContent).toBe(profile.name);
-    expect(container.querySelector('.resume-tagline').textContent).toContain('Principal software engineer');
-
-    const [print, pdf] = container.querySelectorAll('.resume-actions .resume-cta');
-    expect(print.tagName).toBe('BUTTON');
-    expect(print.textContent).toBe('Print or save as PDF');
-    window.print = jest.fn();
-    act(() => print.click());
-    expect(window.print).toHaveBeenCalledTimes(1);
-    expect(pdf.getAttribute('href')).toBe(profile.links.resume);
-    expect(pdf.textContent).toContain('Consulting summary (PDF)');
-    expect(container.querySelector('a[download]')).toBeNull();
-
-    const headings = [...container.querySelectorAll('.resume-section > h2')].map(h => h.textContent);
-    expect(headings).toEqual(['Summary', 'Experience', 'Education', 'Awards', 'Skills']);
-    expect(container.querySelectorAll('.resume-entries')[0].children).toHaveLength(experience.length);
-    expect(container.querySelectorAll('.resume-entries')[1].children).toHaveLength(education.length);
-    expect(container.querySelector('.resume-awards').children).toHaveLength(awards.length);
-    expect(container.querySelectorAll('.resume-skills dt')).toHaveLength(Object.keys(skills).length);
-    expect(container.textContent).toContain('Capital One');
-    expect(container.querySelector('.resume-closing a.resume-cta').getAttribute('href')).toBe(bookingCta.to);
-    expect(container.textContent).not.toMatch(/any size|open to work|job search/i);
+    expect(mockSeoProps.title).toBe('Resume');
+    expect(container.querySelector('h1').textContent).toBe('Resume');
+    expect(container.querySelector('iframe.resume-iframe').getAttribute('src')).toMatch(/^\/CharltonResume\.pdf#page=1/);
+    const [download, open] = container.querySelectorAll('.resume-actions a');
+    expect(download.getAttribute('href')).toBe('/CharltonResume.pdf');
+    expect(download.hasAttribute('download')).toBe(true);
+    expect(open.getAttribute('href')).toBe('/CharltonResume.pdf');
+    expect(open.getAttribute('target')).toBe('_blank');
+    expect(container.textContent).not.toMatch(/[éÉ]/);
   } finally {
     act(() => root.unmount());
     container.remove();
   }
 });
 
-test('every experience entry has what both About and the résumé need', () => {
+test('the PDF ships with the site and no redirect sends its URL elsewhere', () => {
+  expect(profile.links.resume).toBe('/CharltonResume.pdf');
+  expect(fs.existsSync(path.join(publicDir, profile.links.resume))).toBe(true);
+  const redirects = fs.readFileSync(path.join(publicDir, '_redirects'), 'utf8').split(/\r?\n/);
+  expect(redirects.filter(line => line.trim().startsWith(profile.links.resume + ' '))).toEqual([]);
+});
+
+test('every experience entry has what the About page needs', () => {
   const ids = new Set();
   for (const job of experience) {
     expect(['role', 'project']).toContain(job.kind);

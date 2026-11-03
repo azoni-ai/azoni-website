@@ -40,7 +40,7 @@ test('blocked clipboard access still selects the address and preserves direct em
   }
 });
 
-test('offers one mailto link, a plain heading and routes to work, consulting and the résumé', () => {
+test('offers one mailto link, a plain heading and routes to work, consulting and the resume', () => {
   const { container, cleanup } = renderContact();
   try {
     expect(container.querySelector('h1').textContent).toBe('Get in touch');

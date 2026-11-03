@@ -68,7 +68,7 @@ export default function Contact() {
         <div className="az-contact-more-links">
           <Link to="/projects">Work <ArrowRight size={16} aria-hidden="true" /></Link>
           <Link to="/services">Consulting <ArrowRight size={16} aria-hidden="true" /></Link>
-          <Link to={resumePath}>Résumé <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link to={resumePath}>Resume <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
       </section>
     </div>

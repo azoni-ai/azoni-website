@@ -18,8 +18,8 @@ const PAGES = {
     description: 'From college hackathons and co-founding OLI Fitness to T-Mobile, Capital One and the AI products I build and run now.',
   },
   '/resume': {
-    title: 'Résumé · Charlton Smith',
-    description: 'Experience, skills and education for Charlton Smith, principal software engineer in the Seattle area.',
+    title: 'Resume · Charlton Smith',
+    description: "Charlton Smith's resume. Software engineer building AI products and full-stack systems.",
   },
   '/services': {
     title: 'Consulting · Charlton Smith',

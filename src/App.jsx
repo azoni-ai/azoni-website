@@ -99,8 +99,8 @@ const NotFound = () => (
     <Seo title="Page not found" noIndex />
     <div className="consult-page consult-container" style={{ minHeight: '70vh', paddingBottom: 80 }}>
       <p className="consult-eyebrow">404</p><h1 style={{ fontFamily: 'var(--font-body)' }}>Page not found.</h1>
-      <p style={{ margin: '24px 0', color: 'var(--text-warm-soft)' }}>This page may have moved. You can see my work, read my résumé or get in touch.</p>
-      <div className="consult-actions"><Link className="consult-button" to="/projects">See my work</Link><Link className="consult-text-link" to={resumePath}>Résumé</Link><Link className="consult-text-link" to={bookingCta.to}>{bookingCta.label}</Link></div>
+      <p style={{ margin: '24px 0', color: 'var(--text-warm-soft)' }}>This page may have moved. You can see my work, read my resume or get in touch.</p>
+      <div className="consult-actions"><Link className="consult-button" to="/projects">See my work</Link><Link className="consult-text-link" to={resumePath}>Resume</Link><Link className="consult-text-link" to={bookingCta.to}>{bookingCta.label}</Link></div>
     </div>
   </Layout>
 );
