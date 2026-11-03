@@ -20,21 +20,36 @@ function renderHome() {
   return { container, cleanup: () => { act(() => root.unmount()); container.remove(); } };
 }
 
-test('a compact hero without a photo or buttons, then FaB Stats, Dustbunny and OLI Fitness, then GitHub activity', () => {
+test('a compact hero, GitHub activity right under it, then BumbleJax, FaB Stats and Old Ways Today', () => {
   const { container, cleanup } = renderHome();
   try {
-    expect(container.querySelector('h1').textContent).toBe('I build and run AI products and the infrastructure behind them.');
+    expect(container.querySelector('h1').textContent).toBe('I build software people use, and I keep it running.');
+    expect(container.querySelector('.azoni-hero-intro').textContent).toBe('I’m Charlton Smith, a principal software engineer in the Seattle area. Most of my work is in AI, from client platforms to products I run myself through Azoni.');
     expect(container.querySelector('.azoni-hero img')).toBeNull();
     expect(container.querySelector('.azoni-hero .consult-button')).toBeNull();
     expect([...container.querySelectorAll('.azoni-hero .consult-text-link')].map(link => link.textContent.trim())).toEqual(['About me', 'LinkedIn']);
     expect(container.querySelector('.azoni-credentials').textContent).toContain('T-MobileCapital OneCo-founder, OLI Fitness');
-    expect(container.querySelector('.azoni-proof-caption').textContent).toContain('as of November 2026');
-    expect(container.querySelectorAll('.azoni-proof-list dd')).toHaveLength(4);
 
-    const work = [...container.querySelectorAll('.azoni-work-item')];
-    expect(work.map(item => item.getAttribute('href'))).toEqual(['/projects/fab-stats', '/projects/dustbunny', '/projects/oli-fitness']);
-    expect(work[1].querySelector('img').getAttribute('src')).toBe('/images/dustbunny-photo.jpg');
-    expect(work[2].querySelector('.azoni-work-fact').textContent).toContain('CHI 2017');
+    // The GitHub band replaced the FaB Stats counts and comes straight after the hero.
+    const blocks = [...container.querySelector('.home-consulting').children];
+    expect(blocks[0].querySelector('.azoni-hero')).not.toBeNull();
+    expect(blocks[1].classList.contains('azoni-telemetry')).toBe(true);
+    expect(blocks[1].querySelector('.commit-band')).not.toBeNull();
+    expect(container.querySelector('.azoni-proof')).toBeNull();
+    expect(container.textContent).not.toMatch(/players on FaB Stats|matches tracked on FaB Stats/);
+
+    expect(container.querySelector('#selected-work-heading').textContent).toBe('What I’ve built and maintained');
+    const features = [...container.querySelectorAll('.azoni-work-feature')];
+    expect(features.map(card => card.querySelector('h3').textContent)).toEqual(['BumbleJax', 'FaB Stats', 'Old Ways Today']);
+    expect(features.map(card => card.getAttribute('href'))).toEqual(['https://www.bumblejax.com/', '/projects/fab-stats', '/projects/old-ways-today']);
+    expect(features[0].getAttribute('target')).toBe('_blank');
+    expect(features[0].querySelector('img').getAttribute('src')).toBe('/images/work-bumblejax.jpg');
+    expect(features.map(card => [...card.querySelectorAll('.azoni-work-stats dd')].map(dd => dd.textContent)))
+      .toEqual([['15K+', '90K+', '99%'], ['3,898', '1.6M', '793'], ['265', '22', '5,784']]);
+    expect(features.map(card => card.querySelector('.azoni-work-source').textContent))
+      .toEqual(['Figures from bumblejax.com.', 'As of November 2026.', 'As of November 2026.']);
+    expect(features.map(card => card.classList.contains('azoni-work-feature--flip'))).toEqual([false, true, false]);
+    expect(features.every(card => card.querySelector('img'))).toBe(true);
 
     expect(container.querySelector('.azoni-consulting a').getAttribute('href')).toBe('/services');
     expect(container.querySelector('.azoni-background a[href="/resume"]').textContent.trim()).toBe('Resume');
@@ -45,7 +60,7 @@ test('a compact hero without a photo or buttons, then FaB Stats, Dustbunny and O
     expect(container.textContent).not.toMatch(/Want to talk|Get in touch|Book a call/);
     expect(container.textContent).not.toMatch(/[éÉ]/);
     expect(container.textContent).not.toMatch(/work better|any size|Built\. Shipped|Curious by nature|a few lines/i);
-    expect(container.textContent.match(/for a client as a principal software engineer|with a client as a principal software engineer/gi)).toHaveLength(1);
+    expect(container.textContent).not.toMatch(/for a client as a principal software engineer|with a client as a principal software engineer/i);
   } finally {
     cleanup();
   }

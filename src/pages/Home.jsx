@@ -12,44 +12,71 @@ import { workStories } from '../data/workStories';
 import '../styles/home-consulting.css';
 
 const project = id => projects.find(p => p.id === id);
-const fab = project('fab-stats');
-const dustbunny = project('dustbunny');
-const oli = project('oli-fitness');
 
-// FaB Stats is the largest product I run today; Dustbunny and OLI Fitness are
-// the larger projects that came before it. Their text comes from projects.js. OLI Fitness
-// has no photo, so its card shows its CHI 2017 paper instead.
-const WORK = [
-  { id: fab.id, name: fab.title, ...workStories[fab.id] },
-  { id: dustbunny.id, name: dustbunny.title, label: `Distributed systems · ${dustbunny.facts.years}`, summary: dustbunny.description, preview: { ...dustbunny.photo, position: 'center 30%' } },
-  { id: oli.id, name: oli.title, label: `Computer vision · ${oli.facts.years}`, summary: oli.description, fact: oli.metric },
+// Matches tracked reads better as 1.6M than 1,634,956 on a card.
+const short = value => {
+  const n = Number(String(value).replace(/,/g, ''));
+  return n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : value;
+};
+
+// Three wide cards: BumbleJax, then FaB Stats and Old Ways Today, each with its
+// figures. BumbleJax has no project page on this site, so its card links to the
+// store, and its figures are the ones BumbleJax publishes on its home page; the
+// other two take theirs from projects.js.
+const FEATURES = [
+  {
+    id: 'bumblejax', name: 'BumbleJax', href: 'https://www.bumblejax.com/', linkLabel: 'Visit bumblejax.com',
+    label: 'E-commerce · Fine art prints',
+    summary: 'A Seattle print shop’s online store for museum-quality fine art prints. I built and maintain the platform it runs on, from the storefront and checkout to order emails, shipping labels and marketing integrations.',
+    stats: [['15K+', 'creators served'], ['90K+', 'pieces of art printed'], ['99%', 'satisfaction rate']],
+    source: 'Figures from bumblejax.com.',
+    preview: { src: '/images/work-bumblejax.jpg', alt: 'The BumbleJax storefront.', width: 1280, height: 820 },
+  },
+  ...['fab-stats', 'old-ways-today'].map(id => {
+    const { title, proof } = project(id);
+    return {
+      id, name: title, to: '/projects/' + id, linkLabel: 'Explore the work', ...workStories[id],
+      stats: proof.items.map(item => [short(item.value), item.label]),
+      source: `As of ${proof.asOf}.`,
+    };
+  }),
 ];
 
 export default function Home() {
   const { githubStats, loading: githubLoading } = useGithubStats();
 
   return <Layout>
-    <Seo path="/" description="I build and run AI products and the infrastructure behind them. Principal software engineer in the Seattle area." />
+    <Seo path="/" description="I build software people use, and I keep it running. Principal software engineer in the Seattle area." />
     <div className="home-consulting">
       <div className="consult-container"><HomeHero /></div>
 
+      {/* GitHub activity right under the hero, where the FaB Stats counts used to be. */}
+      <div className="azoni-telemetry"><CommitStats githubStats={githubStats} loading={githubLoading} compact /><div className="azoni-live-link consult-container"><span>Curious about what&rsquo;s running behind the scenes?</span><Link className="consult-text-link" to="/live">Explore the live dashboard <ArrowRight size={16} aria-hidden="true" /></Link></div></div>
+
       <section className="azoni-work consult-container" aria-labelledby="selected-work-heading">
         <div className="azoni-section-heading">
-          <div><p className="consult-eyebrow">Selected work</p><h2 id="selected-work-heading">What I&rsquo;ve built</h2></div>
+          <div><p className="consult-eyebrow">Selected work</p><h2 id="selected-work-heading">What I&rsquo;ve built and maintained</h2></div>
           <Link className="consult-text-link" to="/projects">Explore all work <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
-        <p className="azoni-section-intro">FaB Stats is the largest product I run today. Dustbunny and OLI Fitness came before it.</p>
-        <div className="azoni-work-grid">
-          {WORK.map(work => <Link className="azoni-work-item" to={'/projects/' + work.id} key={work.id}>
-            {work.fact
-              ? <div className="azoni-work-image azoni-work-fact"><strong>{work.fact.value}</strong><span>{work.fact.label}</span></div>
-              : <div className="azoni-work-image"><img src={work.preview.src} alt={work.preview.alt} width={work.preview.width || 1280} height={work.preview.height || 820} loading="lazy" style={work.preview.position ? { objectPosition: work.preview.position } : undefined} /></div>}
-            <p className="azoni-work-label">{work.label}</p>
-            <div className="azoni-work-title"><h3>{work.name}</h3><ArrowUpRight size={21} aria-hidden="true" /></div>
-            <p className="azoni-work-summary">{work.summary}</p>
-            <span className="azoni-work-read">Explore the work <ArrowRight size={14} aria-hidden="true" /></span>
-          </Link>)}
-        </div>
+        {FEATURES.map((work, index) => {
+          const card = <>
+            <div className="azoni-work-image"><img src={work.preview.src} alt={work.preview.alt} width={work.preview.width || 1280} height={work.preview.height || 820} loading="lazy" /></div>
+            <div className="azoni-work-feature-body">
+              <p className="azoni-work-label">{work.label}</p>
+              <div className="azoni-work-title"><h3>{work.name}</h3><ArrowUpRight size={24} aria-hidden="true" /></div>
+              <p className="azoni-work-summary">{work.summary}</p>
+              <dl className="azoni-work-stats">
+                {work.stats.map(([value, label]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+              </dl>
+              <p className="azoni-work-source">{work.source}</p>
+              <span className="azoni-work-read">{work.linkLabel} {work.href ? <ArrowUpRight size={14} aria-hidden="true" /> : <ArrowRight size={14} aria-hidden="true" />}</span>
+            </div>
+          </>;
+          const className = `azoni-work-feature${index % 2 ? ' azoni-work-feature--flip' : ''}`;
+          return work.href
+            ? <a className={className} href={work.href} target="_blank" rel="noopener noreferrer" key={work.id}>{card}</a>
+            : <Link className={className} to={work.to} key={work.id}>{card}</Link>;
+        })}
       </section>
 
       <section className="azoni-background consult-container" aria-labelledby="background-heading">
@@ -70,8 +97,6 @@ export default function Home() {
           <Link className="consult-text-link" to="/services">How consulting works <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
       </section>
-
-      <div className="azoni-telemetry"><CommitStats githubStats={githubStats} loading={githubLoading} compact /><div className="azoni-live-link consult-container"><span>Curious about what&rsquo;s running behind the scenes?</span><Link className="consult-text-link" to="/live">Explore the live dashboard <ArrowRight size={16} aria-hidden="true" /></Link></div></div>
     </div>
   </Layout>;
 }

@@ -1,4 +1,4 @@
-/* Public homepage: the person first, then real work, background, consulting and GitHub activity. */
+/* Public homepage: the person first, then GitHub activity, real work, background and consulting. */
 .home-consulting { padding-top: 72px; background: var(--bg-warm); color: var(--text-warm); }
 .home-consulting h1, .home-consulting h2, .home-consulting h3 { font-family: var(--font-body); font-weight: 500; }
 .home-consulting h2 { font-size: clamp(28px, 3vw, 38px); line-height: 1.2; letter-spacing: -.04em; }
@@ -6,6 +6,9 @@
 .azoni-hero { padding-top: 44px; }
 .azoni-hero > .consult-eyebrow { color: var(--accent-coral); margin-bottom: 20px; }
 .azoni-hero h1 { font-size: clamp(32px, 3.2vw, 44px); line-height: 1.12; letter-spacing: -.045em; max-width: 820px; }
+.azoni-hero-clause { display: inline-block; }
+/* Too narrow for the first clause on one line: wrap freely, in even lines. */
+@media (max-width: 380px) { .azoni-hero h1 { text-wrap: balance; } .azoni-hero-clause { display: inline; } }
 .azoni-hero-intro { max-width: 560px; font-size: 17px; line-height: 1.6; color: var(--text-warm-soft); margin: 18px 0 10px; }
 .azoni-person-links { display: flex; flex-wrap: wrap; gap: 0 24px; }
 .azoni-person-links .consult-text-link { min-height: 44px; }
@@ -17,41 +20,40 @@
 .azoni-work, .azoni-background, .azoni-consulting { padding-top: 72px; padding-bottom: 72px; }
 .azoni-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .azoni-section-heading > .consult-text-link { flex-shrink: 0; }
-.azoni-section-intro { color: var(--text-warm-soft); max-width: 630px; font-size: 15px; line-height: 1.7; margin: 18px 0 30px; }
-.azoni-work-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
-.azoni-work-item { display: flex; flex-direction: column; min-width: 0; }
+/* Each project: screenshot on one side, the story and its figures on the other,
+   alternating sides down the list. */
+.azoni-work-feature { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 44px; align-items: center; margin-top: 40px; }
+.azoni-work-feature + .azoni-work-feature { margin-top: 72px; }
+.azoni-work-feature--flip { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+.azoni-work-feature--flip .azoni-work-image { order: 2; }
+.azoni-work-feature:hover .azoni-work-image img { transform: scale(1.02); }
+.azoni-work-feature:hover h3 { color: var(--accent-coral); }
+.azoni-work-feature .azoni-work-label { margin-top: 0; }
+.azoni-work-feature .azoni-work-title h3 { font-size: 32px; }
+.azoni-work-feature .azoni-work-summary { font-size: 15px; padding-bottom: 6px; }
+.azoni-work-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 0 0; }
+.azoni-work-stats > div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 4px; min-width: 0; padding: 2px 16px; border-left: 1px solid var(--border-warm-strong); }
+.azoni-work-stats > div:first-child { border-left: 0; padding-left: 0; }
+.azoni-work-stats dd { margin: 0; font-size: 30px; font-weight: 400; letter-spacing: -.04em; line-height: 1.15; color: var(--text-warm); font-variant-numeric: tabular-nums; }
+.azoni-work-stats dt { font-size: 11px; line-height: 1.5; color: var(--text-warm-soft); }
+.azoni-work-source { font-size: 11px; color: var(--text-warm-muted); margin: 12px 0 18px; }
 /* Shows only the top of each capture; the lower FaB Stats panels list real players. */
 .azoni-work-image { aspect-ratio: 1280 / 500; background: var(--bg-warm-card); border: 1px solid var(--border-warm-strong); overflow: hidden; }
 .azoni-work-image img { display: block; height: 100%; width: 100%; object-fit: cover; object-position: top; transition: transform 250ms ease; }
-.azoni-work-item:hover .azoni-work-image img { transform: scale(1.025); }
-/* A project with no photo shows its headline fact in the image slot. */
-.azoni-work-fact { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 0 26px; }
-.azoni-work-fact strong { font-size: 40px; font-weight: 400; letter-spacing: -.04em; line-height: 1.1; color: var(--text-warm); }
-.azoni-work-fact span { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-warm-muted); }
-.azoni-work-item:hover .azoni-work-fact strong { color: var(--accent-coral); }
 .azoni-work-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-warm-muted); margin: 22px 0 8px; }
 .azoni-work-title { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
 .azoni-work-title h3 { font-size: 24px; letter-spacing: -.035em; }
 .azoni-work-title svg { color: var(--accent-coral); flex-shrink: 0; }
 .azoni-work-summary { font-size: 14px; line-height: 1.75; color: var(--text-warm-soft); padding: 13px 0 20px; flex: 1; }
 .azoni-work-read { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--accent-coral); }
-.azoni-work-item:hover h3 { color: var(--accent-coral); }
 .azoni-background { border-top: 1px solid var(--border-warm); display: grid; grid-template-columns: 1fr 1fr; gap: 85px; }
 .azoni-background > div:last-child > p { color: var(--text-warm-soft); font-size: 16px; line-height: 1.8; margin-bottom: 20px; }
 .azoni-background .azoni-nowrap { white-space: nowrap; }
-.azoni-proof { padding-block: 26px 4px; }
-.azoni-proof-caption { font-size: 11px; color: var(--text-warm-muted); margin-bottom: 16px; }
-.azoni-proof-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
-.azoni-proof-list > div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 6px; min-width: 0; padding: 2px 22px; border-left: 1px solid var(--border-warm-strong); }
-.azoni-proof-list > div:first-child { border-left: 0; padding-left: 0; }
-.azoni-proof-list dd { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: -.04em; line-height: 1.15; color: var(--text-warm); font-variant-numeric: tabular-nums; }
-.azoni-proof-list dt { font-size: 12px; line-height: 1.55; color: var(--text-warm-soft); }
-.azoni-proof-list dt a:hover { color: var(--accent-coral); text-decoration: underline; text-underline-offset: 4px; }
 .azoni-background .azoni-person-links { margin-top: -4px; }
 .azoni-consulting { border-top: 1px solid var(--border-warm); display: grid; grid-template-columns: 1fr 1fr; gap: 85px; }
 .azoni-consulting > div:last-child > p { color: var(--text-warm-soft); font-size: 16px; line-height: 1.8; margin-bottom: 14px; }
-/* GitHub activity band, with a link to the live dashboard. */
-.azoni-telemetry { background: var(--bg-warm-card); border-block: 1px solid var(--border-warm); }
+/* GitHub activity band under the hero, with a link to the live dashboard. */
+.azoni-telemetry { background: var(--bg-warm-card); border-block: 1px solid var(--border-warm); margin-top: 44px; }
 .home-consulting .commit-band { border: 0; padding-block: 42px 0; }
 .home-consulting .commit-band-inner { max-width: 1184px; padding-inline: 32px; }
 .home-consulting .commit-band-eyebrow { font-family: var(--font-body); font-size: 10px; letter-spacing: .12em; margin-bottom: 14px; color: var(--text-warm-soft); }
@@ -73,8 +75,6 @@
   .azoni-credentials { gap: 15px 24px; }
   .azoni-credentials > a { margin-left: 0; }
   .azoni-background, .azoni-consulting { gap: 40px; }
-  .azoni-proof-list dd { font-size: 30px; }
-  .azoni-proof-list > div { padding-inline: 16px; }
 }
 @media (max-width: 900px) {
   .home-consulting .commit-band-inner { padding-inline: 22px; }
@@ -90,19 +90,18 @@
   .azoni-credentials > a { width: 100%; min-height: 30px; }
   .azoni-work, .azoni-background, .azoni-consulting { padding-block: 46px; }
   .azoni-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
-  .azoni-section-intro { margin-top: 12px; font-size: 14px; }
-  .azoni-work-grid { grid-template-columns: 1fr; gap: 32px; }
+  .azoni-work-feature, .azoni-work-feature--flip { grid-template-columns: 1fr; gap: 20px; }
+  .azoni-work-feature--flip .azoni-work-image { order: 0; }
+  .azoni-work-feature + .azoni-work-feature { margin-top: 40px; padding-top: 40px; border-top: 1px solid var(--border-warm); }
+  .azoni-work-feature .azoni-work-title h3 { font-size: 26px; }
+  .azoni-work-stats dd { font-size: 24px; }
+  .azoni-work-stats > div { padding-inline: 10px; }
   .azoni-work-label { margin-top: 18px; }
   .azoni-work-summary { padding-block: 10px 14px; }
-  .azoni-work-item + .azoni-work-item { border-top: 1px solid var(--border-warm); padding-top: 32px; }
   .azoni-background, .azoni-consulting { grid-template-columns: 1fr; gap: 25px; }
   .azoni-consulting > div:last-child > p { font-size: 15px; }
-  .azoni-proof { padding-top: 22px; }
-  .azoni-proof-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 0; }
-  .azoni-proof-list > div:nth-child(3) { border-left: 0; padding-left: 0; }
-  .azoni-proof-list dd { font-size: 28px; }
   .azoni-background > div:last-child > p { font-size: 15px; }
-  .azoni-work-fact strong { font-size: 34px; }
+  .azoni-telemetry { margin-top: 30px; }
   .home-consulting .commit-band { padding-top: 32px; }
   .home-consulting .commit-band-tiles { grid-template-columns: repeat(2, 1fr); gap: 22px 0; }
   .home-consulting .commit-tile:nth-child(3) { border-left: 0; padding-left: 0; }
