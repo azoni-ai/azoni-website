@@ -70,16 +70,18 @@ test('the edge function marks every unlisted project noindex and no listed one',
 test('the edge function covers every route whose page is always noindex', () => {
   const app = read('src/App.jsx');
   const modules = Object.fromEntries([...app.matchAll(/const (\w+) = lazy\(\(\) => import\("\.\/([^"]+)"\)\);/g)].map((m) => [m[1], m[2]]));
-  const source = (name) => ['.jsx', '/index.jsx'].map((ext) => `src/${modules[name]}${ext}`).find((f) => fs.existsSync(path.join(root, f)));
+  const source = (name) => ['.jsx', '/index.jsx', '.js', '/index.js'].map((ext) => `src/${modules[name]}${ext}`).find((f) => fs.existsSync(path.join(root, f)));
   const covered = (route) => edgePaths.some((p) => p === route || (p.endsWith('/*') && route.startsWith(p.slice(0, -1))));
-  const checked = [];
-  for (const [, route, name] of app.matchAll(/<Route path="([^"]+)" element=\{<(\w+) \/>\} \/>/g)) {
-    if (!modules[name]) continue;
-    // A <Seo> for this exact route with a bare noIndex, i.e. not tied to a state such as not found.
-    const always = [...read(source(name)).matchAll(/<Seo\b([\s\S]*?)\/>/g)].some(([, attrs]) => attrs.includes(`path="${route}"`) && /\bnoIndex(?![=\w])/.test(attrs));
-    if (!always) continue;
-    checked.push(route);
+  const routes = [...app.matchAll(/<Route path="([^"]+)" element=\{<(\w+) \/>\} \/>/g)].filter(([, , name]) => modules[name]);
+  // Guard the parser rather than the number of noindex pages, which can rightly change.
+  assert.ok(routes.length >= 15, `the parser matched only ${routes.length} routes to lazy pages`);
+  let checked = 0;
+  for (const [, route, name] of routes) {
+    // Always noindex: every <Seo> the page renders, in any state, has a bare noIndex.
+    const seos = [...read(source(name)).matchAll(/<Seo\b([\s\S]*?)\/>/g)].map(([, attrs]) => attrs);
+    if (!seos.length || !seos.every((attrs) => /\bnoIndex(?![=\w])/.test(attrs))) continue;
+    checked++;
     assert.ok(covered(route), `${route} is always noindex in the app but has no noindex header`);
   }
-  assert.ok(checked.length >= 4, `the parser found only ${checked.join(', ')}`);
+  assert.ok(checked >= 1, 'found no page that is always noindex');
 });

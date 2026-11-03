@@ -362,7 +362,9 @@
     margin-bottom: 0;
   }
 
-  .resume-meta a {
+  /* Touch-sized links only add blank bands on paper. */
+  .resume-meta a,
+  .resume-page :is(.resume-entry-links, .resume-entry-note) a {
     min-height: 0;
   }
 
