@@ -211,6 +211,16 @@ LangGraph state machine on Render. Every few hours it reads the feed and decides
     id: 'old-ways-today',
     visibility: 'featured',
     displayOrder: 3,
+    // Products and articles counted from oldwaystoday.com's sitemap (/product/<slug>,
+    // /blog/<slug>); AI requests are the assistant's running total from app-stats.
+    proof: {
+      asOf: PROOF_AS_OF,
+      items: [
+        { value: '265', label: 'products researched' },
+        { value: '22', label: 'articles published' },
+        { value: '5,784', label: 'AI requests served' },
+      ],
+    },
     facts: { years: '2025 – present', role: 'Solo', status: 'Live' },
     title: 'Old Ways Today',
     tagline: 'Wellness site about non-toxic household alternatives.',

@@ -16,8 +16,22 @@
   margin: 0 auto;
 }
 
+/* Name, headline and contact links on the left; Download PDF beside them. */
 .resume-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-xl);
   margin-bottom: var(--space-2xl);
+}
+
+.resume-header > * {
+  grid-column: 1;
+}
+
+.resume-header > .resume-actions {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  align-self: center;
 }
 
 .resume-eyebrow {
@@ -46,10 +60,14 @@
   max-width: 720px;
 }
 
+.resume-contact {
+  margin-bottom: var(--space-lg);
+}
+
 .resume-meta {
   list-style: none;
   padding: 0;
-  margin: 0 0 var(--space-lg);
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--space-md);
@@ -220,9 +238,14 @@
 .resume-highlights {
   margin: 12px 0 0;
   padding-left: 1.1em;
+  list-style: disc;
   color: var(--text-warm-soft);
   font-size: 0.92rem;
   line-height: 1.7;
+}
+
+.resume-highlights li::marker {
+  color: var(--accent-coral);
 }
 
 .resume-highlights li + li {
@@ -267,6 +290,10 @@
 @media (max-width: 768px) {
   .resume-page {
     padding-top: 96px;
+  }
+
+  .resume-header {
+    display: block;
   }
 
   .resume-meta {
@@ -324,7 +351,7 @@
     margin-bottom: var(--space-md);
   }
 
-  .resume-meta {
+  .resume-contact {
     margin-bottom: 0;
   }
 

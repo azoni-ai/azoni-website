@@ -7,13 +7,18 @@ export const resumePdf = '/CharltonResume.pdf';
 export const resume = {
   name: 'Charlton Smith',
   headline: 'Software Engineer | AI-assisted development workflows | Full-stack product engineering',
-  location: 'Seattle, WA',
-  contacts: [
-    { label: 'charlton@azoni.ai', href: 'mailto:charlton@azoni.ai' },
-    { label: 'linkedin.com/in/charltonsmith', href: 'https://www.linkedin.com/in/charltonsmith' },
-    { label: 'github.com/azoni', href: 'https://github.com/azoni' },
-    { label: 'azoni.ai', to: '/' },
-    { label: 'azoni.ai/chat', to: '/chat' },
+  // The PDF's two contact lines, in its order.
+  contactLines: [
+    [
+      { label: 'Seattle, WA' },
+      { label: 'charlton@azoni.ai', href: 'mailto:charlton@azoni.ai' },
+      { label: 'linkedin.com/in/charltonsmith', href: 'https://www.linkedin.com/in/charltonsmith' },
+    ],
+    [
+      { label: 'github.com/azoni', href: 'https://github.com/azoni' },
+      { label: 'azoni.ai', to: '/' },
+      { label: 'azoni.ai/chat', to: '/chat' },
+    ],
   ],
   summary: 'Software engineer with 7+ years building production web applications, internal tools, and consumer products across Python, JavaScript, SQL, and C#. AI-assisted development is a core part of my daily workflow, using Claude Code, Codex, and related tools to plan implementation, write and refactor code, debug issues, drive testing, and ship features faster across real production systems.',
   skills: [

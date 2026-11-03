@@ -7,7 +7,7 @@
 const PAGES = {
   '/': {
     title: 'Charlton Smith · Principal software engineer',
-    description: 'I build and run AI products and the infrastructure behind them. Principal software engineer in the Seattle area.',
+    description: 'I build software people use, and I keep it running. Principal software engineer in the Seattle area.',
   },
   '/meet': {
     title: 'Book a call with Charlton Smith',

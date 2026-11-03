@@ -11,6 +11,7 @@ import '../styles/resume-warm.css';
 
 function Contact({ item }) {
   if (item.to) return <Link to={item.to}>{item.label}</Link>;
+  if (!item.href) return item.label;
   const external = item.href.startsWith('http');
   return <a href={item.href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{item.label}</a>;
 }
@@ -28,10 +29,13 @@ const Resume = () => (
           <p className="resume-eyebrow">Resume</p>
           <h1 className="resume-heading">{resume.name}</h1>
           <p className="resume-tagline">{resume.headline}</p>
-          <ul className="resume-meta">
-            <li>{resume.location}</li>
-            {resume.contacts.map(item => <li key={item.label}><Contact item={item} /></li>)}
-          </ul>
+          <div className="resume-contact">
+            {resume.contactLines.map(line => (
+              <ul className="resume-meta" key={line[0].label}>
+                {line.map(item => <li key={item.label}><Contact item={item} /></li>)}
+              </ul>
+            ))}
+          </div>
           <div className="resume-actions">
             <a href={resumePdf} download className="resume-cta resume-cta--primary">
               Download PDF <span aria-hidden="true">↓</span>

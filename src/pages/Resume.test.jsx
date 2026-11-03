@@ -54,8 +54,8 @@ test('every piece of text in data/resume.js appears on the page, and nothing pri
   try {
     const page = container.textContent.replace(/\s+/g, ' ');
     const texts = [
-      resume.name, resume.headline, resume.location, resume.summary,
-      ...resume.contacts.map(c => c.label),
+      resume.name, resume.headline, resume.summary,
+      ...resume.contactLines.flat().map(c => c.label),
       ...resume.skills.flatMap(s => [s.label, s.value]),
       ...resume.experience.flatMap(j => [j.title, j.org, j.place, j.dates, ...j.bullets]),
       ...resume.projects.flatMap(p => [...p.names.map(([label]) => label), p.text]),
