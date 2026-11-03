@@ -79,9 +79,10 @@ test('visitors can explore the pipeline without sending a paid chat request', ()
 
 test('topic selection and more ideas restore browsable questions without automatic sends', () => {
   render();
-  click(button('Charlton & his work'));
-  expect(button('Charlton & his work').getAttribute('aria-pressed')).toBe('true');
+  click(button('Charlton’s work'));
+  expect(button('Charlton’s work').getAttribute('aria-pressed')).toBe('true');
   expect(container.querySelector('.chat-suggestions').textContent).toContain('college hackathons');
+  expect(container.querySelector('.chat-suggestions').textContent).not.toMatch(/\b(he|his|him)\b/i);
   const first = container.querySelector('.chat-suggestion').textContent;
   click(container.querySelector('[aria-label="More question ideas"]'));
   expect(container.querySelector('.chat-suggestion').textContent).not.toBe(first);

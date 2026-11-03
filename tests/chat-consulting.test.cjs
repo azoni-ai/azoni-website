@@ -99,11 +99,35 @@ test('current consulting facts take priority and generated facts never enter the
   assert.doesNotMatch(prompt, /CLIENT_SECRET_AND_GUARANTEED_RESULTS/);
   assert.doesNotMatch(prompt, /actively exploring opportunities|chose to leave/);
   assert.match(prompt, /You are Azoni AI/);
-  assert.match(prompt, /businesses of any size/);
+  assert.match(prompt, /builds and runs AI products and the infrastructure behind them/);
+  assert.match(prompt, /Through Azoni, Charlton offers software and AI consulting/);
+  assert.doesNotMatch(prompt, /any size|independent consultant/);
   assert.match(prompt, /weekly hackathons during college/);
   assert.match(prompt, /master's degree while working at T-Mobile/);
   assert.match(prompt, /recent years deeply focused on AI/);
   assert.match(prompt, /no specific subject line or project brief is required/);
+});
+
+// The site does not state Charlton's pronouns, so the assistant's own text uses
+// the name. Visitor questions may still say "he"; only our wording is checked.
+const GENDERED = /\b(he|him|his|himself|she|her|hers|herself)\b/i;
+
+test('the prompt, fallback answers and fallback records refer to Charlton by name', () => {
+  assert.doesNotMatch(core.buildSystemPrompt('professional', [], { intent: 'services' }), GENDERED);
+  for (const [question, intent] of [
+    ['How did Charlton get into software and AI?', 'experience'], ['Who is the current client?', 'services'],
+    ['What consulting services does Charlton offer?', 'services'], ['Which projects has Charlton built?', 'projects'],
+    ['What is his tech stack?', 'skills'], ['How does the chatbot architecture work?', 'agents'],
+    ['What are the current RowCrew stats?', 'rowcrew'], ['What is his favorite architecture?', 'general'],
+  ]) {
+    const answer = core.buildLocalFallbackAnswer(question, { intent });
+    assert.doesNotMatch(answer, GENDERED, question);
+    assert.doesNotMatch(answer, /any size|independent consultant/, question);
+  }
+  for (const chunk of core.getFallbackChunks('infrastructure, projects and tech stack', { intent: 'services' })) {
+    assert.doesNotMatch(chunk.content, GENDERED, chunk.id);
+  }
+  for (const tool of core.TOOL_DEFINITIONS) assert.doesNotMatch(tool.function.description, GENDERED, tool.function.name);
 });
 
 test('story fallback stays within owner-confirmed background and current contact', () => {
