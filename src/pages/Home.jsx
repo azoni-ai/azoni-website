@@ -33,6 +33,9 @@ export default function Home() {
     <div className="home-consulting">
       <div className="consult-container"><HomeHero /></div>
 
+      {/* GitHub activity right under the hero, where the FaB Stats counts used to be. */}
+      <div className="azoni-telemetry"><CommitStats githubStats={githubStats} loading={githubLoading} compact /><div className="azoni-live-link consult-container"><span>Curious about what&rsquo;s running behind the scenes?</span><Link className="consult-text-link" to="/live">Explore the live dashboard <ArrowRight size={16} aria-hidden="true" /></Link></div></div>
+
       <section className="azoni-work consult-container" aria-labelledby="selected-work-heading">
         <div className="azoni-section-heading">
           <div><p className="consult-eyebrow">Selected work</p><h2 id="selected-work-heading">What I&rsquo;ve built</h2></div>
@@ -70,8 +73,6 @@ export default function Home() {
           <Link className="consult-text-link" to="/services">How consulting works <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
       </section>
-
-      <div className="azoni-telemetry"><CommitStats githubStats={githubStats} loading={githubLoading} compact /><div className="azoni-live-link consult-container"><span>Curious about what&rsquo;s running behind the scenes?</span><Link className="consult-text-link" to="/live">Explore the live dashboard <ArrowRight size={16} aria-hidden="true" /></Link></div></div>
     </div>
   </Layout>;
 }

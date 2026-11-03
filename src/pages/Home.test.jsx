@@ -20,7 +20,7 @@ function renderHome() {
   return { container, cleanup: () => { act(() => root.unmount()); container.remove(); } };
 }
 
-test('a compact hero without a photo or buttons, then FaB Stats, Dustbunny and OLI Fitness, then GitHub activity', () => {
+test('a compact hero, GitHub activity right under it, then FaB Stats, Dustbunny and OLI Fitness', () => {
   const { container, cleanup } = renderHome();
   try {
     expect(container.querySelector('h1').textContent).toBe('I build and run AI products and the infrastructure behind them.');
@@ -28,8 +28,14 @@ test('a compact hero without a photo or buttons, then FaB Stats, Dustbunny and O
     expect(container.querySelector('.azoni-hero .consult-button')).toBeNull();
     expect([...container.querySelectorAll('.azoni-hero .consult-text-link')].map(link => link.textContent.trim())).toEqual(['About me', 'LinkedIn']);
     expect(container.querySelector('.azoni-credentials').textContent).toContain('T-MobileCapital OneCo-founder, OLI Fitness');
-    expect(container.querySelector('.azoni-proof-caption').textContent).toContain('as of November 2026');
-    expect(container.querySelectorAll('.azoni-proof-list dd')).toHaveLength(4);
+
+    // The GitHub band replaced the FaB Stats counts and comes straight after the hero.
+    const blocks = [...container.querySelector('.home-consulting').children];
+    expect(blocks[0].querySelector('.azoni-hero')).not.toBeNull();
+    expect(blocks[1].classList.contains('azoni-telemetry')).toBe(true);
+    expect(blocks[1].querySelector('.commit-band')).not.toBeNull();
+    expect(container.querySelector('.azoni-proof')).toBeNull();
+    expect(container.textContent).not.toMatch(/players on FaB Stats|matches tracked on FaB Stats/);
 
     const work = [...container.querySelectorAll('.azoni-work-item')];
     expect(work.map(item => item.getAttribute('href'))).toEqual(['/projects/fab-stats', '/projects/dustbunny', '/projects/oli-fitness']);

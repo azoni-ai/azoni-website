@@ -2,21 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { profile } from '../../data/profile';
-import { PROOF_AS_OF, projects } from '../../data/projects';
 
-// Counts from my own products, read from the FaB Stats entry in projects.js;
-// update them and the date there.
-export { PROOF_AS_OF };
-const fab = projects.find((project) => project.id === 'fab-stats');
-const [players, matches] = fab.proof.items;
-const millions = (value) => `${(Number(String(value).replace(/,/g, '')) / 1e6).toFixed(1)}M`;
-export const PROOF = [
-  { value: players.value, label: 'players on FaB Stats', to: '/projects/fab-stats' },
-  { value: millions(matches.value), label: 'matches tracked on FaB Stats', to: '/projects/fab-stats' },
-  { value: fab.gemExporter.users.toLocaleString('en-US'), label: 'Chrome users of the FaB Stats GEM Exporter', to: '/projects/fab-stats' },
-  { value: fab.discordBot.members.toLocaleString('en-US'), label: `members across ${fab.discordBot.servers} Discord servers with the FaB Stats bot`, to: '/projects/fab-stats' },
-];
-
+// The GitHub activity band follows the hero on the home page (Home.jsx).
 export default function HomeHero() {
   return (
     <header className="azoni-hero">
@@ -31,15 +18,6 @@ export default function HomeHero() {
         <p>Earlier experience</p>
         <span>T-Mobile</span><span>Capital One</span><span>Co-founder, OLI Fitness</span>
         <Link to="/about#experience">My experience <ArrowUpRight size={14} aria-hidden="true" /></Link>
-      </div>
-      <div className="azoni-proof" aria-labelledby="azoni-proof-caption">
-        <p id="azoni-proof-caption" className="azoni-proof-caption">From products I build and run, as of {PROOF_AS_OF}</p>
-        <dl className="azoni-proof-list">
-          {PROOF.map(item => <div key={item.label}>
-            <dt><Link to={item.to}>{item.label}</Link></dt>
-            <dd>{item.value}</dd>
-          </div>)}
-        </dl>
       </div>
     </header>
   );
