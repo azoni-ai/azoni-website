@@ -1,21 +1,34 @@
 import React from 'react';
 
 // A tab opened before a deploy still asks for the old build's page chunks,
-// which the deploy removed. Reload to pick up the new build. The time of the
-// last reload, kept for the session, stops a reload loop when a chunk keeps
-// failing for another reason; a tab left open across a later deploy can still
-// reload again once the cooldown has passed.
+// which the deploy removed. Reload to pick up the new build. The session keeps
+// which chunk caused the last reload: if that same chunk fails again within ten
+// minutes, show the error page instead, so a chunk that keeps failing cannot
+// loop (on a stalled connection webpack takes two minutes to give up). A later
+// deploy changes every chunk URL, so a tab left open across it still reloads.
 export const CHUNK_RELOAD_KEY = 'azoni-chunk-reload';
-const RELOAD_COOLDOWN_MS = 30 * 1000;
+const SAME_CHUNK_WINDOW_MS = 10 * 60 * 1000;
 
 const isChunkLoadError = (error) =>
   error?.name === 'ChunkLoadError' || /Loading (CSS )?chunk \S+ failed/.test(error?.message || '');
 
+// webpack and mini-css-extract-plugin put the chunk's URL on error.request.
+const chunkOf = (error) => error?.request || error?.message || '';
+
+const readLastReload = () => {
+  const saved = window.sessionStorage.getItem(CHUNK_RELOAD_KEY); // throws when storage is blocked
+  try {
+    return JSON.parse(saved) || {};
+  } catch {
+    return {};
+  }
+};
+
 const shouldReloadFor = (error) => {
   if (!isChunkLoadError(error)) return false;
   try {
-    const last = Number(window.sessionStorage.getItem(CHUNK_RELOAD_KEY)) || 0;
-    return Date.now() - last > RELOAD_COOLDOWN_MS;
+    const last = readLastReload();
+    return !(last.chunk === chunkOf(error) && Date.now() - last.at < SAME_CHUNK_WINDOW_MS);
   } catch {
     return false;
   }
@@ -41,7 +54,7 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     if (this.state.reloading) {
       try {
-        window.sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+        window.sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify({ chunk: chunkOf(error), at: Date.now() }));
       } catch {
         // shouldReloadFor already returned false when storage is unavailable.
       }
