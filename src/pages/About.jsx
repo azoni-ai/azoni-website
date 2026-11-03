@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { profile, experience, education, awards } from '../data/profile';
 import { bookingCta, resumePath } from '../data/consulting';
+import keepNamesTogether from '../utils/keepNamesTogether';
 import '../styles/about-warm.css';
 
 const CHI_PAPER = 'https://dl.acm.org/doi/abs/10.1145/3027063.3048429';
@@ -51,8 +52,8 @@ export default function About() {
           <section className="about-editorial" aria-labelledby="about-story">
             <div className="about-section-label"><p className="consult-eyebrow">How I got here</p><h2 id="about-story">It started with<br /> weekend hackathons.</h2></div>
             <div className="about-prose">
-              <p>In college, I was at hackathons every weekend. I loved taking an idea, building it with a team, and getting it in front of people. <Link to="/projects/hashmaps">HashMaps</Link>, an auto-hashtag tool, took first place at the T-Mobile Big Data Hackathon. Those weekends led to co-founding OLI Fitness, where we built computer vision software to help people exercise and published <a href={CHI_PAPER} target="_blank" rel="noopener noreferrer" aria-label="an extended abstract at ACM CHI 2017 (opens in a new tab)">an extended abstract at ACM CHI 2017</a>.</p>
-              <p>I went on to build internal tools at T-Mobile, complete my <strong>master’s in software engineering while working there</strong>, and develop test automation at Capital One. Over the last few years, I’ve spent much of my time deep in AI: retrieval, agents, and the software that makes them useful.</p>
+              <p>In college, I was at hackathons every weekend. I loved taking an idea, building it with a team, and getting it in front of people. <Link to="/projects/hashmaps">HashMaps</Link>, an auto-hashtag tool, took first place at the <span className="about-nowrap">T-Mobile</span> Big Data Hackathon. Those weekends led to co-founding OLI Fitness, where we built computer vision software to help people exercise and published <a href={CHI_PAPER} target="_blank" rel="noopener noreferrer" aria-label="an extended abstract at ACM CHI 2017 (opens in a new tab)">an extended abstract at ACM CHI 2017</a>.</p>
+              <p>I went on to build internal tools at <span className="about-nowrap">T-Mobile</span>, complete my <strong>master’s in software engineering while working there</strong>, and develop test automation at Capital One. Over the last few years, I’ve spent much of my time deep in AI: retrieval, agents, and the software that makes them useful.</p>
               <p>I’ve been building and running independent products since late 2023 and formed <strong>Azoni LLC in 2026</strong>. Some start with my own interests: <Link to="/projects/fab-stats">FaB Stats</Link> came from a card game I play; <Link to="/projects/row-crew">Row Crew</Link> makes rowing with friends more interesting. Running them keeps me close to the people using what I build.</p>
             </div>
           </section>
@@ -75,13 +76,13 @@ export default function About() {
             <div className="about-section-label"><p className="consult-eyebrow">Education</p><h2 id="about-education">Education and awards</h2></div>
             <div>
               <div className="about-education">
-                {education.map(item => <div key={item.degree}><h3>{item.degree}</h3><p>{item.school} <span>· {item.year}</span></p>{item.note && <small>{item.note}</small>}</div>)}
+                {education.map(item => <div key={item.degree}><h3>{item.degree}</h3><p>{item.school} <span>· {item.year}</span></p>{item.note && <small>{keepNamesTogether(item.note)}</small>}</div>)}
               </div>
               <h3 className="about-awards-heading">Awards</h3>
               <ul className="about-awards">
                 {awards.map(award => (
                   <li key={award.event}>
-                    <p><strong>{award.title}</strong> · {award.event}</p>
+                    <p><strong>{award.title}</strong> · {keepNamesTogether(award.event)}</p>
                     {award.description && <small>{award.description}</small>}
                     {award.link && <EntryLink link={award.link} />}
                   </li>

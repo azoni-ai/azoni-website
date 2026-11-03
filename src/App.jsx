@@ -35,10 +35,17 @@ const Meet = lazy(() => import("./pages/Meet"));
 
 const App = () => {
   useEffect(() => {
-    if (!sessionStorage.getItem('_av')) {
-      sessionStorage.setItem('_av', '1');
-      fetch('/.netlify/functions/log-visit', { method: 'POST' }).catch(() => {});
+    // One visit per tab. Browsers that block site data throw on any storage
+    // access, and App sits above the ErrorBoundary, so an uncaught throw here
+    // blanks the whole site; log once per page load instead.
+    let firstInTab = true;
+    try {
+      firstInTab = !sessionStorage.getItem('_av');
+      if (firstInTab) sessionStorage.setItem('_av', '1');
+    } catch {
+      // Storage blocked: keep firstInTab true.
     }
+    if (firstInTab) fetch('/.netlify/functions/log-visit', { method: 'POST' }).catch(() => {});
   }, []);
 
   return (

@@ -10,6 +10,7 @@ import { useBotReach } from '../hooks/useProductMetrics';
 import { LISTED_VISIBILITIES, getMergedInto, getWorkGroups } from '../data/projects';
 import { selectedWorkIds, workStories } from '../data/workStories';
 import { bookingCta } from '../data/consulting';
+import keepNamesTogether from '../utils/keepNamesTogether';
 import '../styles/project-detail-warm.css';
 
 // Links back to this site become internal links (links.internal) instead.
@@ -19,7 +20,7 @@ const SECTION_PATH = { featured: '/projects', other: '/projects#other-work', ear
 
 const toParagraphs = (body) => {
   const parts = Array.isArray(body) ? body : String(body || '').split(/\n\n+/);
-  return parts.map((paragraph) => String(paragraph || '').trim()).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>);
+  return parts.map((paragraph) => String(paragraph || '').trim()).filter(Boolean).map((paragraph, index) => <p key={index}>{keepNamesTogether(paragraph)}</p>);
 };
 
 const monthYear = (value) => {
@@ -113,7 +114,7 @@ const ProjectDetail = () => {
           <header className="project-detail-header">
             {story?.label && <p className="project-detail-eyebrow">{story.label}</p>}
             <h1 className="project-detail-title">{project.title}</h1>
-            <p className="project-detail-lede">{story?.summary || project.tagline || project.description}</p>
+            <p className="project-detail-lede">{keepNamesTogether(story?.summary || project.tagline || project.description)}</p>
           </header>
 
           {(facts.length > 0 || linkItems.length > 0) && <dl className="project-facts">
@@ -132,7 +133,7 @@ const ProjectDetail = () => {
 
           <div className="project-detail-story">
             {sections.map((section) => <DetailSection key={section.heading} section={section} reach={reach} />)}
-            {features.length > 0 && <section className="project-detail-block"><h2 className="project-detail-block-heading">Features</h2><ul className="project-detail-highlights">{features.map((item) => <li key={item}>{item}</li>)}</ul></section>}
+            {features.length > 0 && <section className="project-detail-block"><h2 className="project-detail-block-heading">Features</h2><ul className="project-detail-highlights">{features.map((item) => <li key={item}>{keepNamesTogether(item)}</li>)}</ul></section>}
           </div>
 
           {gallery.length > 0 && <section className="project-gallery" aria-labelledby="project-gallery-heading">

@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { profile, experience, education, awards, skills, skillLabels } from '../data/profile';
 import { bookingCta } from '../data/consulting';
+import keepNamesTogether from '../utils/keepNamesTogether';
 import '../styles/resume-warm.css';
 
 function EntryLink({ link }) {
@@ -43,7 +44,7 @@ const Resume = () => (
 
         <section className="resume-section" aria-labelledby="resume-summary">
           <h2 id="resume-summary">Summary</h2>
-          <div className="resume-section-body"><p className="resume-summary">{profile.summary}</p></div>
+          <div className="resume-section-body"><p className="resume-summary">{keepNamesTogether(profile.summary)}</p></div>
         </section>
 
         <section className="resume-section" aria-labelledby="resume-experience">
@@ -75,7 +76,7 @@ const Resume = () => (
                   <span className="resume-entry-period">{item.year}</span>
                 </div>
                 <p className="resume-entry-org">{item.school}</p>
-                {item.note && <p className="resume-entry-note">{item.note}</p>}
+                {item.note && <p className="resume-entry-note">{keepNamesTogether(item.note)}</p>}
               </li>
             ))}
           </ul>
@@ -86,7 +87,7 @@ const Resume = () => (
           <ul className="resume-section-body resume-awards">
             {awards.map(award => (
               <li key={award.event}>
-                <p><strong>{award.title}</strong> &middot; {award.event}</p>
+                <p><strong>{award.title}</strong> &middot; {keepNamesTogether(award.event)}</p>
                 {award.description && <p className="resume-entry-note">{award.description}{award.link && <> &middot; <EntryLink link={award.link} /></>}</p>}
               </li>
             ))}
