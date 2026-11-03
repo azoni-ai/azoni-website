@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import { profile, experience, education, awards } from '../data/profile';
 import { bookingCta, resumePath } from '../data/consulting';
+import keepNamesTogether from '../utils/keepNamesTogether';
 import '../styles/about-warm.css';
 
 const CHI_PAPER = 'https://dl.acm.org/doi/abs/10.1145/3027063.3048429';
@@ -75,13 +76,13 @@ export default function About() {
             <div className="about-section-label"><p className="consult-eyebrow">Education</p><h2 id="about-education">Education and awards</h2></div>
             <div>
               <div className="about-education">
-                {education.map(item => <div key={item.degree}><h3>{item.degree}</h3><p>{item.school} <span>· {item.year}</span></p>{item.note && <small>{item.note}</small>}</div>)}
+                {education.map(item => <div key={item.degree}><h3>{item.degree}</h3><p>{item.school} <span>· {item.year}</span></p>{item.note && <small>{keepNamesTogether(item.note)}</small>}</div>)}
               </div>
               <h3 className="about-awards-heading">Awards</h3>
               <ul className="about-awards">
                 {awards.map(award => (
                   <li key={award.event}>
-                    <p><strong>{award.title}</strong> · {award.event}</p>
+                    <p><strong>{award.title}</strong> · {keepNamesTogether(award.event)}</p>
                     {award.description && <small>{award.description}</small>}
                     {award.link && <EntryLink link={award.link} />}
                   </li>

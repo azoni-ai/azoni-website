@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import keepNamesTogether from '../utils/keepNamesTogether';
 
 // A compact card for the Work page lists. It shows what a project is and, when
 // projects.js has one, a dated figure. No live traffic or status telemetry.
@@ -34,7 +35,7 @@ function ProductCard({ project }) {
       </span>
       <div className="product-card-titlewrap">
         <h3 className="product-card-title">{project.title}</h3>
-        <p className="product-card-tagline">{project.tagline}</p>
+        <p className="product-card-tagline">{keepNamesTogether(project.tagline)}</p>
       </div>
     </div>
 
