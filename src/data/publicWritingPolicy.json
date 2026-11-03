@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "verifiedAt": "2026-10-16",
+  "version": 2,
+  "verifiedAt": "2026-11-02",
   "publicRepositoryFullNames": [
     "azoni-ai/azoni-website",
     "azoni/azoni-mcp",
@@ -10,14 +10,36 @@
     "azoni/rowing-tracker",
     "azoni/spell-brigade"
   ],
-  "reviewedPosts": [
+  "writingRepositoryFullNames": [
+    "azoni/azoni-mcp",
+    "azoni/azoni-moltbook-agent",
+    "azoni/benchonly",
+    "azoni/fab-stats",
+    "azoni/rowing-tracker",
+    "azoni/spell-brigade"
+  ],
+  "buildNotes": {
+    "policyVersion": 2,
+    "repositoryProjects": {
+      "azoni/azoni-mcp": { "title": "azoni.ai agent platform", "projectId": "azoni-ai" },
+      "azoni/azoni-moltbook-agent": { "title": "azoni.ai agent platform", "projectId": "azoni-ai" },
+      "azoni/benchonly": { "title": "Bench Only", "projectId": "bench-only" },
+      "azoni/fab-stats": { "title": "FaB Stats", "projectId": "fab-stats" },
+      "azoni/rowing-tracker": { "title": "Row Crew", "projectId": "row-crew" },
+      "azoni/spell-brigade": { "title": "Spell Brigade", "projectId": "spell-brigade" }
+    }
+  },
+  "retiredPosts": [
     {
       "id": "ZQwQx3mocObrXYwEDc8K",
       "slug": "2026-09-28-leveling-up-with-usurp-the-shadow-throne-in-fab-stats",
       "sourceRepos": [
         "azoni/fab-stats"
       ],
-      "contentSha256": "ed2acd48b2cf73268a6a1a7c7ee36b089b731e631a27e56990737fa310aa687e"
+      "contentSha256": "ed2acd48b2cf73268a6a1a7c7ee36b089b731e631a27e56990737fa310aa687e",
+      "retiredAt": "2026-11-02",
+      "redirectTo": "/blog",
+      "reason": "First-person persona post; its incidents and code are not in the commits. The document stays in blogPosts."
     },
     {
       "id": "cZZQPxzyoUXRKbolvU8u",
@@ -26,15 +48,10 @@
         "azoni/fab-stats",
         "azoni/rowing-tracker"
       ],
-      "contentSha256": "d74f415de81503f03cb5fa968c4c004a9db4113126773990492c8a1a7f33e30d"
+      "contentSha256": "d74f415de81503f03cb5fa968c4c004a9db4113126773990492c8a1a7f33e30d",
+      "retiredAt": "2026-11-02",
+      "redirectTo": "/blog",
+      "reason": "First-person persona post; its incidents and code are not in the commits. The document stays in blogPosts."
     }
-  ],
-  "writingRepositoryFullNames": [
-    "azoni/azoni-mcp",
-    "azoni/azoni-moltbook-agent",
-    "azoni/benchonly",
-    "azoni/fab-stats",
-    "azoni/rowing-tracker",
-    "azoni/spell-brigade"
   ]
 }

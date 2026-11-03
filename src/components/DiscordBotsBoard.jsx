@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { projects } from '../data/projects';
 
-// Discord-bot leaderboard tab — reuses the leaderboard card styles with the
-// extension-style right-hand metric (server count instead of installs).
+const fabBot = projects.find((project) => project.id === 'fab-stats').discordBot;
 
-const fmt = (n) => {
-  if (n == null || !Number.isFinite(n)) return null;
-  if (n >= 100000) return `${Math.round(n / 1000)}k`;
-  if (n >= 10000) return `${(n / 1000).toFixed(1)}k`;
-  return n.toLocaleString();
-};
-
-const MEDAL = [null, 'gold', 'silver', 'bronze'];
-const brand = (name) => String(name || '').split('—')[0].trim() || name || '—';
+// Discord bots I run, with the server and member counts each bot reports about
+// itself. Uses the leaderboard row styles (leaderboard.css). A bot that hasn't
+// reported yet shows the function's dated fallback, or "Not measured".
 
 export default function DiscordBotsBoard() {
   const [data, setData] = useState(null);
@@ -43,7 +37,7 @@ export default function DiscordBotsBoard() {
     return (
       <div className="lb-state">
         <div className="lb-spinner" />
-        <p>Counting servers…</p>
+        <p>Loading server counts…</p>
       </div>
     );
   }
@@ -51,109 +45,60 @@ export default function DiscordBotsBoard() {
   const bots = data?.bots || [];
   if (failed || !bots.length) {
     return (
-      <div className="lb-state">
-        <h3>No bots yet</h3>
-        <p>
-          Discord bots show here, ranked by the servers they live in.
-          {failed && ' (Live counts load on the deployed site.)'}
-        </p>
-      </div>
+      <p className="lb-state-note" role="status">
+        Live server counts are unavailable right now. As of {fabBot.asOf}, the FaB Stats bot was in {fabBot.servers} servers with {fabBot.members.toLocaleString('en-US')} members.
+      </p>
     );
   }
 
-  const totalServers = bots.reduce((t, b) => t + (Number.isFinite(b.servers) ? b.servers : 0), 0);
-  const totalMembers = bots.reduce((t, b) => t + (Number.isFinite(b.members) ? b.members : 0), 0);
-  const max = bots.reduce((m, b) => Math.max(m, Number.isFinite(b.servers) ? b.servers : 0), 0);
-  const showBar = bots.length > 1;
-
-  const kpis = [
-    { label: 'Total servers', value: fmt(totalServers) ?? '0' },
-    { label: 'Bots', value: bots.length },
-    totalMembers > 0
-      ? { label: 'Members reached', value: fmt(totalMembers) }
-      : { label: 'Platform', value: 'Discord' },
-    { label: 'Most adopted', value: brand(bots[0]?.name), text: true },
-  ];
-
   return (
-    <>
-      <div className="lb-kpis">
-        {kpis.map((k) => (
-          <div className="lb-kpi" key={k.label}>
-            <span className={`lb-kpi-val${k.text ? ' is-text' : ''}`}>{k.value}</span>
-            <span className="lb-kpi-label">{k.label}</span>
-          </div>
-        ))}
-      </div>
+    <ul className="lb-list">
+      {bots.map((b) => {
+        const servers = Number.isFinite(b.servers) ? b.servers : null;
+        const members = Number.isFinite(b.members) ? b.members : null;
+        const source = servers == null ? 'Not measured' : b.live ? 'Reported by the bot' : `As of ${fabBot.asOf}`;
+        return (
+          <li key={b.key} className="lb-row is-plain" style={{ '--row-color': b.color || '#8a8178' }}>
+            <a
+              className="lb-card-link"
+              href={b.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${b.name}, ${b.openSource ? 'view on GitHub' : 'learn more'}`}
+            />
+            <span className="lb-icon" aria-hidden="true">
+              {b.icon ? (
+                <img src={b.icon} alt="" loading="lazy" />
+              ) : (
+                <span className="lb-icon-fallback">{b.name?.charAt(0)}</span>
+              )}
+            </span>
 
-      <ol className="lb-list">
-        {bots.map((b, i) => {
-          const rank = i + 1;
-          const medal = MEDAL[rank] || null;
-          const pct =
-            max > 0 && Number.isFinite(b.servers)
-              ? Math.max(3, Math.round((b.servers / max) * 100))
-              : 0;
-          return (
-            <li
-              key={b.key}
-              className={`lb-row${rank === 1 ? ' is-leader' : ''}`}
-              style={{ '--row-color': b.color || '#8a8178' }}
-            >
-              <a
-                className="lb-card-link"
-                href={b.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`${b.name} — ${b.openSource ? 'view on GitHub' : 'learn more'}`}
-              />
-              <div className="lb-rank">
-                <span className={`lb-rank-badge${medal ? ` ${medal}` : ''}`}>{rank}</span>
+            <div className="lb-body">
+              <div className="lb-name-row">
+                <span className="lb-name">
+                  {b.name}
+                  <span className="lb-ext" aria-hidden="true">↗</span>
+                </span>
+                <span className="lb-tag lb-tag-store">{b.game || 'Discord'}</span>
+                {b.openSource && <span className="lb-tag lb-tag-cat">Open source</span>}
               </div>
+              {b.blurb && <p className="lb-blurb">{b.blurb}</p>}
+            </div>
 
-              <span className="lb-icon" aria-hidden="true">
-                {b.icon ? (
-                  <img src={b.icon} alt="" loading="lazy" />
-                ) : (
-                  <span className="lb-icon-fallback">{b.name?.charAt(0)}</span>
-                )}
-              </span>
-
-              <div className="lb-body">
-                <div className="lb-name-row">
-                  <span className="lb-name">
-                    {b.name}
-                    <span className="lb-ext" aria-hidden="true">↗</span>
-                  </span>
-                  <span className="lb-tag lb-tag-store">{b.game || 'Discord'}</span>
-                  {b.openSource && <span className="lb-tag lb-tag-cat">Open source</span>}
-                  {!b.live && b.servers == null && <span className="lb-tag lb-tag-cat">New</span>}
-                </div>
-                {b.blurb && <p className="lb-blurb">{b.blurb}</p>}
-                {showBar && (
-                  <div className="lb-barwrap">
-                    <div className="lb-bar" aria-hidden="true">
-                      <div className="lb-bar-fill" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="lb-ext-metric">
-                <span className="lb-ext-users">{fmt(b.servers) ?? '—'}</span>
-                <span className="lb-ext-users-label">servers</span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-
-      {data?.updatedAt && (
-        <p className="lb-footnote">
-          Server counts reported by each bot&rsquo;s daily beacon
-          {bots.some((b) => !b.live) && ' · bots without a beacon yet show estimates or —'}.
-        </p>
-      )}
-    </>
+            <div className="lb-ext-metric">
+              {servers != null && (
+                <>
+                  <span className="lb-ext-users">{servers.toLocaleString()}</span>
+                  <span className="lb-ext-users-label">servers</span>
+                  {members != null && <span className="lb-metric-note">{members.toLocaleString()} members</span>}
+                </>
+              )}
+              <span className="lb-metric-note">{source}</span>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

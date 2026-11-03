@@ -11,7 +11,8 @@ export default function FloatingAssistant() {
   const [activated, setActivated] = useState(false);
   const launcher = useRef(null);
   const panel = useRef(null);
-  const hiddenRoute = /^\/(admin|chat|game)(\/|$)/.test(pathname);
+  // Booking, contact and privacy pages stay free of the launcher.
+  const hiddenRoute = /^\/(admin|chat|game|meet|contact|privacy)(\/|$)/.test(pathname);
 
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {

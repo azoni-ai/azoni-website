@@ -1,28 +1,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
-import { services } from '../data/consulting';
+import { bookingCta, consulting, projectEmailHref, resumePath, services } from '../data/consulting';
+import { profile } from '../data/profile';
 import '../styles/services-consulting.css';
 
 const DETAILS = {
   'applied-ai': {
-    heading: 'Less busywork. More useful work.',
     description: 'Find the manual steps slowing your team down, connect the tools you already use, and put AI to work where it can make a difference.',
-    examples: ['Find answers across your internal documents', 'Turn incoming information into organized, actionable work', 'Connect business tools and automate repeated handoffs'],
     delivery: 'A working integration or AI workflow, with evaluation, visibility into costs and errors, and human review where it matters.',
   },
   'product-engineering': {
-    heading: 'Software built around your business.',
     description: 'Build an application people can use, or improve one you already rely on. I work across the interface, APIs, data, and infrastructure.',
-    examples: ['Replace a cumbersome spreadsheet with an internal tool', 'Create a customer portal, dashboard, or web application', 'Connect your data and make existing systems easier to use'],
     delivery: 'Working software, deployed and documented, with a clear path for maintenance and the next improvement.',
   },
   'principal-engineering': {
-    heading: 'An experienced engineer on your side.',
     description: 'Work through a technical decision, move a stalled project forward, or add hands-on engineering leadership to your team.',
-    examples: ['Review an existing system and prioritize improvements', 'Choose an architecture for a new product or AI capability', 'Work alongside your engineers on implementation and delivery'],
     delivery: 'Clear technical direction and hands-on implementation, shaped around your team and the work ahead.',
   },
 };
@@ -36,13 +31,20 @@ const PROCESS = [
 export default function Services() {
   return (
     <Layout>
-      <Seo title="Software & AI consulting" path="/services" description="Azoni helps businesses of any size improve with software, AI automation, connected workflows, and hands-on engineering by Charlton Smith." />
+      <Seo title="Consulting" path="/services" description="Software and AI consulting through Azoni LLC: AI and workflow automation, software for your business, and hands-on engineering help." />
       <div className="services-page consult-container">
         <header className="services-hero">
-          <p className="consult-eyebrow">Software · AI · Automation</p>
-          <h1>Make your business<br /><span>work better.</span></h1>
-          <p>I help businesses of any size turn slow processes, disconnected tools, and new ideas into useful software. You work directly with me, from the first conversation through implementation.</p>
-          <div className="services-hero-actions"><a className="consult-text-link" href="#services">Explore the services <ArrowRight size={16} aria-hidden="true" /></a></div>
+          <p className="consult-eyebrow">Consulting through Azoni LLC</p>
+          <h1>Software and AI consulting</h1>
+          <p>The work suits teams that need an experienced engineer for something specific: a manual process to automate, a product to build or improve, or a system that needs senior attention. You work directly with me, from the first conversation through implementation.</p>
+          <div className="services-byline">
+            <img src={profile.photo} alt="" width="56" height="56" decoding="async" />
+            <div>
+              <p className="services-byline-name">{profile.name}</p>
+              <p>Principal software engineer. Previously <span className="services-nowrap">T-Mobile</span> and Capital One, and co-founder of OLI Fitness.</p>
+              <p className="services-byline-links"><Link to="/about">About me</Link><Link to={resumePath}>Résumé</Link></p>
+            </div>
+          </div>
         </header>
 
         <div id="services" className="services-list">
@@ -50,16 +52,20 @@ export default function Services() {
             const detail = DETAILS[service.id];
             return (
               <section className="services-detail" id={service.id} key={service.id} aria-labelledby={`${service.id}-heading`}>
-                <div className="services-index"><span>{service.number}</span><p>{service.title}</p></div>
+                <div className="services-index"><span>{service.number}</span></div>
                 <div className="services-main">
-                  <h2 id={`${service.id}-heading`}>{detail.heading}</h2>
+                  <h2 id={`${service.id}-heading`}>{service.title}</h2>
                   <p>{detail.description}</p>
-                  <Link className="consult-text-link" to={service.example}>{service.exampleLabel} <ArrowRight size={16} aria-hidden="true" /></Link>
+                  <div className="services-fit"><h3>Good fit if&hellip;</h3><p>{service.fit}</p></div>
+                  <div className="services-delivery"><h3>What you leave with</h3><p>{detail.delivery}</p></div>
                 </div>
                 <div className="services-examples">
-                  <h3>What this could look like</h3>
-                  <ul>{detail.examples.map(example => <li key={example}>{example}</li>)}</ul>
-                  <div className="services-delivery"><h3>What you leave with</h3><p>{detail.delivery}</p></div>
+                  <h3>Work I&rsquo;ve done like this</h3>
+                  <ul className="services-proof">{service.proof.map(item => <li key={item.name}>
+                    <p className="services-proof-name">{item.name} <span>{item.kind}</span></p>
+                    <p>{item.text}</p>
+                    <Link className="consult-text-link" to={item.to}>{item.linkLabel}<span className="sr-only">: {item.name}</span> <ArrowRight size={15} aria-hidden="true" /></Link>
+                  </li>)}</ul>
                 </div>
               </section>
             );
@@ -67,10 +73,20 @@ export default function Services() {
         </div>
 
         <section className="services-process" aria-labelledby="services-process-title">
-          <div><p className="consult-eyebrow">A straightforward process</p><h2 id="services-process-title">Start with the problem.<br />Make something useful.</h2><p>A focused improvement, a new product, or an ongoing engineering partnership. We can shape the work around what your business needs.</p></div>
+          <div><p className="consult-eyebrow">How a project runs</p><h2 id="services-process-title">We start with the problem, then build something useful.</h2><p>The work can be a focused improvement, a new product, or an ongoing engineering partnership, shaped around what you need.</p></div>
           <ol>{PROCESS.map((step, index) => <li key={step.title}><span aria-hidden="true">0{index + 1}</span><div><h3>{step.title}</h3><p>{step.description}</p></div></li>)}</ol>
         </section>
 
+        <section className="services-cta" aria-labelledby="services-cta-title">
+          <div>
+            <h2 id="services-cta-title">Tell me what you&rsquo;re working on.</h2>
+            <p>Send me a short email about the problem and the business around it. We can work out the technical side together.</p>
+          </div>
+          <div className="consult-actions">
+            <Link className="consult-button" to={bookingCta.to}>{bookingCta.label} <ArrowRight size={17} aria-hidden="true" /></Link>
+            <a className="consult-text-link" href={projectEmailHref}>{consulting.email} <ArrowUpRight size={16} aria-hidden="true" /></a>
+          </div>
+        </section>
       </div>
     </Layout>
   );

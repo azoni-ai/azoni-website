@@ -195,22 +195,23 @@ const AiTools = () => {
         title={AI_TOOLS.title}
         description={AI_TOOLS.description}
         path={AI_TOOLS.path}
-        noIndex={AI_TOOLS.unlisted}
+        noIndex={AI_TOOLS.unlisted || count === 0}
       />
       <div className="ai-tools-page secondary-page">
         <div className="ai-tools-inner">
           <header className="ai-tools-header">
-            <p className="secondary-eyebrow">Studio / Tool notes</p>
+            <p className="secondary-eyebrow">Tool notes</p>
             <h1 className="ai-tools-heading">{AI_TOOLS.title}</h1>
             <p className="ai-tools-tagline">Practical notes on AI tools: where they fit, the tradeoffs, and what to check before choosing one for a project.</p>
-            <div className="ai-tools-header-meta">
-              {status === 'ready' && (
+            {/* No count or feed link until there is at least one published note. */}
+            {status === 'ready' && count > 0 && (
+              <div className="ai-tools-header-meta">
                 <span className="ai-tools-count">
                   {count} {count === 1 ? 'tool' : 'tools'}
                 </span>
-              )}
-              <a href={AI_TOOLS.feedPath} className="ai-tools-feed-link">Subscribe via RSS</a>
-            </div>
+                <a href={AI_TOOLS.feedPath} className="ai-tools-feed-link">Subscribe via RSS</a>
+              </div>
+            )}
             <SecondaryPageLinks compact />
           </header>
 

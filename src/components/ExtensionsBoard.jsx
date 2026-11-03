@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { projects } from '../data/projects';
 
-// Reuses the leaderboard card styles (leaderboard.css) with an extension-specific
-// right-hand metric (install count) instead of the visitor stat cluster.
+// Browser extensions I publish, with their Chrome Web Store user counts. Uses the
+// leaderboard row styles (leaderboard.css). When the live scrape fails, a dated
+// count is shown instead of the function's older fallback.
 
-const fmt = (n) => {
-  if (n == null || !Number.isFinite(n)) return null;
-  if (n >= 100000) return `${Math.round(n / 1000)}k`;
-  if (n >= 10000) return `${(n / 1000).toFixed(1)}k`;
-  return n.toLocaleString();
+const gem = projects.find((project) => project.id === 'fab-stats').gemExporter;
+const DATED = {
+  [gem.key]: { users: gem.users, asOf: `As of ${gem.asOf}` },
 };
 
-const MEDAL = [null, 'gold', 'silver', 'bronze'];
-const brand = (name) => String(name || '').split('—')[0].trim() || name || '—';
+const displayName = (name) => String(name || '').replace(/\s*—\s*/, ' ').trim();
 
 export default function ExtensionsBoard() {
   const [data, setData] = useState(null);
@@ -43,7 +42,7 @@ export default function ExtensionsBoard() {
     return (
       <div className="lb-state">
         <div className="lb-spinner" />
-        <p>Fetching install counts…</p>
+        <p>Loading user counts…</p>
       </div>
     );
   }
@@ -51,91 +50,55 @@ export default function ExtensionsBoard() {
   const exts = data?.extensions || [];
   if (failed || !exts.length) {
     return (
-      <div className="lb-state">
-        <h3>No extensions yet</h3>
-        <p>
-          Published browser extensions show here, ranked by installs.
-          {failed && ' (Live counts load on the deployed site.)'}
-        </p>
-      </div>
+      <p className="lb-state-note" role="status">
+        Live user counts are unavailable right now. As of {gem.asOf}, the FaB Stats GEM Exporter had {gem.users.toLocaleString('en-US')} users.
+      </p>
     );
   }
 
-  const totalInstalls = exts.reduce((t, e) => t + (Number.isFinite(e.users) ? e.users : 0), 0);
-  const max = exts.reduce((m, e) => Math.max(m, Number.isFinite(e.users) ? e.users : 0), 0);
-  const showBar = exts.length > 1;
-
-  const kpis = [
-    { label: 'Total installs', value: fmt(totalInstalls) ?? '0' },
-    { label: 'Extensions', value: exts.length },
-    { label: 'Store', value: 'Chrome' },
-    { label: 'Most installed', value: brand(exts[0]?.name), text: true },
-  ];
-
   return (
-    <>
-      <div className="lb-kpis">
-        {kpis.map((k) => (
-          <div className="lb-kpi" key={k.label}>
-            <span className={`lb-kpi-val${k.text ? ' is-text' : ''}`}>{k.value}</span>
-            <span className="lb-kpi-label">{k.label}</span>
-          </div>
-        ))}
-      </div>
+    <ul className="lb-list">
+      {exts.map((e) => {
+        const dated = DATED[e.key];
+        const users = e.live && Number.isFinite(e.users) ? e.users : dated?.users ?? null;
+        const source = e.live ? 'Chrome Web Store' : dated ? dated.asOf : 'Not measured';
+        const name = displayName(e.name);
+        return (
+          <li key={e.key} className="lb-row is-plain" style={{ '--row-color': e.color || '#8a8178' }}>
+            <a
+              className="lb-card-link"
+              href={e.store}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${name}, open in the Chrome Web Store`}
+            />
+            <span className="lb-icon" aria-hidden="true">
+              {e.icon ? <img src={e.icon} alt="" loading="lazy" /> : <span className="lb-icon-fallback">{name.charAt(0)}</span>}
+            </span>
 
-      <ol className="lb-list">
-        {exts.map((e, i) => {
-          const rank = i + 1;
-          const medal = MEDAL[rank] || null;
-          const pct = max > 0 && Number.isFinite(e.users) ? Math.max(3, Math.round((e.users / max) * 100)) : 0;
-          return (
-            <li key={e.key} className={`lb-row${rank === 1 ? ' is-leader' : ''}`} style={{ '--row-color': e.color || '#8a8178' }}>
-              <a
-                className="lb-card-link"
-                href={e.store}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`${e.name} — open in the Chrome Web Store`}
-              />
-              <div className="lb-rank">
-                <span className={`lb-rank-badge${medal ? ` ${medal}` : ''}`}>{rank}</span>
+            <div className="lb-body">
+              <div className="lb-name-row">
+                <span className="lb-name">
+                  {name}
+                  <span className="lb-ext" aria-hidden="true">↗</span>
+                </span>
+                <span className="lb-tag lb-tag-store">{e.browser || 'Chrome'}</span>
               </div>
+              {e.blurb && <p className="lb-blurb">{e.blurb}</p>}
+            </div>
 
-              <span className="lb-icon" aria-hidden="true">
-                {e.icon ? <img src={e.icon} alt="" loading="lazy" /> : <span className="lb-icon-fallback">{e.name?.charAt(0)}</span>}
-              </span>
-
-              <div className="lb-body">
-                <div className="lb-name-row">
-                  <span className="lb-name">
-                    {e.name}
-                    <span className="lb-ext" aria-hidden="true">↗</span>
-                  </span>
-                  <span className="lb-tag lb-tag-store">{e.browser || 'Chrome'}</span>
-                  {e.category && <span className="lb-tag lb-tag-cat">{e.category}</span>}
-                </div>
-                {e.blurb && <p className="lb-blurb">{e.blurb}</p>}
-                {showBar && (
-                  <div className="lb-barwrap">
-                    <div className="lb-bar" aria-hidden="true">
-                      <div className="lb-bar-fill" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="lb-ext-metric">
-                <span className="lb-ext-users">{fmt(e.users) ?? '—'}</span>
-                <span className="lb-ext-users-label">installs</span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-
-      {data?.updatedAt && (
-        <p className="lb-footnote">Install counts scraped from the Chrome Web Store · cached ~6&nbsp;h.</p>
-      )}
-    </>
+            <div className="lb-ext-metric">
+              {Number.isFinite(users) && (
+                <>
+                  <span className="lb-ext-users">{users.toLocaleString()}</span>
+                  <span className="lb-ext-users-label">users</span>
+                </>
+              )}
+              <span className="lb-metric-note">{source}</span>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

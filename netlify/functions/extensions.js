@@ -23,7 +23,8 @@ const EXTENSIONS = [
     color: '#ef4444',
     browser: 'Chrome',
     blurb: 'Export your GEM match history into FaB Stats in one click',
-    fallbackUsers: 557,
+    // Chrome Web Store count as of November 2026; keep in step with gemExporter in src/data/projects.js.
+    fallbackUsers: 793,
   },
 ];
 

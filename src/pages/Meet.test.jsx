@@ -2,6 +2,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import Meet from './Meet';
 
+jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }), { virtual: true });
 jest.mock('../components/Layout', () => ({ children }) => <main>{children}</main>);
 jest.mock('../components/Seo', () => () => null);
 
@@ -13,9 +14,11 @@ function type(input, value) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-async function renderMeet(postReply) {
+const openTimes = (slots = SLOTS) => json({ timezone: 'America/Los_Angeles', durationMinutes: 30, slots });
+
+async function renderMeet(postReply, getReply = () => openTimes()) {
   global.IS_REACT_ACT_ENVIRONMENT = true;
-  global.fetch = jest.fn((_url, init) => (init?.method === 'POST' ? postReply() : json({ timezone: 'America/Los_Angeles', durationMinutes: 30, slots: SLOTS })));
+  global.fetch = jest.fn((_url, init) => (init?.method === 'POST' ? postReply() : getReply()));
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -38,6 +41,10 @@ test('groups open times by day, books the picked slot, and confirms it', async (
     expect(page.container.querySelectorAll('.az-meet-day')).toHaveLength(2);
     expect(page.container.querySelectorAll('.az-meet-time')).toHaveLength(2);
     expect(page.container.querySelector('.az-meet-form')).toBeNull();
+    expect(page.container.querySelector('.az-meet-privacy')).toBeNull();
+
+    await page.click(page.container.querySelector('.az-meet-time'));
+    expect(page.container.querySelector('.az-meet-privacy a').getAttribute('href')).toBe('/privacy');
 
     await pickFirstTimeAndSubmit(page);
     const [, init] = global.fetch.mock.calls.find(([, i]) => i?.method === 'POST');
@@ -57,6 +64,71 @@ test('a slot taken in the meantime refreshes the times and says so', async () =>
     expect(global.fetch.mock.calls.filter(([, i]) => !i)).toHaveLength(2);
     expect(page.container.querySelector('.az-meet-form')).toBeNull();
     expect(page.container.textContent).toContain('That time was just taken');
+  } finally {
+    page.cleanup();
+  }
+});
+
+test('says whose call it is and links the résumé and LinkedIn', async () => {
+  const page = await renderMeet(() => json({}));
+  try {
+    const heading = page.container.querySelector('.az-meet-heading').textContent;
+    expect(heading).toContain('A 30-minute call with Charlton Smith, principal software engineer in the Seattle area.');
+    const host = page.container.querySelector('.az-meet-host');
+    expect(host.querySelector('img').getAttribute('src')).toBe('/images/charlton-linkedin.jpg');
+    expect(host.textContent).toContain('Principal software engineer');
+    expect(host.querySelector('a[href="/resume"]')).not.toBeNull();
+    expect(host.querySelector('a[href="https://www.linkedin.com/in/charltonsmith"]')).not.toBeNull();
+  } finally {
+    page.cleanup();
+  }
+});
+
+const expectWaiting = (container, message) => {
+  expect(container.querySelector('.az-meet-details')).toBeNull();
+  expect(container.querySelector('.az-meet-main').classList.contains('is-waiting')).toBe(true);
+  expect(container.querySelector('.az-meet-waiting').textContent).toContain(message);
+  expect(container.querySelector('.az-meet-waiting a[href="mailto:charlton@azoni.ai"]')).not.toBeNull();
+};
+
+test('while times load, the details column stays hidden and email is offered', async () => {
+  const page = await renderMeet(() => json({}), () => new Promise(() => {}));
+  try {
+    expectWaiting(page.container, 'Loading open times');
+  } finally {
+    page.cleanup();
+  }
+});
+
+test('a failed load shows one message with the email fallback and no details column', async () => {
+  const page = await renderMeet(() => json({}), () => json({ error: 'Calendar unavailable' }, 503));
+  try {
+    expectWaiting(page.container, 'Open times couldn’t be loaded right now.');
+    expect(page.container.querySelectorAll('.az-meet-time')).toHaveLength(0);
+  } finally {
+    page.cleanup();
+  }
+});
+
+test('no open times shows one message with the email fallback and no details column', async () => {
+  const page = await renderMeet(() => json({}), () => openTimes([]));
+  try {
+    expectWaiting(page.container, 'Nothing is open in the next two weeks.');
+  } finally {
+    page.cleanup();
+  }
+});
+
+test('when the last open time is taken, the reason stays visible beside the email fallback', async () => {
+  let gets = 0;
+  const page = await renderMeet(
+    () => json({ error: 'That time was just taken. Please pick another.', code: 'slot_taken' }, 409),
+    () => openTimes(gets++ ? [] : SLOTS),
+  );
+  try {
+    await pickFirstTimeAndSubmit(page);
+    expectWaiting(page.container, 'Nothing is open in the next two weeks.');
+    expect(page.container.querySelector('.az-meet-waiting').textContent).toContain('That time was just taken');
   } finally {
     page.cleanup();
   }

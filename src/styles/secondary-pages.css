@@ -117,9 +117,12 @@
 .privacy-inner { max-width: 800px; margin: 0 auto; padding: 0 var(--space-xl); }
 .privacy-header { padding-bottom: 32px; border-bottom: 1px solid var(--border-warm); }
 .privacy-header h1 { margin: 0 0 18px; }
+/* Sans headings, as on the core pages and /blog. */
+.secondary-page.privacy-page h1,
+.secondary-page.live-page .live-heading { font-family: var(--font-body); }
 .privacy-header > p:last-child { max-width: 60ch; font-size: 1.08rem; line-height: 1.75; color: var(--text-warm-soft); }
 .privacy-section { margin-top: 32px; }
-.privacy-section h2 { font-family: var(--font-serif); font-size: 1.35rem; font-weight: 500; margin: 0 0 12px; }
+.privacy-section h2 { font-family: var(--font-body); font-size: 1.35rem; font-weight: 500; margin: 0 0 12px; }
 .privacy-section p { color: var(--text-warm-soft); font-size: 1rem; line-height: 1.8; margin: 0; }
 .privacy-section a { color: var(--text-warm); text-underline-offset: 4px; overflow-wrap: anywhere; }
 

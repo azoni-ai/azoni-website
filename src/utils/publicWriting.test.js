@@ -1,48 +1,60 @@
-import { createHash, webcrypto } from 'crypto';
-import { TextEncoder } from 'util';
-import { getReviewedWritingEntries, getReviewedWritingEntry, isReviewedPublicPost, WRITING_PAGE_SIZE } from './publicWriting';
+import {
+  BUILD_NOTES_ENDPOINT, BUILD_NOTE_SLUG, WRITING_PAGE_SIZE, fetchBuildNote, fetchBuildNotes,
+  formatNoteDate, isRetiredPostSlug, noteLabel, noteProducts, repositoryProject,
+} from './publicWriting';
+import policy from '../data/publicWritingPolicy.json';
 
-const post = {
-  id: 'reviewed-example', slug: '2026-10-01-independent-product-note', published: true,
-  title: 'A public product update', excerpt: 'An independent project.', content: 'A reviewed article.',
-  coverImage: '/images/example.svg', tags: ['product'], relatedProject: 'row-crew',
-};
-const contentSha256 = createHash('sha256').update(JSON.stringify([
-  'A public product update', 'An independent project.', 'A reviewed article.',
-  '/images/example.svg', ['product'], 'row-crew',
-])).digest('hex');
-const policy = {
-  writingRepositoryFullNames: ['azoni/rowing-tracker'],
-  reviewedPosts: [{ id: post.id, slug: post.slug, sourceRepos: ['azoni/rowing-tracker'], contentSha256 }],
-};
-const previousEncoder = global.TextEncoder;
-beforeAll(() => { global.TextEncoder = TextEncoder; });
-afterAll(() => { global.TextEncoder = previousEncoder; });
+const reply = (data, status = 200) => Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(data) });
 
-test('accepts only the exact reviewed document and content', async () => {
-  expect(await isReviewedPublicPost(post, policy, webcrypto)).toBe(true);
-  expect(await isReviewedPublicPost({ ...post, id: 'different-document' }, policy, webcrypto)).toBe(false);
-  expect(await isReviewedPublicPost({ ...post, slug: 'unknown-slug' }, policy, webcrypto)).toBe(false);
-  expect(await isReviewedPublicPost({ ...post, published: false }, policy, webcrypto)).toBe(false);
-});
-
-test.each(['title', 'excerpt', 'content', 'coverImage', 'tags', 'relatedProject'])('withholds changed %s until it is reviewed again', async (field) => {
-  const value = field === 'tags' ? ['unreviewed'] : 'Changed since review';
-  expect(await isReviewedPublicPost({ ...post, [field]: value }, policy, webcrypto)).toBe(false);
-});
-
-test('mixed or missing source provenance cannot authorize a post', async () => {
-  for (const sourceRepos of [[], ['unknown/repository'], ['azoni/rowing-tracker', 'unknown/repository']]) {
-    const changedPolicy = { ...policy, reviewedPosts: [{ ...policy.reviewedPosts[0], sourceRepos }] };
-    expect(getReviewedWritingEntries(changedPolicy)).toEqual([]);
-    expect(await isReviewedPublicPost(post, changedPolicy, webcrypto)).toBe(false);
+test('the two persona posts are retired, with their records kept', () => {
+  expect(policy.reviewedPosts).toBeUndefined();
+  expect(policy.retiredPosts.map((entry) => entry.id)).toEqual(['ZQwQx3mocObrXYwEDc8K', 'cZZQPxzyoUXRKbolvU8u']);
+  for (const entry of policy.retiredPosts) {
+    expect(entry.contentSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(entry.redirectTo).toBe('/blog');
+    expect(isRetiredPostSlug(entry.slug)).toBe(true);
   }
+  expect(isRetiredPostSlug('2026-11-01-fab-stats-season-filters')).toBe(false);
 });
 
-test('unreviewed slugs cannot select a document and missing digest support fails closed', async () => {
-  expect(getReviewedWritingEntry('unreviewed', policy)).toBeNull();
-  expect(getReviewedWritingEntry(post.slug, policy).id).toBe(post.id);
-  expect(await isReviewedPublicPost(post, policy, {})).toBe(false);
-  expect(getReviewedWritingEntries({})).toEqual([]);
+test('every writing repository maps to a product page', () => {
+  for (const repo of policy.writingRepositoryFullNames) {
+    expect(repositoryProject(repo)).toEqual({ title: expect.any(String), path: expect.stringMatching(/^\/projects\/[a-z0-9-]+$/) });
+  }
+  expect(repositoryProject('azoni/unknown')).toBeNull();
+  expect(noteProducts({ sourceRepos: ['azoni/azoni-mcp', 'azoni/azoni-moltbook-agent', 'azoni/unknown'] })).toEqual(['azoni.ai agent platform', 'azoni/unknown']);
+});
+
+test('the label says whether a language model wrote the note', () => {
+  expect(noteLabel({ generator: 'model' })).toBe('Automated · summary written by a language model');
+  expect(noteLabel({ generator: 'template' })).toBe('Automated · commit list');
+  expect(noteLabel({})).toBe('Automated');
+});
+
+test('dates come from the commit date, in UTC', () => {
+  expect(formatNoteDate({ commitDate: '2026-11-01', publishedAt: '2026-11-01T17:00:00.000Z' })).toBe('November 1, 2026');
+  expect(formatNoteDate({ publishedAt: '2026-10-30T17:00:00.000Z' })).toBe('October 30, 2026');
+  expect(formatNoteDate({})).toBe('');
+});
+
+test('the list and single-note reads go through the blog-posts function', async () => {
+  const fetchList = jest.fn(() => reply({ posts: [{ slug: '2026-11-01-a' }] }));
+  expect(await fetchBuildNotes(fetchList)).toEqual([{ slug: '2026-11-01-a' }]);
+  expect(fetchList).toHaveBeenCalledWith(BUILD_NOTES_ENDPOINT);
+  await expect(fetchBuildNotes(() => reply({}, 503))).rejects.toThrow('503');
+
+  const fetchOne = jest.fn(() => reply({ post: { slug: '2026-11-01-a' } }));
+  expect(await fetchBuildNote('2026-11-01-a', fetchOne)).toEqual({ slug: '2026-11-01-a' });
+  expect(fetchOne).toHaveBeenCalledWith(`${BUILD_NOTES_ENDPOINT}?slug=2026-11-01-a`);
+  expect(await fetchBuildNote('2026-11-01-a', () => reply({ error: 'Not found' }, 404))).toBeNull();
+  await expect(fetchBuildNote('2026-11-01-a', () => reply({}, 500))).rejects.toThrow('500');
+});
+
+test('a malformed slug never reaches the network', async () => {
+  const fetchOne = jest.fn();
+  expect(await fetchBuildNote('../admin', fetchOne)).toBeNull();
+  expect(await fetchBuildNote(undefined, fetchOne)).toBeNull();
+  expect(fetchOne).not.toHaveBeenCalled();
+  expect(BUILD_NOTE_SLUG.test('2026-11-01-fab-stats-season-filters')).toBe(true);
   expect(WRITING_PAGE_SIZE).toBe(12);
 });

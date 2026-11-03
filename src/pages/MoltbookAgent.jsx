@@ -188,10 +188,10 @@ const MoltbookAgent = () => {
 
   return (
     <Layout>
-      <Seo title="Moltbook agent" description="An independent experiment by Charlton Smith in multi-step AI agents, automated evaluation, and observable workflows." path="/moltbook" />
+      <Seo title="Moltbook agent" description="An independent experiment by Charlton Smith in multi-step AI agents, automated evaluation, and observable workflows." path="/moltbook" noIndex />
       <section className="moltbook-page moltbook-page-warm secondary-page">
         <div className="container">
-          <p className="secondary-eyebrow">Studio / Agent experiment</p>
+          <p className="secondary-eyebrow">Agent experiment</p>
           {/* Header */}
           <header className="moltbook-header">
             <div className="moltbook-title-row">

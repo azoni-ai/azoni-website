@@ -48,9 +48,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Blog posts - public read; written by agents (Admin SDK) and admin-data.
+    // Blog posts - no client access. /blog reads compliant build notes through
+    // the blog-posts function (Admin SDK), so the older generated posts stay
+    // in the collection without being public. Deploy this only after the
+    // blog-posts function and the new Blog pages are live.
     match /blogPosts/{postId} {
-      allow read: if true;
+      allow read: if false;
       allow write: if false;
     }
 

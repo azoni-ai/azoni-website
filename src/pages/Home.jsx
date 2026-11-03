@@ -1,52 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import Layout from '../components/Layout';
 import Seo from '../components/Seo';
 import HomeHero from '../components/home/HomeHero';
-import CommitStats from '../components/home/CommitStats';
-import { services } from '../data/consulting';
+import { bookingCta, consulting, meetLive, projectEmailHref, resumePath } from '../data/consulting';
+import { projects } from '../data/projects';
 import { workStories } from '../data/workStories';
-import { GITHUB_STATS_URL, isContributionPayload } from '../utils/githubTelemetry';
-import '../styles/home-v2.css';
 import '../styles/home-consulting.css';
 
-const WORK = [
-  { id: 'embedroute', name: 'EmbedRoute' },
-  { id: 'fab-stats', name: 'FaB Stats' },
-  { id: 'old-ways-today', name: 'Old Ways Today' },
-].map(work => ({ ...work, ...workStories[work.id] }));
+// FaB Stats first; a story without a screenshot is skipped rather than shown broken.
+const WORK = ['fab-stats', 'old-ways-today', 'embedroute']
+  .map(id => ({ id, name: projects.find(project => project.id === id)?.title, ...workStories[id] }))
+  .filter(work => work.name && work.preview?.src);
 
 export default function Home() {
-  const [githubStats, setGithubStats] = useState(null);
-  const [githubLoading, setGithubLoading] = useState(true);
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-    fetch(GITHUB_STATS_URL, { signal: controller.signal })
-      .then(async response => {
-        if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) throw new Error('Unavailable');
-        const data = await response.json();
-        if (data.error || !isContributionPayload(data)) throw new Error('Unavailable');
-        if (active) setGithubStats(data);
-      })
-      .catch(() => { if (active) setGithubStats(null); })
-      .finally(() => { clearTimeout(timeout); if (active) setGithubLoading(false); });
-    return () => { active = false; clearTimeout(timeout); controller.abort(); };
-  }, []);
-
   return <Layout>
-    <Seo path="/" description="Azoni is Charlton Smith's software and AI consulting business. Helping businesses of any size improve how they work through software, automation, and practical AI." />
+    <Seo path="/" description="I build and run AI products and the infrastructure behind them. Principal software engineer in the Seattle area." />
     <div className="home-consulting">
       <div className="consult-container"><HomeHero /></div>
 
       <section className="azoni-work consult-container" aria-labelledby="selected-work-heading">
         <div className="azoni-section-heading">
-          <div><p className="consult-eyebrow">Selected work</p><h2 id="selected-work-heading">Built. Shipped. Still improving.</h2></div>
+          <div><p className="consult-eyebrow">Selected work</p><h2 id="selected-work-heading">Products I build and run</h2></div>
           <Link className="consult-text-link" to="/projects">Explore all work <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
-        <p className="azoni-section-intro">Independent products I design, build, and operate. A closer look at how I turn an idea into working software.</p>
+        <p className="azoni-section-intro">I build and run each of these myself. Each page covers what I built and how it works.</p>
         <div className="azoni-work-grid">
           {WORK.map(work => <Link className="azoni-work-item" to={'/projects/' + work.id} key={work.id}>
             <div className="azoni-work-image"><img src={work.preview.src} alt={work.preview.alt} width="1280" height="820" loading="lazy" /></div>
@@ -58,21 +37,35 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="azoni-services consult-container" aria-labelledby="home-help-heading">
-        <div className="azoni-section-heading">
-          <div><p className="consult-eyebrow">How I can help</p><h2 id="home-help-heading">Start with what slows you down.</h2></div>
-          <Link className="consult-text-link" to="/services">Services &amp; approach <ArrowRight size={16} aria-hidden="true" /></Link>
-        </div>
-        <div className="azoni-service-list">{services.map(service => <Link to={'/services#' + service.id} className="azoni-service-row" key={service.id}><span className="azoni-service-number">{service.number}</span><h3>{service.title}</h3><p>{service.summary}</p><ArrowUpRight size={21} aria-hidden="true" /></Link>)}</div>
-      </section>
-
       <section className="azoni-background consult-container" aria-labelledby="background-heading">
-        <div><p className="consult-eyebrow">The engineer behind the work</p><h2 id="background-heading">Curious by nature.<br />Hands-on by choice.</h2></div>
-        <div><p>College weekends at hackathons. A master&rsquo;s degree while working at T-Mobile. Engineering at Capital One. And the last few years deep in AI, building and running products of my own.</p><p>Today, I work with a client as a principal software engineer with a strong AI focus. Through Azoni, I bring that experience to businesses looking for a better way to work.</p><Link className="consult-text-link" to="/about">My story &amp; experience <ArrowRight size={16} aria-hidden="true" /></Link></div>
+        <div><p className="consult-eyebrow">Background</p><h2 id="background-heading">How I got here</h2></div>
+        <div>
+          <p>I spent my college weekends at hackathons and co-founded OLI Fitness. I earned a master&rsquo;s degree while working at T-Mobile, then worked as a senior software engineer at Capital One. Over the last few years I&rsquo;ve gone deep into AI, building and running products of my own.</p>
+          <div className="azoni-person-links">
+            <Link className="consult-text-link" to="/about">My story and experience <ArrowRight size={16} aria-hidden="true" /></Link>
+            <Link className="consult-text-link" to={resumePath}>Résumé <ArrowRight size={16} aria-hidden="true" /></Link>
+          </div>
+        </div>
       </section>
 
-      <div className="azoni-telemetry"><CommitStats githubStats={githubStats} loading={githubLoading} compact /><div className="azoni-live-link consult-container"><span>Curious about what&rsquo;s running behind the scenes?</span><Link className="consult-text-link" to="/live">Explore the live dashboard <ArrowRight size={16} aria-hidden="true" /></Link></div></div>
+      <section className="azoni-consulting consult-container" aria-labelledby="home-consulting-heading">
+        <div><p className="consult-eyebrow">Consulting</p><h2 id="home-consulting-heading">Work with me through Azoni</h2></div>
+        <div>
+          <p>Through Azoni LLC, I consult on the three kinds of work described on the consulting page. You work directly with me, from the first conversation through implementation.</p>
+          <Link className="consult-text-link" to="/services">How consulting works <ArrowRight size={16} aria-hidden="true" /></Link>
+        </div>
+      </section>
 
+      <section className="azoni-next consult-container" aria-labelledby="home-next-heading">
+        <div>
+          <h2 id="home-next-heading">Want to talk?</h2>
+          <p>{meetLive ? 'Pick a time for a 30-minute call, or send me an email.' : 'Send me an email about what you have in mind.'}</p>
+        </div>
+        <div className="consult-actions">
+          <Link className="consult-button" to={bookingCta.to}>{bookingCta.label} <ArrowRight size={17} aria-hidden="true" /></Link>
+          <a className="consult-text-link" href={projectEmailHref}>{consulting.email} <ArrowUpRight size={16} aria-hidden="true" /></a>
+        </div>
+      </section>
     </div>
   </Layout>;
 }

@@ -1,4 +1,60 @@
 /CharltonResume.pdf  /CharltonSmith-Consulting.pdf  301!
 /charltonresume.pdf /CharltonSmith-Consulting.pdf 301!
 /ai-tools/feed.xml  /.netlify/functions/ai-tools/feed  200
-/*    /index.html   200
+# Work page curation (Nov 2026): merged project pages. Keep above the catch-all.
+/projects/azoni-mcp  /projects/azoni-ai  301
+/projects/moltbook-agent  /projects/azoni-ai  301
+/projects/fab-stats-bot  /projects/fab-stats  301
+/projects/meeplematch  /projects/launchpad  301
+/projects/benchmark  /projects/launchpad  301
+/projects/repmatch  /projects/launchpad  301
+/projects/macromarket  /projects/launchpad  301
+/projects/tcgdoku  /projects  301
+# Retired persona posts (Nov 2026): documents kept in Firestore; URLs go to /blog. Keep above the catch-all.
+/blog/2026-09-28-leveling-up-with-usurp-the-shadow-throne-in-fab-stats  /blog  301
+/blog/2026-03-07-ux-overhaul-weekend-charts-seasons-and-mobile-fixes  /blog  301
+# Route status (Nov 2026): every route in src/App.jsx and every project page is
+# served with 200; any other URL gets the app shell with a real 404 status.
+# tests/route-coverage.test.cjs fails when a route or project id has no rule here.
+/  /index.html  200
+/services  /index.html  200
+/contact  /index.html  200
+/meet  /index.html  200
+/about  /index.html  200
+/aboutme  /index.html  200
+/projects  /index.html  200
+/projects/fab-stats  /index.html  200
+/projects/azoni-ai  /index.html  200
+/projects/old-ways-today  /index.html  200
+/projects/row-crew  /index.html  200
+/projects/bench-only  /index.html  200
+/projects/embedroute  /index.html  200
+/projects/spell-brigade  /index.html  200
+/projects/launchpad  /index.html  200
+/projects/pyroguard  /index.html  200
+/projects/dustbunny  /index.html  200
+/projects/oli-fitness  /index.html  200
+/projects/hashmaps  /index.html  200
+/projects/dayrun  /index.html  200
+/projects/crypto-tax-2025  /index.html  200
+/projects/polymarket-tool  /index.html  200
+/projects/blackdiamond  /index.html  200
+/projects/image-pipeline-api  /index.html  200
+/projects/scryfall-ai  /index.html  200
+/chat  /index.html  200
+/resume  /index.html  200
+/privacy  /index.html  200
+/admin  /index.html  200
+/blog  /index.html  200
+/blog/*  /index.html  200
+/ai-tools  /index.html  200
+/ai-tools/*  /index.html  200
+/moltbook  /index.html  200
+/game  /index.html  200
+/live  /index.html  200
+/activity  /index.html  200
+/commits  /index.html  200
+/leaderboard  /index.html  200
+/board  /index.html  200
+/hub  /index.html  200
+/*  /index.html  404

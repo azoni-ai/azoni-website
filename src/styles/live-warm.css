@@ -23,7 +23,7 @@
 }
 
 .live-heading {
-  font-family: var(--font-serif);
+  font-family: var(--font-body);
   font-weight: 500;
   font-size: clamp(2.25rem, 5vw, 3.25rem);
   letter-spacing: -0.02em;
@@ -100,21 +100,18 @@
   padding-right: var(--space-xl);
 }
 
-/* In embedded mode the leaderboard's own title is hidden, so drop the tab
-   strip's top margin that was meant to sit beneath it. */
-.live-body .lb-page.is-embedded .lb-tabs {
-  margin-top: 0;
-}
-
 /* The embedded leaderboard already has a padded inner container. Its own
    page gutters otherwise narrow a 320px screen twice and push the tabs out. */
 .live-body .lb-page.is-embedded {
   padding-inline: 0;
 }
 
-.live-body .lb-tab.active,
-.live-body .lb-window-btn.active {
-  color: #18110e;
+/* Views kept off the tab bar (?view=activity, ?view=stack) render bare
+   sections; this gives them the same width and gutters as the header. */
+.live-panel {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 var(--space-xl);
 }
 
 @media (max-width: 640px) {
@@ -127,27 +124,11 @@
   .live-tabs {
     max-width: 100%;
   }
-  .live-body .lb-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-    max-width: 100%;
-    border-radius: 12px;
-  }
-  .live-body .lb-tab {
-    min-width: 0;
-    min-height: 44px;
-    padding: 8px;
-    border-radius: 8px;
-  }
-  .live-body .lb-window-btn {
+  .live-tab {
     min-height: 44px;
   }
-  .live-body .lb-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .live-body .lb-kpi {
-    min-width: 0;
+  .live-panel {
+    padding: 0 var(--space-md);
   }
   .live-body .lb-container,
   .live-body .activity-container,

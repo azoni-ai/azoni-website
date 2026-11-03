@@ -17,7 +17,7 @@ export default function Activity({ embedded = false }) {
     <div className="consult-operation-stats">{stats.map(([label, value, period, format]) => <div key={label}><span>{label}</span><strong>{Number.isFinite(value) ? (format === 'cost' ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value) : value.toLocaleString()) : '—'}</strong><small>{period}</small></div>)}</div>
     {summary && !Number.isFinite(summary.actionCount30d) && <p role="status">Usage totals are temporarily unavailable.</p>}
     <p className="consult-operations-note">This view shows totals rather than individual conversations or internal logs.</p>
-    <Link className="consult-text-link" to="/projects/azoni-mcp">Explore the shared agent infrastructure →</Link>
+    <Link className="consult-text-link" to="/projects/azoni-ai">Explore the shared agent infrastructure →</Link>
   </section>;
   return embedded ? content : <Layout><Seo title="Agent operations" path="/activity" /><div className="consult-page consult-container">{content}</div></Layout>;
 }

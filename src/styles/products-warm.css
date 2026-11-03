@@ -146,14 +146,6 @@
   color: var(--text-warm);
 }
 
-.product-card-status {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
-  flex: none;
-  box-shadow: 0 0 8px currentColor;
-}
-
 .product-card-tagline {
   font-size: 0.88rem;
   color: var(--text-warm-soft);
@@ -174,7 +166,7 @@
   align-self: flex-start;
 }
 
-/* Live metrics row */
+/* Dated figure row */
 .product-card-metrics {
   display: flex;
   flex-wrap: wrap;
@@ -203,14 +195,6 @@
 
 .product-metric--impact .product-metric-value {
   color: var(--accent-coral);
-}
-
-.product-metric-live {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: #4ade80;
-  box-shadow: 0 0 6px #4ade80;
 }
 
 .product-metric-label {
@@ -244,6 +228,7 @@
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-sm);
   padding: 2px 7px;
+  white-space: nowrap;
 }
 
 .product-card-visit {

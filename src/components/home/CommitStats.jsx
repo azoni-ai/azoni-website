@@ -40,7 +40,7 @@ const CommitStats = ({ githubStats, loading = githubStats == null, compact = fal
         <p className="commit-scope">
           Account-wide <a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">GitHub contribution calendar</a> totals. Reporting periods use Pacific time{throughDate ? `, through ${throughDate}` : ''}.
         </p>
-        {unavailable && <p className="commit-scope" role="status">Contribution totals are temporarily unavailable. <a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">View GitHub &nearr;</a></p>}
+        {unavailable && <p className="commit-scope" role="status">Contribution totals are temporarily unavailable. <a href="https://github.com/azoni" target="_blank" rel="noopener noreferrer">View GitHub &#8599;</a></p>}
 
         {attribution && (
           <AttributionContainer className="commit-band-split">
