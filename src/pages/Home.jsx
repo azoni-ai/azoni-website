@@ -16,12 +16,12 @@ const fab = project('fab-stats');
 const dustbunny = project('dustbunny');
 const oli = project('oli-fitness');
 
-// FaB Stats is what I run today; Dustbunny and OLI Fitness are the larger
-// projects that came before it. Their text comes from projects.js. OLI Fitness
+// FaB Stats is the largest product I run today; Dustbunny and OLI Fitness are
+// the larger projects that came before it. Their text comes from projects.js. OLI Fitness
 // has no photo, so its card shows its CHI 2017 paper instead.
 const WORK = [
   { id: fab.id, name: fab.title, ...workStories[fab.id] },
-  { id: dustbunny.id, name: dustbunny.title, label: `Distributed systems · ${dustbunny.facts.years}`, summary: dustbunny.description, preview: { ...dustbunny.photo, position: 'center' } },
+  { id: dustbunny.id, name: dustbunny.title, label: `Distributed systems · ${dustbunny.facts.years}`, summary: dustbunny.description, preview: { ...dustbunny.photo, position: 'center 30%' } },
   { id: oli.id, name: oli.title, label: `Computer vision · ${oli.facts.years}`, summary: oli.description, fact: oli.metric },
 ];
 
@@ -38,7 +38,7 @@ export default function Home() {
           <div><p className="consult-eyebrow">Selected work</p><h2 id="selected-work-heading">What I&rsquo;ve built</h2></div>
           <Link className="consult-text-link" to="/projects">Explore all work <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
-        <p className="azoni-section-intro">FaB Stats is what I run today. Dustbunny and OLI Fitness came before it.</p>
+        <p className="azoni-section-intro">FaB Stats is the largest product I run today. Dustbunny and OLI Fitness came before it.</p>
         <div className="azoni-work-grid">
           {WORK.map(work => <Link className="azoni-work-item" to={'/projects/' + work.id} key={work.id}>
             {work.fact

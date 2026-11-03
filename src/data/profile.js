@@ -43,7 +43,8 @@ export const skillLabels = {
 
 // The one source for About's experience list (/resume shows the PDF resume).
 // kind: 'role' is a job or engagement; 'project' is something I built and ran myself.
-// summary is the one-paragraph version (About); highlights are the bullets under it.
+// summary is the one-paragraph version About shows. highlights (like skills
+// below) are kept as source text and are not shown on any page.
 export const experience = [
   {
     id: "principal",

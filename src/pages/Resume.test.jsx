@@ -5,7 +5,6 @@ import path from 'path';
 import Resume from './Resume';
 import { profile, experience } from '../data/profile';
 
-jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }), { virtual: true });
 jest.mock('../components/Layout', () => ({ children }) => <main>{children}</main>);
 let mockSeoProps;
 jest.mock('../components/Seo', () => props => { mockSeoProps = props; return null; });
@@ -41,7 +40,7 @@ test('the PDF ships with the site and no redirect sends its URL elsewhere', () =
   expect(redirects.filter(line => line.trim().startsWith(profile.links.resume + ' '))).toEqual([]);
 });
 
-test('every experience entry has what the About page needs', () => {
+test('every experience entry in profile.js is complete', () => {
   const ids = new Set();
   for (const job of experience) {
     expect(['role', 'project']).toContain(job.kind);
