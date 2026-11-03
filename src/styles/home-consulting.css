@@ -38,6 +38,7 @@
 .azoni-work-item:hover h3 { color: var(--accent-coral); }
 .azoni-background { border-top: 1px solid var(--border-warm); display: grid; grid-template-columns: 1fr 1fr; gap: 85px; }
 .azoni-background > div:last-child > p { color: var(--text-warm-soft); font-size: 16px; line-height: 1.8; margin-bottom: 20px; }
+.azoni-background .azoni-nowrap { white-space: nowrap; }
 .consult-button.azoni-button-quiet { background: transparent; color: var(--text-warm); border-color: var(--border-warm-strong); }
 .consult-button.azoni-button-quiet:hover { background: transparent; border-color: var(--accent-coral); color: var(--accent-coral); }
 .azoni-proof { padding-block: 26px 4px; }

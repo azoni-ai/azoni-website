@@ -7,6 +7,7 @@ export const config = {
   path: [
     '/meet',
     '/game',
+    '/board',
     // Until the Moltbook agent is kept, paused or retired.
     '/moltbook',
     '/ai-tools',

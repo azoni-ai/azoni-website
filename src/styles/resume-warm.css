@@ -62,16 +62,16 @@
 .resume-meta li {
   display: flex;
   align-items: center;
-  gap: 6px;
   min-width: 0;
 }
 
+/* The list's column gap sits before the dot and this margin after it,
+   so each dot stays centred between its neighbours. */
 .resume-meta li + li::before {
   content: '·';
   color: var(--text-warm-muted);
   opacity: 0.5;
   margin-right: var(--space-md);
-  margin-left: -6px;
 }
 
 .resume-meta a {
@@ -325,6 +325,10 @@
 
 /* Printing or saving as PDF from the browser: the résumé only, dark on white. */
 @media print {
+  @page {
+    margin: 0.5in;
+  }
+
   body,
   .consulting-site {
     background: #ffffff !important;
@@ -350,7 +354,38 @@
     padding: 0;
   }
 
+  .resume-header {
+    margin-bottom: var(--space-md);
+  }
+
+  .resume-meta {
+    margin-bottom: 0;
+  }
+
+  .resume-meta a {
+    min-height: 0;
+  }
+
+  /* One column on paper at any page width. Pages break between entries,
+     not whole sections: Experience is taller than a page. */
   .resume-section {
+    display: block;
+    padding: var(--space-md) 0;
+  }
+
+  .resume-section > h2 {
+    margin: 0 0 var(--space-sm);
+    break-after: avoid;
+  }
+
+  .resume-entry + .resume-entry {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+  }
+
+  .resume-entry,
+  .resume-awards > li,
+  .resume-skills > div {
     break-inside: avoid;
   }
 }

@@ -66,3 +66,20 @@ test('the edge function marks every unlisted project noindex and no listed one',
   for (const id of listed) assert.ok(!edgePaths.includes(`/projects/${id}`), `/projects/${id} is listed but sent noindex`);
   assert.ok(!edgePaths.includes('/blog'), 'the /blog list stays indexable');
 });
+
+test('the edge function covers every route whose page is always noindex', () => {
+  const app = read('src/App.jsx');
+  const modules = Object.fromEntries([...app.matchAll(/const (\w+) = lazy\(\(\) => import\("\.\/([^"]+)"\)\);/g)].map((m) => [m[1], m[2]]));
+  const source = (name) => ['.jsx', '/index.jsx'].map((ext) => `src/${modules[name]}${ext}`).find((f) => fs.existsSync(path.join(root, f)));
+  const covered = (route) => edgePaths.some((p) => p === route || (p.endsWith('/*') && route.startsWith(p.slice(0, -1))));
+  const checked = [];
+  for (const [, route, name] of app.matchAll(/<Route path="([^"]+)" element=\{<(\w+) \/>\} \/>/g)) {
+    if (!modules[name]) continue;
+    // A <Seo> for this exact route with a bare noIndex, i.e. not tied to a state such as not found.
+    const always = [...read(source(name)).matchAll(/<Seo\b([\s\S]*?)\/>/g)].some(([, attrs]) => attrs.includes(`path="${route}"`) && /\bnoIndex(?![=\w])/.test(attrs));
+    if (!always) continue;
+    checked.push(route);
+    assert.ok(covered(route), `${route} is always noindex in the app but has no noindex header`);
+  }
+  assert.ok(checked.length >= 4, `the parser found only ${checked.join(', ')}`);
+});

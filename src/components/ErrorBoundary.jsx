@@ -1,37 +1,69 @@
 import React from 'react';
 
+// A tab opened before a deploy still asks for the old build's page chunks,
+// which the deploy removed. Reload once to pick up the new build. The session
+// flag stops a reload loop when a chunk fails for another reason.
+export const CHUNK_RELOAD_KEY = 'azoni-chunk-reload';
+
+const isChunkLoadError = (error) =>
+  error?.name === 'ChunkLoadError' || /Loading (CSS )?chunk \S+ failed/.test(error?.message || '');
+
+const shouldReloadFor = (error) => {
+  if (!isChunkLoadError(error)) return false;
+  try {
+    return !window.sessionStorage.getItem(CHUNK_RELOAD_KEY);
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Error Boundary component for catching render errors
  * Note: Error Boundaries must be class components (as of React 18)
- * 
+ *
  * Demonstrates: Class component lifecycle, error handling patterns
  */
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, reloading: false };
   }
 
   static getDerivedStateFromError(error) {
     // Update state so the next render will show the fallback UI
-    return { hasError: true, error };
+    return { hasError: true, error, reloading: shouldReloadFor(error) };
   }
 
   componentDidCatch(error, errorInfo) {
+    if (this.state.reloading) {
+      try {
+        window.sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+      } catch {
+        // shouldReloadFor already returned false when storage is unavailable.
+      }
+      window.location.reload();
+      return;
+    }
+
     // Log error to console (could send to error reporting service)
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({ errorInfo });
-    
+
     // Could send to error reporting service here
     // logErrorToService(error, errorInfo);
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState({ hasError: false, error: null, errorInfo: null, reloading: false });
   };
 
   render() {
     if (this.state.hasError) {
+      // Reloading onto the new build; showing the error would only flash.
+      if (this.state.reloading) {
+        return null;
+      }
+
       // Custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;

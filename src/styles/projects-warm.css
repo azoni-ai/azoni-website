@@ -46,6 +46,7 @@
 .projects-atwork > div:first-child { flex: 1 1 360px; min-width: 0; }
 .projects-atwork h2 { font-size: 20px; font-weight: 500; letter-spacing: -.02em; margin: 0 0 10px; }
 .projects-atwork p { color: var(--text-warm-soft); font-size: 15px; line-height: 1.7; margin: 0; max-width: 62ch; }
+.projects-atwork .projects-nowrap { white-space: nowrap; }
 .projects-atwork-links { display: flex; flex-wrap: wrap; gap: 8px 28px; }
 .projects-atwork-link { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; color: var(--text-warm); }
 .projects-atwork-link:hover { color: var(--accent-coral); }

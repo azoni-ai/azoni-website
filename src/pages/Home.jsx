@@ -40,7 +40,7 @@ export default function Home() {
       <section className="azoni-background consult-container" aria-labelledby="background-heading">
         <div><p className="consult-eyebrow">Background</p><h2 id="background-heading">How I got here</h2></div>
         <div>
-          <p>I spent my college weekends at hackathons and co-founded OLI Fitness. I earned a master&rsquo;s degree while working at T-Mobile, then worked as a senior software engineer at Capital One. Over the last few years I&rsquo;ve gone deep into AI, building and running products of my own.</p>
+          <p>I spent my college weekends at hackathons and co-founded OLI Fitness. I earned a master&rsquo;s degree while working at <span className="azoni-nowrap">T-Mobile</span>, then worked as a senior software engineer at Capital One. Over the last few years I&rsquo;ve gone deep into AI, building and running products of my own.</p>
           <div className="azoni-person-links">
             <Link className="consult-text-link" to="/about">My story and experience <ArrowRight size={16} aria-hidden="true" /></Link>
             <Link className="consult-text-link" to={resumePath}>Résumé <ArrowRight size={16} aria-hidden="true" /></Link>
