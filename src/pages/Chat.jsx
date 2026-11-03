@@ -10,15 +10,15 @@ import '../styles/chat-warm.css';
 
 const MODES = ['professional', 'friendly', 'casual', 'funny'];
 const TOPICS = [
-  { id: 'business', label: 'For your business', questions: [
-    'What could AI improve in my business?', 'Can you help automate a repetitive workflow?',
-    'What consulting services does Charlton offer?', 'Can Azoni help a small business?',
-    'How would you approach improving our existing software?', 'Where should we start with an AI idea?',
-  ] },
-  { id: 'work', label: 'Charlton & his work', questions: [
+  { id: 'work', label: 'Charlton’s work', questions: [
     'What has Charlton built?', 'How did Charlton get into software and AI?',
-    'Tell me about his college hackathons.', 'What did he work on at T-Mobile?',
-    'How does EmbedRoute work?', 'What is RowCrew?',
+    'Tell me about Charlton’s college hackathons.', 'What did Charlton work on at T-Mobile?',
+    'How does EmbedRoute work?', 'What is Row Crew?',
+  ] },
+  { id: 'business', label: 'For your business', questions: [
+    'What could AI improve in my business?', 'Can Charlton help automate a repetitive workflow?',
+    'What consulting services does Charlton offer?', 'How do I start a project with Charlton?',
+    'How would you approach improving our existing software?', 'Where should we start with an AI idea?',
   ] },
   { id: 'technical', label: 'Under the hood', questions: [
     'How does this assistant work?', 'How do retrieval and live tools work together?',
@@ -27,14 +27,14 @@ const TOPICS = [
   ] },
 ];
 const INITIAL_QUESTIONS = [
-  'What could AI improve in my business?', 'What has Charlton built?',
-  'How did Charlton get into software and AI?', 'How does this assistant work?',
+  'What has Charlton built?', 'How did Charlton get into software and AI?',
+  'What could AI improve in my business?', 'How does this assistant work?',
 ];
 const FOLLOW_UPS = {
   services: ['How could we start small?', 'Which work is relevant to applied AI?'],
   projects: ['How was this built?', 'What could this approach look like for my business?'],
-  experience: ['Which work shows his technical approach?', 'How did his path lead to AI?'],
-  skills: ['What has he built with that stack?', 'Can he help review our architecture?'],
+  experience: ['Which work shows Charlton’s technical approach?', 'How did Charlton’s path lead to AI?'],
+  skills: ['What has Charlton built with that stack?', 'Can Charlton help review our architecture?'],
   contact: ['What could AI improve in my business?', 'What has Charlton built?'],
   negotiation: ['What information helps scope an engagement?', 'How do I contact Charlton directly?'],
 };
@@ -71,7 +71,7 @@ function AnswerSources({ message }) {
     <details className="chat-answer-sources">
       <summary>Sources and details</summary>
       <ul>
-        <li>Current consulting profile</li>
+        <li>Current profile</li>
         {sources.map(title => <li key={title}>{title}</li>)}
         {message.fitness?.enabled && <li>Live app data</li>}
       </ul>
@@ -215,7 +215,7 @@ const Chat = () => {
               {TOPICS.map(item => <button type="button" key={item.id} aria-pressed={topic === item.id} onClick={() => { setTopic(topic === item.id ? null : item.id); setSuggestionOffset(0); }}>{item.label}</button>)}
             </div>
             <button type="button" className="chat-more-questions" aria-label="More question ideas" title="More question ideas" onClick={() => {
-              if (!topic) { setTopic('business'); setSuggestionOffset(4); }
+              if (!topic) { setTopic('work'); setSuggestionOffset(2); }
               else setSuggestionOffset(offset => offset + 2);
             }}><RotateCw size={15} aria-hidden="true" /></button>
           </div>
