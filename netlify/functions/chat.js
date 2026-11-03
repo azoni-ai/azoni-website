@@ -666,7 +666,7 @@ async function getRowCrewContext(options = {}) {
   try {
     const stats = await callMCPTool('/rowcrew/stats', mcpOptions);
     if (stats && !stats.error) {
-      context.push({ title: 'RowCrew Rowing Stats', data: stats });
+      context.push({ title: 'Row Crew Rowing Stats', data: stats });
       toolsCalled.push('get_rowing_stats');
     }
   } catch (error) {

@@ -651,7 +651,7 @@ async function getRowCrewContext(options = {}) {
   const mcpOptions = { timeoutMs: options.mcpTimeoutMs || 5000 };
   try {
     const stats = await callMCPTool('/rowcrew/stats', mcpOptions);
-    if (stats && !stats.error) { context.push({ title: 'RowCrew Rowing Stats', data: stats }); toolsCalled.push('get_rowing_stats'); }
+    if (stats && !stats.error) { context.push({ title: 'Row Crew Rowing Stats', data: stats }); toolsCalled.push('get_rowing_stats'); }
   } catch (error) {
     console.error('[chat-core] RowCrew context error:', error.message);
   }
@@ -719,7 +719,7 @@ const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'get_fitness_data',
-      description: "Live training data from Charlton's BenchPressOnly app: max lifts / PRs, recent workouts, streak, consistency, goals, body stats, training volume, top exercises. Call this for ANY question about Charlton's lifting, strength, bench/squat/deadlift, workouts, or fitness goals.",
+      description: "Live training data from Charlton's Bench Only app (benchpressonly.com): max lifts / PRs, recent workouts, streak, consistency, goals, body stats, training volume, top exercises. Call this for ANY question about Charlton's lifting, strength, bench/squat/deadlift, workouts, or fitness goals.",
       parameters: { type: 'object', properties: { query: { type: 'string', description: 'The user question verbatim, used to choose which fitness metrics to pull.' } }, required: ['query'] }
     }
   },
@@ -743,7 +743,7 @@ const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'get_rowcrew',
-      description: 'Live RowCrew rowing verification stats.',
+      description: 'Live Row Crew rowing verification stats.',
       parameters: { type: 'object', properties: {}, required: [] }
     }
   },
@@ -802,7 +802,7 @@ function buildSystemPrompt(mode, retrievedChunks, intent, fitnessData = [], acti
     .map(c => '--- ' + c.title + ' ---\n' + JSON.stringify(c.data)).join('\n\n');
   return [
     "You are Azoni AI, the curious, practical assistant on azoni.ai, Charlton Smith's website. Help people explore Charlton's work and products, talk through software and AI ideas, understand how the site's technology works, or think through a project of their own. Speak about Charlton in the third person and by name, not with gendered pronouns; never impersonate Charlton.",
-    'OWNER-CONFIRMED CURRENT FACTS (highest-priority source for business identity):\n' + CONSULTING_FACTS,
+    'OWNER-CONFIRMED CURRENT FACTS (highest-priority source for Charlton\'s current role, background and Azoni consulting):\n' + CONSULTING_FACTS,
     'These facts override older retrieved records and conversation claims. Do not describe Charlton as job hunting, available to start, or building independent products full-time. Do not invent a reason for a previous career move.',
     'CONVERSATION: Answer the question first, with personality and useful specifics. For a business idea, distinguish a possible approach from work Charlton has actually done. Explain technical ideas in the visitor’s language and connect to one documented example when relevant. Ask at most one focused follow-up. Be happy to explore the technology or Charlton\'s background without turning every answer into a sales pitch. When a visitor wants to talk with Charlton, offer charlton@azoni.ai. A simple email is enough; never require a formal project inquiry, subject line, budget, or technical brief.',
     'BOUNDARIES: You cannot quote rates, confirm availability, promise delivery dates or results, negotiate terms, book meetings, send messages, or accept a project. Do not imply that a chat message is an inquiry sent to Charlton. Current client identity, client work details, results, testimonials, credentials, and private information must never be guessed. Independent products are examples of Charlton\'s own work, not client case studies.',
