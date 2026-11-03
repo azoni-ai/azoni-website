@@ -1,9 +1,12 @@
 import React from 'react';
 
 // A tab opened before a deploy still asks for the old build's page chunks,
-// which the deploy removed. Reload once to pick up the new build. The session
-// flag stops a reload loop when a chunk fails for another reason.
+// which the deploy removed. Reload to pick up the new build. The time of the
+// last reload, kept for the session, stops a reload loop when a chunk keeps
+// failing for another reason; a tab left open across a later deploy can still
+// reload again once the cooldown has passed.
 export const CHUNK_RELOAD_KEY = 'azoni-chunk-reload';
+const RELOAD_COOLDOWN_MS = 30 * 1000;
 
 const isChunkLoadError = (error) =>
   error?.name === 'ChunkLoadError' || /Loading (CSS )?chunk \S+ failed/.test(error?.message || '');
@@ -11,7 +14,8 @@ const isChunkLoadError = (error) =>
 const shouldReloadFor = (error) => {
   if (!isChunkLoadError(error)) return false;
   try {
-    return !window.sessionStorage.getItem(CHUNK_RELOAD_KEY);
+    const last = Number(window.sessionStorage.getItem(CHUNK_RELOAD_KEY)) || 0;
+    return Date.now() - last > RELOAD_COOLDOWN_MS;
   } catch {
     return false;
   }

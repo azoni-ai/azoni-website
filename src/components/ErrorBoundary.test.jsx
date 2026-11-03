@@ -55,12 +55,24 @@ test('a stylesheet chunk that fails to load reloads too', () => {
   }
 });
 
-test('a chunk that still fails after the reload shows the error page instead of reloading again', () => {
-  window.sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+test('a chunk that still fails right after the reload shows the error page instead of reloading again', () => {
+  window.sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now() - 2000));
   const { container, cleanup } = renderWith(chunkError());
   try {
     expect(reload).not.toHaveBeenCalled();
     expect(container.textContent).toContain('Something went wrong');
+  } finally {
+    cleanup();
+  }
+});
+
+test('a tab left open across a later deploy reloads again', () => {
+  const earlier = Date.now() - 10 * 60 * 1000;
+  window.sessionStorage.setItem(CHUNK_RELOAD_KEY, String(earlier));
+  const { cleanup } = renderWith(chunkError());
+  try {
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(Number(window.sessionStorage.getItem(CHUNK_RELOAD_KEY))).toBeGreaterThan(earlier);
   } finally {
     cleanup();
   }
