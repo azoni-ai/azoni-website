@@ -15,7 +15,7 @@ const TOPICS = [
     'Tell me about Charlton’s college hackathons.', 'What did Charlton work on at T-Mobile?',
     'How does EmbedRoute work?', 'What is Row Crew?',
   ] },
-  { id: 'business', label: 'For your business', questions: [
+  { id: 'business', label: 'Working with Charlton', questions: [
     'What could AI improve in my business?', 'Can Charlton help automate a repetitive workflow?',
     'What consulting services does Charlton offer?', 'How do I start a project with Charlton?',
     'How would you approach improving our existing software?', 'Where should we start with an AI idea?',
@@ -163,7 +163,7 @@ const Chat = () => {
 
   return (
     <Layout hideFooter>
-      <Seo title="Ask Azoni AI" description="Explore Charlton Smith’s work, talk through software and AI ideas for your business, or look under the hood of Azoni AI." path="/chat" />
+      <Seo title="Ask Azoni AI" description="Explore Charlton Smith’s work, talk through a software or AI idea, or look under the hood of Azoni AI." path="/chat" />
       <div className="chat-container chat-page-warm consulting-chat">
         <header className="chat-header">
           <div>

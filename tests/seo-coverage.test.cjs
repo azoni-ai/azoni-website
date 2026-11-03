@@ -48,8 +48,7 @@ test('the sitemap leaves out noindex pages', () => {
   for (const loc of sitemap) {
     assert.ok(!edgePaths.some((p) => p === loc || (p.endsWith('/*') && loc.startsWith(p.slice(0, -1)))), `sitemap lists noindex ${loc}`);
   }
-  // /chat still renders; it leaves the sitemap until its copy is reworked.
-  for (const loc of ['/meet', '/game', '/moltbook', '/chat', '/ai-tools', '/board', '/admin']) assert.ok(!sitemap.includes(loc), `sitemap lists ${loc}`);
+  for (const loc of ['/meet', '/game', '/moltbook', '/ai-tools', '/board', '/admin']) assert.ok(!sitemap.includes(loc), `sitemap lists ${loc}`);
   assert.ok(!sitemap.some((loc) => loc.startsWith('/blog/')), 'build notes are noindex and stay out of the sitemap');
 });
 
